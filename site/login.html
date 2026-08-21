@@ -181,6 +181,14 @@
   .success-panel .icon svg{ stroke:var(--teal); width:26px; height:26px; }
   .success-panel h2{ font-family:var(--display); font-size:24px; margin-bottom:10px; }
   .success-panel p{ font-size:14.5px; color:rgba(28,35,51,0.65); max-width:320px; margin:0 auto 4px; line-height:1.6; }
+
+  .back-link{ display:inline-flex; align-items:center; gap:6px; font-size:13.5px; font-weight:600; color:var(--teal); margin-top:22px; }
+  .back-link:hover{ text-decoration:underline; }
+
+  .code-input{
+    letter-spacing:.5em; text-align:center; font-family:var(--mono); font-size:20px !important;
+  }
+  .hint{ font-size:12.5px; color:rgba(28,35,51,0.55); margin-top:6px; line-height:1.5; }
 </style>
 </head>
 <body>
@@ -247,7 +255,7 @@
               <input type="checkbox" id="remember" name="remember">
               <label for="remember">Se souvenir de moi</label>
             </span>
-            <a href="#">Mot de passe oublié ?</a>
+            <a href="#" id="forgot-link">Mot de passe oublié ?</a>
           </div>
 
           <button type="submit" class="btn btn-primary" id="submit-btn">Se connecter</button>
@@ -259,6 +267,57 @@
           <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62Z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.98v2.33A9 9 0 0 0 9 18Z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.66 9c0-.59.1-1.17.29-1.7V4.97H.98A9 9 0 0 0 0 9c0 1.45.35 2.83.98 4.03l2.97-2.33Z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .98 4.97l2.97 2.33C4.66 5.17 6.65 3.58 9 3.58Z"/></svg>
           Continuer avec Google
         </button>
+      </div>
+
+      <!-- ============================ MOT DE PASSE OUBLIÉ ============================ -->
+      <div id="recover-view" style="display:none;">
+        <h2>Mot de passe oublié</h2>
+        <p class="sub">Indiquez votre adresse : si un compte Cadence lui correspond, un lien de réinitialisation vous sera envoyé.</p>
+
+        <div class="form-errors" id="recover-errors" role="alert" tabindex="-1">
+          <h3>Corrigez les champs suivants avant de continuer :</h3>
+          <ul id="recover-errors-list"></ul>
+        </div>
+
+        <form id="recover-form" novalidate>
+          <div class="field">
+            <label for="recover-email">Email <span class="req">*</span></label>
+            <input type="email" id="recover-email" name="email" autocomplete="email" aria-describedby="recover-email-error" required>
+            <div class="error" id="recover-email-error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg><span></span></div>
+          </div>
+          <button type="submit" class="btn btn-primary" id="recover-submit-btn">Envoyer le lien</button>
+        </form>
+
+        <a href="#" class="back-link" id="recover-back-link"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Retour à la connexion</a>
+      </div>
+
+      <div class="success-panel" id="recover-sent-view">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+        <h2>Vérifiez votre boîte mail</h2>
+        <p>Si un compte existe pour cette adresse, un lien de réinitialisation vient d'être envoyé. Il reste valable une heure.</p>
+        <a href="#" class="back-link" id="recover-sent-back-link" style="justify-content:center;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Retour à la connexion</a>
+      </div>
+
+      <!-- ============================ VÉRIFICATION MFA ============================ -->
+      <div id="mfa-view" style="display:none;">
+        <h2>Vérification en deux étapes</h2>
+        <p class="sub">Entrez le code à 6 chiffres affiché dans votre application d'authentification (Google Authenticator ou équivalent).</p>
+
+        <div class="form-errors" id="mfa-errors" role="alert" tabindex="-1">
+          <h3>Le code n'a pas pu être vérifié :</h3>
+          <ul id="mfa-errors-list"></ul>
+        </div>
+
+        <form id="mfa-form" novalidate>
+          <div class="field">
+            <label for="mfa-code">Code <span class="req">*</span></label>
+            <input type="text" id="mfa-code" class="code-input" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="6" aria-describedby="mfa-code-error" required>
+            <div class="error" id="mfa-code-error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg><span></span></div>
+          </div>
+          <button type="submit" class="btn btn-primary" id="mfa-submit-btn">Vérifier</button>
+        </form>
+
+        <a href="#" class="back-link" id="mfa-signout-link">Ce n'est pas vous ? Se déconnecter</a>
       </div>
 
       <div class="success-panel" id="success-view">
@@ -342,15 +401,18 @@
     }
     googleBtn.disabled = true;
     const { error } = await supabase.auth.signInWithOAuth({
+      // Revient sur login.html, jamais directement sur la destination finale :
+      // c'est ici, et seulement ici, qu'on vérifie si le compte a la vérification
+      // en deux étapes activée avant de laisser entrer (voir apresConnexion()).
       provider: 'google',
-      options: { redirectTo: window.location.origin + '/' + destinationApresConnexion() }
+      options: { redirectTo: window.location.origin + '/login.html' }
     });
     if(error){
       googleBtn.disabled = false;
       showServerError("Impossible de se connecter avec Google pour le moment. Réessayez dans un instant.");
     }
-    // En cas de succès, le navigateur est redirigé vers Google puis revient sur
-    // clients.html — ou sur parametres.html?invite=… si une invitation était en attente.
+    // En cas de succès, le navigateur est redirigé vers Google puis revient ici,
+    // avec une session déjà ouverte — l'IIFE init() plus bas prend le relais.
   });
 
   function showServerError(message){
@@ -417,14 +479,187 @@
       return;
     }
 
+    document.getElementById('form-view').style.display = 'none';
+    await apresConnexion();
+  });
+
+  // --------------------------------------------------------------- après connexion
+  // Point de passage UNIQUE, quel que soit le chemin qui a amené une session
+  // (mot de passe ci-dessus, ou retour Google plus bas via init()) : une session
+  // qui exige la vérification en deux étapes (AAL2) mais ne l'a pas encore passée
+  // ne doit jamais atteindre clients.html. C'est le même choix que
+  // `document-render.js` pour l'affichage d'un document : un seul chemin, pas
+  // un dans chaque écran qui finirait par diverger.
+  async function apresConnexion(){
+    const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if(!error && data.nextLevel === 'aal2' && data.currentLevel !== data.nextLevel){
+      ouvrirEtapeMFA();
+    } else {
+      redirigerApresSucces();
+    }
+  }
+
+  function redirigerApresSucces(){
     const destination = destinationApresConnexion();
     if(destination !== 'clients.html'){
       document.getElementById('success-redirect-text').textContent = "Redirection vers votre invitation d'équipe…";
     }
     document.getElementById('form-view').style.display = 'none';
+    document.getElementById('mfa-view').style.display = 'none';
     document.getElementById('success-view').classList.add('show');
     setTimeout(()=>{ window.location.href = destination; }, 700);
+  }
+
+  // ------------------------------------------------------------- mot de passe oublié
+  const recoverLink = document.getElementById('forgot-link');
+  const recoverBackLinks = [document.getElementById('recover-back-link'), document.getElementById('recover-sent-back-link')];
+  const recoverForm = document.getElementById('recover-form');
+  const recoverErrorsBox = document.getElementById('recover-errors');
+  const recoverErrorsList = document.getElementById('recover-errors-list');
+  const recoverSubmitBtn = document.getElementById('recover-submit-btn');
+
+  function afficherVue(id){
+    ['form-view','recover-view','recover-sent-view','mfa-view'].forEach(v=>{
+      const el = document.getElementById(v);
+      if(v === 'recover-sent-view') el.classList.toggle('show', v === id);
+      else el.style.display = (v === id) ? '' : 'none';
+    });
+  }
+
+  recoverLink.addEventListener('click', function(e){
+    e.preventDefault();
+    recoverErrorsBox.classList.remove('show');
+    document.getElementById('recover-email').value = document.getElementById('email').value;
+    afficherVue('recover-view');
+    document.getElementById('recover-email').focus();
   });
+  recoverBackLinks.forEach(a => a.addEventListener('click', function(e){
+    e.preventDefault();
+    afficherVue('form-view');
+  }));
+
+  recoverForm.addEventListener('submit', async function(e){
+    e.preventDefault();
+    const email = document.getElementById('recover-email').value.trim();
+    const msg = validators.email(email);
+    const errEl = document.getElementById('recover-email-error');
+    const input = document.getElementById('recover-email');
+    if(msg){
+      input.setAttribute('aria-invalid','true');
+      errEl.querySelector('span').textContent = msg;
+      errEl.classList.add('show');
+      recoverErrorsList.innerHTML = `<li><a href="#recover-email">${msg}</a></li>`;
+      recoverErrorsBox.classList.add('show');
+      recoverErrorsBox.focus();
+      return;
+    }
+    input.removeAttribute('aria-invalid');
+    errEl.classList.remove('show');
+    recoverErrorsBox.classList.remove('show');
+
+    if(!configured){
+      recoverErrorsList.innerHTML = '';
+      recoverErrorsBox.querySelector('h3').textContent = "Cadence n'est pas encore connecté à Supabase.";
+      recoverErrorsBox.classList.add('show');
+      return;
+    }
+
+    recoverSubmitBtn.disabled = true;
+    recoverSubmitBtn.textContent = 'Envoi…';
+    // Le message affiché ensuite est volontairement le même que l'adresse existe
+    // ou non côté Supabase — ne jamais laisser deviner quels emails ont un compte.
+    await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + '/nouveau-mot-de-passe.html'
+    });
+    recoverSubmitBtn.disabled = false;
+    recoverSubmitBtn.textContent = 'Envoyer le lien';
+    afficherVue('recover-sent-view');
+  });
+
+  // ------------------------------------------------------------------- MFA (code)
+  const mfaForm = document.getElementById('mfa-form');
+  const mfaErrorsBox = document.getElementById('mfa-errors');
+  const mfaErrorsList = document.getElementById('mfa-errors-list');
+  const mfaSubmitBtn = document.getElementById('mfa-submit-btn');
+
+  function ouvrirEtapeMFA(){
+    afficherVue('mfa-view');
+    mfaErrorsBox.classList.remove('show');
+    document.getElementById('mfa-code').value = '';
+    document.getElementById('mfa-code').focus();
+  }
+
+  function showMfaError(message){
+    mfaErrorsBox.querySelector('h3').textContent = message;
+    mfaErrorsList.innerHTML = '';
+    mfaErrorsBox.classList.add('show');
+    mfaErrorsBox.focus();
+  }
+
+  mfaForm.addEventListener('submit', async function(e){
+    e.preventDefault();
+    const code = document.getElementById('mfa-code').value.trim();
+    if(!/^\d{6}$/.test(code)){
+      showMfaError('Saisissez les 6 chiffres du code.');
+      return;
+    }
+    mfaErrorsBox.classList.remove('show');
+    mfaSubmitBtn.disabled = true;
+    mfaSubmitBtn.textContent = 'Vérification…';
+
+    const { data: listData, error: listErr } = await supabase.auth.mfa.listFactors();
+    const facteur = !listErr && listData.totp && listData.totp[0];
+    if(!facteur){
+      mfaSubmitBtn.disabled = false;
+      mfaSubmitBtn.textContent = 'Vérifier';
+      showMfaError("Aucune application d'authentification n'est reliée à ce compte. Contactez le support.");
+      return;
+    }
+
+    const { data: challengeData, error: challengeErr } = await supabase.auth.mfa.challenge({ factorId: facteur.id });
+    if(challengeErr){
+      mfaSubmitBtn.disabled = false;
+      mfaSubmitBtn.textContent = 'Vérifier';
+      showMfaError("La vérification n'a pas pu être lancée. Réessayez.");
+      return;
+    }
+
+    const { error: verifyErr } = await supabase.auth.mfa.verify({
+      factorId: facteur.id, challengeId: challengeData.id, code
+    });
+
+    mfaSubmitBtn.disabled = false;
+    mfaSubmitBtn.textContent = 'Vérifier';
+
+    if(verifyErr){
+      showMfaError('Ce code est incorrect ou a expiré.');
+      document.getElementById('mfa-code').value = '';
+      document.getElementById('mfa-code').focus();
+      return;
+    }
+
+    redirigerApresSucces();
+  });
+
+  document.getElementById('mfa-signout-link').addEventListener('click', async function(e){
+    e.preventDefault();
+    await supabase.auth.signOut();
+    window.location.reload();
+  });
+
+  // -------------------------------------------------------------------- démarrage
+  // Une session déjà ouverte ici signifie soit un retour Google (redirectTo pointe
+  // désormais vers login.html, jamais directement vers clients.html — voir plus
+  // haut), soit un onglet déjà connecté qu'on rouvre sur cette page : dans les
+  // deux cas, on rejoue exactement la même vérification qu'après un mot de passe.
+  (async function init(){
+    if(!configured) return;
+    const { data } = await supabase.auth.getSession();
+    if(data.session){
+      document.getElementById('form-view').style.display = 'none';
+      await apresConnexion();
+    }
+  })();
 </script>
 
 </body>

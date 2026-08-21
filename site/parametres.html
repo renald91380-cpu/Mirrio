@@ -378,6 +378,7 @@
     <div id="content" style="display:none;">
       <div class="tabs" role="tablist" aria-label="Sections des paramètres">
         <button class="tab" role="tab" id="tab-entreprise" aria-controls="panel-entreprise" aria-selected="true" data-tab="entreprise" type="button">Entreprise</button>
+        <button class="tab" role="tab" id="tab-securite" aria-controls="panel-securite" aria-selected="false" data-tab="securite" type="button">Sécurité</button>
         <button class="tab" role="tab" id="tab-apparence" aria-controls="panel-apparence" aria-selected="false" data-tab="apparence" type="button">Apparence</button>
         <button class="tab" role="tab" id="tab-documents" aria-controls="panel-documents" aria-selected="false" data-tab="documents" type="button">Devis &amp; factures</button>
         <button class="tab" role="tab" id="tab-prestations" aria-controls="panel-prestations" aria-selected="false" data-tab="prestations" type="button">Prestations</button>
@@ -445,6 +446,79 @@
 
           <div class="note-box">
             Aperçu : « <strong id="vocab-demo">Vos séances</strong> » en titre d'agenda, « <strong id="vocab-demo2">Ajouter une séance</strong> » sur le bouton principal.
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================ SÉCURITÉ ============================ -->
+      <div class="panel" role="tabpanel" id="panel-securite" aria-labelledby="tab-securite" tabindex="0" hidden>
+        <div class="card">
+          <h2>Mot de passe</h2>
+          <p class="card-sub">Changez le mot de passe de connexion à votre compte Cadence. Si vous vous connectez uniquement avec Google, ceci en ajoute un, utilisable en plus.</p>
+
+          <div class="form-errors" id="password-errors" role="alert" tabindex="-1">
+            <h3 id="password-errors-heading"></h3>
+          </div>
+
+          <form id="password-form">
+            <div class="field">
+              <label for="new-password">Nouveau mot de passe <span class="req">*</span></label>
+              <input type="password" id="new-password" autocomplete="new-password" aria-describedby="new-password-error">
+              <div class="hint">8 caractères minimum.</div>
+              <div class="error" id="new-password-error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg><span></span></div>
+            </div>
+            <div class="field" style="max-width:340px;">
+              <label for="new-password-confirm">Confirmer le mot de passe <span class="req">*</span></label>
+              <input type="password" id="new-password-confirm" autocomplete="new-password" aria-describedby="new-password-confirm-error">
+              <div class="error" id="new-password-confirm-error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg><span></span></div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm" id="password-save" style="align-self:flex-start;">Mettre à jour le mot de passe</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>Authentification à deux facteurs</h2>
+          <p class="card-sub">Ajoutez un code à usage unique généré par une application comme Google Authenticator, en plus de votre mot de passe — même un mot de passe volé ne suffit alors plus pour accéder à votre compte.</p>
+
+          <div id="mfa-off-state">
+            <div class="note-box">Aucune application d'authentification n'est reliée à ce compte pour l'instant.</div>
+            <button type="button" class="btn btn-outline btn-sm" id="mfa-activer-btn" style="margin-top:14px;">Activer la vérification en deux étapes</button>
+          </div>
+
+          <div id="mfa-on-state" style="display:none;">
+            <div class="membre-list">
+              <div class="membre-row">
+                <div class="mb-main">
+                  <div class="mb-email">Application d'authentification</div>
+                  <div class="mb-meta" id="mfa-on-meta"></div>
+                </div>
+                <span class="badge-role actif">Activée</span>
+                <button type="button" class="btn btn-danger-text" id="mfa-desactiver-btn">Désactiver</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="mfa-enroll-state" style="display:none; margin-top:16px; border-top:1px solid rgba(28,35,51,0.1); padding-top:18px;">
+            <div style="display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start;">
+              <img id="mfa-qr" alt="Code QR à scanner avec votre application d'authentification" width="176" height="176" style="width:176px; height:176px; border:1px solid rgba(28,35,51,0.14); border-radius:8px; background:#fff;">
+              <div style="flex:1; min-width:220px;">
+                <p style="font-size:12.5px; color:rgba(28,35,51,0.5); margin-bottom:10px;">Scannez ce code avec Google Authenticator (ou une application équivalente), ou saisissez cette clé manuellement :</p>
+                <div class="invite-link-box" style="display:flex; align-items:center;">
+                  <div class="il-url" id="mfa-secret"></div>
+                  <button class="btn btn-outline btn-sm" type="button" id="mfa-secret-copy">Copier</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="field" style="max-width:180px; margin-top:16px;">
+              <label for="mfa-enroll-code">Code à 6 chiffres</label>
+              <input type="text" id="mfa-enroll-code" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="6" aria-describedby="mfa-enroll-code-error">
+              <div class="error" id="mfa-enroll-code-error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg><span></span></div>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:6px;">
+              <button type="button" class="btn btn-primary btn-sm" id="mfa-confirmer-btn">Confirmer</button>
+              <button type="button" class="btn btn-ghost btn-sm" id="mfa-annuler-btn" style="color:var(--ink); border-color:rgba(28,35,51,0.2);">Annuler</button>
+            </div>
           </div>
         </div>
       </div>
@@ -1547,6 +1621,167 @@
     return new Date(iso).toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
   }
 
+  // ------------------------------------------------------------- sécurité
+  function showPasswordError(message){
+    document.getElementById('password-errors-heading').textContent = message;
+    document.getElementById('password-errors').classList.add('show');
+  }
+
+  document.getElementById('password-form').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    document.getElementById('password-errors').classList.remove('show');
+
+    const pwd = document.getElementById('new-password').value;
+    const pwd2 = document.getElementById('new-password-confirm').value;
+    let bad = false;
+    bad = setFieldError('new-password', pwd.length < 8 ? '8 caractères minimum.' : '') || bad;
+    bad = setFieldError('new-password-confirm', pwd2 !== pwd ? 'Les deux mots de passe ne correspondent pas.' : '') || bad;
+    if(bad) return;
+
+    const btn = document.getElementById('password-save');
+    btn.disabled = true;
+    btn.textContent = 'Mise à jour…';
+    const { error } = await supabase.auth.updateUser({ password: pwd });
+    btn.disabled = false;
+    btn.textContent = 'Mettre à jour le mot de passe';
+
+    if(error){
+      showPasswordError("Impossible de mettre à jour le mot de passe pour le moment. Réessayez dans un instant.");
+      return;
+    }
+    document.getElementById('password-form').reset();
+    showToast('Mot de passe mis à jour.');
+  });
+
+  // MFA (TOTP) — `chargerSecurite()` lit l'état réel depuis Supabase (source de
+  // vérité), jamais un simple booléen mis en cache côté client : un facteur
+  // désenrôlé depuis un autre appareil doit se refléter au prochain chargement.
+  let facteurEnAttente = null; // { id } — posé pendant l'enrôlement, avant confirmation du code
+
+  function setMfaEnrollError(message){
+    const input = document.getElementById('mfa-enroll-code');
+    const errorEl = document.getElementById('mfa-enroll-code-error');
+    if(message){
+      input.setAttribute('aria-invalid','true');
+      errorEl.querySelector('span').textContent = message;
+      errorEl.classList.add('show');
+    } else {
+      input.removeAttribute('aria-invalid');
+      errorEl.classList.remove('show');
+    }
+  }
+
+  async function chargerSecurite(){
+    const { data, error } = await supabase.auth.mfa.listFactors();
+    const facteur = !error && data.totp && data.totp.find(f => f.status === 'verified');
+
+    document.getElementById('mfa-enroll-state').style.display = 'none';
+    document.getElementById('mfa-off-state').style.display = facteur ? 'none' : '';
+    document.getElementById('mfa-on-state').style.display = facteur ? '' : 'none';
+    if(facteur){
+      document.getElementById('mfa-on-meta').textContent = facteur.created_at
+        ? 'Activée le ' + formatDateFr(facteur.created_at)
+        : 'Activée';
+    }
+  }
+
+  document.getElementById('mfa-activer-btn').addEventListener('click', async ()=>{
+    const btn = document.getElementById('mfa-activer-btn');
+    btn.disabled = true;
+    // Un compte peut accumuler des facteurs `unverified` abandonnés (QR affiché
+    // puis onglet fermé sans confirmer) : Supabase en autorise un nombre limité
+    // par utilisateur, donc on nettoie les précédents avant d'en recréer un —
+    // sinon un deuxième essai finit par échouer sans explication visible.
+    const { data: existants } = await supabase.auth.mfa.listFactors();
+    if(existants && existants.totp){
+      for(const f of existants.totp){
+        if(f.status !== 'verified') await supabase.auth.mfa.unenroll({ factorId: f.id });
+      }
+    }
+
+    const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Cadence' });
+    btn.disabled = false;
+    if(error){
+      showToast("L'activation n'a pas pu démarrer. Vérifiez que la vérification en deux étapes est activée côté Supabase (Authentication → Providers).", true);
+      return;
+    }
+
+    facteurEnAttente = { id: data.id };
+    document.getElementById('mfa-qr').src = data.totp.qr_code;
+    document.getElementById('mfa-secret').textContent = data.totp.secret;
+    setMfaEnrollError('');
+    document.getElementById('mfa-enroll-code').value = '';
+    document.getElementById('mfa-off-state').style.display = 'none';
+    document.getElementById('mfa-enroll-state').style.display = '';
+    document.getElementById('mfa-enroll-code').focus();
+  });
+
+  document.getElementById('mfa-secret-copy').addEventListener('click', async ()=>{
+    try{
+      await navigator.clipboard.writeText(document.getElementById('mfa-secret').textContent);
+      showToast('Clé copiée.');
+    }catch(e){
+      showToast('Impossible de copier automatiquement — sélectionnez la clé à la main.', true);
+    }
+  });
+
+  document.getElementById('mfa-confirmer-btn').addEventListener('click', async ()=>{
+    if(!facteurEnAttente) return;
+    const code = document.getElementById('mfa-enroll-code').value.trim();
+    if(!/^\d{6}$/.test(code)){
+      setMfaEnrollError('Saisissez les 6 chiffres du code.');
+      return;
+    }
+    setMfaEnrollError('');
+
+    const btn = document.getElementById('mfa-confirmer-btn');
+    btn.disabled = true;
+    btn.textContent = 'Vérification…';
+
+    const { data: challengeData, error: challengeErr } = await supabase.auth.mfa.challenge({ factorId: facteurEnAttente.id });
+    if(challengeErr){
+      btn.disabled = false;
+      btn.textContent = 'Confirmer';
+      setMfaEnrollError("La vérification n'a pas pu être lancée. Réessayez.");
+      return;
+    }
+
+    const { error: verifyErr } = await supabase.auth.mfa.verify({
+      factorId: facteurEnAttente.id, challengeId: challengeData.id, code
+    });
+
+    btn.disabled = false;
+    btn.textContent = 'Confirmer';
+
+    if(verifyErr){
+      setMfaEnrollError('Ce code est incorrect ou a expiré.');
+      return;
+    }
+
+    facteurEnAttente = null;
+    await chargerSecurite();
+    showToast('Vérification en deux étapes activée.');
+  });
+
+  document.getElementById('mfa-annuler-btn').addEventListener('click', async ()=>{
+    if(facteurEnAttente){
+      await supabase.auth.mfa.unenroll({ factorId: facteurEnAttente.id });
+      facteurEnAttente = null;
+    }
+    await chargerSecurite();
+  });
+
+  document.getElementById('mfa-desactiver-btn').addEventListener('click', async ()=>{
+    if(!window.confirm("Désactiver la vérification en deux étapes ? Un mot de passe seul suffira de nouveau pour se connecter à ce compte.")) return;
+    const { data } = await supabase.auth.mfa.listFactors();
+    const facteur = data && data.totp && data.totp.find(f => f.status === 'verified');
+    if(!facteur) return;
+    const { error } = await supabase.auth.mfa.unenroll({ factorId: facteur.id });
+    if(error){ showToast('La désactivation a échoué.', true); return; }
+    await chargerSecurite();
+    showToast('Vérification en deux étapes désactivée.');
+  });
+
   document.getElementById('invite-form').addEventListener('submit', async (e)=>{
     e.preventDefault();
     const input = document.getElementById('invite-email');
@@ -1735,7 +1970,7 @@
     const onglet = new URLSearchParams(window.location.search).get('tab');
     activerOnglet(tabs.some(t => t.dataset.tab === onglet) ? onglet : 'entreprise');
 
-    await Promise.all([chargerPrestations(), chargerFlux(), chargerGoogle(), chargerEquipe()]);
+    await Promise.all([chargerPrestations(), chargerFlux(), chargerGoogle(), chargerEquipe(), chargerSecurite()]);
     await traiterRetourGoogle();
   })();
   }

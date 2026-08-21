@@ -39,7 +39,8 @@ Cadence/
 │   └── document-public.js             lecture publique d'un devis/facture par jeton (GET /api/document-public?t=…)
 └── site/                              LE CODE — servi tel quel par Vercel (voir vercel.json)
     ├── index.html                     landing page
-    ├── login.html, signup.html        authentification (mot de passe + Google), gèrent les liens d'invitation
+    ├── login.html, signup.html        authentification (mot de passe + Google), gèrent les liens d'invitation, la vérification MFA et le retour de récupération
+    ├── nouveau-mot-de-passe.html       lien reçu par email pour choisir un nouveau mot de passe (mot de passe oublié)
     ├── dashboard.html                 tableau de bord (CA, clients actifs, renouvellement, retards) — Studio
     ├── clients.html                   fiches clients (CRUD)
     ├── agenda.html                    rendez-vous, avec récurrence
@@ -121,7 +122,17 @@ Bouton dans `devis-factures.html`, CSV généré côté client (aucun aller-reto
 - **Fonctions `admin_stats()` / `admin_liste_clients()` / `admin_definir_seuil()`** — chacune revérifie `admin_est_admin()` en première ligne (pas de `grant`/`revoke` explicite : même parti pris que le reste du projet, voir `inviter_collaborateur`). Elles renvoient des agrégats par espace (compteurs, métier, CA encaissé, nb de devis/factures/collaborateurs) — jamais le contenu d'un devis ou d'une facture individuelle, qui reste privé à son espace (choix déterminé par le besoin réel : oversight, pas support niveau 2).
 - **Capacité affichée = estimation, pas une mesure.** L'app ne peut pas lire l'usage réel de Supabase (taille de base, egress) ni de Vercel sans un jeton d'API séparé — la jauge compare simplement le nombre de clients à un seuil réglable (`admin_config.seuil_alerte_clients`, éditable depuis l'écran) et projette un délai avant de l'atteindre à partir des inscriptions des 30 derniers jours. Les paliers Supabase/Vercel affichés à côté (chiffres août 2026, sourcés dans l'écran) servent à décider, pas à mesurer — le dashboard Supabase/Vercel reste la source de vérité sur la conso réelle.
 
-### 3.8 Envoi d'un devis/facture par email
+### 3.8 Mot de passe oublié & authentification à deux facteurs (MFA)
+
+Tout repose sur l'API Auth de Supabase — aucune table ni fonction SQL ajoutée, contrairement aux migrations précédentes.
+
+- **Récupération de mot de passe** : `login.html` → « Mot de passe oublié ? » ouvre un panneau inline (pas une page séparée) qui appelle `resetPasswordForEmail()`. Le message de confirmation est **toujours le même**, que l'adresse corresponde à un compte ou non — ne jamais laisser deviner quels emails sont inscrits. Le lien reçu pointe vers `nouveau-mot-de-passe.html`, qui écoute l'événement `PASSWORD_RECOVERY` (supabase-js consomme lui-même les jetons du fragment d'URL), fait poser un nouveau mot de passe via `updateUser({password})`, puis renvoie vers `login.html` — jamais directement vers `clients.html` : c'est `login.html` qui décide de la suite (voir point suivant), y compris quand le compte a la vérification en deux étapes activée.
+- **MFA (TOTP) — un seul point de passage.** `login.html` est le SEUL endroit qui vérifie le niveau d'authentification (`getAuthenticatorAssuranceLevel()`) et fait passer l'étape de code si besoin (`apresConnexion()`), quel que soit le chemin qui a amené la session : mot de passe, retour Google (`redirectTo` pointe désormais vers `login.html` lui-même, jamais vers la destination finale), ou retour de `nouveau-mot-de-passe.html`. Une fois la vérification passée, l'AAL2 reste attaché à la session tant qu'elle vit (rafraîchie sans repasser par un login complet) — les autres écrans n'ont donc rien à vérifier eux-mêmes, même philosophie que `current_workspace_id()` : un seul endroit fait autorité, pas une vérification dupliquée dans chaque écran.
+- **Activation** : `parametres.html` → onglet Sécurité → `mfa.enroll({factorType:'totp'})` affiche le QR code et la clé secrète renvoyés par Supabase (rien de généré côté Cadence), confirmés par `mfa.challenge()` + `mfa.verify()`. Les facteurs `unverified` abandonnés (QR affiché puis onglet fermé) sont désenrôlés avant d'en recréer un, pour ne jamais buter sur la limite de facteurs par compte. Désactivation = `mfa.unenroll()` sur le facteur vérifié, après confirmation.
+- **Ne dépend pas du mode de connexion** : un compte inscrit uniquement via Google peut activer le MFA (il s'ajoute au premier facteur, quel qu'il soit) et se voir proposer d'ajouter un mot de passe depuis Sécurité — les deux chemins restent indépendants.
+- **Préalable côté Supabase** : le facteur TOTP doit être activé dans le dashboard (Authentication → Providers → Multi-Factor Authentication). Sans ça, `mfa.enroll()` échoue et l'écran l'indique dans son toast plutôt que d'échouer silencieusement.
+
+### 3.9 Envoi d'un devis/facture par email
 
 `devis-factures.html` (bouton « enveloppe » sur chaque ligne) → `api/envoyer-document.js` → email via Resend, dans le même style que `api/relances.js`.
 
