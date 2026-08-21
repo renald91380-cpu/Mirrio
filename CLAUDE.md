@@ -29,7 +29,8 @@ Cadence/
 ├── db/
 │   ├── schema.sql                          schéma de base (v1)
 │   ├── schema-v2-personnalisation.sql      migration : personnalisation & connexions agenda
-│   └── schema-v3-espaces-et-relances.sql   migration : espaces partagés & suivi des relances
+│   ├── schema-v3-espaces-et-relances.sql   migration : espaces partagés & suivi des relances
+│   └── schema-v4-admin.sql                 migration : rôle admin & back-office exploitant
 ├── api/                               fonctions serverless Vercel
 │   ├── agenda.js                      flux iCalendar par utilisateur (GET /api/agenda?t=…)
 │   └── relances.js                    relance email des factures en retard (cron quotidien, voir vercel.json)
@@ -41,6 +42,7 @@ Cadence/
     ├── agenda.html                    rendez-vous, avec récurrence
     ├── devis-factures.html            devis & factures, numérotation auto, export comptable CSV
     ├── parametres.html                identité, apparence, modèle de documents, prestations, agenda, équipe
+    ├── admin.html                     back-office exploitant Cadence (réservé à `profiles.is_admin`)
     ├── supabase-config.js             clés Supabase
     ├── theme.js                       thème, vocabulaire métier & résolution d'espace, partagés par les écrans
     ├── document-render.js             rendu d'un devis/facture (aperçu ET impression)
@@ -106,6 +108,15 @@ Bouton dans `devis-factures.html`, CSV généré côté client (aucun aller-reto
 
 `api/relances.js`, appelée quotidiennement par Vercel Cron (`vercel.json` → `crons`, 7h). Zéro dépendance npm, même parti pris que `agenda.js`. Cible les factures envoyées et non réglées dont l'échéance est dépassée, en respectant trois garde-fous réglables depuis Paramètres → Devis & factures : l'interrupteur `relances_activees`, le délai entre deux rappels `relance_delai_jours`, et un plafond de 3 relances par facture au-delà duquel le cron n'insiste plus (`MAX_RELANCES`, en dur — un désaccord qui dépasse ce seuil se traite à la main, pas par un email de plus). L'email part d'une adresse Cadence (`RESEND_FROM`) avec `reply_to` posé sur l'adresse réelle du praticien — la réponse d'un client lui arrive donc directement. Sans `RESEND_API_KEY` configurée, la tâche répond `200` sans envoyer : ce n'est pas un échec, juste un expéditeur pas encore branché.
 
+### 3.7 Back-office exploitant (`admin.html`)
+
+Écran séparé, réservé à Renald — pas un niveau de permission au sein d'une équipe (voir §3.3), mais une vue sur Cadence elle-même en tant que produit.
+
+- **`profiles.is_admin`, verrouillé par trigger.** La policy d'update existante sur `profiles` (« Un utilisateur modifie son propre profil ») n'a pas de `WITH CHECK` : sans garde-fou, n'importe quel compte pourrait s'auto-promouvoir admin par un simple update PostgREST. Le trigger `lock_is_admin` réécrit `is_admin` à sa valeur précédente sauf quand `current_user` est `postgres`/`supabase_admin` (donc seulement depuis le SQL Editor) — y compris pour les appels faits avec la clé `service_role`, qui n'a pas besoin de toucher cette colonne. Le premier admin est posé à la fin de `schema-v4-admin.sql` ; ajouter un second passe par la même ligne SQL, pas par l'app.
+- **Définition d'« un client » : un espace, pas un compte.** Un collaborateur actuellement actif ailleurs (`workspace_members.statut = 'actif'` sur un `workspace_id` différent du sien) n'est pas compté une deuxième fois — sinon un Studio à 4 collaborateurs compterait pour 5 clients. La sous-requête `not exists (... m2.workspace_id <> p.id ...)` porte cette règle et se répète dans chaque fonction `admin_*()` plutôt que d'être factorisée en vue : ce sont des fonctions `security definer` indépendantes, pas des requêtes composées côté client.
+- **Fonctions `admin_stats()` / `admin_liste_clients()` / `admin_definir_seuil()`** — chacune revérifie `admin_est_admin()` en première ligne (pas de `grant`/`revoke` explicite : même parti pris que le reste du projet, voir `inviter_collaborateur`). Elles renvoient des agrégats par espace (compteurs, métier, CA encaissé, nb de devis/factures/collaborateurs) — jamais le contenu d'un devis ou d'une facture individuelle, qui reste privé à son espace (choix déterminé par le besoin réel : oversight, pas support niveau 2).
+- **Capacité affichée = estimation, pas une mesure.** L'app ne peut pas lire l'usage réel de Supabase (taille de base, egress) ni de Vercel sans un jeton d'API séparé — la jauge compare simplement le nombre de clients à un seuil réglable (`admin_config.seuil_alerte_clients`, éditable depuis l'écran) et projette un délai avant de l'atteindre à partir des inscriptions des 30 derniers jours. Les paliers Supabase/Vercel affichés à côté (chiffres août 2026, sourcés dans l'écran) servent à décider, pas à mesurer — le dashboard Supabase/Vercel reste la source de vérité sur la conso réelle.
+
 ---
 
 ## 4. État actuel
@@ -114,18 +125,20 @@ Bouton dans `devis-factures.html`, CSV généré côté client (aucun aller-reto
 
 **Déployé sur Vercel** — projet `cadence-site` (équipe Vercel « Cadence »), relié au repo GitHub `renald91380-cpu/Cadence`, branche `main`. `vercel.json` pointe `outputDirectory` vers `site/`.
 
+**Connexion Google activée** (2026-08-21). Projet Google Cloud dédié « Cadence », fournisseur Google activé dans Supabase → Authentication → Providers avec l'URL de rappel `https://uymqmbvhneijboszcwsf.supabase.co/auth/v1/callback`, scope `calendar.events` demandé. L'app reste en statut **Test** côté Google (limite : 100 utilisateurs listés manuellement, `renald91380@gmail.com` déjà ajouté) — passer en production lèvera cette limite mais nécessite les pages CGU/confidentialité (voir plus bas) et déclenchera l'écran « application non validée » de Google tant que la vérification n'est pas faite.
+
 **Reste à faire pour activer la personnalisation :**
-1. Exécuter `db/schema-v2-personnalisation.sql` puis `db/schema-v3-espaces-et-relances.sql` dans le SQL Editor Supabase (dans cet ordre — la v3 dépend de tables créées par la v2).
+1. Exécuter `db/schema-v2-personnalisation.sql`, puis `db/schema-v3-espaces-et-relances.sql`, puis `db/schema-v4-admin.sql` dans le SQL Editor Supabase (dans cet ordre — chacune dépend de la précédente). Vérifier que l'email dans la dernière ligne de `schema-v4-admin.sql` correspond bien au compte qui doit devenir admin avant de la rejouer.
 2. Déclarer sur Vercel la variable d'environnement `SUPABASE_SERVICE_ROLE_KEY` (nécessaire au flux iCalendar et aux relances). `SUPABASE_URL` est normalement déjà posée par l'intégration.
-3. Pour la connexion Google : activer le fournisseur Google dans Supabase → Authentication → Providers, avec des identifiants OAuth Google Cloud et l'URL de rappel `https://uymqmbvhneijboszcwsf.supabase.co/auth/v1/callback`, en demandant l'autorisation `calendar.events`.
-4. Pour les relances automatiques : déclarer `CRON_SECRET` (jeton arbitraire, à reporter nulle part ailleurs — Vercel s'en sert pour signer ses propres appels), `RESEND_API_KEY` et `RESEND_FROM` (ex. `Cadence <relances@votre-domaine.fr>`, avec SPF/DKIM posés sur ce domaine — voir `emails/README.md` pour la même démarche). Sans `RESEND_API_KEY`, le cron tourne mais n'envoie rien.
+3. Pour les relances automatiques : déclarer `CRON_SECRET` (jeton arbitraire, à reporter nulle part ailleurs — Vercel s'en sert pour signer ses propres appels), `RESEND_API_KEY` et `RESEND_FROM` (ex. `Cadence <relances@votre-domaine.fr>`, avec SPF/DKIM posés sur ce domaine — voir `emails/README.md` pour la même démarche). Sans `RESEND_API_KEY`, le cron tourne mais n'envoie rien.
 
 **Pas encore construit :**
 - Sélection d'une prestation du catalogue depuis les écrans Agenda et Devis (le catalogue existe, le raccourci de saisie non)
 - Import d'un agenda externe vers Cadence (le sens entrant)
 - Encaissement Stripe des abonnements Cadence elle-même
-- Pages CGU / politique de confidentialité (liens encore inertes sur `signup.html`)
+- Pages CGU / politique de confidentialité (liens encore inertes sur `signup.html` — bloquent aussi le passage de l'app Google en production)
 - Rôles au sein d'une équipe autres que propriétaire/collaborateur (pas de permissions fines par membre)
+- Mesure réelle de l'usage Supabase/Vercel dans le back-office admin (`admin.html` estime la capacité à partir du nombre de clients, pas d'un appel aux API d'usage — voir §3.7)
 
 ---
 
