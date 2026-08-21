@@ -368,6 +368,7 @@
 <script type="module">
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
   import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
+  import { formaterNomAffichage } from './theme.js';
 
   const configured = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_ANON_KEY.includes('YOUR-ANON');
   if(!configured){
@@ -559,7 +560,7 @@
     tbody.innerHTML = filtres.map(c => `
       <tr>
         <td class="cell-entreprise">
-          <div class="nom">${c.business_name || c.full_name || '(sans nom)'}</div>
+          <div class="nom">${c.business_name || (c.full_name ? formaterNomAffichage(c.full_name) : '') || '(sans nom)'}</div>
           <div class="email">${c.email || ''}</div>
         </td>
         <td>${METIER_LABELS[c.metier] || c.metier || '—'}</td>

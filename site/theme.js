@@ -200,6 +200,25 @@ export function appliquerThemeEnCache(){
   return appliquerTheme(null);
 }
 
+// Met en forme un nom de personne saisi sans convention (« renald gautier »,
+// « JEAN paul MARTIN »...) : chaque partie du prénom — y compris un prénom
+// composé avec un tiret, ex. « jean-paul » → « Jean-Paul » — prend une
+// majuscule initiale, et le dernier mot (nom de famille) passe en majuscules.
+// Utilisé uniquement en repli quand le compte n'a pas défini de nom
+// commercial : un vrai `business_name` ("Cabinet Martin & Associés") n'est
+// jamais reformaté, ce n'est pas un nom de personne.
+export function formaterNomAffichage(nom){
+  if(!nom) return nom;
+  const mots = nom.trim().split(/\s+/).filter(Boolean);
+  if(!mots.length) return nom;
+  const capitaliserPartie = (s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+  const capitaliserMot = (m) => m.split('-').map(capitaliserPartie).join('-');
+  if(mots.length === 1) return capitaliserMot(mots[0]);
+  const nomFamille = mots[mots.length - 1].toUpperCase();
+  const prenom = mots.slice(0, -1).map(capitaliserMot).join(' ');
+  return `${prenom} ${nomFamille}`;
+}
+
 // `espaceId` cible le profil dont on veut lire la marque : celui du propriétaire
 // de l'espace actif, pas forcément l'utilisateur connecté. Un collaborateur qui
 // travaille dans l'espace d'un tiers doit voir ET imprimer le nom commercial,
@@ -216,7 +235,7 @@ export async function chargerBrand(supabase, espaceId){
   if(error || !data) return { ...DEFAUT };
 
   const brand = {
-    business_name: data.business_name || data.full_name || 'Cadence',
+    business_name: data.business_name || (data.full_name ? formaterNomAffichage(data.full_name) : null) || 'Cadence',
     metier: data.metier || 'autre',
     terme_singulier: data.terme_singulier,
     terme_pluriel: data.terme_pluriel,
