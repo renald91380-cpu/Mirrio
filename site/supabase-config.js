@@ -1,8 +1,7 @@
 // Configuration Supabase pour Cadence.
-// 1. Créez un projet gratuit sur https://supabase.com
-// 2. Dans Project Settings → API, copiez "Project URL" et la clé "anon public"
-// 3. Remplacez les deux valeurs ci-dessous
-// 4. Exécutez le script schema.sql dans l'éditeur SQL de Supabase (onglet "SQL Editor")
+// Projet Supabase : supabase-lime-engine (org Vercel Marketplace "Cadence").
+// Pour faire tourner le clé : Project Settings → API Keys → Publishable key → régénérer,
+// puis remplacer la valeur ci-dessous.
 
-export const SUPABASE_URL = 'https://YOUR-PROJECT-REF.supabase.co';
-export const SUPABASE_ANON_KEY = 'YOUR-ANON-PUBLIC-KEY';
+export const SUPABASE_URL = 'https://uymqmbvhneijboszcwsf.supabase.co';
+export const SUPABASE_ANON_KEY = 'sb_publishable_ZO93qi6gjZvsHU5lxKqLWA_fdif4BHl';
