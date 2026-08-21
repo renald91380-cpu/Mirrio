@@ -75,6 +75,10 @@
   .stat-row{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:20px; }
   @media(max-width:900px){ .stat-row{ grid-template-columns:repeat(2,1fr); } }
   @media(max-width:520px){ .stat-row{ grid-template-columns:1fr; } }
+  .stat-row-3{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin:16px 0; }
+  @media(max-width:820px){ .stat-row-3{ grid-template-columns:1fr; } }
+  .objectif-presets{ margin-bottom:14px; }
+  .objectif-presets .btn{ margin-right:8px; margin-top:8px; }
   .stat-card{ background:#fff; border:1px solid rgba(28,35,51,0.09); border-radius:12px; padding:18px 20px; }
   .stat-label{ font-size:11.5px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:rgba(28,35,51,0.5); margin-bottom:8px; }
   .stat-value{ font-family:var(--display); font-size:27px; font-weight:700; line-height:1.1; }
@@ -202,6 +206,53 @@
           <div class="stat-label">Nouveaux (30 jours)</div>
           <div class="stat-value" id="stat-nouveaux">—</div>
           <div class="stat-sub" id="stat-nouveaux-sub">—</div>
+        </div>
+      </div>
+
+      <div class="card" id="objectif-card">
+        <div class="capacite-head">
+          <h2 style="margin-bottom:0;">Objectif — capital laverie</h2>
+          <span class="capacite-chiffre" id="objectif-chiffre">—</span>
+        </div>
+        <p class="card-sub">Ce que Cadence doit générer chaque mois (net des cotisations sociales micro-entreprise) pour financer l'apport personnel du projet laverie, sur l'horizon choisi. Rien à voir avec ce que voient tes clients — visible ici seulement.</p>
+
+        <div class="jauge"><div class="jauge-fill" id="objectif-jauge-fill" style="width:0%;"></div></div>
+        <div class="capacite-note" id="objectif-note"></div>
+
+        <div class="stat-row-3">
+          <div class="stat-card">
+            <div class="stat-label">MRR actuel</div>
+            <div class="stat-value" id="objectif-mrr-actuel">—</div>
+            <div class="stat-sub" id="objectif-abonnes-actuels">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">MRR cible</div>
+            <div class="stat-value" id="objectif-mrr-cible">—</div>
+            <div class="stat-sub" id="objectif-abonnes-cible">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Écart</div>
+            <div class="stat-value" id="objectif-ecart">—</div>
+            <div class="stat-sub" id="objectif-ecart-abonnes">—</div>
+          </div>
+        </div>
+
+        <div class="objectif-presets">
+          <button class="btn btn-outline btn-sm" type="button" data-preset-eur="28000" data-preset-mois="12">France (28 000 € / 12 mois)</button>
+          <button class="btn btn-outline btn-sm" type="button" data-preset-eur="56000" data-preset-mois="24">France + Maroc (56 000 € / 24 mois)</button>
+        </div>
+
+        <div class="seuil-row">
+          <label for="objectif-input">Apport visé (€) :</label>
+          <input type="number" id="objectif-input" min="1" step="500">
+          <label for="horizon-input">Horizon (mois) :</label>
+          <input type="number" id="horizon-input" min="1" step="1">
+          <button class="btn btn-outline btn-sm" id="objectif-save" type="button">Enregistrer</button>
+          <span class="seuil-msg" id="objectif-msg"></span>
+        </div>
+
+        <div class="sources">
+          Hypothèse : 25,6 % de cotisations sociales micro-entreprise (régime BNC — à confirmer avec l'Urssaf), hors impôt sur le revenu et charges personnelles. Abonnés cible calculés sur ton prix moyen actuel par client (mix Solo/Studio réel) — ou 19,20 €/mois par défaut tant qu'il n'y a aucun client.
         </div>
       </div>
 
@@ -437,6 +488,46 @@
     }
   }
 
+  const COTISATIONS_MICRO = 0.256; // BNC — à confirmer avec l'Urssaf au moment de l'immatriculation
+  const PRIX_MOYEN_DEFAUT = 19.2; // mix 70% Solo (15€) / 30% Studio (29€), tant qu'il n'y a aucun client réel
+
+  function majObjectif(stats, objectifEur, horizonMois){
+    const mrrActuel = stats.mrr_actuel || 0;
+    const abonnesActuels = stats.total_clients || 0;
+    const prixMoyen = abonnesActuels > 0 ? (mrrActuel / abonnesActuels) : PRIX_MOYEN_DEFAUT;
+
+    // MRR brut nécessaire pour que, une fois les cotisations sociales
+    // retirées, il reste (objectif / horizon) chaque mois.
+    const mrrCible = (objectifEur / horizonMois) / (1 - COTISATIONS_MICRO);
+    const abonnesCible = Math.ceil(mrrCible / prixMoyen);
+    const ecartMrr = Math.max(0, mrrCible - mrrActuel);
+    const ecartAbonnes = Math.max(0, abonnesCible - abonnesActuels);
+    const pct = mrrCible > 0 ? Math.min(999, Math.round((mrrActuel / mrrCible) * 100)) : 0;
+
+    document.getElementById('objectif-chiffre').textContent =
+      `${formatEuros(mrrActuel)} / ${formatEuros(mrrCible)} de MRR (${pct}%)`;
+
+    const fill = document.getElementById('objectif-jauge-fill');
+    fill.style.width = Math.min(100, pct) + '%';
+    fill.className = 'jauge-fill ' + (pct >= 100 ? 'ok' : pct >= 50 ? 'attention' : 'attention');
+
+    const note = document.getElementById('objectif-note');
+    if(pct >= 100){
+      note.textContent = `Objectif tenu au rythme actuel — ${formatEuros(objectifEur)} en ${horizonMois} mois, à ce MRR.`;
+      note.className = 'capacite-note';
+    } else {
+      note.textContent = `Il manque environ ${ecartAbonnes} abonné(s) (≈ ${formatEuros(ecartMrr)} de MRR) pour tenir ${formatEuros(objectifEur)} en ${horizonMois} mois.`;
+      note.className = 'capacite-note';
+    }
+
+    document.getElementById('objectif-mrr-actuel').textContent = formatEuros(mrrActuel);
+    document.getElementById('objectif-abonnes-actuels').textContent = `${abonnesActuels} abonné(s)`;
+    document.getElementById('objectif-mrr-cible').textContent = formatEuros(mrrCible);
+    document.getElementById('objectif-abonnes-cible').textContent = `≈ ${abonnesCible} abonné(s)`;
+    document.getElementById('objectif-ecart').textContent = formatEuros(ecartMrr);
+    document.getElementById('objectif-ecart-abonnes').textContent = `≈ ${ecartAbonnes} abonné(s) manquant(s)`;
+  }
+
   let clientsCache = [];
 
   function rendreTable(){
@@ -519,6 +610,34 @@
       msg.textContent = 'Seuil enregistré.';
       majJauge(stats.total_clients, val);
       majDelaiEstime(stats.total_clients, val, stats.nouveaux_30j);
+      setTimeout(() => { msg.textContent = ''; }, 2500);
+    });
+
+    let objectifEur = stats.objectif_apport_eur || 28000;
+    let horizonMois = stats.objectif_horizon_mois || 12;
+    document.getElementById('objectif-input').value = objectifEur;
+    document.getElementById('horizon-input').value = horizonMois;
+    majObjectif(stats, objectifEur, horizonMois);
+
+    document.querySelectorAll('#objectif-card [data-preset-eur]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.getElementById('objectif-input').value = btn.dataset.presetEur;
+        document.getElementById('horizon-input').value = btn.dataset.presetMois;
+      });
+    });
+
+    document.getElementById('objectif-save').addEventListener('click', async () => {
+      const valEur = parseFloat(document.getElementById('objectif-input').value);
+      const valMois = parseInt(document.getElementById('horizon-input').value, 10);
+      const msg = document.getElementById('objectif-msg');
+      if(!valEur || valEur <= 0){ msg.textContent = 'Montant invalide.'; return; }
+      if(!valMois || valMois < 1){ msg.textContent = 'Horizon invalide.'; return; }
+      const { error } = await supabase.rpc('admin_definir_objectif', { p_objectif: valEur, p_horizon: valMois });
+      if(error){ msg.textContent = 'Erreur : ' + error.message; return; }
+      objectifEur = valEur;
+      horizonMois = valMois;
+      msg.textContent = 'Objectif enregistré.';
+      majObjectif(stats, objectifEur, horizonMois);
       setTimeout(() => { msg.textContent = ''; }, 2500);
     });
 
