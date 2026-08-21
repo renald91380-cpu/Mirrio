@@ -29,6 +29,38 @@ alter table public.profiles
   add column if not exists espace_actif_id uuid references public.profiles(id) on delete set null;
 
 -- =====================================================================
+-- 1bis. Résolution de l'espace actif — le cœur du modèle
+-- =====================================================================
+-- Déplacée ici (avant les policies de la section 2) car ces policies
+-- référencent la fonction par son nom : Postgres doit pouvoir la résoudre
+-- au moment du `create policy`, donc elle doit déjà exister.
+--
+-- Revalide l'appartenance à CHAQUE appel plutôt que de faire confiance à la
+-- colonne stockée : si `profiles.espace_actif_id` pointe vers un espace dont
+-- l'utilisateur a été entre-temps révoqué, la fonction l'ignore et retombe sur
+-- l'espace personnel. Ainsi aucune policy RLS ne dépend d'une valeur que le
+-- client pourrait avoir laissée périmée.
+create or replace function public.current_workspace_id()
+returns uuid as $$
+declare
+  souhaite uuid;
+begin
+  select espace_actif_id into souhaite from public.profiles where id = auth.uid();
+
+  if souhaite is not null and exists (
+    select 1 from public.workspace_members m
+    where m.workspace_id = souhaite
+      and m.user_id = auth.uid()
+      and m.statut = 'actif'
+  ) then
+    return souhaite;
+  end if;
+
+  return auth.uid();
+end;
+$$ language plpgsql stable security definer set search_path = public;
+
+-- =====================================================================
 -- 2. Membres d'un espace
 -- =====================================================================
 
