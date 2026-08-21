@@ -32,6 +32,7 @@
     color:var(--ink);
     line-height:1.5;
     -webkit-font-smoothing:antialiased;
+    -webkit-text-size-adjust:100%; text-size-adjust:100%;
   }
   img,svg{display:block;}
   a{color:inherit; text-decoration:none;}
@@ -243,58 +244,79 @@
   .feature-card p{ font-size:13.5px; color:rgba(28,35,51,0.62); line-height:1.55; }
 
   /* ---- Aperçus visuels par fonctionnalité (exemples, pas des captures réelles) ---- */
+  /* Contrainte de conception : en grille 4 colonnes, une carte ne fait que ~200px
+     de large. Tout ce qui suit est dimensionné pour cette largeur-là, et rien
+     ne se replie sur deux lignes — on tronque plutôt que de casser la mise en page. */
   .feature-preview{
-    background:var(--parchment-dim); border-radius:9px; padding:14px;
-    height:148px; display:flex; flex-direction:column; justify-content:center; gap:9px;
+    background:var(--parchment-dim); border-radius:9px; padding:12px;
+    height:148px; display:flex; flex-direction:column; justify-content:center; gap:8px;
+    overflow:hidden;
+  }
+  .feature-preview .ell{
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;
   }
 
   /* Fiches clients */
-  .prev-client-row{ display:flex; align-items:center; gap:10px; }
+  .prev-client-row{ display:flex; align-items:center; gap:8px; min-width:0; }
   .prev-avatar{
-    width:26px; height:26px; border-radius:50%; background:var(--ink); color:var(--parchment);
+    width:23px; height:23px; border-radius:50%; background:var(--ink); color:var(--parchment);
     display:flex; align-items:center; justify-content:center;
-    font-family:var(--mono); font-size:10px; font-weight:600; flex-shrink:0;
+    font-family:var(--mono); font-size:9px; font-weight:600; flex-shrink:0;
   }
-  .prev-client-name{ font-size:12.5px; font-weight:600; color:var(--ink); }
-  .prev-client-meta{ font-family:var(--mono); font-size:10.5px; color:rgba(28,35,51,0.45); }
+  .prev-client-txt{ min-width:0; flex:1; }
+  .prev-client-name{ font-size:11.5px; font-weight:600; color:var(--ink); line-height:1.25; }
+  .prev-client-meta{ font-family:var(--mono); font-size:9.5px; color:rgba(28,35,51,0.45); line-height:1.3; }
   .prev-client-row .prev-tag{
-    margin-left:auto; font-family:var(--mono); font-size:9.5px; padding:3px 8px; border-radius:999px;
+    flex-shrink:0; font-family:var(--mono); font-size:8.5px; padding:2px 6px; border-radius:999px;
     background:rgba(62,124,116,0.14); color:var(--teal); white-space:nowrap;
   }
 
-  /* Agenda */
-  .prev-week{ display:flex; gap:6px; height:100%; }
+  /* Agenda — hauteurs de créneaux en pixels, jamais en pourcentage : un
+     pourcentage sur une colonne étirée transforme le rendez-vous en barre. */
+  .prev-week{ display:flex; gap:4px; height:100%; }
   .prev-day{
-    flex:1; display:flex; flex-direction:column; gap:4px; align-items:center;
-    padding-top:2px; border-radius:6px;
+    flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:5px;
+    padding:3px 0; border-radius:5px;
   }
-  .prev-day.is-today{ background:rgba(226,166,61,0.14); }
-  .prev-day-label{ font-family:var(--mono); font-size:9.5px; color:rgba(28,35,51,0.45); }
-  .prev-day.is-today .prev-day-label{ color:var(--ink); font-weight:600; }
-  .prev-slot{ width:80%; border-radius:3px; background:var(--teal); opacity:0.28; }
-  .prev-slot.amber{ background:var(--amber); opacity:0.85; }
+  .prev-day-label{
+    font-family:var(--mono); font-size:8.5px; color:rgba(28,35,51,0.45);
+    padding-bottom:3px; border-bottom:2px solid transparent;
+  }
+  .prev-day.is-today .prev-day-label{
+    color:var(--ink); font-weight:600; border-bottom-color:var(--amber);
+  }
+  .prev-track{ flex:1; width:74%; display:flex; flex-direction:column; gap:3px; }
+  .prev-slot{ border-radius:3px; background:var(--teal); opacity:0.26; flex-shrink:0; }
+  .prev-slot.amber{ background:var(--amber); opacity:0.9; }
 
   /* Devis & factures */
-  .prev-doc-head{ display:flex; justify-content:space-between; align-items:center; }
-  .prev-doc-num{ font-family:var(--mono); font-size:12px; font-weight:600; color:var(--ink); }
+  .prev-doc-head{ display:flex; justify-content:space-between; align-items:center; gap:6px; }
+  .prev-doc-num{ font-family:var(--mono); font-size:10.5px; font-weight:600; color:var(--ink); white-space:nowrap; }
   .prev-doc-status{
-    font-size:9.5px; padding:3px 8px; border-radius:999px;
+    font-size:8.5px; padding:2px 7px; border-radius:999px; white-space:nowrap; flex-shrink:0;
     background:rgba(62,124,116,0.14); color:var(--teal); font-weight:600;
   }
-  .prev-doc-line{ display:flex; justify-content:space-between; font-size:11.5px; color:rgba(28,35,51,0.55); }
-  .prev-doc-line span:last-child{ font-family:var(--mono); color:var(--ink); }
+  .prev-doc-line{ display:flex; justify-content:space-between; gap:8px; font-size:10.5px; color:rgba(28,35,51,0.55); }
+  .prev-doc-line span:last-child{ font-family:var(--mono); color:var(--ink); white-space:nowrap; flex-shrink:0; }
   .prev-doc-total{
-    display:flex; justify-content:space-between; font-family:var(--mono); font-size:12.5px; font-weight:600; color:var(--ink);
-    border-top:1px solid rgba(28,35,51,0.14); padding-top:8px; margin-top:2px;
+    display:flex; justify-content:space-between; gap:8px; font-family:var(--mono);
+    font-size:11px; font-weight:600; color:var(--ink); white-space:nowrap;
+    border-top:1px solid rgba(28,35,51,0.14); padding-top:7px; margin-top:1px;
   }
 
   /* Tableau de bord */
-  .prev-stats{ display:flex; gap:8px; }
-  .prev-stat{ flex:1; background:#fff; border-radius:7px; padding:8px 10px; }
-  .prev-stat-label{ font-size:9px; color:rgba(28,35,51,0.45); }
-  .prev-stat-value{ font-family:var(--mono); font-size:15px; font-weight:500; color:var(--ink); }
+  .prev-stats{ display:flex; gap:7px; }
+  .prev-stat{ flex:1; min-width:0; background:#fff; border-radius:6px; padding:7px 8px; }
+  .prev-stat-label{
+    font-size:8px; letter-spacing:.02em; color:rgba(28,35,51,0.45);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .prev-stat-value{
+    font-family:var(--mono); font-size:13px; font-weight:500; color:var(--ink);
+    white-space:nowrap; line-height:1.35;
+  }
   .prev-stat-value.teal{ color:var(--teal); }
-  .prev-bars{ display:flex; align-items:flex-end; gap:5px; flex:1; }
+  .prev-bars{ display:flex; align-items:flex-end; gap:4px; flex:1; min-height:40px; }
   .prev-bars .bar{
     flex:1; border-radius:2px 2px 0 0;
     background:linear-gradient(180deg, var(--amber-soft), var(--amber)); opacity:0.85;
@@ -463,25 +485,25 @@
         <div class="feature-preview" aria-hidden="true">
           <div class="prev-client-row">
             <div class="prev-avatar">MD</div>
-            <div>
-              <div class="prev-client-name">Marion Duval</div>
-              <div class="prev-client-meta">Coach sportif</div>
+            <div class="prev-client-txt">
+              <div class="prev-client-name ell">Marion Duval</div>
+              <div class="prev-client-meta ell">Coach sportif</div>
             </div>
             <span class="prev-tag">Actif</span>
           </div>
           <div class="prev-client-row">
             <div class="prev-avatar">TL</div>
-            <div>
-              <div class="prev-client-name">Thomas Lecoq</div>
-              <div class="prev-client-meta">12 séances/an</div>
+            <div class="prev-client-txt">
+              <div class="prev-client-name ell">Thomas Lecoq</div>
+              <div class="prev-client-meta ell">12&nbsp;séances/an</div>
             </div>
             <span class="prev-tag">Actif</span>
           </div>
           <div class="prev-client-row">
             <div class="prev-avatar">SR</div>
-            <div>
-              <div class="prev-client-name">Sofia Ramos</div>
-              <div class="prev-client-meta">Photographe</div>
+            <div class="prev-client-txt">
+              <div class="prev-client-name ell">Sofia Ramos</div>
+              <div class="prev-client-meta ell">Photographe</div>
             </div>
             <span class="prev-tag">Actif</span>
           </div>
@@ -492,15 +514,29 @@
       <div class="feature-card reveal">
         <div class="feature-preview" aria-hidden="true">
           <div class="prev-week">
-            <div class="prev-day"><span class="prev-day-label">LUN</span></div>
-            <div class="prev-day"><span class="prev-day-label">MAR</span><div class="prev-slot" style="height:22%; margin-top:10%;"></div></div>
+            <div class="prev-day">
+              <span class="prev-day-label">LUN</span>
+              <div class="prev-track"></div>
+            </div>
+            <div class="prev-day">
+              <span class="prev-day-label">MAR</span>
+              <div class="prev-track"><div class="prev-slot" style="height:22px; margin-top:10px;"></div></div>
+            </div>
             <div class="prev-day is-today">
               <span class="prev-day-label">MER</span>
-              <div class="prev-slot amber" style="height:18%; margin-top:6%;"></div>
-              <div class="prev-slot" style="height:26%;"></div>
+              <div class="prev-track">
+                <div class="prev-slot amber" style="height:18px; margin-top:4px;"></div>
+                <div class="prev-slot" style="height:24px; margin-top:8px;"></div>
+              </div>
             </div>
-            <div class="prev-day"><span class="prev-day-label">JEU</span><div class="prev-slot" style="height:30%; margin-top:16%;"></div></div>
-            <div class="prev-day"><span class="prev-day-label">VEN</span></div>
+            <div class="prev-day">
+              <span class="prev-day-label">JEU</span>
+              <div class="prev-track"><div class="prev-slot" style="height:26px; margin-top:22px;"></div></div>
+            </div>
+            <div class="prev-day">
+              <span class="prev-day-label">VEN</span>
+              <div class="prev-track"></div>
+            </div>
           </div>
         </div>
         <h3>Agenda</h3>
@@ -512,8 +548,8 @@
             <span class="prev-doc-num">FAC-2026-014</span>
             <span class="prev-doc-status">Payée</span>
           </div>
-          <div class="prev-doc-line"><span>3 séances de coaching</span><span>180&nbsp;€</span></div>
-          <div class="prev-doc-line"><span>Bilan trimestriel</span><span>60&nbsp;€</span></div>
+          <div class="prev-doc-line"><span class="ell">3&nbsp;séances de coaching</span><span>180&nbsp;€</span></div>
+          <div class="prev-doc-line"><span class="ell">Bilan trimestriel</span><span>60&nbsp;€</span></div>
           <div class="prev-doc-total"><span>Total TTC</span><span>240&nbsp;€</span></div>
         </div>
         <h3>Devis &amp; factures</h3>
@@ -524,10 +560,10 @@
           <div class="prev-stats">
             <div class="prev-stat">
               <div class="prev-stat-label">CA DU MOIS</div>
-              <div class="prev-stat-value">2 840&nbsp;€</div>
+              <div class="prev-stat-value">2&nbsp;840&nbsp;€</div>
             </div>
             <div class="prev-stat">
-              <div class="prev-stat-label">RENOUVELLEMENT</div>
+              <div class="prev-stat-label">RENOUVELÉ</div>
               <div class="prev-stat-value teal">86&nbsp;%</div>
             </div>
           </div>
