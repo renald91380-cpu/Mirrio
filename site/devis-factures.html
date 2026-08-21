@@ -66,7 +66,7 @@
     padding:16px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px;
   }
   .app-header-left{ display:flex; align-items:center; gap:28px; }
-  .app-nav{ display:none; gap:20px; font-size:14px; font-weight:500; }
+  .app-nav{ display:none; gap:20px; font-size:14px; font-weight:500; overflow-x:auto; }
   @media(min-width:640px){ .app-nav{ display:flex; } }
   .app-nav a{ color:rgba(245,241,231,0.6); padding:6px 0; border-bottom:2px solid transparent; white-space:nowrap; }
   .app-nav a:hover{ color:var(--parchment); }
@@ -247,26 +247,14 @@
   .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
   .toast svg{ stroke:var(--teal); flex-shrink:0; }
 
-  /* ---------- Print view ---------- */
+  /* ---------- Vue imprimable ---------- */
+  /* Le style du document lui-meme est injecte par `document-render.js`, pour que
+     ce qui s'imprime soit exactement ce que montre l'apercu des Parametres. */
   #print-area{ display:none; }
   @media print{
     body > *:not(#print-area){ display:none !important; }
     #print-area{ display:block !important; padding:0; }
-    .print-header{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:40px; }
-    .print-logo{ font-family:var(--display); font-weight:700; font-size:26px; }
-    .print-doc-title{ text-align:right; }
-    .print-doc-title h1{ font-family:var(--display); font-size:22px; text-transform:capitalize; }
-    .print-doc-title .numero{ font-family:var(--mono); font-size:14px; color:rgba(28,35,51,0.6); }
-    .print-meta{ display:flex; justify-content:space-between; margin-bottom:30px; font-size:13.5px; }
-    .print-meta div div{ margin-bottom:3px; }
-    .print-meta .label{ color:rgba(28,35,51,0.5); font-size:11px; text-transform:uppercase; letter-spacing:.05em; }
-    .print-table{ width:100%; border-collapse:collapse; margin-bottom:24px; }
-    .print-table th{ text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:rgba(28,35,51,0.5); padding:8px 6px; border-bottom:2px solid var(--ink); }
-    .print-table td{ padding:10px 6px; border-bottom:1px solid rgba(28,35,51,0.12); font-size:13.5px; }
-    .print-table td.num, .print-table th.num{ text-align:right; font-family:var(--mono); }
-    .print-total{ text-align:right; font-family:var(--display); font-size:17px; font-weight:700; margin-bottom:30px; }
-    .print-total span{ font-family:var(--mono); }
-    .print-notes{ font-size:12.5px; color:rgba(28,35,51,0.6); }
+    @page{ margin:14mm; }
   }
 </style>
 </head>
@@ -279,6 +267,7 @@
       <a href="clients.html">Clients</a>
       <a href="agenda.html">Agenda</a>
       <a href="devis-factures.html" class="active">Devis &amp; factures</a>
+      <a href="parametres.html">Paramètres</a>
     </nav>
   </div>
   <div class="app-header-right">
@@ -407,37 +396,13 @@
   <span id="toast-text"></span>
 </div>
 
-<div id="print-area">
-  <div class="print-header">
-    <div class="print-logo">Cadence</div>
-    <div class="print-doc-title">
-      <h1 id="print-type">Devis</h1>
-      <div class="numero" id="print-numero"></div>
-    </div>
-  </div>
-  <div class="print-meta">
-    <div>
-      <div class="label">Client</div>
-      <div id="print-client"></div>
-    </div>
-    <div>
-      <div><span class="label">Émis le </span><span id="print-date-emission"></span></div>
-      <div><span class="label">Échéance </span><span id="print-date-echeance"></span></div>
-    </div>
-  </div>
-  <table class="print-table">
-    <thead>
-      <tr><th>Description</th><th class="num">Qté</th><th class="num">Prix unit.</th><th class="num">Total</th></tr>
-    </thead>
-    <tbody id="print-lines"></tbody>
-  </table>
-  <div class="print-total">Total <span id="print-total-value"></span></div>
-  <div class="print-notes" id="print-notes"></div>
-</div>
+<div id="print-area"></div>
 
 <script type="module">
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
   import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
+  import { initTheme, vocabulaire, viderCacheBrand } from './theme.js';
+  import { rendreDocument, stylesDocument, calculerTotaux, couleurDocument } from './document-render.js';
 
   const configured = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_ANON_KEY.includes('YOUR-ANON');
   if(!configured){
@@ -464,7 +429,10 @@
   const linesList = document.getElementById('lines-list');
   const linesTotalValue = document.getElementById('lines-total-value');
 
+  let brand = null;
+  let paramsFacturation = {};
   let clientsById = {};
+  let clientsComplets = {};
   let currentDocs = [];
   let activeFilter = 'all';
 
@@ -509,9 +477,10 @@
   }
 
   async function loadClientsIntoSelect(){
-    const { data, error } = await supabase.from('clients').select('id, full_name').order('full_name');
+    const { data, error } = await supabase.from('clients').select('id, full_name, company, email').order('full_name');
     if(error) return;
     clientsById = Object.fromEntries(data.map(c => [c.id, c.full_name]));
+    clientsComplets = Object.fromEntries(data.map(c => [c.id, c]));
     clientSelect.innerHTML = '<option value="">Sélectionner un client</option>' +
       data.map(c => `<option value="${c.id}">${escapeHtml(c.full_name)}</option>`).join('');
   }
@@ -615,8 +584,17 @@
     });
   });
 
+  async function chargerParametresFacturation(){
+    const { data } = await supabase.from('parametres_facturation').select('*').maybeSingle();
+    paramsFacturation = data || {};
+  }
+
+  // Le total affiche dans la liste passe par le meme calcul que le document
+  // imprime : sans ca, la liste et la facture pourraient differer d'un centime
+  // des que la TVA entre en jeu.
   function docTotal(doc){
-    return (doc.document_lignes || []).reduce((sum, l) => sum + (l.quantite * l.prix_unitaire), 0);
+    const t = calculerTotaux(doc.document_lignes || [], paramsFacturation);
+    return t.totalTTC;
   }
 
   function renderDocs(docs){
@@ -744,23 +722,23 @@
     loadDocs();
   }
 
+  let stylePrint = null;
   function printDoc(doc){
-    document.getElementById('print-type').textContent = doc.type === 'devis' ? 'Devis' : 'Facture';
-    document.getElementById('print-numero').textContent = doc.numero || '';
-    document.getElementById('print-client').textContent = doc.client_id ? (clientsById[doc.client_id] || '') : 'Sans client';
-    document.getElementById('print-date-emission').textContent = formatDate(doc.date_emission);
-    document.getElementById('print-date-echeance').textContent = formatDate(doc.date_echeance);
-    document.getElementById('print-notes').textContent = doc.notes || '';
-    const lines = (doc.document_lignes || []).slice().sort((a,b)=> a.position - b.position);
-    document.getElementById('print-lines').innerHTML = lines.map(l => `
-      <tr>
-        <td>${escapeHtml(l.description)}</td>
-        <td class="num">${l.quantite}</td>
-        <td class="num">${formatMoney(l.prix_unitaire)}</td>
-        <td class="num">${formatMoney(l.quantite * l.prix_unitaire)}</td>
-      </tr>
-    `).join('');
-    document.getElementById('print-total-value').textContent = formatMoney(docTotal(doc));
+    const client = doc.client_id ? (clientsComplets[doc.client_id] || null) : null;
+    const lignes = (doc.document_lignes || []).slice().sort((a,b)=> a.position - b.position);
+
+    if(!stylePrint){
+      stylePrint = document.createElement('style');
+      document.head.appendChild(stylePrint);
+    }
+    stylePrint.textContent = stylesDocument(
+      couleurDocument(paramsFacturation, brand),
+      paramsFacturation.modele || 'moderne'
+    );
+
+    document.getElementById('print-area').innerHTML = rendreDocument({
+      doc, lignes, client, params: paramsFacturation, brand
+    });
     window.print();
   }
 
@@ -840,6 +818,7 @@
   });
 
   document.getElementById('logout-btn').addEventListener('click', async ()=>{
+    viderCacheBrand();
     await supabase.auth.signOut();
     window.location.href = 'login.html';
   });
@@ -851,6 +830,8 @@
       return;
     }
     document.getElementById('user-email').textContent = data.session.user.email;
+    brand = await initTheme(supabase, 'documents');
+    await chargerParametresFacturation();
     await loadClientsIntoSelect();
     loadDocs();
   })();

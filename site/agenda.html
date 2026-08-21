@@ -66,9 +66,9 @@
     padding:16px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px;
   }
   .app-header-left{ display:flex; align-items:center; gap:28px; }
-  .app-nav{ display:none; gap:20px; font-size:14px; font-weight:500; }
-  @media(min-width:560px){ .app-nav{ display:flex; } }
-  .app-nav a{ color:rgba(245,241,231,0.6); padding:6px 0; border-bottom:2px solid transparent; }
+  .app-nav{ display:none; gap:20px; font-size:14px; font-weight:500; overflow-x:auto; }
+  @media(min-width:640px){ .app-nav{ display:flex; } }
+  .app-nav a{ color:rgba(245,241,231,0.6); padding:6px 0; border-bottom:2px solid transparent; white-space:nowrap; }
   .app-nav a:hover{ color:var(--parchment); }
   .app-nav a.active{ color:var(--parchment); border-bottom-color:var(--amber); }
   .app-header-right{ display:flex; align-items:center; gap:16px; }
@@ -203,6 +203,7 @@
       <a href="clients.html">Clients</a>
       <a href="agenda.html" class="active">Agenda</a>
       <a href="devis-factures.html">Devis &amp; factures</a>
+      <a href="parametres.html">Paramètres</a>
     </nav>
   </div>
   <div class="app-header-right">
@@ -215,12 +216,12 @@
   <div class="app-container">
     <div class="page-head">
       <div>
-        <h1>Votre agenda</h1>
-        <p>Vos créneaux et rendez-vous, à venir.</p>
+        <h1 id="page-title">Votre agenda</h1>
+        <p id="page-sub">Vos créneaux et rendez-vous, à venir.</p>
       </div>
       <button class="btn btn-primary" id="add-appt-btn" type="button">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-        Nouveau rendez-vous
+        <span id="add-appt-label">Nouveau rendez-vous</span>
       </button>
     </div>
 
@@ -230,7 +231,7 @@
       <div class="icon">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
       </div>
-      <h2>Aucun rendez-vous à venir</h2>
+      <h2 id="empty-title">Aucun rendez-vous à venir</h2>
       <p>Ajoutez le premier pour commencer à remplir votre agenda.</p>
       <button class="btn btn-primary" id="empty-add-btn" type="button">Ajouter mon premier rendez-vous</button>
     </div>
@@ -317,6 +318,8 @@
 <script type="module">
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
   import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
+  import { initTheme, vocabulaire, viderCacheBrand } from './theme.js';
+  import { pousserPlusieurs, supprimerRendezVous, messagePour } from './google-calendar.js';
 
   const configured = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_ANON_KEY.includes('YOUR-ANON');
   if(!configured){
@@ -341,6 +344,8 @@
   const recurrenceSelect = document.getElementById('recurrence');
   const deleteSeriesLink = document.getElementById('delete-series-link');
 
+  let brand = null;
+  let vocab = null;
   let clientsById = {};
   let currentAppointments = [];
 
@@ -348,6 +353,19 @@
     const div = document.createElement('div');
     div.textContent = str || '';
     return div.innerHTML;
+  }
+
+  // Le vocabulaire du metier remplace les mots generiques de l'ecran :
+  // un photographe lit « shootings » la ou un coach lit « seances ».
+  function appliquerVocabulaire(b){
+    vocab = vocabulaire(b);
+    document.getElementById('page-title').textContent = 'Votre agenda';
+    document.getElementById('page-sub').textContent = `Vos créneaux et ${vocab.pluriel}, à venir.`;
+    document.getElementById('add-appt-label').textContent = `${vocab.Nouveau} ${vocab.singulier}`;
+    document.getElementById('empty-title').textContent = `${vocab.Aucun} ${vocab.singulier} à venir`;
+    document.getElementById('empty-add-btn').textContent = `Ajouter ${vocab.article === 'une' ? 'ma' : 'mon'} premi${vocab.article === 'une' ? 'ère' : 'er'} ${vocab.singulier}`;
+    const opt = document.querySelector('#recurrence option[value="none"]');
+    if(opt) opt.textContent = `Aucune — ${vocab.article} seul${vocab.article === 'une' ? 'e' : ''} ${vocab.singulier}`;
   }
 
   function showToast(message){
@@ -522,6 +540,10 @@
 
   async function deleteAppointment(id, titre){
     if(!window.confirm(`Supprimer le rendez-vous "${titre}" ? Cette action est irréversible.`)) return;
+    const aSupprimer = currentAppointments.find(a => a.id === id);
+    if(aSupprimer && aSupprimer.google_event_id){
+      await supprimerRendezVous(supabase, aSupprimer);
+    }
     const { error } = await supabase.from('rendez_vous').delete().eq('id', id);
     if(error){
       showToast("La suppression a échoué. Réessayez.");
@@ -599,12 +621,14 @@
     saveBtn.disabled = true;
     saveBtn.textContent = 'Enregistrement…';
 
-    let error;
+    let error, lignesEnregistrees = [];
     if(id){
-      ({ error } = await supabase.from('rendez_vous').update({
+      let d;
+      ({ data: d, error } = await supabase.from('rendez_vous').update({
         titre, client_id: clientId, date_debut: startDate.toISOString(),
         date_fin: endDate.toISOString(), notes
-      }).eq('id', id));
+      }).eq('id', id).select());
+      lignesEnregistrees = d || [];
     } else {
       const recurrence = recurrenceSelect.value;
       const count = recurrence === 'none' ? 1 : Math.max(2, Math.min(52, parseInt(document.getElementById('occurrences').value, 10) || 8));
@@ -619,7 +643,9 @@
           recurring_group_id: groupId
         };
       });
-      ({ error } = await supabase.from('rendez_vous').insert(rows));
+      let d;
+      ({ data: d, error } = await supabase.from('rendez_vous').insert(rows).select());
+      lignesEnregistrees = d || [];
     }
 
     saveBtn.disabled = false;
@@ -631,11 +657,23 @@
     }
 
     closeModal();
-    showToast(id ? 'Rendez-vous mis à jour.' : 'Rendez-vous ajouté.');
+    const mot = vocab ? vocab.Singulier : 'Rendez-vous';
+    showToast(id ? `${mot} mis à jour.` : `${mot} ajouté.`);
     loadAppointments();
+
+    // Poussee vers Google apres coup : la base de Cadence fait foi, un echec
+    // de synchronisation ne doit jamais bloquer l'enregistrement.
+    if(lignesEnregistrees.length){
+      const r = await pousserPlusieurs(supabase, lignesEnregistrees, clientsById);
+      if(r.echecs){
+        const msg = messagePour(r.raison);
+        if(msg) showToast(msg);
+      }
+    }
   });
 
   document.getElementById('logout-btn').addEventListener('click', async ()=>{
+    viderCacheBrand();
     await supabase.auth.signOut();
     window.location.href = 'login.html';
   });
@@ -647,6 +685,8 @@
       return;
     }
     document.getElementById('user-email').textContent = data.session.user.email;
+    brand = await initTheme(supabase, 'agenda');
+    appliquerVocabulaire(brand);
     await loadClientsIntoSelect();
     loadAppointments();
   })();

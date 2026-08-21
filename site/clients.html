@@ -68,9 +68,9 @@
     padding:16px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px;
   }
   .app-header-left{ display:flex; align-items:center; gap:28px; }
-  .app-nav{ display:none; gap:20px; font-size:14px; font-weight:500; }
-  @media(min-width:560px){ .app-nav{ display:flex; } }
-  .app-nav a{ color:rgba(245,241,231,0.6); padding:6px 0; border-bottom:2px solid transparent; }
+  .app-nav{ display:none; gap:20px; font-size:14px; font-weight:500; overflow-x:auto; }
+  @media(min-width:640px){ .app-nav{ display:flex; } }
+  .app-nav a{ color:rgba(245,241,231,0.6); padding:6px 0; border-bottom:2px solid transparent; white-space:nowrap; }
   .app-nav a:hover{ color:var(--parchment); }
   .app-nav a.active{ color:var(--parchment); border-bottom-color:var(--amber); }
   .app-header-right{ display:flex; align-items:center; gap:16px; }
@@ -179,6 +179,7 @@
       <a href="clients.html" class="active">Clients</a>
       <a href="agenda.html">Agenda</a>
       <a href="devis-factures.html">Devis &amp; factures</a>
+      <a href="parametres.html">Paramètres</a>
     </nav>
   </div>
   <div class="app-header-right">
@@ -192,7 +193,7 @@
     <div class="page-head">
       <div>
         <h1>Vos clients</h1>
-        <p>Historique, notes de séance, coordonnées — tout au même endroit.</p>
+        <p id="page-sub">Historique, notes de séance, coordonnées — tout au même endroit.</p>
       </div>
       <button class="btn btn-primary" id="add-client-btn" type="button">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
@@ -258,6 +259,7 @@
 <script type="module">
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
   import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
+  import { initTheme, vocabulaire, viderCacheBrand } from './theme.js';
 
   const configured = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_ANON_KEY.includes('YOUR-ANON');
   if(!configured){
@@ -278,6 +280,15 @@
   const toastText = document.getElementById('toast-text');
 
   let session = null;
+
+  // Le vocabulaire du metier remplace les mots generiques de l'ecran.
+  function appliquerVocabulaire(brand){
+    const v = vocabulaire(brand);
+    document.getElementById('page-sub').textContent =
+      `Historique, notes de ${v.singulier}, coordonnées — tout au même endroit.`;
+    document.getElementById('notes').placeholder =
+      `Historique, préférences, notes de ${v.singulier}…`;
+  }
 
   function escapeHtml(str){
     const div = document.createElement('div');
@@ -445,6 +456,7 @@
   });
 
   document.getElementById('logout-btn').addEventListener('click', async ()=>{
+    viderCacheBrand();
     await supabase.auth.signOut();
     window.location.href = 'login.html';
   });
@@ -457,6 +469,8 @@
       return;
     }
     document.getElementById('user-email').textContent = session.user.email;
+    const brand = await initTheme(supabase, 'clients');
+    appliquerVocabulaire(brand);
     loadClients();
   })();
   }
