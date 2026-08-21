@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agenda — Cadence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1C2333;
+    --ink-soft:#2A3346;
+    --parchment:#F5F1E7;
+    --parchment-dim:#EAE4D4;
+    --slate:#8B8F98;
+    --amber:#E2A63D;
+    --amber-soft:#f0c98a;
+    --teal:#3E7C74;
+    --brick:#B5533F;
+    --display:'Fraunces', Georgia, serif;
+    --body:'Inter', Arial, sans-serif;
+    --mono:'IBM Plex Mono', 'Courier New', monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:var(--body);
+    background:var(--parchment);
+    color:var(--ink);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  img,svg{display:block;}
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit;}
+
+  .logo{
+    font-family:var(--display); font-weight:700; font-size:20px;
+    display:flex; align-items:baseline; gap:2px;
+  }
+  .logo .dot{ color:var(--amber); animation:pulseDot 1.6s ease-in-out infinite; }
+  @keyframes pulseDot{
+    0%, 70%, 100%{ transform:scale(1); opacity:0.3; }
+    35%{ transform:scale(1.9); opacity:1; background:var(--amber); }
+  }
+  @media (prefers-reduced-motion: reduce){ .logo .dot{ animation:none !important; opacity:0.6 !important; } }
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    padding:12px 20px; border-radius:6px; font-weight:600; font-size:14.5px;
+    border:none; cursor:pointer; min-height:44px;
+    transition:transform .15s ease, box-shadow .15s ease, background .15s ease, opacity .15s ease;
+  }
+  .btn-primary{ background:var(--amber); color:var(--ink); }
+  .btn-primary:hover{ transform:translateY(-1px); box-shadow:0 8px 18px rgba(226,166,61,0.28); }
+  .btn-ghost{ background:transparent; color:var(--parchment); border:1px solid rgba(245,241,231,0.28); }
+  .btn-ghost:hover{ border-color:rgba(245,241,231,0.6); }
+  .btn:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-visible{
+    outline:2px solid var(--teal); outline-offset:2px;
+  }
+
+  /* ---------- App header ---------- */
+  .app-header{
+    background:var(--ink); color:var(--parchment);
+    padding:16px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px;
+  }
+  .app-header-left{ display:flex; align-items:center; gap:28px; }
+  .app-nav{ display:none; gap:20px; font-size:14px; font-weight:500; }
+  @media(min-width:560px){ .app-nav{ display:flex; } }
+  .app-nav a{ color:rgba(245,241,231,0.6); padding:6px 0; border-bottom:2px solid transparent; }
+  .app-nav a:hover{ color:var(--parchment); }
+  .app-nav a.active{ color:var(--parchment); border-bottom-color:var(--amber); }
+  .app-header-right{ display:flex; align-items:center; gap:16px; }
+  .user-email{ font-size:13px; color:rgba(245,241,231,0.55); display:none; }
+  @media(min-width:640px){ .user-email{ display:block; } }
+
+  /* ---------- Main ---------- */
+  .app-main{ padding:36px 20px 60px; }
+  .app-container{ max-width:880px; margin:0 auto; }
+  .page-head{
+    display:flex; align-items:flex-start; justify-content:space-between; gap:16px;
+    margin-bottom:32px; flex-wrap:wrap;
+  }
+  .page-head h1{ font-family:var(--display); font-weight:700; font-size:30px; margin-bottom:6px; }
+  .page-head p{ font-size:14.5px; color:rgba(28,35,51,0.6); }
+
+  /* ---------- Agenda list ---------- */
+  .day-group{ margin-bottom:26px; }
+  .day-label{
+    font-family:var(--mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase;
+    color:rgba(28,35,51,0.5); margin-bottom:10px; padding-left:2px;
+  }
+  .appt-list{ display:flex; flex-direction:column; gap:10px; }
+  .appt-row{
+    background:#fff; border:1px solid rgba(28,35,51,0.09); border-radius:12px;
+    padding:16px 20px; display:flex; align-items:center; gap:16px;
+    cursor:pointer; transition:box-shadow .15s ease, transform .15s ease;
+  }
+  .appt-row:hover{ box-shadow:0 8px 20px rgba(28,35,51,0.07); transform:translateY(-1px); }
+  .appt-row.annule{ opacity:0.55; }
+  .appt-time{
+    font-family:var(--mono); font-size:13px; color:var(--teal); min-width:96px; flex-shrink:0;
+  }
+  .appt-main{ min-width:0; flex:1; }
+  .appt-main h3{ font-family:var(--display); font-size:16px; font-weight:600; margin-bottom:3px; }
+  .appt-meta{ display:flex; flex-wrap:wrap; gap:4px 12px; font-size:13px; color:rgba(28,35,51,0.55); }
+  .badge{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.04em; text-transform:uppercase;
+    padding:3px 9px; border-radius:999px; flex-shrink:0;
+  }
+  .badge-recurrent{ background:rgba(62,124,116,0.12); color:var(--teal); }
+  .badge-annule{ background:rgba(181,83,63,0.12); color:var(--brick); }
+  .appt-row-actions{ display:flex; gap:4px; flex-shrink:0; }
+  @media(max-width:480px){
+    .appt-row{ flex-wrap:wrap; }
+    .appt-time{ min-width:auto; order:-1; width:100%; margin-bottom:2px; }
+    .appt-row-actions{ margin-left:auto; }
+  }
+  .icon-btn{
+    width:38px; height:38px; border-radius:7px; border:none; background:transparent;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--slate);
+  }
+  .icon-btn:hover{ background:rgba(28,35,51,0.06); color:var(--ink); }
+  .icon-btn.danger:hover{ background:rgba(181,83,63,0.1); color:var(--brick); }
+
+  /* ---------- Empty / loading ---------- */
+  .empty-state{
+    text-align:center; padding:72px 20px; background:#fff;
+    border:1px dashed rgba(28,35,51,0.18); border-radius:14px;
+  }
+  .empty-state .icon{
+    width:52px; height:52px; border-radius:50%; background:var(--parchment-dim);
+    display:flex; align-items:center; justify-content:center; margin:0 auto 20px;
+  }
+  .empty-state .icon svg{ stroke:var(--slate); }
+  .empty-state h2{ font-family:var(--display); font-size:20px; margin-bottom:8px; }
+  .empty-state p{ font-size:14px; color:rgba(28,35,51,0.55); margin-bottom:24px; }
+  .loading-state{ text-align:center; padding:72px 20px; color:rgba(28,35,51,0.5); font-size:14px; }
+
+  /* ---------- Modal ---------- */
+  .modal-overlay{
+    display:none; position:fixed; inset:0; background:rgba(28,35,51,0.5);
+    align-items:center; justify-content:center; padding:20px; z-index:100; overflow-y:auto;
+  }
+  .modal-overlay.show{ display:flex; }
+  .modal{
+    background:var(--parchment); border-radius:14px; padding:32px; width:100%; max-width:480px;
+    max-height:90vh; overflow-y:auto; margin:auto;
+  }
+  .modal h2{ font-family:var(--display); font-size:22px; font-weight:700; margin-bottom:22px; }
+
+  form{ display:flex; flex-direction:column; gap:18px; }
+  .field label{ display:flex; font-size:13.5px; font-weight:600; margin-bottom:7px; gap:4px; }
+  .field .req{ color:var(--brick); }
+  .field input, .field select, .field textarea{
+    width:100%; padding:12px 14px; font-size:15px; font-family:var(--body);
+    background:#fff; border:1px solid rgba(28,35,51,0.2); border-radius:7px; color:var(--ink);
+  }
+  .field input, .field select{ min-height:46px; }
+  .field textarea{ min-height:80px; resize:vertical; }
+  .field input:focus, .field select:focus, .field textarea:focus{
+    outline:none; border-color:var(--teal); box-shadow:0 0 0 3px rgba(62,124,116,0.15);
+  }
+  .field input[aria-invalid="true"]{ border-color:var(--brick); }
+  .error{
+    font-size:12.5px; color:var(--brick); margin-top:6px; display:none; align-items:flex-start; gap:6px;
+  }
+  .error.show{ display:flex; }
+  .error svg{ flex-shrink:0; margin-top:1px; stroke:var(--brick); }
+
+  .field-row{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .field-row .field{ margin:0; }
+  @media(max-width:420px){ .field-row{ grid-template-columns:1fr; } }
+
+  .recurrence-extra{ display:none; }
+  .recurrence-extra.show{ display:block; }
+  .hint{ font-size:12.5px; color:rgba(28,35,51,0.5); margin-top:6px; }
+
+  .modal-actions{ display:flex; gap:10px; justify-content:space-between; align-items:center; margin-top:6px; flex-wrap:wrap; }
+  .modal-actions-right{ display:flex; gap:10px; margin-left:auto; }
+  .modal-actions .btn-secondary{ background:var(--parchment-dim); color:var(--ink); }
+  .modal-actions .btn-secondary:hover{ background:#e2dbc7; }
+  .link-danger{ font-size:13px; color:var(--brick); font-weight:600; }
+  .link-danger:hover{ text-decoration:underline; }
+
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--ink); color:var(--parchment); padding:14px 22px; border-radius:8px;
+    font-size:14px; opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease;
+    z-index:200; display:flex; align-items:center; gap:10px;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  .toast svg{ stroke:var(--teal); flex-shrink:0; }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-header-left">
+    <span class="logo">Cadence<span class="dot">.</span></span>
+    <nav class="app-nav">
+      <a href="clients.html">Clients</a>
+      <a href="agenda.html" class="active">Agenda</a>
+      <a href="devis-factures.html">Devis &amp; factures</a>
+    </nav>
+  </div>
+  <div class="app-header-right">
+    <span class="user-email" id="user-email"></span>
+    <button class="btn btn-ghost" id="logout-btn" type="button">Se déconnecter</button>
+  </div>
+</header>
+
+<main class="app-main">
+  <div class="app-container">
+    <div class="page-head">
+      <div>
+        <h1>Votre agenda</h1>
+        <p>Vos créneaux et rendez-vous, à venir.</p>
+      </div>
+      <button class="btn btn-primary" id="add-appt-btn" type="button">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        Nouveau rendez-vous
+      </button>
+    </div>
+
+    <div id="loading-state" class="loading-state">Chargement…</div>
+
+    <div id="empty-state" class="empty-state" style="display:none;">
+      <div class="icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      </div>
+      <h2>Aucun rendez-vous à venir</h2>
+      <p>Ajoutez le premier pour commencer à remplir votre agenda.</p>
+      <button class="btn btn-primary" id="empty-add-btn" type="button">Ajouter mon premier rendez-vous</button>
+    </div>
+
+    <div id="appt-groups"></div>
+  </div>
+</main>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <h2 id="modal-title">Nouveau rendez-vous</h2>
+    <form id="appt-form" novalidate>
+      <input type="hidden" id="appt-id">
+      <input type="hidden" id="recurring-group-id">
+
+      <div class="field">
+        <label for="titre">Titre <span class="req">*</span></label>
+        <input type="text" id="titre" name="titre" aria-describedby="titre-error" required>
+        <div class="error" id="titre-error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg><span></span></div>
+      </div>
+
+      <div class="field">
+        <label for="client_id">Client</label>
+        <select id="client_id" name="client_id">
+          <option value="">Aucun client</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="date">Date <span class="req">*</span></label>
+        <input type="date" id="date" name="date" aria-describedby="date-error" required>
+        <div class="error" id="date-error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg><span></span></div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="heure_debut">Heure de début <span class="req">*</span></label>
+          <input type="time" id="heure_debut" name="heure_debut" required>
+        </div>
+        <div class="field">
+          <label for="heure_fin">Heure de fin <span class="req">*</span></label>
+          <input type="time" id="heure_fin" name="heure_fin" required>
+        </div>
+      </div>
+      <div class="error" id="heures-error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg><span></span></div>
+
+      <div class="field" id="recurrence-field">
+        <label for="recurrence">Répétition</label>
+        <select id="recurrence" name="recurrence">
+          <option value="none">Aucune — un seul rendez-vous</option>
+          <option value="weekly">Toutes les semaines</option>
+          <option value="biweekly">Toutes les 2 semaines</option>
+          <option value="monthly">Tous les mois</option>
+        </select>
+      </div>
+
+      <div class="field recurrence-extra" id="recurrence-count-field">
+        <label for="occurrences">Nombre de séances</label>
+        <input type="number" id="occurrences" name="occurrences" min="2" max="52" value="8">
+        <div class="hint">Crée cette séance et les suivantes en une fois.</div>
+      </div>
+
+      <div class="field">
+        <label for="notes">Notes</label>
+        <textarea id="notes" name="notes" placeholder="Lieu, préparation, rappel…"></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <a href="#" class="link-danger" id="delete-series-link" style="display:none;">Supprimer toute la série</a>
+        <div class="modal-actions-right">
+          <button type="button" class="btn btn-secondary" id="cancel-btn">Annuler</button>
+          <button type="submit" class="btn btn-primary" id="save-btn">Enregistrer</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+  <span id="toast-text"></span>
+</div>
+
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+  import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
+
+  const configured = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_ANON_KEY.includes('YOUR-ANON');
+  if(!configured){
+    document.body.innerHTML = '<div style="max-width:480px;margin:80px auto;text-align:center;padding:0 20px;font-family:Inter,Arial,sans-serif;">' +
+      '<h1 style="font-family:Fraunces,Georgia,serif;font-size:24px;margin-bottom:12px;">Supabase non configuré</h1>' +
+      '<p style="color:rgba(28,35,51,0.6);line-height:1.6;">Renseignez <code>supabase-config.js</code> avec votre URL et votre clé Supabase pour utiliser l\'agenda.</p>' +
+      '<a href="index.html" style="color:#3E7C74;font-weight:600;display:inline-block;margin-top:20px;">Retour à l\'accueil</a></div>';
+  } else {
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const groupsEl = document.getElementById('appt-groups');
+  const loadingEl = document.getElementById('loading-state');
+  const emptyEl = document.getElementById('empty-state');
+  const overlay = document.getElementById('modal-overlay');
+  const modalTitle = document.getElementById('modal-title');
+  const form = document.getElementById('appt-form');
+  const toast = document.getElementById('toast');
+  const toastText = document.getElementById('toast-text');
+  const clientSelect = document.getElementById('client_id');
+  const recurrenceField = document.getElementById('recurrence-field');
+  const recurrenceCountField = document.getElementById('recurrence-count-field');
+  const recurrenceSelect = document.getElementById('recurrence');
+  const deleteSeriesLink = document.getElementById('delete-series-link');
+
+  let clientsById = {};
+  let currentAppointments = [];
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  }
+
+  function showToast(message){
+    toastText.textContent = message;
+    toast.classList.add('show');
+    setTimeout(()=> toast.classList.remove('show'), 3200);
+  }
+
+  function setFieldError(id, message){
+    const input = document.getElementById(id);
+    const errorEl = document.getElementById(id + '-error');
+    if(!errorEl) return;
+    if(message){
+      if(input) input.setAttribute('aria-invalid', 'true');
+      errorEl.querySelector('span').textContent = message;
+      errorEl.classList.add('show');
+    } else {
+      if(input) input.removeAttribute('aria-invalid');
+      errorEl.classList.remove('show');
+    }
+  }
+
+  async function loadClientsIntoSelect(){
+    const { data, error } = await supabase.from('clients').select('id, full_name').order('full_name');
+    if(error) return;
+    clientsById = Object.fromEntries(data.map(c => [c.id, c.full_name]));
+    clientSelect.innerHTML = '<option value="">Aucun client</option>' +
+      data.map(c => `<option value="${c.id}">${escapeHtml(c.full_name)}</option>`).join('');
+  }
+
+  recurrenceSelect.addEventListener('change', ()=>{
+    recurrenceCountField.classList.toggle('show', recurrenceSelect.value !== 'none');
+  });
+
+  function openModal(appt){
+    form.reset();
+    ['titre','date','heures'].forEach(id => setFieldError(id, ''));
+    recurrenceCountField.classList.remove('show');
+    deleteSeriesLink.style.display = 'none';
+
+    if(appt){
+      modalTitle.textContent = 'Modifier le rendez-vous';
+      document.getElementById('appt-id').value = appt.id;
+      document.getElementById('recurring-group-id').value = appt.recurring_group_id || '';
+      document.getElementById('titre').value = appt.titre;
+      document.getElementById('client_id').value = appt.client_id || '';
+      const start = new Date(appt.date_debut);
+      const end = new Date(appt.date_fin);
+      document.getElementById('date').value = toDateInput(start);
+      document.getElementById('heure_debut').value = toTimeInput(start);
+      document.getElementById('heure_fin').value = toTimeInput(end);
+      document.getElementById('notes').value = appt.notes || '';
+      recurrenceField.style.display = 'none';
+      if(appt.recurring_group_id){
+        deleteSeriesLink.style.display = 'inline';
+      }
+    } else {
+      modalTitle.textContent = 'Nouveau rendez-vous';
+      document.getElementById('appt-id').value = '';
+      document.getElementById('recurring-group-id').value = '';
+      recurrenceField.style.display = 'block';
+      recurrenceSelect.value = 'none';
+      const now = new Date();
+      document.getElementById('date').value = toDateInput(now);
+    }
+    overlay.classList.add('show');
+    document.getElementById('titre').focus();
+  }
+
+  function closeModal(){
+    overlay.classList.remove('show');
+  }
+
+  function toDateInput(d){
+    return d.toISOString().slice(0,10);
+  }
+  function toTimeInput(d){
+    return d.toTimeString().slice(0,5);
+  }
+  function combineDateTime(dateStr, timeStr){
+    return new Date(`${dateStr}T${timeStr}:00`);
+  }
+
+  document.getElementById('add-appt-btn').addEventListener('click', ()=> openModal(null));
+  document.getElementById('empty-add-btn').addEventListener('click', ()=> openModal(null));
+  document.getElementById('cancel-btn').addEventListener('click', closeModal);
+  overlay.addEventListener('click', (e)=>{ if(e.target === overlay) closeModal(); });
+  document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && overlay.classList.contains('show')) closeModal(); });
+
+  const dayFormatter = new Intl.DateTimeFormat('fr-FR', { weekday:'long', day:'numeric', month:'long' });
+  const timeFormatter = new Intl.DateTimeFormat('fr-FR', { hour:'2-digit', minute:'2-digit' });
+
+  function renderAppointments(appts){
+    loadingEl.style.display = 'none';
+    currentAppointments = appts;
+    if(!appts.length){
+      emptyEl.style.display = 'block';
+      groupsEl.innerHTML = '';
+      return;
+    }
+    emptyEl.style.display = 'none';
+
+    const groups = new Map();
+    appts.forEach(a=>{
+      const key = toDateInput(new Date(a.date_debut));
+      if(!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(a);
+    });
+
+    groupsEl.innerHTML = Array.from(groups.entries()).map(([dateKey, items])=>{
+      const label = dayFormatter.format(new Date(dateKey + 'T12:00:00'));
+      return `
+        <div class="day-group">
+          <div class="day-label">${label}</div>
+          <div class="appt-list">
+            ${items.map(a=>{
+              const start = new Date(a.date_debut);
+              const end = new Date(a.date_fin);
+              const clientName = a.client_id ? clientsById[a.client_id] : null;
+              return `
+                <div class="appt-row ${a.statut === 'annule' ? 'annule' : ''}" data-id="${a.id}">
+                  <div class="appt-time">${timeFormatter.format(start)} – ${timeFormatter.format(end)}</div>
+                  <div class="appt-main">
+                    <h3>${escapeHtml(a.titre)}</h3>
+                    <div class="appt-meta">
+                      ${clientName ? `<span>${escapeHtml(clientName)}</span>` : ''}
+                      ${a.recurring_group_id ? `<span class="badge badge-recurrent">Récurrent</span>` : ''}
+                      ${a.statut === 'annule' ? `<span class="badge badge-annule">Annulé</span>` : ''}
+                    </div>
+                  </div>
+                  <div class="appt-row-actions">
+                    <button class="icon-btn edit-btn" type="button" aria-label="Modifier ${escapeHtml(a.titre)}">
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
+                    </button>
+                    <button class="icon-btn danger delete-btn" type="button" aria-label="Supprimer ${escapeHtml(a.titre)}">
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
+                    </button>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    groupsEl.querySelectorAll('.appt-row').forEach(row=>{
+      const id = row.dataset.id;
+      const appt = appts.find(a => a.id === id);
+      row.querySelector('.edit-btn').addEventListener('click', (e)=>{ e.stopPropagation(); openModal(appt); });
+      row.querySelector('.delete-btn').addEventListener('click', (e)=>{ e.stopPropagation(); deleteAppointment(id, appt.titre); });
+      row.addEventListener('click', ()=> openModal(appt));
+    });
+  }
+
+  async function loadAppointments(){
+    loadingEl.style.display = 'block';
+    emptyEl.style.display = 'none';
+    const startOfToday = new Date();
+    startOfToday.setHours(0,0,0,0);
+    const { data, error } = await supabase
+      .from('rendez_vous')
+      .select('*')
+      .gte('date_debut', startOfToday.toISOString())
+      .order('date_debut', { ascending: true });
+    if(error){
+      loadingEl.textContent = "Impossible de charger votre agenda pour le moment.";
+      return;
+    }
+    renderAppointments(data);
+  }
+
+  async function deleteAppointment(id, titre){
+    if(!window.confirm(`Supprimer le rendez-vous "${titre}" ? Cette action est irréversible.`)) return;
+    const { error } = await supabase.from('rendez_vous').delete().eq('id', id);
+    if(error){
+      showToast("La suppression a échoué. Réessayez.");
+      return;
+    }
+    showToast('Rendez-vous supprimé.');
+    loadAppointments();
+  }
+
+  deleteSeriesLink.addEventListener('click', async (e)=>{
+    e.preventDefault();
+    const groupId = document.getElementById('recurring-group-id').value;
+    if(!groupId) return;
+    if(!window.confirm('Supprimer toutes les séances à venir de cette série ? Les séances passées sont conservées.')) return;
+    const startOfToday = new Date();
+    startOfToday.setHours(0,0,0,0);
+    const { error } = await supabase
+      .from('rendez_vous')
+      .delete()
+      .eq('recurring_group_id', groupId)
+      .gte('date_debut', startOfToday.toISOString());
+    if(error){
+      showToast("La suppression a échoué. Réessayez.");
+      return;
+    }
+    closeModal();
+    showToast('Série supprimée.');
+    loadAppointments();
+  });
+
+  function addInterval(date, recurrence, index){
+    const d = new Date(date);
+    if(recurrence === 'weekly') d.setDate(d.getDate() + 7 * index);
+    if(recurrence === 'biweekly') d.setDate(d.getDate() + 14 * index);
+    if(recurrence === 'monthly') d.setMonth(d.getMonth() + index);
+    return d;
+  }
+
+  form.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const titre = document.getElementById('titre').value.trim();
+    const dateStr = document.getElementById('date').value;
+    const heureDebut = document.getElementById('heure_debut').value;
+    const heureFin = document.getElementById('heure_fin').value;
+
+    let hasError = false;
+    setFieldError('titre', '');
+    setFieldError('date', '');
+    setFieldError('heures', '');
+
+    if(titre.length < 2){
+      setFieldError('titre', 'Indiquez un titre pour ce rendez-vous.');
+      hasError = true;
+    }
+    if(!dateStr){
+      setFieldError('date', 'Choisissez une date.');
+      hasError = true;
+    }
+    if(!heureDebut || !heureFin){
+      setFieldError('heures', "Indiquez une heure de début et de fin.");
+      hasError = true;
+    } else if(heureFin <= heureDebut){
+      setFieldError('heures', "L'heure de fin doit être après l'heure de début.");
+      hasError = true;
+    }
+    if(hasError) return;
+
+    const id = document.getElementById('appt-id').value;
+    const clientId = document.getElementById('client_id').value || null;
+    const notes = document.getElementById('notes').value.trim() || null;
+    const startDate = combineDateTime(dateStr, heureDebut);
+    const endDate = combineDateTime(dateStr, heureFin);
+
+    const saveBtn = document.getElementById('save-btn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Enregistrement…';
+
+    let error;
+    if(id){
+      ({ error } = await supabase.from('rendez_vous').update({
+        titre, client_id: clientId, date_debut: startDate.toISOString(),
+        date_fin: endDate.toISOString(), notes
+      }).eq('id', id));
+    } else {
+      const recurrence = recurrenceSelect.value;
+      const count = recurrence === 'none' ? 1 : Math.max(2, Math.min(52, parseInt(document.getElementById('occurrences').value, 10) || 8));
+      const groupId = recurrence === 'none' ? null : crypto.randomUUID();
+      const rows = Array.from({ length: count }).map((_, i)=>{
+        const occStart = addInterval(startDate, recurrence, i);
+        const occEnd = addInterval(endDate, recurrence, i);
+        return {
+          titre, client_id: clientId, notes,
+          date_debut: occStart.toISOString(),
+          date_fin: occEnd.toISOString(),
+          recurring_group_id: groupId
+        };
+      });
+      ({ error } = await supabase.from('rendez_vous').insert(rows));
+    }
+
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Enregistrer';
+
+    if(error){
+      showToast("L'enregistrement a échoué. Réessayez.");
+      return;
+    }
+
+    closeModal();
+    showToast(id ? 'Rendez-vous mis à jour.' : 'Rendez-vous ajouté.');
+    loadAppointments();
+  });
+
+  document.getElementById('logout-btn').addEventListener('click', async ()=>{
+    await supabase.auth.signOut();
+    window.location.href = 'login.html';
+  });
+
+  (async function init(){
+    const { data } = await supabase.auth.getSession();
+    if(!data.session){
+      window.location.href = 'login.html';
+      return;
+    }
+    document.getElementById('user-email').textContent = data.session.user.email;
+    await loadClientsIntoSelect();
+    loadAppointments();
+  })();
+  }
+</script>
+
+</body>
+</html>

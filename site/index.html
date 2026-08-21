@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cadence — Le logiciel pour indépendants à clientèle récurrente</title>
+<meta name="description" content="Cadence remplace le tableur, les relances manuelles et les devis épars par un seul outil : fiches clients, agenda, devis & factures, suivi de la récurrence.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1C2333;
+    --ink-soft:#2A3346;
+    --parchment:#F5F1E7;
+    --parchment-dim:#EAE4D4;
+    --slate:#8B8F98;
+    --amber:#E2A63D;
+    --amber-soft:#f0c98a;
+    --teal:#3E7C74;
+    --brick:#B5533F;
+    --display:'Fraunces', Georgia, serif;
+    --body:'Inter', Arial, sans-serif;
+    --mono:'IBM Plex Mono', 'Courier New', monospace;
+    --max:1120px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:var(--body);
+    background:var(--parchment);
+    color:var(--ink);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  img,svg{display:block;}
+  a{color:inherit; text-decoration:none;}
+  .wrap{max-width:var(--max); margin:0 auto; padding:0 32px;}
+  @media(max-width:640px){ .wrap{padding:0 20px;} }
+
+  /* ---------- Nav ---------- */
+  header{
+    position:sticky; top:0; z-index:50;
+    background:rgba(245,241,231,0.88);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid rgba(28,35,51,0.08);
+  }
+  nav{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px 32px; max-width:var(--max); margin:0 auto;
+  }
+  .logo{
+    font-family:var(--display); font-weight:700; font-size:22px;
+    display:flex; align-items:baseline; gap:2px;
+  }
+  .logo .dot{
+    color:var(--amber);
+    animation:pulseDot 1.6s ease-in-out infinite;
+  }
+  .nav-links{display:flex; align-items:center; gap:32px; font-size:14px; font-weight:500;}
+  .nav-links a{color:var(--ink); opacity:0.72; transition:opacity .15s;}
+  .nav-links a:hover{opacity:1;}
+  .nav-cta{
+    background:var(--ink); color:var(--parchment);
+    padding:10px 20px; border-radius:6px; font-size:14px; font-weight:600;
+    transition:transform .15s ease, background .15s ease;
+  }
+  .nav-cta:hover{background:var(--ink-soft); transform:translateY(-1px);}
+
+  .nav-toggle{
+    display:none; align-items:center; justify-content:center;
+    width:44px; height:44px; border:none; background:transparent;
+    cursor:pointer; margin-left:8px; border-radius:6px;
+  }
+  .nav-toggle:hover{ background:rgba(28,35,51,0.06); }
+  .nav-toggle span{
+    display:block; width:20px; height:2px; background:var(--ink);
+    position:relative; transition:background .15s ease;
+  }
+  .nav-toggle span::before, .nav-toggle span::after{
+    content:''; position:absolute; left:0; width:20px; height:2px; background:var(--ink);
+    transition:transform .2s ease, top .2s ease, opacity .2s ease;
+  }
+  .nav-toggle span::before{ top:-6px; }
+  .nav-toggle span::after{ top:6px; }
+  .nav-toggle[aria-expanded="true"] span{ background:transparent; }
+  .nav-toggle[aria-expanded="true"] span::before{ top:0; transform:rotate(45deg); }
+  .nav-toggle[aria-expanded="true"] span::after{ top:0; transform:rotate(-45deg); }
+
+  .mobile-menu{
+    display:none; flex-direction:column;
+    max-height:0; overflow:hidden; opacity:0;
+    background:var(--parchment); border-top:1px solid rgba(28,35,51,0.08);
+    transition:max-height .25s ease, opacity .2s ease;
+  }
+  .mobile-menu.open{ max-height:320px; opacity:1; }
+  .mobile-menu a{
+    padding:16px 20px; font-size:15px; font-weight:500; color:var(--ink);
+    border-bottom:1px solid rgba(28,35,51,0.06);
+    min-height:44px; display:flex; align-items:center;
+  }
+  .mobile-menu .nav-cta{ margin:16px 20px; text-align:center; justify-content:center; color:var(--parchment); }
+
+  @media(max-width:800px){
+    .nav-links{display:none;}
+    nav > .nav-cta{display:none;}
+    .nav-toggle{display:flex;}
+    .mobile-menu{display:flex;}
+  }
+
+  /* ---------- Beat line (signature element) ---------- */
+  .beatline{
+    display:flex; align-items:center; justify-content:center;
+    gap:14px; padding:6px 0;
+  }
+  .beatline .beat{
+    width:7px; height:7px; border-radius:50%;
+    background:var(--slate); opacity:0.35;
+    animation:pulseDot 1.6s ease-in-out infinite;
+  }
+  .beatline.dark .beat{background:var(--parchment); opacity:0.28;}
+  .beatline .beat:nth-child(1){animation-delay:0s;}
+  .beatline .beat:nth-child(2){animation-delay:.2s;}
+  .beatline .beat:nth-child(3){animation-delay:.4s;}
+  .beatline .beat:nth-child(4){animation-delay:.6s;}
+  .beatline .beat:nth-child(5){animation-delay:.8s;}
+  .beatline .beat:nth-child(6){animation-delay:1s;}
+  .beatline .beat:nth-child(7){animation-delay:1.2s;}
+  .beatline .beat:nth-child(8){animation-delay:1.4s;}
+  @keyframes pulseDot{
+    0%, 70%, 100%{ transform:scale(1); opacity:0.3; }
+    35%{ transform:scale(1.9); opacity:1; background:var(--amber); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .beat, .logo .dot{ animation:none !important; opacity:0.6 !important; }
+  }
+
+  .divider{ padding:44px 0; }
+
+  /* ---------- Hero ---------- */
+  .hero{
+    background:var(--ink); color:var(--parchment);
+    padding:96px 0 80px;
+    position:relative; overflow:hidden;
+  }
+  .hero .wrap{position:relative; z-index:2;}
+  .eyebrow{
+    font-family:var(--mono); font-size:12px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--amber-soft);
+    display:inline-flex; align-items:center; gap:10px;
+    margin-bottom:24px;
+  }
+  .eyebrow::before{
+    content:''; width:16px; height:1px; background:var(--amber-soft);
+  }
+  h1{
+    font-family:var(--display); font-weight:700;
+    font-size:clamp(34px, 5.2vw, 64px);
+    line-height:1.06; letter-spacing:-0.01em;
+    max-width:820px;
+  }
+  h1 em{ font-style:italic; color:var(--amber-soft); }
+  .hero p.lead{
+    margin-top:24px; font-size:19px; color:rgba(245,241,231,0.72);
+    max-width:540px; line-height:1.6;
+  }
+  .hero-ctas{ margin-top:36px; display:flex; gap:16px; flex-wrap:wrap; align-items:center; }
+  .btn{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:14px 26px; border-radius:6px; font-weight:600; font-size:15px;
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .btn-primary{ background:var(--amber); color:var(--ink); }
+  .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 10px 24px rgba(226,166,61,0.28); }
+  .btn-ghost{ border:1px solid rgba(245,241,231,0.28); color:var(--parchment); }
+  .btn-ghost:hover{ border-color:rgba(245,241,231,0.6); }
+  .hero-note{ margin-top:18px; font-size:13px; color:rgba(245,241,231,0.5); }
+
+  /* cadence meter visual */
+  .meter{
+    margin-top:64px;
+    background:rgba(245,241,231,0.05);
+    border:1px solid rgba(245,241,231,0.12);
+    border-radius:14px;
+    padding:28px 28px 22px;
+    max-width:640px;
+  }
+  .meter-head{
+    display:flex; justify-content:space-between; align-items:baseline;
+    font-family:var(--mono); font-size:12px; color:rgba(245,241,231,0.55);
+    margin-bottom:18px; letter-spacing:.04em;
+  }
+  .meter-value{ font-family:var(--mono); font-size:26px; color:var(--parchment); font-weight:500; }
+  .meter-bars{ display:flex; align-items:flex-end; gap:8px; height:64px; }
+  .meter-bars .bar{
+    flex:1; background:linear-gradient(180deg, var(--amber-soft), var(--amber));
+    border-radius:3px 3px 0 0; opacity:0.85;
+  }
+  .meter-bars .bar.current{ background:linear-gradient(180deg,#fff,var(--amber)); opacity:1; }
+  .meter-foot{
+    display:flex; justify-content:space-between; margin-top:10px;
+    font-family:var(--mono); font-size:11px; color:rgba(245,241,231,0.4);
+  }
+
+  /* ---------- Problem section ---------- */
+  .problem{ padding:88px 0; }
+  .section-head{ max-width:640px; margin-bottom:56px; }
+  .section-head .eyebrow{ color:var(--brick); }
+  .section-head .eyebrow::before{ background:var(--brick); }
+  .section-head h2{
+    font-family:var(--display); font-weight:700;
+    font-size:clamp(26px, 3.4vw, 40px); line-height:1.14; margin-top:14px;
+  }
+  .problem-grid{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:1px;
+    background:rgba(28,35,51,0.12); border:1px solid rgba(28,35,51,0.12);
+    border-radius:14px; overflow:hidden;
+  }
+  @media(max-width:800px){ .problem-grid{ grid-template-columns:1fr; } }
+  .problem-cell{ background:var(--parchment); padding:32px 28px; }
+  .problem-cell .num{
+    font-family:var(--mono); font-size:13px; color:var(--brick); margin-bottom:14px; display:block;
+  }
+  .problem-cell h3{
+    font-family:var(--display); font-size:20px; font-weight:600; margin-bottom:10px;
+  }
+  .problem-cell p{ font-size:14.5px; color:rgba(28,35,51,0.66); line-height:1.6; }
+
+  /* ---------- Features ---------- */
+  .features{ padding:20px 0 88px; }
+  .feature-grid{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:20px; margin-top:8px;
+  }
+  @media(max-width:960px){ .feature-grid{ grid-template-columns:repeat(2,1fr); } }
+  @media(max-width:560px){ .feature-grid{ grid-template-columns:1fr; } }
+  .feature-card{
+    background:#fff; border:1px solid rgba(28,35,51,0.09);
+    border-radius:12px; padding:26px 22px;
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .feature-card:hover{ transform:translateY(-3px); box-shadow:0 14px 28px rgba(28,35,51,0.08); }
+  .feature-icon{
+    width:40px; height:40px; border-radius:9px;
+    background:var(--parchment-dim);
+    display:flex; align-items:center; justify-content:center;
+    margin-bottom:18px;
+  }
+  .feature-icon svg{ width:20px; height:20px; stroke:var(--ink); }
+  .feature-card h3{ font-family:var(--display); font-size:17px; font-weight:600; margin-bottom:8px; }
+  .feature-card p{ font-size:13.5px; color:rgba(28,35,51,0.62); line-height:1.55; }
+
+  /* ---------- Audience chips ---------- */
+  .audience{ background:var(--parchment-dim); padding:64px 0; }
+  .audience .wrap{ display:flex; flex-direction:column; align-items:center; text-align:center; }
+  .audience h2{ font-family:var(--display); font-size:24px; font-weight:600; margin-bottom:26px; }
+  .chips{ display:flex; flex-wrap:wrap; gap:12px; justify-content:center; }
+  .chip{
+    font-family:var(--mono); font-size:13px;
+    border:1px solid rgba(28,35,51,0.18); border-radius:999px;
+    padding:9px 18px; color:var(--ink); background:var(--parchment);
+  }
+
+  /* ---------- Pricing ---------- */
+  .pricing{ padding:88px 0; }
+  .pricing-grid{
+    display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-top:8px;
+  }
+  @media(max-width:760px){ .pricing-grid{ grid-template-columns:1fr; } }
+  .plan{
+    border-radius:16px; padding:36px 32px; border:1px solid rgba(28,35,51,0.1);
+    background:#fff;
+  }
+  .plan.featured{
+    background:var(--ink); color:var(--parchment); border-color:var(--ink);
+    position:relative;
+  }
+  .plan-tag{
+    font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--teal); margin-bottom:6px; display:block;
+  }
+  .plan.featured .plan-tag{ color:var(--amber-soft); }
+  .plan h3{ font-family:var(--display); font-size:22px; font-weight:700; margin-bottom:4px; }
+  .plan .sub{ font-size:13.5px; color:rgba(28,35,51,0.55); margin-bottom:22px; }
+  .plan.featured .sub{ color:rgba(245,241,231,0.6); }
+  .price{ font-family:var(--mono); font-size:36px; font-weight:500; margin-bottom:4px; }
+  .price span{ font-size:14px; font-weight:400; color:rgba(28,35,51,0.5); }
+  .plan.featured .price span{ color:rgba(245,241,231,0.5); }
+  .deduct{
+    font-family:var(--mono); font-size:11.5px; color:var(--teal);
+    display:flex; align-items:center; gap:6px; margin-bottom:4px;
+  }
+  .plan.featured .deduct{ color:var(--amber-soft); }
+  .deduct::before{ content:'✓'; }
+  .plan ul{ list-style:none; margin:26px 0 30px; }
+  .plan li{
+    font-size:14px; padding:9px 0; border-top:1px solid rgba(28,35,51,0.08);
+    display:flex; gap:10px; align-items:flex-start;
+  }
+  .plan.featured li{ border-top:1px solid rgba(245,241,231,0.12); }
+  .plan li::before{ content:'—'; color:var(--teal); flex-shrink:0; }
+  .plan.featured li::before{ color:var(--amber-soft); }
+  .plan .btn{ width:100%; justify-content:center; }
+  .plan .btn-primary{ background:var(--ink); color:var(--parchment); }
+  .plan.featured .btn-primary{ background:var(--amber); color:var(--ink); }
+
+  /* ---------- CTA footer band ---------- */
+  .cta-band{ background:var(--ink); color:var(--parchment); padding:80px 0; text-align:center; }
+  .cta-band h2{ font-family:var(--display); font-size:clamp(26px,3.6vw,42px); font-weight:700; max-width:600px; margin:0 auto 18px; line-height:1.15; }
+  .cta-band p{ color:rgba(245,241,231,0.65); max-width:460px; margin:0 auto 32px; }
+
+  footer{ padding:40px 0; }
+  .foot-row{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; }
+  .foot-row .logo{ font-size:17px; }
+  .foot-links{ display:flex; gap:24px; font-size:13px; color:rgba(28,35,51,0.55); }
+
+  .reveal{ opacity:0; transform:translateY(18px); transition:opacity .6s ease, transform .6s ease; }
+  .reveal.in{ opacity:1; transform:none; }
+  @media (prefers-reduced-motion: reduce){ .reveal{ opacity:1; transform:none; transition:none; } }
+</style>
+</head>
+<body>
+
+<header>
+  <nav>
+    <div class="logo">Cadence<span class="dot">.</span></div>
+    <div class="nav-links">
+      <a href="#fonctionnalites">Fonctionnalités</a>
+      <a href="#tarifs">Tarifs</a>
+      <a href="#pour-qui">Pour qui</a>
+      <a href="login.html">Se connecter</a>
+    </div>
+    <a href="signup.html" class="nav-cta">Essayer gratuitement</a>
+    <button class="nav-toggle" aria-expanded="false" aria-controls="mobile-menu" aria-label="Ouvrir le menu">
+      <span></span>
+    </button>
+  </nav>
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="#fonctionnalites">Fonctionnalités</a>
+    <a href="#tarifs">Tarifs</a>
+    <a href="#pour-qui">Pour qui</a>
+    <a href="login.html">Se connecter</a>
+    <a href="signup.html" class="nav-cta">Essayer gratuitement</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Pour indépendants à clientèle récurrente</div>
+    <h1>Le rythme administratif de votre activité, <em>réglé une fois pour toutes.</em></h1>
+    <p class="lead">Cadence remplace le tableur, les relances manuelles et les devis épars par un seul outil : fiches clients, agenda, devis &amp; factures, suivi de la récurrence.</p>
+    <div class="hero-ctas">
+      <a href="signup.html" class="btn btn-primary">Essayer gratuitement</a>
+      <a href="#fonctionnalites" class="btn btn-ghost">Voir les fonctionnalités</a>
+    </div>
+    <div class="hero-note">Sans carte bleue. Sans engagement.</div>
+
+    <div class="meter reveal">
+      <div class="meter-head">
+        <span>REVENU RÉCURRENT — 6 DERNIERS MOIS</span>
+        <span class="meter-value">1 540 €<span style="color:rgba(245,241,231,.4); font-size:13px;"> /mois</span></span>
+      </div>
+      <div class="meter-bars">
+        <div class="bar" style="height:38%"></div>
+        <div class="bar" style="height:52%"></div>
+        <div class="bar" style="height:48%"></div>
+        <div class="bar" style="height:66%"></div>
+        <div class="bar" style="height:74%"></div>
+        <div class="bar current" style="height:100%"></div>
+      </div>
+      <div class="meter-foot"><span>JUIN</span><span>JUIL</span><span>AOÛT</span><span>SEPT</span><span>OCT</span><span>NOV</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"><div class="beatline"><div class="beat"></div><div class="beat"></div><div class="beat"></div><div class="beat"></div><div class="beat"></div><div class="beat"></div><div class="beat"></div><div class="beat"></div></div></div>
+
+<section class="problem">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">Le problème</div>
+      <h2>Votre activité tourne. Votre administratif, lui, boite.</h2>
+    </div>
+    <div class="problem-grid">
+      <div class="problem-cell reveal">
+        <span class="num">01</span>
+        <h3>Devis éparpillés</h3>
+        <p>Un fichier par client, un modèle Word retrouvé par hasard, un montant recalculé à la main à chaque fois.</p>
+      </div>
+      <div class="problem-cell reveal">
+        <span class="num">02</span>
+        <h3>Relances oubliées</h3>
+        <p>La facture envoyée en juin, jamais relancée, payée en octobre — ou jamais.</p>
+      </div>
+      <div class="problem-cell reveal">
+        <span class="num">03</span>
+        <h3>Aucune vue d'ensemble</h3>
+        <p>Impossible de dire, sans compter à la main, combien de clients reviennent vraiment chaque mois.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="features" id="fonctionnalites">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow" style="color:var(--teal);">Fonctionnalités</div>
+      <h2>Quatre écrans. Rien de superflu.</h2>
+    </div>
+    <div class="feature-grid">
+      <div class="feature-card reveal">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <h3>Fiches clients</h3>
+        <p>Historique, notes de séance, coordonnées — tout au même endroit, retrouvable en deux secondes.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        </div>
+        <h3>Agenda</h3>
+        <p>Vos créneaux et rendez-vous récurrents, visibles d'un coup d'œil, synchronisables avec votre calendrier.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 15h6M9 11h3"/></svg>
+        </div>
+        <h3>Devis &amp; factures</h3>
+        <p>Générés en un clic depuis une fiche client, relancés automatiquement, exportables pour votre comptable.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>
+        </div>
+        <h3>Tableau de bord</h3>
+        <p>Chiffre d'affaires du mois, clients actifs, taux de renouvellement — la cadence réelle de votre activité.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="audience" id="pour-qui">
+  <div class="wrap">
+    <h2>Conçu pour les métiers à séances répétées</h2>
+    <div class="chips">
+      <div class="chip">Photographes</div>
+      <div class="chip">Retoucheurs &amp; annotateurs</div>
+      <div class="chip">Coachs sportifs</div>
+      <div class="chip">Formateurs indépendants</div>
+      <div class="chip">Consultants</div>
+      <div class="chip">Professeurs particuliers</div>
+    </div>
+  </div>
+</section>
+
+<section class="pricing" id="tarifs">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow" style="color:var(--teal);">Tarifs</div>
+      <h2>Une offre simple, qui s'adapte à votre usage.</h2>
+    </div>
+    <div class="pricing-grid">
+      <div class="plan reveal">
+        <span class="plan-tag">Solo</span>
+        <h3>Pour démarrer</h3>
+        <div class="sub">Jusqu'à 25 clients actifs</div>
+        <div class="price">15&nbsp;€<span> /mois TTC</span></div>
+        <div class="deduct">Frais professionnels déductibles</div>
+        <ul>
+          <li>Fiches clients illimitées</li>
+          <li>Agenda &amp; rendez-vous</li>
+          <li>Devis &amp; factures</li>
+          <li>Export comptable</li>
+        </ul>
+        <a href="signup.html?plan=solo" class="btn btn-primary">Essayer gratuitement</a>
+      </div>
+      <div class="plan featured reveal">
+        <span class="plan-tag">Studio</span>
+        <h3>Pour grandir</h3>
+        <div class="sub">Clients illimités, plusieurs collaborateurs</div>
+        <div class="price">29&nbsp;€<span> /mois TTC</span></div>
+        <div class="deduct">Frais professionnels déductibles</div>
+        <ul>
+          <li>Tout Solo, sans limite de clients</li>
+          <li>Partage multi-collaborateurs</li>
+          <li>Relances automatiques</li>
+          <li>Tableau de bord avancé</li>
+        </ul>
+        <a href="signup.html?plan=studio" class="btn btn-primary">Essayer gratuitement</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"><div class="beatline"><div class="beat"></div><div class="beat"></div><div class="beat"></div><div class="beat"></div><div class="beat"></div><div class="beat"></div><div class="beat"></div><div class="beat"></div></div></div>
+
+<section class="cta-band">
+  <div class="wrap">
+    <h2>Reprenez le rythme sur votre administratif.</h2>
+    <p>Créez un compte en deux minutes. Aucune carte bancaire requise.</p>
+    <a href="signup.html" class="btn btn-primary">Essayer Cadence gratuitement</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-row">
+    <div class="logo">Cadence<span class="dot" style="animation:none; opacity:.6;">.</span></div>
+    <div class="foot-links">
+      <a href="#fonctionnalites">Fonctionnalités</a>
+      <a href="#tarifs">Tarifs</a>
+      <a href="login.html">Se connecter</a>
+      <a href="#">Confidentialité</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, {threshold:0.15});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+  const navToggle = document.querySelector('.nav-toggle');
+  const mobileMenu = document.getElementById('mobile-menu');
+  navToggle.addEventListener('click', ()=>{
+    const open = mobileMenu.classList.toggle('open');
+    navToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  mobileMenu.querySelectorAll('a').forEach(a=>{
+    a.addEventListener('click', ()=>{
+      mobileMenu.classList.remove('open');
+      navToggle.setAttribute('aria-expanded', 'false');
+    });
+  });
+</script>
+
+</body>
+</html>

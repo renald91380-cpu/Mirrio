@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Devis &amp; factures — Cadence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1C2333;
+    --ink-soft:#2A3346;
+    --parchment:#F5F1E7;
+    --parchment-dim:#EAE4D4;
+    --slate:#8B8F98;
+    --amber:#E2A63D;
+    --amber-soft:#f0c98a;
+    --teal:#3E7C74;
+    --brick:#B5533F;
+    --display:'Fraunces', Georgia, serif;
+    --body:'Inter', Arial, sans-serif;
+    --mono:'IBM Plex Mono', 'Courier New', monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:var(--body);
+    background:var(--parchment);
+    color:var(--ink);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  img,svg{display:block;}
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit;}
+
+  .logo{
+    font-family:var(--display); font-weight:700; font-size:20px;
+    display:flex; align-items:baseline; gap:2px;
+  }
+  .logo .dot{ color:var(--amber); animation:pulseDot 1.6s ease-in-out infinite; }
+  @keyframes pulseDot{
+    0%, 70%, 100%{ transform:scale(1); opacity:0.3; }
+    35%{ transform:scale(1.9); opacity:1; background:var(--amber); }
+  }
+  @media (prefers-reduced-motion: reduce){ .logo .dot{ animation:none !important; opacity:0.6 !important; } }
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    padding:12px 20px; border-radius:6px; font-weight:600; font-size:14.5px;
+    border:none; cursor:pointer; min-height:44px;
+    transition:transform .15s ease, box-shadow .15s ease, background .15s ease, opacity .15s ease;
+  }
+  .btn-primary{ background:var(--amber); color:var(--ink); }
+  .btn-primary:hover{ transform:translateY(-1px); box-shadow:0 8px 18px rgba(226,166,61,0.28); }
+  .btn-ghost{ background:transparent; color:var(--parchment); border:1px solid rgba(245,241,231,0.28); }
+  .btn-ghost:hover{ border-color:rgba(245,241,231,0.6); }
+  .btn:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-visible{
+    outline:2px solid var(--teal); outline-offset:2px;
+  }
+
+  /* ---------- App header ---------- */
+  .app-header{
+    background:var(--ink); color:var(--parchment);
+    padding:16px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px;
+  }
+  .app-header-left{ display:flex; align-items:center; gap:28px; }
+  .app-nav{ display:none; gap:20px; font-size:14px; font-weight:500; }
+  @media(min-width:640px){ .app-nav{ display:flex; } }
+  .app-nav a{ color:rgba(245,241,231,0.6); padding:6px 0; border-bottom:2px solid transparent; white-space:nowrap; }
+  .app-nav a:hover{ color:var(--parchment); }
+  .app-nav a.active{ color:var(--parchment); border-bottom-color:var(--amber); }
+  .app-header-right{ display:flex; align-items:center; gap:16px; }
+  .user-email{ font-size:13px; color:rgba(245,241,231,0.55); display:none; }
+  @media(min-width:900px){ .user-email{ display:block; } }
+
+  /* ---------- Main ---------- */
+  .app-main{ padding:36px 20px 60px; }
+  .app-container{ max-width:980px; margin:0 auto; }
+  .page-head{
+    display:flex; align-items:flex-start; justify-content:space-between; gap:16px;
+    margin-bottom:24px; flex-wrap:wrap;
+  }
+  .page-head h1{ font-family:var(--display); font-weight:700; font-size:30px; margin-bottom:6px; }
+  .page-head p{ font-size:14.5px; color:rgba(28,35,51,0.6); }
+
+  .filter-tabs{ display:flex; gap:8px; margin-bottom:24px; }
+  .filter-tab{
+    font-size:13.5px; font-weight:600; padding:9px 16px; border-radius:999px; cursor:pointer;
+    border:1px solid rgba(28,35,51,0.16); background:#fff; color:rgba(28,35,51,0.6);
+  }
+  .filter-tab.active{ background:var(--ink); color:var(--parchment); border-color:var(--ink); }
+
+  /* ---------- Document list ---------- */
+  .doc-list{ display:flex; flex-direction:column; gap:10px; }
+  .doc-row{
+    background:#fff; border:1px solid rgba(28,35,51,0.09); border-radius:12px;
+    padding:16px 20px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    cursor:pointer; transition:box-shadow .15s ease, transform .15s ease;
+  }
+  .doc-row:hover{ box-shadow:0 8px 20px rgba(28,35,51,0.07); transform:translateY(-1px); }
+  .doc-row-id{ min-width:150px; }
+  .doc-numero{ font-family:var(--mono); font-size:13.5px; font-weight:500; margin-bottom:4px; }
+  .doc-badges{ display:flex; gap:6px; flex-wrap:wrap; }
+  .badge{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.04em; text-transform:uppercase;
+    padding:3px 9px; border-radius:999px; flex-shrink:0;
+  }
+  .badge-type-devis{ background:rgba(28,35,51,0.08); color:var(--ink); }
+  .badge-type-facture{ background:rgba(28,35,51,0.08); color:var(--ink-soft); }
+  .badge-statut-brouillon{ background:rgba(139,143,152,0.15); color:var(--slate); }
+  .badge-statut-envoye{ background:rgba(226,166,61,0.18); color:#a8791f; }
+  .badge-statut-accepte{ background:rgba(62,124,116,0.12); color:var(--teal); }
+  .badge-statut-paye{ background:rgba(62,124,116,0.16); color:var(--teal); }
+  .badge-statut-en_retard{ background:rgba(181,83,63,0.12); color:var(--brick); }
+  .badge-statut-refuse{ background:rgba(181,83,63,0.12); color:var(--brick); }
+  .doc-row-client{ flex:1; min-width:140px; font-size:14px; }
+  .doc-row-client .name{ font-family:var(--display); font-size:15.5px; font-weight:600; }
+  .doc-row-client .no-client{ color:rgba(28,35,51,0.4); font-style:italic; font-size:13.5px; }
+  .doc-row-amount{ font-family:var(--mono); font-size:16px; font-weight:500; min-width:100px; text-align:right; }
+  .doc-row-due{ font-size:12.5px; color:rgba(28,35,51,0.5); min-width:110px; text-align:right; }
+  .doc-row-actions{ display:flex; gap:4px; flex-shrink:0; }
+  .icon-btn{
+    width:38px; height:38px; border-radius:7px; border:none; background:transparent;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--slate);
+  }
+  .icon-btn:hover{ background:rgba(28,35,51,0.06); color:var(--ink); }
+  .icon-btn.danger:hover{ background:rgba(181,83,63,0.1); color:var(--brick); }
+  .convert-btn{
+    font-size:12.5px; font-weight:600; color:var(--teal); border:1px solid rgba(62,124,116,0.35);
+    background:rgba(62,124,116,0.06); border-radius:999px; padding:7px 14px; cursor:pointer;
+  }
+  .convert-btn:hover{ background:rgba(62,124,116,0.14); }
+
+  /* ---------- Empty / loading ---------- */
+  .empty-state{
+    text-align:center; padding:72px 20px; background:#fff;
+    border:1px dashed rgba(28,35,51,0.18); border-radius:14px;
+  }
+  .empty-state .icon{
+    width:52px; height:52px; border-radius:50%; background:var(--parchment-dim);
+    display:flex; align-items:center; justify-content:center; margin:0 auto 20px;
+  }
+  .empty-state .icon svg{ stroke:var(--slate); }
+  .empty-state h2{ font-family:var(--display); font-size:20px; margin-bottom:8px; }
+  .empty-state p{ font-size:14px; color:rgba(28,35,51,0.55); margin-bottom:24px; }
+  .loading-state{ text-align:center; padding:72px 20px; color:rgba(28,35,51,0.5); font-size:14px; }
+
+  /* ---------- Modal ---------- */
+  .modal-overlay{
+    display:none; position:fixed; inset:0; background:rgba(28,35,51,0.5);
+    align-items:center; justify-content:center; padding:20px; z-index:100; overflow-y:auto;
+  }
+  .modal-overlay.show{ display:flex; }
+  .modal{
+    background:var(--parchment); border-radius:14px; padding:32px; width:100%; max-width:640px;
+    max-height:90vh; overflow-y:auto; margin:auto;
+  }
+  .modal h2{ font-family:var(--display); font-size:22px; font-weight:700; margin-bottom:22px; }
+
+  form{ display:flex; flex-direction:column; gap:18px; }
+  .field label{ display:flex; font-size:13.5px; font-weight:600; margin-bottom:7px; gap:4px; }
+  .field .req{ color:var(--brick); }
+  .field input, .field select, .field textarea{
+    width:100%; padding:12px 14px; font-size:15px; font-family:var(--body);
+    background:#fff; border:1px solid rgba(28,35,51,0.2); border-radius:7px; color:var(--ink);
+  }
+  .field input, .field select{ min-height:46px; }
+  .field textarea{ min-height:70px; resize:vertical; }
+  .field input:focus, .field select:focus, .field textarea:focus{
+    outline:none; border-color:var(--teal); box-shadow:0 0 0 3px rgba(62,124,116,0.15);
+  }
+  .field input[aria-invalid="true"]{ border-color:var(--brick); }
+  .error{
+    font-size:12.5px; color:var(--brick); margin-top:6px; display:none; align-items:flex-start; gap:6px;
+  }
+  .error.show{ display:flex; }
+  .error svg{ flex-shrink:0; margin-top:1px; stroke:var(--brick); }
+
+  .field-row{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .field-row .field{ margin:0; }
+  @media(max-width:420px){ .field-row{ grid-template-columns:1fr; } }
+
+  .type-picker{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .type-option{
+    position:relative; border:1px solid rgba(28,35,51,0.16); border-radius:9px;
+    padding:12px 14px; cursor:pointer; text-align:center; font-weight:600; font-size:14.5px;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .type-option input{ position:absolute; opacity:0; width:1px; height:1px; }
+  .type-option:has(input:checked){ border-color:var(--teal); background:rgba(62,124,116,0.06); color:var(--teal); }
+  .type-badge-static{
+    display:inline-flex; font-family:var(--mono); font-size:12px; text-transform:uppercase;
+    letter-spacing:.05em; padding:6px 14px; border-radius:999px; background:rgba(28,35,51,0.08);
+  }
+
+  /* ---------- Line items ---------- */
+  .lines-editor{ border:1px solid rgba(28,35,51,0.12); border-radius:10px; padding:16px; background:rgba(255,255,255,0.5); }
+  .lines-head{
+    display:grid; grid-template-columns:1fr 56px 84px 84px 30px; gap:8px;
+    font-size:11.5px; font-weight:600; text-transform:uppercase; letter-spacing:.04em;
+    color:rgba(28,35,51,0.45); margin-bottom:10px; padding:0 2px;
+  }
+  @media(max-width:600px){ .lines-head{ display:none; } }
+  .line-row{
+    display:grid; grid-template-columns:1fr 56px 84px 84px 30px; gap:8px; align-items:center;
+    margin-bottom:8px;
+  }
+  @media(max-width:600px){
+    .line-row{ grid-template-columns:1fr 1fr 1fr; row-gap:6px; }
+    .line-desc{ grid-column:1 / -1; }
+  }
+  .line-row input{
+    padding:9px 10px; font-size:14px; border:1px solid rgba(28,35,51,0.18); border-radius:6px;
+    background:#fff; min-height:40px; width:100%; font-family:var(--body);
+  }
+  .line-row input:focus{ outline:none; border-color:var(--teal); }
+  .line-total{ font-family:var(--mono); font-size:13.5px; text-align:right; padding-right:4px; }
+  .line-remove{
+    width:30px; height:30px; border:none; background:transparent; color:var(--slate);
+    border-radius:6px; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center;
+  }
+  .line-remove:hover{ background:rgba(181,83,63,0.1); color:var(--brick); }
+  .add-line-btn{
+    font-size:13px; font-weight:600; color:var(--teal); background:none; border:none;
+    cursor:pointer; padding:8px 2px; margin-top:4px;
+  }
+  .add-line-btn:hover{ text-decoration:underline; }
+  .lines-total{
+    display:flex; justify-content:space-between; align-items:baseline; margin-top:10px;
+    padding-top:12px; border-top:1px solid rgba(28,35,51,0.12);
+    font-family:var(--display); font-size:15px; font-weight:600;
+  }
+  .lines-total span{ font-family:var(--mono); font-size:19px; }
+
+  .modal-actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:6px; }
+  .modal-actions .btn-secondary{ background:var(--parchment-dim); color:var(--ink); }
+  .modal-actions .btn-secondary:hover{ background:#e2dbc7; }
+
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--ink); color:var(--parchment); padding:14px 22px; border-radius:8px;
+    font-size:14px; opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease;
+    z-index:200; display:flex; align-items:center; gap:10px;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  .toast svg{ stroke:var(--teal); flex-shrink:0; }
+
+  /* ---------- Print view ---------- */
+  #print-area{ display:none; }
+  @media print{
+    body > *:not(#print-area){ display:none !important; }
+    #print-area{ display:block !important; padding:0; }
+    .print-header{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:40px; }
+    .print-logo{ font-family:var(--display); font-weight:700; font-size:26px; }
+    .print-doc-title{ text-align:right; }
+    .print-doc-title h1{ font-family:var(--display); font-size:22px; text-transform:capitalize; }
+    .print-doc-title .numero{ font-family:var(--mono); font-size:14px; color:rgba(28,35,51,0.6); }
+    .print-meta{ display:flex; justify-content:space-between; margin-bottom:30px; font-size:13.5px; }
+    .print-meta div div{ margin-bottom:3px; }
+    .print-meta .label{ color:rgba(28,35,51,0.5); font-size:11px; text-transform:uppercase; letter-spacing:.05em; }
+    .print-table{ width:100%; border-collapse:collapse; margin-bottom:24px; }
+    .print-table th{ text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:rgba(28,35,51,0.5); padding:8px 6px; border-bottom:2px solid var(--ink); }
+    .print-table td{ padding:10px 6px; border-bottom:1px solid rgba(28,35,51,0.12); font-size:13.5px; }
+    .print-table td.num, .print-table th.num{ text-align:right; font-family:var(--mono); }
+    .print-total{ text-align:right; font-family:var(--display); font-size:17px; font-weight:700; margin-bottom:30px; }
+    .print-total span{ font-family:var(--mono); }
+    .print-notes{ font-size:12.5px; color:rgba(28,35,51,0.6); }
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-header-left">
+    <span class="logo">Cadence<span class="dot">.</span></span>
+    <nav class="app-nav">
+      <a href="clients.html">Clients</a>
+      <a href="agenda.html">Agenda</a>
+      <a href="devis-factures.html" class="active">Devis &amp; factures</a>
+    </nav>
+  </div>
+  <div class="app-header-right">
+    <span class="user-email" id="user-email"></span>
+    <button class="btn btn-ghost" id="logout-btn" type="button">Se déconnecter</button>
+  </div>
+</header>
+
+<main class="app-main">
+  <div class="app-container">
+    <div class="page-head">
+      <div>
+        <h1>Devis &amp; factures</h1>
+        <p>Générés depuis une fiche client, numérotés automatiquement.</p>
+      </div>
+      <button class="btn btn-primary" id="add-doc-btn" type="button">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        Nouveau document
+      </button>
+    </div>
+
+    <div class="filter-tabs">
+      <button class="filter-tab active" data-filter="all" type="button">Tous</button>
+      <button class="filter-tab" data-filter="devis" type="button">Devis</button>
+      <button class="filter-tab" data-filter="facture" type="button">Factures</button>
+    </div>
+
+    <div id="loading-state" class="loading-state">Chargement…</div>
+
+    <div id="empty-state" class="empty-state" style="display:none;">
+      <div class="icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 15h6M9 11h3"/></svg>
+      </div>
+      <h2>Aucun document pour l'instant</h2>
+      <p>Créez votre premier devis ou facture.</p>
+      <button class="btn btn-primary" id="empty-add-btn" type="button">Créer mon premier document</button>
+    </div>
+
+    <div id="doc-list" class="doc-list"></div>
+  </div>
+</main>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <h2 id="modal-title">Nouveau document</h2>
+    <form id="doc-form" novalidate>
+      <input type="hidden" id="doc-id">
+
+      <div class="field" id="type-picker-field">
+        <label id="type-picker-label">Type de document</label>
+        <div class="type-picker" role="radiogroup" aria-labelledby="type-picker-label">
+          <label class="type-option">
+            <input type="radio" name="type" value="devis" checked>
+            Devis
+          </label>
+          <label class="type-option">
+            <input type="radio" name="type" value="facture">
+            Facture
+          </label>
+        </div>
+      </div>
+      <div class="field" id="type-static-field" style="display:none;">
+        <label>Type</label>
+        <span class="type-badge-static" id="type-static-label">Devis</span>
+      </div>
+
+      <div class="field">
+        <label for="client_id">Client <span class="req">*</span></label>
+        <select id="client_id" name="client_id" aria-describedby="client_id-error" required>
+          <option value="">Sélectionner un client</option>
+        </select>
+        <div class="error" id="client_id-error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg><span></span></div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="date_emission">Date d'émission <span class="req">*</span></label>
+          <input type="date" id="date_emission" name="date_emission" required>
+        </div>
+        <div class="field">
+          <label for="date_echeance">Date d'échéance</label>
+          <input type="date" id="date_echeance" name="date_echeance">
+        </div>
+      </div>
+
+      <div class="field" id="statut-field" style="display:none;">
+        <label for="statut">Statut</label>
+        <select id="statut" name="statut">
+          <option value="brouillon">Brouillon</option>
+          <option value="envoye">Envoyé</option>
+          <option value="accepte">Accepté</option>
+          <option value="paye">Payé</option>
+          <option value="en_retard">En retard</option>
+          <option value="refuse">Refusé</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Lignes <span class="req">*</span></label>
+        <div class="lines-editor">
+          <div class="lines-head">
+            <span>Description</span><span>Qté</span><span>Prix unit.</span><span>Total</span><span></span>
+          </div>
+          <div id="lines-list"></div>
+          <button type="button" class="add-line-btn" id="add-line-btn">+ Ajouter une ligne</button>
+          <div class="lines-total">Total <span id="lines-total-value">0,00&nbsp;€</span></div>
+        </div>
+        <div class="error" id="lines-error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg><span></span></div>
+      </div>
+
+      <div class="field">
+        <label for="notes">Notes</label>
+        <textarea id="notes" name="notes" placeholder="Conditions de paiement, précisions…"></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="cancel-btn">Annuler</button>
+        <button type="submit" class="btn btn-primary" id="save-btn">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+  <span id="toast-text"></span>
+</div>
+
+<div id="print-area">
+  <div class="print-header">
+    <div class="print-logo">Cadence</div>
+    <div class="print-doc-title">
+      <h1 id="print-type">Devis</h1>
+      <div class="numero" id="print-numero"></div>
+    </div>
+  </div>
+  <div class="print-meta">
+    <div>
+      <div class="label">Client</div>
+      <div id="print-client"></div>
+    </div>
+    <div>
+      <div><span class="label">Émis le </span><span id="print-date-emission"></span></div>
+      <div><span class="label">Échéance </span><span id="print-date-echeance"></span></div>
+    </div>
+  </div>
+  <table class="print-table">
+    <thead>
+      <tr><th>Description</th><th class="num">Qté</th><th class="num">Prix unit.</th><th class="num">Total</th></tr>
+    </thead>
+    <tbody id="print-lines"></tbody>
+  </table>
+  <div class="print-total">Total <span id="print-total-value"></span></div>
+  <div class="print-notes" id="print-notes"></div>
+</div>
+
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+  import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
+
+  const configured = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_ANON_KEY.includes('YOUR-ANON');
+  if(!configured){
+    document.body.innerHTML = '<div style="max-width:480px;margin:80px auto;text-align:center;padding:0 20px;font-family:Inter,Arial,sans-serif;">' +
+      '<h1 style="font-family:Fraunces,Georgia,serif;font-size:24px;margin-bottom:12px;">Supabase non configuré</h1>' +
+      '<p style="color:rgba(28,35,51,0.6);line-height:1.6;">Renseignez <code>supabase-config.js</code> avec votre URL et votre clé Supabase pour utiliser les devis &amp; factures.</p>' +
+      '<a href="index.html" style="color:#3E7C74;font-weight:600;display:inline-block;margin-top:20px;">Retour à l\'accueil</a></div>';
+  } else {
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const listEl = document.getElementById('doc-list');
+  const loadingEl = document.getElementById('loading-state');
+  const emptyEl = document.getElementById('empty-state');
+  const overlay = document.getElementById('modal-overlay');
+  const modalTitle = document.getElementById('modal-title');
+  const form = document.getElementById('doc-form');
+  const toast = document.getElementById('toast');
+  const toastText = document.getElementById('toast-text');
+  const clientSelect = document.getElementById('client_id');
+  const typePickerField = document.getElementById('type-picker-field');
+  const typeStaticField = document.getElementById('type-static-field');
+  const typeStaticLabel = document.getElementById('type-static-label');
+  const statutField = document.getElementById('statut-field');
+  const linesList = document.getElementById('lines-list');
+  const linesTotalValue = document.getElementById('lines-total-value');
+
+  let clientsById = {};
+  let currentDocs = [];
+  let activeFilter = 'all';
+
+  const statutLabels = {
+    brouillon:'Brouillon', envoye:'Envoyé', accepte:'Accepté',
+    paye:'Payé', en_retard:'En retard', refuse:'Refusé'
+  };
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  }
+
+  function formatMoney(n){
+    return new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR' }).format(n || 0);
+  }
+
+  function formatDate(d){
+    if(!d) return '—';
+    return new Intl.DateTimeFormat('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' }).format(new Date(d + 'T12:00:00'));
+  }
+
+  function showToast(message){
+    toastText.textContent = message;
+    toast.classList.add('show');
+    setTimeout(()=> toast.classList.remove('show'), 3200);
+  }
+
+  function setFieldError(id, message){
+    const input = document.getElementById(id);
+    const errorEl = document.getElementById(id + '-error');
+    if(!errorEl) return;
+    if(message){
+      if(input) input.setAttribute('aria-invalid', 'true');
+      errorEl.querySelector('span').textContent = message;
+      errorEl.classList.add('show');
+    } else {
+      if(input) input.removeAttribute('aria-invalid');
+      errorEl.classList.remove('show');
+    }
+  }
+
+  async function loadClientsIntoSelect(){
+    const { data, error } = await supabase.from('clients').select('id, full_name').order('full_name');
+    if(error) return;
+    clientsById = Object.fromEntries(data.map(c => [c.id, c.full_name]));
+    clientSelect.innerHTML = '<option value="">Sélectionner un client</option>' +
+      data.map(c => `<option value="${c.id}">${escapeHtml(c.full_name)}</option>`).join('');
+  }
+
+  function recalcLinesTotal(){
+    let total = 0;
+    linesList.querySelectorAll('.line-row').forEach(row=>{
+      const qty = parseFloat(row.querySelector('.line-qty').value) || 0;
+      const price = parseFloat(row.querySelector('.line-price').value) || 0;
+      const lineTotal = qty * price;
+      row.querySelector('.line-total').textContent = formatMoney(lineTotal);
+      total += lineTotal;
+    });
+    linesTotalValue.textContent = formatMoney(total);
+    return total;
+  }
+
+  function addLineRow(line){
+    const row = document.createElement('div');
+    row.className = 'line-row';
+    row.innerHTML = `
+      <input type="text" class="line-desc" placeholder="Description" value="${escapeHtml(line?.description || '')}">
+      <input type="number" class="line-qty" min="0" step="1" value="${line?.quantite ?? 1}">
+      <input type="number" class="line-price" min="0" step="0.01" value="${line?.prix_unitaire ?? 0}">
+      <span class="line-total">${formatMoney((line?.quantite ?? 1) * (line?.prix_unitaire ?? 0))}</span>
+      <button type="button" class="line-remove" aria-label="Supprimer la ligne">×</button>
+    `;
+    row.querySelector('.line-qty').addEventListener('input', recalcLinesTotal);
+    row.querySelector('.line-price').addEventListener('input', recalcLinesTotal);
+    row.querySelector('.line-remove').addEventListener('click', ()=>{
+      if(linesList.children.length > 1){
+        row.remove();
+        recalcLinesTotal();
+      }
+    });
+    linesList.appendChild(row);
+  }
+
+  document.getElementById('add-line-btn').addEventListener('click', ()=>{
+    addLineRow(null);
+  });
+
+  function todayISO(){
+    return new Date().toISOString().slice(0,10);
+  }
+
+  function openModal(doc){
+    form.reset();
+    linesList.innerHTML = '';
+    ['client_id','lines'].forEach(id => setFieldError(id, ''));
+
+    if(doc){
+      modalTitle.textContent = `Modifier — ${doc.numero || (doc.type === 'devis' ? 'Devis' : 'Facture')}`;
+      document.getElementById('doc-id').value = doc.id;
+      typePickerField.style.display = 'none';
+      typeStaticField.style.display = 'block';
+      typeStaticLabel.textContent = doc.type === 'devis' ? 'Devis' : 'Facture';
+      statutField.style.display = 'block';
+      document.getElementById('statut').value = doc.statut;
+      document.getElementById('client_id').value = doc.client_id || '';
+      document.getElementById('date_emission').value = doc.date_emission;
+      document.getElementById('date_echeance').value = doc.date_echeance || '';
+      document.getElementById('notes').value = doc.notes || '';
+      const lines = (doc.document_lignes || []).slice().sort((a,b)=> a.position - b.position);
+      if(lines.length){
+        lines.forEach(l => addLineRow(l));
+      } else {
+        addLineRow(null);
+      }
+    } else {
+      modalTitle.textContent = 'Nouveau document';
+      document.getElementById('doc-id').value = '';
+      typePickerField.style.display = 'block';
+      typeStaticField.style.display = 'none';
+      statutField.style.display = 'none';
+      document.querySelector('input[name="type"][value="devis"]').checked = true;
+      document.getElementById('date_emission').value = todayISO();
+      addLineRow(null);
+    }
+    recalcLinesTotal();
+    overlay.classList.add('show');
+    document.getElementById('client_id').focus();
+  }
+
+  function closeModal(){
+    overlay.classList.remove('show');
+  }
+
+  document.getElementById('add-doc-btn').addEventListener('click', ()=> openModal(null));
+  document.getElementById('empty-add-btn').addEventListener('click', ()=> openModal(null));
+  document.getElementById('cancel-btn').addEventListener('click', closeModal);
+  overlay.addEventListener('click', (e)=>{ if(e.target === overlay) closeModal(); });
+  document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && overlay.classList.contains('show')) closeModal(); });
+
+  document.querySelectorAll('.filter-tab').forEach(tab=>{
+    tab.addEventListener('click', ()=>{
+      document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      activeFilter = tab.dataset.filter;
+      renderDocs(currentDocs);
+    });
+  });
+
+  function docTotal(doc){
+    return (doc.document_lignes || []).reduce((sum, l) => sum + (l.quantite * l.prix_unitaire), 0);
+  }
+
+  function renderDocs(docs){
+    loadingEl.style.display = 'none';
+    const filtered = activeFilter === 'all' ? docs : docs.filter(d => d.type === activeFilter);
+
+    if(!docs.length){
+      emptyEl.style.display = 'block';
+      listEl.innerHTML = '';
+      return;
+    }
+    emptyEl.style.display = 'none';
+
+    if(!filtered.length){
+      listEl.innerHTML = '<div class="loading-state">Aucun document dans cette catégorie.</div>';
+      return;
+    }
+
+    listEl.innerHTML = filtered.map(d=>{
+      const clientName = d.client_id ? clientsById[d.client_id] : null;
+      return `
+        <div class="doc-row" data-id="${d.id}">
+          <div class="doc-row-id">
+            <div class="doc-numero">${escapeHtml(d.numero || '—')}</div>
+            <div class="doc-badges">
+              <span class="badge badge-type-${d.type}">${d.type === 'devis' ? 'Devis' : 'Facture'}</span>
+              <span class="badge badge-statut-${d.statut}">${statutLabels[d.statut]}</span>
+            </div>
+          </div>
+          <div class="doc-row-client">
+            ${clientName ? `<div class="name">${escapeHtml(clientName)}</div>` : '<div class="no-client">Sans client</div>'}
+          </div>
+          <div class="doc-row-amount">${formatMoney(docTotal(d))}</div>
+          <div class="doc-row-due">Échéance<br>${formatDate(d.date_echeance)}</div>
+          ${d.type === 'devis' ? `<button class="convert-btn" type="button" data-action="convert">Convertir en facture</button>` : ''}
+          <div class="doc-row-actions">
+            <button class="icon-btn" type="button" data-action="print" aria-label="Imprimer">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            </button>
+            <button class="icon-btn" type="button" data-action="edit" aria-label="Modifier ${escapeHtml(d.numero || '')}">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
+            </button>
+            <button class="icon-btn danger" type="button" data-action="delete" aria-label="Supprimer ${escapeHtml(d.numero || '')}">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    listEl.querySelectorAll('.doc-row').forEach(row=>{
+      const id = row.dataset.id;
+      const doc = docs.find(d => d.id === id);
+      row.addEventListener('click', ()=> openModal(doc));
+      row.querySelectorAll('[data-action]').forEach(btn=>{
+        btn.addEventListener('click', (e)=>{
+          e.stopPropagation();
+          const action = btn.dataset.action;
+          if(action === 'edit') openModal(doc);
+          if(action === 'delete') deleteDoc(doc);
+          if(action === 'print') printDoc(doc);
+          if(action === 'convert') convertToFacture(doc);
+        });
+      });
+    });
+  }
+
+  async function loadDocs(){
+    loadingEl.style.display = 'block';
+    emptyEl.style.display = 'none';
+    const { data, error } = await supabase
+      .from('documents')
+      .select('*, document_lignes(*)')
+      .order('date_emission', { ascending: false });
+    if(error){
+      loadingEl.textContent = "Impossible de charger vos documents pour le moment.";
+      return;
+    }
+    currentDocs = data;
+    renderDocs(data);
+  }
+
+  async function deleteDoc(doc){
+    if(!window.confirm(`Supprimer ${doc.numero} ? Cette action est irréversible.`)) return;
+    const { error } = await supabase.from('documents').delete().eq('id', doc.id);
+    if(error){
+      showToast("La suppression a échoué. Réessayez.");
+      return;
+    }
+    showToast('Document supprimé.');
+    loadDocs();
+  }
+
+  async function convertToFacture(devis){
+    if(!window.confirm(`Convertir ${devis.numero} en facture ? Une nouvelle facture sera créée avec les mêmes lignes.`)) return;
+    const echeance = new Date();
+    echeance.setDate(echeance.getDate() + 30);
+
+    const { data: facture, error } = await supabase.from('documents').insert({
+      type: 'facture',
+      client_id: devis.client_id,
+      date_emission: todayISO(),
+      date_echeance: echeance.toISOString().slice(0,10),
+      converted_from: devis.id,
+      notes: devis.notes
+    }).select().single();
+
+    if(error){
+      showToast("La conversion a échoué. Réessayez.");
+      return;
+    }
+
+    const lines = (devis.document_lignes || []).map((l, i) => ({
+      document_id: facture.id,
+      description: l.description,
+      quantite: l.quantite,
+      prix_unitaire: l.prix_unitaire,
+      position: i
+    }));
+    if(lines.length){
+      await supabase.from('document_lignes').insert(lines);
+    }
+
+    showToast(`Facture ${facture.numero} créée.`);
+    loadDocs();
+  }
+
+  function printDoc(doc){
+    document.getElementById('print-type').textContent = doc.type === 'devis' ? 'Devis' : 'Facture';
+    document.getElementById('print-numero').textContent = doc.numero || '';
+    document.getElementById('print-client').textContent = doc.client_id ? (clientsById[doc.client_id] || '') : 'Sans client';
+    document.getElementById('print-date-emission').textContent = formatDate(doc.date_emission);
+    document.getElementById('print-date-echeance').textContent = formatDate(doc.date_echeance);
+    document.getElementById('print-notes').textContent = doc.notes || '';
+    const lines = (doc.document_lignes || []).slice().sort((a,b)=> a.position - b.position);
+    document.getElementById('print-lines').innerHTML = lines.map(l => `
+      <tr>
+        <td>${escapeHtml(l.description)}</td>
+        <td class="num">${l.quantite}</td>
+        <td class="num">${formatMoney(l.prix_unitaire)}</td>
+        <td class="num">${formatMoney(l.quantite * l.prix_unitaire)}</td>
+      </tr>
+    `).join('');
+    document.getElementById('print-total-value').textContent = formatMoney(docTotal(doc));
+    window.print();
+  }
+
+  form.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const clientId = document.getElementById('client_id').value;
+    setFieldError('client_id', '');
+    setFieldError('lines', '');
+
+    let hasError = false;
+    if(!clientId){
+      setFieldError('client_id', 'Sélectionnez un client.');
+      hasError = true;
+    }
+
+    const lineRows = Array.from(linesList.querySelectorAll('.line-row'));
+    const lines = lineRows.map((row, i) => ({
+      description: row.querySelector('.line-desc').value.trim(),
+      quantite: parseFloat(row.querySelector('.line-qty').value) || 0,
+      prix_unitaire: parseFloat(row.querySelector('.line-price').value) || 0,
+      position: i
+    })).filter(l => l.description);
+
+    if(!lines.length){
+      setFieldError('lines', 'Ajoutez au moins une ligne avec une description.');
+      hasError = true;
+    }
+
+    if(hasError) return;
+
+    const id = document.getElementById('doc-id').value;
+    const dateEmission = document.getElementById('date_emission').value || todayISO();
+    const dateEcheance = document.getElementById('date_echeance').value || null;
+    const notes = document.getElementById('notes').value.trim() || null;
+
+    const saveBtn = document.getElementById('save-btn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Enregistrement…';
+
+    let error, docId;
+
+    if(id){
+      docId = id;
+      const statut = document.getElementById('statut').value;
+      ({ error } = await supabase.from('documents').update({
+        client_id: clientId, date_emission: dateEmission, date_echeance: dateEcheance,
+        statut, notes
+      }).eq('id', id));
+      if(!error){
+        await supabase.from('document_lignes').delete().eq('document_id', id);
+      }
+    } else {
+      const type = document.querySelector('input[name="type"]:checked').value;
+      const result = await supabase.from('documents').insert({
+        type, client_id: clientId, date_emission: dateEmission, date_echeance: dateEcheance, notes
+      }).select().single();
+      error = result.error;
+      docId = result.data?.id;
+    }
+
+    if(!error && docId){
+      const rows = lines.map(l => ({ ...l, document_id: docId }));
+      ({ error } = await supabase.from('document_lignes').insert(rows));
+    }
+
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Enregistrer';
+
+    if(error){
+      showToast("L'enregistrement a échoué. Réessayez.");
+      return;
+    }
+
+    closeModal();
+    showToast(id ? 'Document mis à jour.' : 'Document créé.');
+    loadDocs();
+  });
+
+  document.getElementById('logout-btn').addEventListener('click', async ()=>{
+    await supabase.auth.signOut();
+    window.location.href = 'login.html';
+  });
+
+  (async function init(){
+    const { data } = await supabase.auth.getSession();
+    if(!data.session){
+      window.location.href = 'login.html';
+      return;
+    }
+    document.getElementById('user-email').textContent = data.session.user.email;
+    await loadClientsIntoSelect();
+    loadDocs();
+  })();
+  }
+</script>
+
+</body>
+</html>
