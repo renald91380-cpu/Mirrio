@@ -30,17 +30,21 @@ Cadence/
 │   ├── schema.sql                          schéma de base (v1)
 │   ├── schema-v2-personnalisation.sql      migration : personnalisation & connexions agenda
 │   ├── schema-v3-espaces-et-relances.sql   migration : espaces partagés & suivi des relances
-│   └── schema-v4-admin.sql                 migration : rôle admin & back-office exploitant
+│   ├── schema-v4-admin.sql                 migration : rôle admin & back-office exploitant
+│   └── schema-v5-envoi-document.sql        migration : jeton de partage pour l'envoi par email
 ├── api/                               fonctions serverless Vercel
 │   ├── agenda.js                      flux iCalendar par utilisateur (GET /api/agenda?t=…)
-│   └── relances.js                    relance email des factures en retard (cron quotidien, voir vercel.json)
+│   ├── relances.js                    relance email des factures en retard (cron quotidien, voir vercel.json)
+│   ├── envoyer-document.js            envoi d'un devis/facture par email (POST, authentifié)
+│   └── document-public.js             lecture publique d'un devis/facture par jeton (GET /api/document-public?t=…)
 └── site/                              LE CODE — servi tel quel par Vercel (voir vercel.json)
     ├── index.html                     landing page
     ├── login.html, signup.html        authentification (mot de passe + Google), gèrent les liens d'invitation
     ├── dashboard.html                 tableau de bord (CA, clients actifs, renouvellement, retards) — Studio
     ├── clients.html                   fiches clients (CRUD)
     ├── agenda.html                    rendez-vous, avec récurrence
-    ├── devis-factures.html            devis & factures, numérotation auto, export comptable CSV
+    ├── devis-factures.html            devis & factures, numérotation auto, export comptable CSV, envoi par email
+    ├── voir-document.html             lecture publique d'un devis/facture (lien envoyé au client, sans compte)
     ├── parametres.html                identité, apparence, modèle de documents, prestations, agenda, équipe
     ├── admin.html                     back-office exploitant Cadence (réservé à `profiles.is_admin`)
     ├── supabase-config.js             clés Supabase
@@ -117,6 +121,17 @@ Bouton dans `devis-factures.html`, CSV généré côté client (aucun aller-reto
 - **Fonctions `admin_stats()` / `admin_liste_clients()` / `admin_definir_seuil()`** — chacune revérifie `admin_est_admin()` en première ligne (pas de `grant`/`revoke` explicite : même parti pris que le reste du projet, voir `inviter_collaborateur`). Elles renvoient des agrégats par espace (compteurs, métier, CA encaissé, nb de devis/factures/collaborateurs) — jamais le contenu d'un devis ou d'une facture individuelle, qui reste privé à son espace (choix déterminé par le besoin réel : oversight, pas support niveau 2).
 - **Capacité affichée = estimation, pas une mesure.** L'app ne peut pas lire l'usage réel de Supabase (taille de base, egress) ni de Vercel sans un jeton d'API séparé — la jauge compare simplement le nombre de clients à un seuil réglable (`admin_config.seuil_alerte_clients`, éditable depuis l'écran) et projette un délai avant de l'atteindre à partir des inscriptions des 30 derniers jours. Les paliers Supabase/Vercel affichés à côté (chiffres août 2026, sourcés dans l'écran) servent à décider, pas à mesurer — le dashboard Supabase/Vercel reste la source de vérité sur la conso réelle.
 
+### 3.8 Envoi d'un devis/facture par email
+
+`devis-factures.html` (bouton « enveloppe » sur chaque ligne) → `api/envoyer-document.js` → email via Resend, dans le même style que `api/relances.js`.
+
+- **Toujours pas de génération PDF côté serveur** (choix constant du projet, voir §3). L'email contient un bouton qui pointe vers `site/voir-document.html?t=<jeton>`, une page PUBLIQUE (aucun compte requis) qui réutilise `rendreDocument()`/`stylesDocument()` de `document-render.js` — le client imprime/enregistre en PDF depuis son propre navigateur, exactement comme le praticien le fait déjà. Un devis/une facture n'a donc jamais qu'un seul rendu, même livré à quelqu'un d'extérieur à l'app.
+- **`documents.partage_token`** est une URL-capacité, généré par `public.new_feed_token()` (déjà utilisée par `calendar_feeds.token` — pas une nouvelle fonction). Posé une seule fois à l'envoi, puis réutilisé : renvoyer le même document redonne le même lien plutôt que d'en invalider un déjà transmis au client.
+- **`api/document-public.js`** lit avec la clé `service_role` et vérifie le jeton dans le code, pas par une policy RLS (même schéma que `api/agenda.js`) — ne renvoie que ce qu'il faut pour reconstituer l'affichage (jamais la liste des documents de l'émetteur).
+- **`api/envoyer-document.js`** est authentifié (contrairement aux deux fonctions ci-dessus) : il vérifie le jeton d'accès Supabase de l'appelant via `/auth/v1/user`, puis reproduit `current_workspace_id()` côté serveur pour s'assurer que le document appartient bien à l'espace de l'appelant avant d'envoyer quoi que ce soit — un collaborateur peut envoyer un document créé par le propriétaire, personne d'autre.
+- **Effet de bord assumé** : un document encore « brouillon » passe à « envoyé » dès l'envoi réussi — jamais l'inverse, un statut déjà avancé (accepté, payé…) n'est jamais reculé.
+- **Mêmes variables d'environnement que les relances** (`RESEND_API_KEY`, `RESEND_FROM`) : sans `RESEND_API_KEY`, le bouton répond poliment que l'expéditeur n'est pas encore configuré, ce n'est pas un échec.
+
 ---
 
 ## 4. État actuel
@@ -128,7 +143,7 @@ Bouton dans `devis-factures.html`, CSV généré côté client (aucun aller-reto
 **Connexion Google activée** (2026-08-21). Projet Google Cloud dédié « Cadence », fournisseur Google activé dans Supabase → Authentication → Providers avec l'URL de rappel `https://uymqmbvhneijboszcwsf.supabase.co/auth/v1/callback`, scope `calendar.events` demandé. L'app reste en statut **Test** côté Google (limite : 100 utilisateurs listés manuellement, `renald91380@gmail.com` déjà ajouté) — passer en production lèvera cette limite mais nécessite les pages CGU/confidentialité (voir plus bas) et déclenchera l'écran « application non validée » de Google tant que la vérification n'est pas faite.
 
 **Reste à faire pour activer la personnalisation :**
-1. Exécuter `db/schema-v2-personnalisation.sql`, puis `db/schema-v3-espaces-et-relances.sql`, puis `db/schema-v4-admin.sql` dans le SQL Editor Supabase (dans cet ordre — chacune dépend de la précédente). Vérifier que l'email dans la dernière ligne de `schema-v4-admin.sql` correspond bien au compte qui doit devenir admin avant de la rejouer.
+1. Exécuter dans l'ordre, dans le SQL Editor Supabase : `db/schema-v2-personnalisation.sql`, `db/schema-v3-espaces-et-relances.sql`, `db/schema-v4-admin.sql`, `db/schema-v5-envoi-document.sql` (chacune dépend de la précédente). Vérifier que l'email dans la dernière ligne de `schema-v4-admin.sql` correspond bien au compte qui doit devenir admin avant de la rejouer.
 2. Déclarer sur Vercel la variable d'environnement `SUPABASE_SERVICE_ROLE_KEY` (nécessaire au flux iCalendar et aux relances). `SUPABASE_URL` est normalement déjà posée par l'intégration.
 3. Pour les relances automatiques : déclarer `CRON_SECRET` (jeton arbitraire, à reporter nulle part ailleurs — Vercel s'en sert pour signer ses propres appels), `RESEND_API_KEY` et `RESEND_FROM` (ex. `Cadence <relances@votre-domaine.fr>`, avec SPF/DKIM posés sur ce domaine — voir `emails/README.md` pour la même démarche). Sans `RESEND_API_KEY`, le cron tourne mais n'envoie rien.
 

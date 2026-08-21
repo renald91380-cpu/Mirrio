@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Votre document — Cadence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#1C2333; --parchment:#F5F1E7; --teal:#3E7C74; --brick:#B5533F; }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:'Inter', Arial, sans-serif; background:var(--parchment); color:var(--ink);
+    line-height:1.5; -webkit-font-smoothing:antialiased; min-height:100vh;
+  }
+  img,svg{display:block;}
+
+  .etat{ text-align:center; padding:80px 20px; color:rgba(28,35,51,0.55); font-size:14.5px; }
+  .etat.erreur{ color:var(--brick); }
+
+  .toolbar{
+    max-width:760px; margin:0 auto; padding:20px 20px 0;
+    display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+  }
+  .marque{ font-family:'Fraunces', Georgia, serif; font-weight:700; font-size:17px; }
+  .btn-imprimer{
+    display:inline-flex; align-items:center; gap:8px; padding:11px 18px; border-radius:6px;
+    font-weight:600; font-size:14px; border:none; cursor:pointer; background:#E2A63D; color:var(--ink);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .btn-imprimer:hover{ transform:translateY(-1px); box-shadow:0 8px 18px rgba(226,166,61,0.28); }
+  .btn-imprimer:focus-visible{ outline:2px solid var(--teal); outline-offset:2px; }
+
+  .doc-wrap{ max-width:760px; margin:20px auto 60px; padding:0 20px; }
+  .doc-shell{ background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(28,35,51,0.08), 0 12px 32px rgba(28,35,51,0.08); overflow:hidden; }
+
+  @media print{
+    body > *:not(#print-area-wrap){ display:none !important; }
+    .toolbar{ display:none !important; }
+    .doc-shell{ box-shadow:none; border-radius:0; }
+    .doc-wrap{ margin:0; padding:0; max-width:none; }
+    @page{ margin:14mm; }
+  }
+</style>
+</head>
+<body>
+
+<div id="etat-chargement" class="etat">Chargement de votre document…</div>
+<div id="etat-erreur" class="etat erreur" style="display:none;">
+  Ce lien est introuvable ou a expiré. Demandez à l'expéditeur de vous le renvoyer.
+</div>
+
+<div id="print-area-wrap" style="display:none;">
+  <div class="toolbar">
+    <span class="marque" id="marque"></span>
+    <button class="btn-imprimer" id="btn-imprimer" type="button">Imprimer / Enregistrer en PDF</button>
+  </div>
+  <div class="doc-wrap">
+    <div class="doc-shell" id="print-area"></div>
+  </div>
+</div>
+
+<script type="module">
+  import { rendreDocument, stylesDocument, couleurDocument } from './document-render.js';
+
+  const jeton = new URLSearchParams(location.search).get('t') || '';
+
+  (async function init(){
+    if(!jeton){
+      document.getElementById('etat-chargement').style.display = 'none';
+      document.getElementById('etat-erreur').style.display = 'block';
+      return;
+    }
+
+    let payload;
+    try{
+      const r = await fetch(`/api/document-public?t=${encodeURIComponent(jeton)}`);
+      if(!r.ok) throw new Error('introuvable');
+      payload = await r.json();
+    }catch(e){
+      document.getElementById('etat-chargement').style.display = 'none';
+      document.getElementById('etat-erreur').style.display = 'block';
+      return;
+    }
+
+    const { doc, lignes, client, params, brand } = payload;
+
+    document.title = `${doc.type === 'devis' ? 'Devis' : 'Facture'} ${doc.numero || ''} — Cadence`;
+    document.getElementById('marque').textContent = brand.business_name || brand.full_name || 'Cadence';
+
+    const style = document.createElement('style');
+    style.textContent = stylesDocument(couleurDocument(params, brand), params.modele || 'moderne');
+    document.head.appendChild(style);
+
+    document.getElementById('print-area').innerHTML = rendreDocument({ doc, lignes, client, params, brand });
+
+    document.getElementById('etat-chargement').style.display = 'none';
+    document.getElementById('print-area-wrap').style.display = 'block';
+
+    document.getElementById('btn-imprimer').addEventListener('click', () => window.print());
+  })();
+</script>
+
+</body>
+</html>
