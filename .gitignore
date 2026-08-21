@@ -4,3 +4,4 @@ node_modules/
 *.log
 .env
 .env.local
+.git_locks_to_delete/
