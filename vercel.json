@@ -1,3 +1,6 @@
 {
-  "outputDirectory": "site"
+  "outputDirectory": "site",
+  "crons": [
+    { "path": "/api/relances", "schedule": "0 7 * * *" }
+  ]
 }

@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tableau de bord — Cadence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1C2333;
+    --ink-soft:#2A3346;
+    --parchment:#F5F1E7;
+    --parchment-dim:#EAE4D4;
+    --slate:#8B8F98;
+    --amber:#E2A63D;
+    --amber-soft:#f0c98a;
+    --teal:#3E7C74;
+    --brick:#B5533F;
+    --display:'Fraunces', Georgia, serif;
+    --body:'Inter', Arial, sans-serif;
+    --mono:'IBM Plex Mono', 'Courier New', monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:var(--body);
+    background:var(--parchment);
+    color:var(--ink);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  img,svg{display:block;}
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit;}
+
+  .logo{
+    font-family:var(--display); font-weight:700; font-size:20px;
+    display:flex; align-items:baseline; gap:2px;
+  }
+  .logo .dot{ color:var(--amber); animation:pulseDot 1.6s ease-in-out infinite; }
+  @keyframes pulseDot{
+    0%, 70%, 100%{ transform:scale(1); opacity:0.3; }
+    35%{ transform:scale(1.9); opacity:1; background:var(--amber); }
+  }
+  @media (prefers-reduced-motion: reduce){ .logo .dot{ animation:none !important; opacity:0.6 !important; } }
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    padding:12px 20px; border-radius:6px; font-weight:600; font-size:14.5px;
+    border:none; cursor:pointer; min-height:44px;
+    transition:transform .15s ease, box-shadow .15s ease, background .15s ease, opacity .15s ease;
+  }
+  .btn-primary{ background:var(--amber); color:var(--ink); }
+  .btn-primary:hover{ transform:translateY(-1px); box-shadow:0 8px 18px rgba(226,166,61,0.28); }
+  .btn-ghost{ background:transparent; color:var(--parchment); border:1px solid rgba(245,241,231,0.28); }
+  .btn-ghost:hover{ border-color:rgba(245,241,231,0.6); }
+  .btn:focus-visible, a:focus-visible, button:focus-visible{
+    outline:2px solid var(--teal); outline-offset:2px;
+  }
+
+  /* ---------- App header ---------- */
+  .app-header{
+    background:var(--ink); color:var(--parchment);
+    padding:16px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px;
+  }
+  .app-header-left{ display:flex; align-items:center; gap:28px; }
+  .app-nav{ display:none; gap:20px; font-size:14px; font-weight:500; overflow-x:auto; }
+  @media(min-width:640px){ .app-nav{ display:flex; } }
+  .app-nav a{ color:rgba(245,241,231,0.6); padding:6px 0; border-bottom:2px solid transparent; white-space:nowrap; }
+  .app-nav a:hover{ color:var(--parchment); }
+  .app-nav a.active{ color:var(--parchment); border-bottom-color:var(--amber); }
+  .app-header-right{ display:flex; align-items:center; gap:16px; }
+  .user-email{ font-size:13px; color:rgba(245,241,231,0.55); display:none; }
+  @media(min-width:640px){ .user-email{ display:block; } }
+
+  /* ---------- Main ---------- */
+  .app-main{ padding:36px 20px 60px; }
+  .app-container{ max-width:980px; margin:0 auto; }
+  .page-head{ margin-bottom:32px; }
+  .page-head h1{ font-family:var(--display); font-weight:700; font-size:30px; margin-bottom:6px; }
+  .page-head p{ font-size:14.5px; color:rgba(28,35,51,0.6); }
+
+  .loading-state{ text-align:center; padding:72px 20px; color:rgba(28,35,51,0.5); font-size:14px; }
+
+  /* ---------- Stat cards ---------- */
+  .stat-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:20px; }
+  @media(max-width:760px){ .stat-row{ grid-template-columns:1fr; } }
+  .stat-card{
+    background:#fff; border:1px solid rgba(28,35,51,0.09); border-radius:12px; padding:20px 22px;
+  }
+  .stat-label{
+    font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.05em;
+    color:rgba(28,35,51,0.5); margin-bottom:10px;
+  }
+  .stat-value{ font-family:var(--display); font-size:30px; font-weight:700; line-height:1.1; }
+  .stat-sub{ font-size:12.5px; color:rgba(28,35,51,0.5); margin-top:6px; }
+  .stat-sub.up{ color:var(--teal); }
+  .stat-sub.down{ color:var(--brick); }
+
+  /* ---------- Chart card ---------- */
+  .card{
+    background:#fff; border:1px solid rgba(28,35,51,0.09); border-radius:12px;
+    padding:22px 24px; margin-bottom:20px;
+  }
+  .card h2{ font-family:var(--display); font-size:19px; font-weight:700; margin-bottom:4px; }
+  .card-sub{ font-size:13.5px; color:rgba(28,35,51,0.55); margin-bottom:22px; }
+
+  .chart-bars{ display:flex; align-items:flex-end; gap:14px; height:160px; }
+  .chart-col{ flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; height:100%; justify-content:flex-end; }
+  .chart-col .bar-track{ flex:1; width:100%; display:flex; align-items:flex-end; }
+  .chart-col .bar{
+    width:100%; border-radius:4px 4px 0 0; min-height:3px;
+    background:linear-gradient(180deg, var(--accent-soft, var(--amber-soft)), var(--accent, var(--amber)));
+    position:relative;
+  }
+  .chart-col.current .bar{ background:linear-gradient(180deg, #fff, var(--accent, var(--amber))); }
+  .chart-col .bar-value{
+    font-family:var(--mono); font-size:11px; color:rgba(28,35,51,0.55);
+    position:absolute; top:-19px; left:0; right:0; text-align:center; white-space:nowrap;
+  }
+  .chart-col .bar-label{ font-size:12px; color:rgba(28,35,51,0.55); text-transform:capitalize; }
+
+  /* ---------- Retard list ---------- */
+  .retard-list{ display:flex; flex-direction:column; gap:8px; }
+  .retard-row{
+    display:flex; align-items:center; gap:14px; padding:12px 14px;
+    background:rgba(181,83,63,0.05); border:1px solid rgba(181,83,63,0.15); border-radius:9px;
+  }
+  .retard-row .rr-main{ flex:1; min-width:0; }
+  .retard-row .rr-client{ font-size:14px; font-weight:600; }
+  .retard-row .rr-meta{ font-size:12.5px; color:rgba(28,35,51,0.55); margin-top:2px; }
+  .retard-row .rr-montant{ font-family:var(--mono); font-size:14px; font-weight:600; color:var(--brick); white-space:nowrap; }
+  .retard-row .rr-jours{
+    font-size:11px; font-weight:600; color:var(--brick); background:rgba(181,83,63,0.12);
+    padding:3px 9px; border-radius:20px; white-space:nowrap;
+  }
+  .retard-empty{
+    text-align:center; padding:28px 20px; color:rgba(28,35,51,0.5); font-size:13.5px;
+  }
+  .retard-empty svg{ margin:0 auto 10px; stroke:var(--teal); }
+
+  /* ---------- Mur payant (formule Solo) ---------- */
+  .plan-gate{ text-align:center; padding:56px 20px; }
+  .plan-gate strong{ display:block; font-family:var(--display); font-size:22px; margin-bottom:10px; }
+  .plan-gate p{ font-size:14.5px; color:rgba(28,35,51,0.6); max-width:440px; margin:0 auto 22px; line-height:1.6; }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-header-left">
+    <span class="logo">Cadence<span class="dot">.</span></span>
+    <nav class="app-nav">
+      <a href="dashboard.html" class="active">Tableau de bord</a>
+      <a href="clients.html">Clients</a>
+      <a href="agenda.html">Agenda</a>
+      <a href="devis-factures.html">Devis &amp; factures</a>
+      <a href="parametres.html">Paramètres</a>
+    </nav>
+  </div>
+  <div class="app-header-right">
+    <span class="user-email" id="user-email"></span>
+    <button class="btn btn-ghost" id="logout-btn" type="button">Se déconnecter</button>
+  </div>
+</header>
+
+<main class="app-main">
+  <div class="app-container">
+    <div class="page-head">
+      <h1>Tableau de bord</h1>
+      <p id="page-sub">Chiffre d'affaires du mois, clients actifs, taux de renouvellement — la cadence réelle de votre activité.</p>
+    </div>
+
+    <div id="loading-state" class="loading-state">Chargement…</div>
+
+    <div id="gate-view" style="display:none;">
+      <div class="card">
+        <div class="plan-gate">
+          <strong>Le tableau de bord avancé fait partie de l'offre Studio.</strong>
+          <p>Chiffre d'affaires du mois, taux de renouvellement et alertes de factures en retard, en un coup d'œil — en passant à la formule Studio.</p>
+          <a href="index.html#tarifs" class="btn btn-primary" style="display:inline-flex;">Voir les formules</a>
+        </div>
+      </div>
+    </div>
+
+    <div id="content-view" style="display:none;">
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="stat-label">Chiffre d'affaires du mois</div>
+          <div class="stat-value" id="stat-ca">—</div>
+          <div class="stat-sub" id="stat-ca-sub"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Clients actifs</div>
+          <div class="stat-value" id="stat-clients">—</div>
+          <div class="stat-sub">Au moins une activité au cours des 90 derniers jours</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Taux de renouvellement</div>
+          <div class="stat-value" id="stat-renouv">—</div>
+          <div class="stat-sub">Clients actifs il y a 3 mois, toujours actifs aujourd'hui</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Chiffre d'affaires — 6 derniers mois</h2>
+        <p class="card-sub">Factures encaissées, hors taxes, par mois d'émission.</p>
+        <div class="chart-bars" id="chart-bars"></div>
+      </div>
+
+      <div class="card">
+        <h2>Factures en attente de paiement</h2>
+        <p class="card-sub">Envoyées et non réglées à ce jour, échéance dépassée en premier.</p>
+        <div class="retard-list" id="retard-list"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+  import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
+  import { initTheme, idEspaceActif } from './theme.js';
+  import { calculerTotaux } from './document-render.js';
+
+  const configured = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_ANON_KEY.includes('YOUR-ANON');
+  if(!configured){
+    document.body.innerHTML = '<div style="max-width:480px;margin:80px auto;text-align:center;padding:0 20px;font-family:Inter,Arial,sans-serif;">' +
+      '<h1 style="font-family:Fraunces,Georgia,serif;font-size:24px;margin-bottom:12px;">Supabase non configuré</h1>' +
+      '<p style="color:rgba(28,35,51,0.6);line-height:1.6;">Renseignez <code>supabase-config.js</code> avec votre URL et votre clé Supabase pour utiliser le tableau de bord.</p>' +
+      '<a href="index.html" style="color:#3E7C74;font-weight:600;display:inline-block;margin-top:20px;">Retour à l\'accueil</a></div>';
+  } else {
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  document.getElementById('logout-btn').addEventListener('click', async ()=>{
+    await supabase.auth.signOut();
+    window.location.href = 'login.html';
+  });
+
+  function formatEuros(n){
+    return new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR', maximumFractionDigits:0 }).format(n || 0);
+  }
+  function formatDate(d){
+    if(!d) return '—';
+    return new Intl.DateTimeFormat('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' }).format(new Date(d + 'T12:00:00'));
+  }
+  // Début du Nième mois précédent (0 = mois en cours), en horaire local.
+  function debutMois(n){
+    const d = new Date();
+    d.setDate(1); d.setHours(0,0,0,0);
+    d.setMonth(d.getMonth() - n);
+    return d;
+  }
+
+  (async function init(){
+    const { data } = await supabase.auth.getSession();
+    const session = data.session;
+    if(!session){ window.location.href = 'login.html'; return; }
+    document.getElementById('user-email').textContent = session.user.email;
+    await initTheme(supabase, 'dashboard');
+    const espaceId = await idEspaceActif(supabase);
+
+    // Le tableau de bord AVANCÉ est un avantage Studio (voir la page tarifs) —
+    // l'entitlement suit le plan du PROPRIÉTAIRE de l'espace, pas celui du
+    // compte connecté : un collaborateur d'un espace Studio en profite aussi.
+    const { data: propProfil } = await supabase.from('profiles').select('plan').eq('id', espaceId).maybeSingle();
+    const estStudio = propProfil?.plan === 'studio';
+
+    document.getElementById('loading-state').style.display = 'none';
+    if(!estStudio){
+      document.getElementById('gate-view').style.display = 'block';
+      return;
+    }
+    document.getElementById('content-view').style.display = 'block';
+
+    const [{ data: paramsFact }, { data: clients }, { data: rdv }, { data: factures }] = await Promise.all([
+      supabase.from('parametres_facturation').select('assujetti_tva, tva_taux_defaut').maybeSingle(),
+      supabase.from('clients').select('id'),
+      supabase.from('rendez_vous').select('client_id, date_debut').gte('date_debut', debutMois(6).toISOString()),
+      supabase.from('documents').select('*, document_lignes(*)').eq('type', 'facture').gte('date_emission', debutMois(6).toISOString().slice(0,10))
+    ]);
+
+    const params = { assujetti_tva: paramsFact?.assujetti_tva || false, tva_taux_defaut: paramsFact?.tva_taux_defaut || 20 };
+
+    // -------------------------------------------------- CA du mois + graphe
+    const moisNoms = ['jan.','fév.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+    const totauxParMois = new Map(); // clé 'AAAA-MM' -> total HT payé
+    (factures || []).forEach(f => {
+      if(f.statut !== 'paye' || !f.date_emission) return;
+      const cle = f.date_emission.slice(0,7);
+      const { totalHT } = calculerTotaux(f.document_lignes, params);
+      totauxParMois.set(cle, (totauxParMois.get(cle) || 0) + totalHT);
+    });
+
+    const mois6 = Array.from({ length:6 }, (_, i) => debutMois(5 - i));
+    const valeurs = mois6.map(d => totauxParMois.get(d.toISOString().slice(0,7)) || 0);
+    const maxValeur = Math.max(1, ...valeurs);
+
+    document.getElementById('chart-bars').innerHTML = mois6.map((d, i) => {
+      const cle = d.toISOString().slice(0,7);
+      const v = totauxParMois.get(cle) || 0;
+      const hauteur = Math.max(3, Math.round((v / maxValeur) * 100));
+      const estCourant = i === mois6.length - 1;
+      return `
+        <div class="chart-col${estCourant ? ' current' : ''}">
+          <div class="bar-track">
+            <div class="bar" style="height:${hauteur}%;"><span class="bar-value">${formatEuros(v)}</span></div>
+          </div>
+          <div class="bar-label">${moisNoms[d.getMonth()]}</div>
+        </div>
+      `;
+    }).join('');
+
+    const caMoisCourant = valeurs[valeurs.length - 1];
+    const caMoisPrecedent = valeurs[valeurs.length - 2] || 0;
+    document.getElementById('stat-ca').textContent = formatEuros(caMoisCourant);
+    if(caMoisPrecedent > 0){
+      const variation = Math.round(((caMoisCourant - caMoisPrecedent) / caMoisPrecedent) * 100);
+      const sub = document.getElementById('stat-ca-sub');
+      sub.textContent = `${variation >= 0 ? '+' : ''}${variation} % vs mois précédent`;
+      sub.classList.add(variation >= 0 ? 'up' : 'down');
+    }
+
+    // -------------------------------------------------- clients actifs + renouvellement
+    // « Actif » : au moins un rendez-vous dans la fenêtre de 90 jours retenue.
+    // Les rendez-vous, pas les devis/factures, sont le signal le plus direct
+    // d'une relation en cours — un client peut rester actif plusieurs mois
+    // sans qu'une facture ne tombe pile dans la fenêtre.
+    const clientIds = new Set((clients || []).map(c => c.id));
+    const auj = new Date();
+    const il_y_a_90 = new Date(auj); il_y_a_90.setDate(il_y_a_90.getDate() - 90);
+    const il_y_a_180 = new Date(auj); il_y_a_180.setDate(il_y_a_180.getDate() - 180);
+
+    const actifsRecents = new Set();
+    const actifsPeriodePrecedente = new Set();
+    (rdv || []).forEach(r => {
+      if(!r.client_id || !clientIds.has(r.client_id)) return;
+      const d = new Date(r.date_debut);
+      if(d >= il_y_a_90 && d <= auj) actifsRecents.add(r.client_id);
+      else if(d >= il_y_a_180 && d < il_y_a_90) actifsPeriodePrecedente.add(r.client_id);
+    });
+
+    document.getElementById('stat-clients').textContent = String(actifsRecents.size);
+
+    let renouvClientsEncoreActifs = 0;
+    actifsPeriodePrecedente.forEach(id => { if(actifsRecents.has(id)) renouvClientsEncoreActifs++; });
+    const tauxRenouv = actifsPeriodePrecedente.size
+      ? Math.round((renouvClientsEncoreActifs / actifsPeriodePrecedente.size) * 100)
+      : null;
+    document.getElementById('stat-renouv').textContent = tauxRenouv === null ? '—' : `${tauxRenouv} %`;
+    if(tauxRenouv === null){
+      document.querySelector('#stat-renouv').closest('.stat-card').querySelector('.stat-sub').textContent =
+        'Pas assez d’historique pour ce calcul';
+    }
+
+    // -------------------------------------------------- factures en retard
+    const clientsById = {};
+    const { data: clientsDetail } = await supabase.from('clients').select('id, full_name');
+    (clientsDetail || []).forEach(c => { clientsById[c.id] = c.full_name; });
+
+    const aujISO = auj.toISOString().slice(0,10);
+    const enRetard = (factures || [])
+      .filter(f => f.statut !== 'paye' && f.statut !== 'brouillon' && f.statut !== 'refuse' && f.date_echeance && f.date_echeance < aujISO)
+      .map(f => {
+        const { totalTTC } = calculerTotaux(f.document_lignes, params);
+        const jours = Math.round((auj - new Date(f.date_echeance + 'T00:00:00')) / 86400000);
+        return { ...f, totalTTC, jours };
+      })
+      .sort((a, b) => b.jours - a.jours);
+
+    const retardList = document.getElementById('retard-list');
+    if(!enRetard.length){
+      retardList.innerHTML = `
+        <div class="retard-empty">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          Aucune facture en retard pour l'instant.
+        </div>
+      `;
+    } else {
+      retardList.innerHTML = enRetard.map(f => `
+        <div class="retard-row">
+          <div class="rr-main">
+            <div class="rr-client">${clientsById[f.client_id] || 'Client supprimé'} — ${f.numero || ''}</div>
+            <div class="rr-meta">Échéance dépassée le ${formatDate(f.date_echeance)}</div>
+          </div>
+          <span class="rr-jours">${f.jours} j de retard</span>
+          <div class="rr-montant">${formatEuros(f.totalTTC)}</div>
+        </div>
+      `).join('');
+    }
+  })();
+  }
+</script>
+
+</body>
+</html>

@@ -27,19 +27,22 @@ Cadence/
 │   ├── cadence-brand-guidelines.md    charte complète : couleurs, polices, ton, iconographie
 │   └── cadence-landing.html           mockup initial (base de la landing actuelle)
 ├── db/
-│   ├── schema.sql                     schéma de base (v1)
-│   └── schema-v2-personnalisation.sql migration : personnalisation & connexions agenda
+│   ├── schema.sql                          schéma de base (v1)
+│   ├── schema-v2-personnalisation.sql      migration : personnalisation & connexions agenda
+│   └── schema-v3-espaces-et-relances.sql   migration : espaces partagés & suivi des relances
 ├── api/                               fonctions serverless Vercel
-│   └── agenda.js                      flux iCalendar par utilisateur (GET /api/agenda?t=…)
+│   ├── agenda.js                      flux iCalendar par utilisateur (GET /api/agenda?t=…)
+│   └── relances.js                    relance email des factures en retard (cron quotidien, voir vercel.json)
 └── site/                              LE CODE — servi tel quel par Vercel (voir vercel.json)
     ├── index.html                     landing page
-    ├── login.html, signup.html        authentification (mot de passe + Google)
+    ├── login.html, signup.html        authentification (mot de passe + Google), gèrent les liens d'invitation
+    ├── dashboard.html                 tableau de bord (CA, clients actifs, renouvellement, retards) — Studio
     ├── clients.html                   fiches clients (CRUD)
     ├── agenda.html                    rendez-vous, avec récurrence
-    ├── devis-factures.html            devis & factures, numérotation auto
-    ├── parametres.html                identité, apparence, modèle de documents, prestations, agenda
+    ├── devis-factures.html            devis & factures, numérotation auto, export comptable CSV
+    ├── parametres.html                identité, apparence, modèle de documents, prestations, agenda, équipe
     ├── supabase-config.js             clés Supabase
-    ├── theme.js                       thème + vocabulaire métier, partagés par les écrans
+    ├── theme.js                       thème, vocabulaire métier & résolution d'espace, partagés par les écrans
     ├── document-render.js             rendu d'un devis/facture (aperçu ET impression)
     └── google-calendar.js             poussée des rendez-vous vers Google Calendar
 ```
@@ -53,7 +56,8 @@ Cadence/
 - **Aucun framework, aucun build.** HTML/CSS/JS vanille, un fichier autonome par écran (styles et scripts inline). Pas de `npm install`, pas d'étape de compilation.
 - **Exception assumée : quatre modules ES partagés** (`supabase-config.js`, `theme.js`, `document-render.js`, `google-calendar.js`). Ce sont les seules choses transversales par nature : les dupliquer dans cinq fichiers garantirait qu'ils divergent. Toute autre logique reste dans son écran.
 - **Supabase** pour l'authentification, la base (Postgres) et le stockage. Chargé côté client via `import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'`.
-- **Sécurité par Row Level Security (RLS)** : chaque table est scopée par `owner_id = auth.uid()`. Ne jamais désactiver RLS ni écrire une requête qui suppose que l'application filtre elle-même par utilisateur — c'est la base de données qui doit garantir l'isolation.
+- **Sécurité par Row Level Security (RLS)** : chaque table est scopée par `owner_id = current_workspace_id()` (voir §3.3 — un compte solo reste, comme avant, son propre espace). Ne jamais désactiver RLS ni écrire une requête qui suppose que l'application filtre elle-même par utilisateur — c'est la base de données qui doit garantir l'isolation.
+- **Un insert doit toujours poser `owner_id` explicitement**, jamais compter sur un défaut de colonne : la valeur à poser est l'espace actif (`idEspaceActif(supabase)` dans `theme.js`), pas forcément `auth.uid()` du compte connecté. Voir §3.3 — c'est le piège n°1 en travaillant sur un nouvel écran.
 - **Devis & factures** : un seul modèle `documents` (`type = 'devis' | 'facture'`) + `document_lignes`, pas deux tables séparées. Convertir un devis en facture duplique les lignes et pose `converted_from` vers le devis d'origine.
 - **TVA** : le taux vit sur `document_lignes.tva_taux`, pas sur le document — une facture peut légalement mélanger plusieurs taux. Défaut `0`. Un émetteur non assujetti déclenche la mention « TVA non applicable, art. 293 B du CGI ».
 - **Agenda récurrent** : chaque occurrence est une ligne à part en base (générées toutes en une fois à la création), reliées par `recurring_group_id` — pas de règle RRULE recalculée à la volée.
@@ -78,6 +82,30 @@ Deux canaux, volontairement :
 
 **Règle :** une synchronisation qui échoue ne doit jamais empêcher d'enregistrer un rendez-vous. La base de Cadence fait foi ; Google n'en est qu'un reflet.
 
+### 3.3 Espaces partagés (offre Studio)
+
+- **Un « espace » n'est pas une entité à part : c'est le compte de son propriétaire.** `workspace_id` vaut toujours l'`id` du profil qui l'a créé. Un compte solo reste, sans le savoir, un espace à un seul membre — aucune donnée n'a eu besoin d'être réécrite en migrant vers ce modèle (`schema-v3-espaces-et-relances.sql`).
+- **`current_workspace_id()`** (fonction SQL, `security definer`) revalide l'appartenance à chaque appel plutôt que de faire confiance à `profiles.espace_actif_id` : un membre révoqué entre-temps retombe silencieusement sur son propre espace. C'est elle qui pilote désormais les policies RLS de `clients`, `rendez_vous`, `documents`, `document_lignes`, `prestations`, `parametres_facturation`.
+- **`theme.js` expose `idEspaceActif(supabase)`** (appel RPC vers `current_workspace_id()`, mis en cache en mémoire pour la page) — c'est la valeur à poser sur `owner_id` à CHAQUE insert dans un de ces écrans. `initTheme()` l'appelle déjà pour résoudre la marque affichée ; un nouvel écran qui insère doit l'appeler lui-même (voir `clients.html`/`agenda.html`/`devis-factures.html` pour le patron).
+- **`chargerBrand(supabase, espaceId)`** lit le profil de l'ESPACE, pas forcément celui du compte connecté : un collaborateur imprime et voit le nom commercial, le logo et le vocabulaire du propriétaire, jamais les siens (souvent vierges). Une policy RLS additive sur `profiles` («&nbsp;Un membre voit le profil de l'espace&nbsp;») autorise cette lecture sans toucher à la policy d'origine.
+- **`calendar_feeds` / `calendar_connections` restent personnels**, volontairement non réécrits en `current_workspace_id()` : l'agenda de chaque collaborateur reste le sien, même quand les clients sont partagés.
+- **Onglet Équipe (`parametres.html`)** : invitation par email (`inviter_collaborateur`, réservée au propriétaire et à la formule Studio), acceptation (`accepter_invitation`), révocation (`revoquer_collaborateur`), bascule entre espaces (`basculer_espace`). Un lien d'invitation prend la forme `parametres.html?invite=<jeton>`.
+- **Rattachement à l'inscription** : deux chemins selon que la personne invitée a déjà un compte ou non.
+  1. **Compte à créer** : `signup.html` transmet le jeton en métadonnées de `signUp()` (`invite_token`) ; `handle_new_user()` referme la boucle côté SQL, avant même la confirmation de l'email — aucun aller-retour supplémentaire du navigateur.
+  2. **Compte existant, déconnecté** : le jeton ne survivrait pas à l'aller-retour Google en simple paramètre d'URL, donc `login.html`/`signup.html` le posent en `sessionStorage` avant de rediriger vers la connexion, et `parametres.html` l'accepte au chargement via `accepter_invitation()` (RPC, idempotente — un second appel sur un jeton déjà consommé échoue silencieusement, sans toast d'erreur).
+
+### 3.4 Tableau de bord
+
+`dashboard.html`, réservé à la formule Studio (l'entitlement suit le plan du PROPRIÉTAIRE de l'espace, pas du compte connecté — un collaborateur d'un espace Studio en profite). CA du mois calculé en HT (le TTC inclut la TVA collectée pour le compte de l'État, ce n'est pas du chiffre d'affaires), sur les factures au statut « payé ». « Client actif » = au moins un rendez-vous dans les 90 derniers jours ; le taux de renouvellement compare les clients actifs actuels à ceux qui l'étaient déjà 90 à 180 jours plus tôt. Les totaux réutilisent la même alerte de cohérence que le reste du produit : jamais recalculés à la main sans passer par `calculerTotaux()`.
+
+### 3.5 Export comptable
+
+Bouton dans `devis-factures.html`, CSV généré côté client (aucun aller-retour serveur). Uniquement les factures — un devis n'est pas du chiffre d'affaires. Conventions Excel françaises : séparateur `;`, décimales à la virgule, BOM UTF-8 en tête. Réutilise `calculerTotaux()` : les montants exportés ne peuvent jamais diverger de ce qui s'affiche ou s'imprime.
+
+### 3.6 Relances automatiques
+
+`api/relances.js`, appelée quotidiennement par Vercel Cron (`vercel.json` → `crons`, 7h). Zéro dépendance npm, même parti pris que `agenda.js`. Cible les factures envoyées et non réglées dont l'échéance est dépassée, en respectant trois garde-fous réglables depuis Paramètres → Devis & factures : l'interrupteur `relances_activees`, le délai entre deux rappels `relance_delai_jours`, et un plafond de 3 relances par facture au-delà duquel le cron n'insiste plus (`MAX_RELANCES`, en dur — un désaccord qui dépasse ce seuil se traite à la main, pas par un email de plus). L'email part d'une adresse Cadence (`RESEND_FROM`) avec `reply_to` posé sur l'adresse réelle du praticien — la réponse d'un client lui arrive donc directement. Sans `RESEND_API_KEY` configurée, la tâche répond `200` sans envoyer : ce n'est pas un échec, juste un expéditeur pas encore branché.
+
 ---
 
 ## 4. État actuel
@@ -87,17 +115,17 @@ Deux canaux, volontairement :
 **Déployé sur Vercel** — projet `cadence-site` (équipe Vercel « Cadence »), relié au repo GitHub `renald91380-cpu/Cadence`, branche `main`. `vercel.json` pointe `outputDirectory` vers `site/`.
 
 **Reste à faire pour activer la personnalisation :**
-1. Exécuter `db/schema-v2-personnalisation.sql` dans le SQL Editor Supabase.
-2. Déclarer sur Vercel la variable d'environnement `SUPABASE_SERVICE_ROLE_KEY` (nécessaire au flux iCalendar). `SUPABASE_URL` est normalement déjà posée par l'intégration.
+1. Exécuter `db/schema-v2-personnalisation.sql` puis `db/schema-v3-espaces-et-relances.sql` dans le SQL Editor Supabase (dans cet ordre — la v3 dépend de tables créées par la v2).
+2. Déclarer sur Vercel la variable d'environnement `SUPABASE_SERVICE_ROLE_KEY` (nécessaire au flux iCalendar et aux relances). `SUPABASE_URL` est normalement déjà posée par l'intégration.
 3. Pour la connexion Google : activer le fournisseur Google dans Supabase → Authentication → Providers, avec des identifiants OAuth Google Cloud et l'URL de rappel `https://uymqmbvhneijboszcwsf.supabase.co/auth/v1/callback`, en demandant l'autorisation `calendar.events`.
+4. Pour les relances automatiques : déclarer `CRON_SECRET` (jeton arbitraire, à reporter nulle part ailleurs — Vercel s'en sert pour signer ses propres appels), `RESEND_API_KEY` et `RESEND_FROM` (ex. `Cadence <relances@votre-domaine.fr>`, avec SPF/DKIM posés sur ce domaine — voir `emails/README.md` pour la même démarche). Sans `RESEND_API_KEY`, le cron tourne mais n'envoie rien.
 
 **Pas encore construit :**
-- Tableau de bord (CA du mois, taux de renouvellement)
 - Sélection d'une prestation du catalogue depuis les écrans Agenda et Devis (le catalogue existe, le raccourci de saisie non)
 - Import d'un agenda externe vers Cadence (le sens entrant)
-- Relances automatiques par email (nécessite un service transactionnel type Resend/Postmark)
 - Encaissement Stripe des abonnements Cadence elle-même
 - Pages CGU / politique de confidentialité (liens encore inertes sur `signup.html`)
+- Rôles au sein d'une équipe autres que propriétaire/collaborateur (pas de permissions fines par membre)
 
 ---
 

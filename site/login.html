@@ -264,7 +264,7 @@
       <div class="success-panel" id="success-view">
         <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
         <h2>Connexion réussie</h2>
-        <p>Redirection vers vos fiches clients…</p>
+        <p id="success-redirect-text">Redirection vers vos fiches clients…</p>
       </div>
     </div>
   </main>
@@ -276,6 +276,23 @@
 
   const configured = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_ANON_KEY.includes('YOUR-ANON');
   const supabase = configured ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+  // ------------------------------------------------------------- invitation
+  // Quelqu'un qui suit un lien d'invitation (parametres.html?invite=TOKEN) alors
+  // qu'il est déconnecté atterrit ici. Le jeton doit survivre à la connexion —
+  // par mot de passe (retour synchrone) comme par Google (aller-retour complet
+  // vers l'écran de consentement) — d'où la mise en sessionStorage : un simple
+  // paramètre d'URL ne tiendrait pas le trajet OAuth.
+  const CLE_INVITE = 'cadence:invite_token';
+  const jetonUrl = new URLSearchParams(window.location.search).get('invite');
+  if(jetonUrl){
+    try{ sessionStorage.setItem(CLE_INVITE, jetonUrl); }catch(e){}
+  }
+  function destinationApresConnexion(){
+    let jeton = null;
+    try{ jeton = sessionStorage.getItem(CLE_INVITE); }catch(e){}
+    return jeton ? `parametres.html?invite=${encodeURIComponent(jeton)}&tab=equipe` : 'clients.html';
+  }
 
   const form = document.getElementById('login-form');
   const errorsBox = document.getElementById('form-errors');
@@ -326,13 +343,14 @@
     googleBtn.disabled = true;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin + '/clients.html' }
+      options: { redirectTo: window.location.origin + '/' + destinationApresConnexion() }
     });
     if(error){
       googleBtn.disabled = false;
       showServerError("Impossible de se connecter avec Google pour le moment. Réessayez dans un instant.");
     }
-    // En cas de succès, le navigateur est redirigé vers Google puis revient sur clients.html.
+    // En cas de succès, le navigateur est redirigé vers Google puis revient sur
+    // clients.html — ou sur parametres.html?invite=… si une invitation était en attente.
   });
 
   function showServerError(message){
@@ -399,9 +417,13 @@
       return;
     }
 
+    const destination = destinationApresConnexion();
+    if(destination !== 'clients.html'){
+      document.getElementById('success-redirect-text').textContent = "Redirection vers votre invitation d'équipe…";
+    }
     document.getElementById('form-view').style.display = 'none';
     document.getElementById('success-view').classList.add('show');
-    setTimeout(()=>{ window.location.href = 'clients.html'; }, 700);
+    setTimeout(()=>{ window.location.href = destination; }, 700);
   });
 </script>
 

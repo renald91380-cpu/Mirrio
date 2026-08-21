@@ -223,8 +223,12 @@
           <ul id="form-errors-list"></ul>
         </div>
 
+        <div class="note-box" id="invite-note" style="display:none; border-left:3px solid var(--teal); background:rgba(62,124,116,0.07); padding:13px 16px; border-radius:0 8px 8px 0; font-size:13px; color:rgba(28,35,51,0.75); line-height:1.6; margin-bottom:20px;">
+          <strong style="color:var(--ink);">Vous rejoignez une équipe déjà installée sur Cadence.</strong> Créez votre compte ci-dessous — vous retrouverez directement ses clients, son agenda et ses devis, sans rien reconfigurer.
+        </div>
+
         <form id="signup-form" novalidate>
-          <div class="field">
+          <div class="field" id="plan-field">
             <label for="plan-picker-group">Formule</label>
             <div class="plan-picker" id="plan-picker-group" role="radiogroup" aria-label="Choisir une formule">
               <label class="plan-option">
@@ -298,6 +302,25 @@
   const configured = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_ANON_KEY.includes('YOUR-ANON');
   const supabase = configured ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
+  // ------------------------------------------------------------- invitation
+  // Même mécanique que login.html : le jeton d'invitation doit survivre à
+  // l'aller-retour Google, donc sessionStorage plutôt qu'un simple paramètre
+  // d'URL. Un tout nouveau compte, lui, n'a pas besoin de ce détour : le jeton
+  // part directement dans les métadonnées de `signUp`, et `handle_new_user()`
+  // referme la boucle côté SQL sans second aller-retour du navigateur.
+  const CLE_INVITE = 'cadence:invite_token';
+  const jetonInvite = new URLSearchParams(window.location.search).get('invite');
+  if(jetonInvite){
+    try{ sessionStorage.setItem(CLE_INVITE, jetonInvite); }catch(e){}
+    document.getElementById('invite-note').style.display = 'block';
+    document.getElementById('plan-field').style.display = 'none';
+  }
+  function destinationApresConnexion(){
+    let jeton = null;
+    try{ jeton = sessionStorage.getItem(CLE_INVITE); }catch(e){}
+    return jeton ? `parametres.html?invite=${encodeURIComponent(jeton)}&tab=equipe` : 'clients.html';
+  }
+
   const form = document.getElementById('signup-form');
   const errorsBox = document.getElementById('form-errors');
   const errorsHeading = errorsBox.querySelector('h3');
@@ -360,12 +383,15 @@
     googleBtn.disabled = true;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin + '/clients.html' }
+      options: { redirectTo: window.location.origin + '/' + destinationApresConnexion() }
     });
     if(error){
       googleBtn.disabled = false;
       showServerError("Impossible de continuer avec Google pour le moment. Réessayez dans un instant.");
     }
+    // Une invitation en attente n'est PAS transmise via les métadonnées ici — Google
+    // ne les transporte pas. C'est parametres.html qui l'acceptera au retour, via
+    // accepter_invitation(), en lisant le jeton laissé en sessionStorage ci-dessus.
   });
 
   function showServerError(message){
@@ -420,13 +446,19 @@
     submitBtn.textContent = 'Création en cours…';
 
     const email = form.elements.email.value.trim();
+    let jetonInviteActuel = null;
+    try{ jetonInviteActuel = sessionStorage.getItem(CLE_INVITE); }catch(e){}
     const { error } = await supabase.auth.signUp({
       email,
       password: form.elements.password.value,
       options: {
         data: {
           full_name: form.elements.name.value.trim(),
-          plan: form.elements.plan.value
+          plan: form.elements.plan.value,
+          // Lu directement par handle_new_user() côté SQL : si ce jeton est valide,
+          // le compte rejoint l'espace de l'invitant dès sa création, avant même
+          // la confirmation de l'email.
+          invite_token: jetonInviteActuel || undefined
         }
       }
     });
@@ -438,6 +470,10 @@
       showServerError(supabaseSignupErrorMessage(error));
       return;
     }
+
+    // Le jeton a déjà fait son office via les métadonnées de signUp() ci-dessus —
+    // on l'efface pour qu'un login.html ultérieur n'essaie pas de le ré-accepter.
+    if(jetonInviteActuel){ try{ sessionStorage.removeItem(CLE_INVITE); }catch(e){} }
 
     document.getElementById('success-email').textContent = email;
     document.getElementById('form-view').style.display = 'none';

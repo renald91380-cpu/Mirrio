@@ -318,7 +318,7 @@
 <script type="module">
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
   import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
-  import { initTheme, vocabulaire, viderCacheBrand } from './theme.js';
+  import { initTheme, vocabulaire, viderCacheBrand, idEspaceActif } from './theme.js';
   import { pousserPlusieurs, supprimerRendezVous, messagePour } from './google-calendar.js';
 
   const configured = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_ANON_KEY.includes('YOUR-ANON');
@@ -346,6 +346,7 @@
 
   let brand = null;
   let vocab = null;
+  let espaceId = null;
   let clientsById = {};
   let currentAppointments = [];
 
@@ -640,7 +641,9 @@
           titre, client_id: clientId, notes,
           date_debut: occStart.toISOString(),
           date_fin: occEnd.toISOString(),
-          recurring_group_id: groupId
+          recurring_group_id: groupId,
+          // Posé explicitement à l'espace actif — voir la note dans clients.html.
+          owner_id: espaceId
         };
       });
       let d;
@@ -687,6 +690,7 @@
     document.getElementById('user-email').textContent = data.session.user.email;
     brand = await initTheme(supabase, 'agenda');
     appliquerVocabulaire(brand);
+    espaceId = await idEspaceActif(supabase);
     await loadClientsIntoSelect();
     loadAppointments();
   })();

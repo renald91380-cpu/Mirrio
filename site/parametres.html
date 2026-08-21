@@ -289,6 +289,36 @@
   .note-box strong{ color:var(--ink); }
   .note-box.warn{ border-left-color:var(--brick); background:rgba(181,83,63,0.06); }
 
+  /* ---------- Équipe ---------- */
+  .membre-list{ display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+  .membre-row{
+    background:#fff; border:1px solid rgba(28,35,51,0.1); border-radius:9px;
+    padding:13px 15px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  }
+  .membre-row .mb-main{ flex:1; min-width:160px; }
+  .membre-row .mb-email{ font-size:14px; font-weight:600; }
+  .membre-row .mb-meta{ font-size:12px; color:rgba(28,35,51,0.52); margin-top:2px; }
+  .badge-role{
+    font-size:11px; font-weight:600; padding:4px 9px; border-radius:20px;
+    text-transform:uppercase; letter-spacing:.03em; white-space:nowrap;
+  }
+  .badge-role.actif{ background:rgba(62,124,116,0.14); color:var(--teal); }
+  .badge-role.invite{ background:rgba(226,166,61,0.18); color:#a8791f; }
+  .badge-role.revoque{ background:rgba(181,83,63,0.12); color:var(--brick); }
+  .invite-link-box{
+    display:flex; gap:8px; align-items:stretch; flex-wrap:wrap; margin-top:14px;
+    padding:13px 15px; background:var(--parchment-dim); border-radius:9px;
+  }
+  .invite-link-box .il-url{
+    flex:1; min-width:220px; font-family:var(--mono); font-size:12.5px;
+    padding:10px 12px; background:#fff; border:1px solid rgba(28,35,51,0.14);
+    border-radius:7px; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .plan-gate{
+    text-align:center; padding:32px 20px; color:rgba(28,35,51,0.62); font-size:14px; line-height:1.6;
+  }
+  .plan-gate strong{ display:block; color:var(--ink); font-size:16px; margin-bottom:6px; font-family:var(--display); }
+
   /* ---------- Barre d'enregistrement ---------- */
   .save-bar{
     position:fixed; left:0; right:0; bottom:0; z-index:150;
@@ -352,6 +382,7 @@
         <button class="tab" role="tab" id="tab-documents" aria-controls="panel-documents" aria-selected="false" data-tab="documents" type="button">Devis &amp; factures</button>
         <button class="tab" role="tab" id="tab-prestations" aria-controls="panel-prestations" aria-selected="false" data-tab="prestations" type="button">Prestations</button>
         <button class="tab" role="tab" id="tab-agenda" aria-controls="panel-agenda" aria-selected="false" data-tab="agenda" type="button">Agenda</button>
+        <button class="tab" role="tab" id="tab-equipe" aria-controls="panel-equipe" aria-selected="false" data-tab="equipe" type="button">Équipe</button>
       </div>
 
       <!-- ============================ ENTREPRISE ============================ -->
@@ -579,6 +610,22 @@
             </div>
 
             <div class="card">
+              <h2>Relances automatiques</h2>
+              <p class="card-sub">Une facture envoyée qui dépasse son échéance sans être réglée déclenche un email de rappel à votre client — sans que vous ayez à y penser.</p>
+              <div class="switch-row">
+                <input type="checkbox" id="relances_activees" data-bind="facturation.relances_activees">
+                <div>
+                  <label for="relances_activees" class="switch-label" style="margin:0;">Relancer automatiquement les factures en retard</label>
+                  <div class="switch-desc">Un email est envoyé au nom de votre entreprise, avec votre adresse en réponse — jamais plus de 3 rappels par facture.</div>
+                </div>
+              </div>
+              <div class="field" style="max-width:calc(50% - 8px); margin-top:14px;">
+                <label for="relance_delai_jours">Délai entre deux rappels (jours)</label>
+                <input type="number" id="relance_delai_jours" data-bind="facturation.relance_delai_jours" min="1" max="60">
+              </div>
+            </div>
+
+            <div class="card">
               <h2>Numérotation</h2>
               <p class="card-sub">Le préfixe de vos numéros. La séquence repart à 001 chaque année, comme l'exige une numérotation continue et sans trou.</p>
               <div class="grid-2">
@@ -734,6 +781,57 @@
           </div>
         </div>
       </div>
+
+      <!-- ============================= ÉQUIPE ============================== -->
+      <div class="panel" role="tabpanel" id="panel-equipe" aria-labelledby="tab-equipe" tabindex="0" hidden>
+
+        <!-- Bascule visible dès qu'on appartient à plus d'un espace, ou qu'on
+             travaille actuellement dans celui d'un tiers. -->
+        <div class="card" id="espace-card" style="display:none;">
+          <h2>Votre espace de travail</h2>
+          <p class="card-sub" id="espace-sub"></p>
+          <div class="membre-list" id="espace-list"></div>
+        </div>
+
+        <!-- Propriétaire, formule Studio : gestion complète. -->
+        <div class="card" id="equipe-gestion-card" style="display:none;">
+          <h2>Membres de votre équipe</h2>
+          <p class="card-sub">Invitez des collaborateurs à travailler sur les mêmes clients, rendez-vous et devis que vous — chacun garde son propre compte et son propre agenda.</p>
+
+          <div class="membre-list" id="membre-list"></div>
+          <div id="membre-empty" class="note-box" style="display:none;">
+            Personne d'autre pour l'instant — invitez un premier collaborateur ci-dessous.
+          </div>
+
+          <form id="invite-form" style="margin-top:18px; border-top:1px solid rgba(28,35,51,0.1); padding-top:18px;">
+            <div class="field">
+              <label for="invite-email">Inviter par email</label>
+              <div style="display:flex; gap:8px;">
+                <input type="email" id="invite-email" placeholder="collegue@exemple.fr" aria-describedby="invite-email-error" style="flex:1;">
+                <button type="submit" class="btn btn-primary btn-sm" id="invite-save">Envoyer l'invitation</button>
+              </div>
+              <div class="error" id="invite-email-error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg><span></span></div>
+            </div>
+          </form>
+
+          <div class="invite-link-box" id="invite-link-box" style="display:none;">
+            <div class="il-url" id="invite-link-url"></div>
+            <button class="btn btn-outline btn-sm" type="button" id="invite-link-copy">Copier le lien</button>
+          </div>
+          <div class="hint" id="invite-link-hint" style="display:none; margin-top:8px;">
+            Envoyez ce lien à la personne invitée — il connecte directement son compte à votre espace, qu'elle en crée un nouveau ou qu'elle se connecte à un compte existant.
+          </div>
+        </div>
+
+        <!-- Propriétaire, formule Solo : mur payant. -->
+        <div class="card" id="equipe-gate-card" style="display:none;">
+          <div class="plan-gate">
+            <strong>Le partage multi-collaborateurs fait partie de l'offre Studio.</strong>
+            Invitez votre équipe à travailler sur les mêmes clients, rendez-vous et devis que vous, en passant à la formule Studio.
+            <div style="margin-top:18px;"><a href="index.html#tarifs" class="btn btn-primary btn-sm" style="display:inline-flex;">Voir les formules</a></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </main>
@@ -755,7 +853,8 @@
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
   import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
   import { ACCENTS, ACCENT_DEFAUT, METIERS, vocabulaire, appliquerTheme,
-           appliquerThemeEnCache, monterEntete, viderCacheBrand } from './theme.js';
+           appliquerThemeEnCache, monterEntete, viderCacheBrand, chargerBrand,
+           idEspaceActif, viderCacheEspace } from './theme.js';
   import { rendreDocument, stylesDocument, documentExemple, PENALITES_DEFAUT } from './document-render.js';
 
   const configured = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_ANON_KEY.includes('YOUR-ANON');
@@ -777,7 +876,7 @@
   // La comparaison des deux pilote la barre d'enregistrement.
   let profil = {}, facturation = {}, prestations = [];
   let initial = { profil:{}, facturation:{} };
-  let session = null, feedToken = null, googleConn = null;
+  let session = null, feedToken = null, googleConn = null, espaceId = null;
   let previewType = 'facture';
 
   // ---------------------------------------------------------------- utilitaires
@@ -1152,7 +1251,8 @@
     btn.disabled = true;
     const { error } = id
       ? await supabase.from('prestations').update(payload).eq('id', id)
-      : await supabase.from('prestations').insert(payload);
+      // Posé explicitement à l'espace actif — voir la note dans clients.html.
+      : await supabase.from('prestations').insert({ ...payload, owner_id: espaceId });
     btn.disabled = false;
 
     if(error){ showToast("L'enregistrement de la prestation a échoué.", true); return; }
@@ -1292,6 +1392,201 @@
     await chargerGoogle();
   }
 
+  // ------------------------------------------------------------- équipe
+  // `monPlan` est renseigné par init() depuis la ligne `profiles` de l'utilisateur
+  // CONNECTÉ (jamais celle de l'espace actif) : c'est bien SON abonnement Studio
+  // qui autorise ou non l'invitation, pas celui de l'espace où il travaille.
+  let monPlan = 'solo';
+
+  function estProprietaire(){ return espaceId === session.user.id; }
+
+  function urlInvitation(token){
+    return `${window.location.origin}/parametres.html?invite=${encodeURIComponent(token)}`;
+  }
+
+  async function accepterInvitationEnAttente(){
+    const params = new URLSearchParams(window.location.search);
+    let jeton = params.get('invite');
+    if(!jeton){
+      try{ jeton = sessionStorage.getItem('cadence:invite_token'); }catch(e){}
+    }
+    if(!jeton) return;
+
+    const { error } = await supabase.rpc('accepter_invitation', { p_token: jeton });
+    // Une erreur ici couvre surtout le cas où le jeton a déjà été consommé —
+    // notamment par handle_new_user() au moment même de l'inscription, si la
+    // personne s'est créé un compte depuis ce lien. Ce n'est pas une vraie
+    // erreur pour l'utilisateur : on nettoie et on continue sans toast rouge.
+    if(!error){
+      viderCacheEspace();
+      viderCacheBrand();
+      showToast('Vous avez rejoint l’espace de travail.');
+    }
+    try{ sessionStorage.removeItem('cadence:invite_token'); }catch(e){}
+    const url = new URL(window.location);
+    url.searchParams.delete('invite');
+    history.replaceState(null, '', url);
+  }
+
+  async function chargerEquipe(){
+    monPlan = (await supabase.from('profiles').select('plan').eq('id', session.user.id).maybeSingle()).data?.plan || 'solo';
+
+    const proprio = estProprietaire();
+
+    // -------- carte « espace de travail » : bascule entre espaces --------
+    const { data: appartenances } = await supabase
+      .from('workspace_members')
+      .select('workspace_id')
+      .eq('user_id', session.user.id)
+      .eq('statut', 'actif');
+
+    const espaceCard = document.getElementById('espace-card');
+    const espaceSub = document.getElementById('espace-sub');
+    const espaceList = document.getElementById('espace-list');
+
+    if(!proprio || (appartenances && appartenances.length)){
+      espaceCard.style.display = '';
+      let nomEspaceActuel = 'votre espace';
+      if(!proprio){
+        const { data: pOwner } = await supabase.from('profiles').select('business_name, full_name').eq('id', espaceId).maybeSingle();
+        nomEspaceActuel = pOwner?.business_name || pOwner?.full_name || 'cet espace';
+      }
+      espaceSub.textContent = proprio
+        ? 'Vous appartenez à plusieurs espaces — choisissez celui dans lequel vous travaillez.'
+        : `Vous travaillez actuellement dans l'espace de ${nomEspaceActuel}.`;
+
+      const lignes = [`
+        <div class="membre-row">
+          <div class="mb-main"><div class="mb-email">Mon espace personnel</div></div>
+          ${proprio
+            ? '<span class="badge-role actif">Actuel</span>'
+            : '<button type="button" class="btn btn-outline btn-sm" data-basculer="">Revenir ici</button>'}
+        </div>
+      `];
+
+      for(const a of (appartenances || [])){
+        const { data: pAutre } = await supabase.from('profiles').select('business_name, full_name').eq('id', a.workspace_id).maybeSingle();
+        const nom = pAutre?.business_name || pAutre?.full_name || 'Espace sans nom';
+        const actuel = a.workspace_id === espaceId;
+        lignes.push(`
+          <div class="membre-row">
+            <div class="mb-main"><div class="mb-email">${echapperTexte(nom)}</div></div>
+            ${actuel
+              ? '<span class="badge-role actif">Actuel</span>'
+              : `<button type="button" class="btn btn-outline btn-sm" data-basculer="${a.workspace_id}">Basculer ici</button>`}
+          </div>
+        `);
+      }
+      espaceList.innerHTML = lignes.join('');
+
+      espaceList.querySelectorAll('[data-basculer]').forEach(btn=>{
+        btn.addEventListener('click', async ()=>{
+          btn.disabled = true;
+          const cible = btn.dataset.basculer || null;
+          const { error } = await supabase.rpc('basculer_espace', { p_espace_id: cible });
+          if(error){ showToast("Le changement d'espace a échoué.", true); btn.disabled = false; return; }
+          viderCacheEspace(); viderCacheBrand();
+          window.location.href = 'parametres.html?tab=equipe';
+        });
+      });
+    } else {
+      espaceCard.style.display = 'none';
+    }
+
+    // -------- cartes « gestion d'équipe » : réservées au propriétaire --------
+    document.getElementById('equipe-gestion-card').style.display = (proprio && monPlan === 'studio') ? '' : 'none';
+    document.getElementById('equipe-gate-card').style.display = (proprio && monPlan !== 'studio') ? '' : 'none';
+    if(!proprio || monPlan !== 'studio') return;
+
+    const { data: membres } = await supabase
+      .from('workspace_members')
+      .select('*')
+      .eq('workspace_id', espaceId)
+      .in('statut', ['invite','actif'])
+      .order('invited_at');
+
+    const liste = document.getElementById('membre-list');
+    const vide = document.getElementById('membre-empty');
+    if(!membres || !membres.length){
+      liste.innerHTML = '';
+      vide.style.display = '';
+    } else {
+      vide.style.display = 'none';
+      liste.innerHTML = membres.map(m => `
+        <div class="membre-row" data-id="${m.id}">
+          <div class="mb-main">
+            <div class="mb-email">${echapperTexte(m.email)}</div>
+            <div class="mb-meta">${m.statut === 'actif' ? 'Membre actif depuis le ' + formatDateFr(m.joined_at) : 'Invitation envoyée le ' + formatDateFr(m.invited_at)}</div>
+          </div>
+          <span class="badge-role ${m.statut}">${m.statut === 'actif' ? 'Actif' : 'Invité'}</span>
+          <button type="button" class="icon-btn danger" data-revoquer="${m.id}" title="Révoquer" aria-label="Révoquer ${echapperTexte(m.email)}">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
+          </button>
+        </div>
+      `).join('');
+
+      liste.querySelectorAll('[data-revoquer]').forEach(btn=>{
+        btn.addEventListener('click', async ()=>{
+          if(!window.confirm('Révoquer ce membre ? Il perdra immédiatement l’accès à cet espace.')) return;
+          const { error } = await supabase.rpc('revoquer_collaborateur', { p_membre_id: btn.dataset.revoquer });
+          if(error){ showToast('La révocation a échoué.', true); return; }
+          showToast('Membre révoqué.');
+          chargerEquipe();
+        });
+      });
+    }
+  }
+
+  function echapperTexte(str){
+    const d = document.createElement('div');
+    d.textContent = str == null ? '' : String(str);
+    return d.innerHTML;
+  }
+  function formatDateFr(iso){
+    if(!iso) return '';
+    return new Date(iso).toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
+  }
+
+  document.getElementById('invite-form').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const input = document.getElementById('invite-email');
+    const email = input.value.trim();
+    if(setFieldError('invite-email', !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? "L'adresse email doit être au format nom@domaine.fr." : '')) return;
+
+    const btn = document.getElementById('invite-save');
+    btn.disabled = true;
+    btn.textContent = 'Envoi…';
+    const { data, error } = await supabase.rpc('inviter_collaborateur', { p_email: email });
+    btn.disabled = false;
+    btn.textContent = "Envoyer l'invitation";
+
+    if(error){
+      showToast(error.message?.includes('Studio') ? error.message : "L'invitation a échoué. Réessayez.", true);
+      return;
+    }
+
+    input.value = '';
+    const box = document.getElementById('invite-link-box');
+    const hint = document.getElementById('invite-link-hint');
+    const url = urlInvitation(data.invite_token);
+    document.getElementById('invite-link-url').textContent = url;
+    document.getElementById('invite-link-url').title = url;
+    box.style.display = '';
+    hint.style.display = '';
+    showToast('Invitation créée — partagez le lien ci-dessous.');
+    chargerEquipe();
+  });
+
+  document.getElementById('invite-link-copy').addEventListener('click', async ()=>{
+    const url = document.getElementById('invite-link-url').textContent;
+    try{
+      await navigator.clipboard.writeText(url);
+      showToast('Lien copié.');
+    }catch(e){
+      showToast('Copie impossible — sélectionnez le lien manuellement.', true);
+    }
+  });
+
   // ---------------------------------------------------------- enregistrement
   function valider(){
     let ko = false;
@@ -1328,7 +1623,12 @@
       densite: profil.densite || 'confortable',
       logo_url: profil.logo_url
     };
-    const pFact = { ...facturation, owner_id: session.user.id };
+    // owner_id vise l'espace actif, pas forcément la ligne de l'utilisateur
+    // connecté : un collaborateur qui modifie la facturation doit corriger les
+    // réglages PARTAGÉS de l'espace, sinon son enregistrement créerait une
+    // ligne orpheline sous son propre id, jamais relue par personne (la RLS de
+    // lecture filtre déjà sur l'espace actif — voir migration v3, section 5).
+    const pFact = { ...facturation, owner_id: espaceId };
     delete pFact.created_at; delete pFact.updated_at;
 
     const [r1, r2] = await Promise.all([
@@ -1381,6 +1681,13 @@
     if(!session){ window.location.href = 'login.html'; return; }
     document.getElementById('user-email').textContent = session.user.email;
 
+    // Une invitation en attente doit être acceptée AVANT de résoudre l'espace
+    // actif ci-dessous : accepter_invitation() modifie espace_actif_id, et le
+    // cache de idEspaceActif() doit repartir de zéro pour ne pas renvoyer la
+    // valeur d'avant l'acceptation.
+    await accepterInvitationEnAttente();
+    espaceId = await idEspaceActif(supabase);
+
     const [rp, rf] = await Promise.all([
       supabase.from('profiles').select('*').maybeSingle(),
       supabase.from('parametres_facturation').select('*').maybeSingle()
@@ -1402,14 +1709,19 @@
       delai_paiement_jours:30, penalites_retard: PENALITES_DEFAUT,
       prefixe_devis:'DEV', prefixe_facture:'FAC',
       modele:'moderne', couleur_document:'theme',
-      afficher_logo:true, afficher_mention_cadence:true
+      afficher_logo:true, afficher_mention_cadence:true,
+      relances_activees:true, relance_delai_jours:7
     };
     delete facturation.owner_id;
 
     initial = { profil: clone(profil), facturation: clone(facturation) };
 
-    appliquerTheme({ ...profil });
-    monterEntete({ ...profil }, 'reglages');
+    // L'en-tête affiche la marque de l'ESPACE actif (celle qu'imprimera un devis),
+    // pas forcément le profil qu'on modifie ci-dessous : un collaborateur édite
+    // son propre profil individuel, mais travaille sous l'identité du propriétaire.
+    const brandAffiche = estProprietaire() ? { ...profil } : await chargerBrand(supabase, espaceId);
+    appliquerTheme(brandAffiche);
+    monterEntete(brandAffiche, 'reglages');
     monterAccents();
     majCouleursDocument();
     remplirChamps();
@@ -1423,7 +1735,7 @@
     const onglet = new URLSearchParams(window.location.search).get('tab');
     activerOnglet(tabs.some(t => t.dataset.tab === onglet) ? onglet : 'entreprise');
 
-    await Promise.all([chargerPrestations(), chargerFlux(), chargerGoogle()]);
+    await Promise.all([chargerPrestations(), chargerFlux(), chargerGoogle(), chargerEquipe()]);
     await traiterRetourGoogle();
   })();
   }

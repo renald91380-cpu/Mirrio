@@ -54,6 +54,8 @@
   }
   .btn-primary{ background:var(--amber); color:var(--ink); }
   .btn-primary:hover{ transform:translateY(-1px); box-shadow:0 8px 18px rgba(226,166,61,0.28); }
+  .btn-secondary{ background:#fff; color:var(--ink); border:1px solid rgba(28,35,51,0.18); }
+  .btn-secondary:hover{ background:rgba(28,35,51,0.03); border-color:rgba(28,35,51,0.3); }
   .btn-ghost{ background:transparent; color:var(--parchment); border:1px solid rgba(245,241,231,0.28); }
   .btn-ghost:hover{ border-color:rgba(245,241,231,0.6); }
   .btn:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-visible{
@@ -283,10 +285,16 @@
         <h1>Devis &amp; factures</h1>
         <p>Générés depuis une fiche client, numérotés automatiquement.</p>
       </div>
-      <button class="btn btn-primary" id="add-doc-btn" type="button">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-        Nouveau document
-      </button>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-secondary" id="export-csv-btn" type="button">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M12 15l-4-4M12 15l4-4M2 17l.6 2.4A2 2 0 0 0 4.5 21h15a2 2 0 0 0 1.9-1.6L22 17"/></svg>
+          Export comptable
+        </button>
+        <button class="btn btn-primary" id="add-doc-btn" type="button">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          Nouveau document
+        </button>
+      </div>
     </div>
 
     <div class="filter-tabs">
@@ -401,7 +409,7 @@
 <script type="module">
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
   import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
-  import { initTheme, vocabulaire, viderCacheBrand } from './theme.js';
+  import { initTheme, vocabulaire, viderCacheBrand, idEspaceActif } from './theme.js';
   import { rendreDocument, stylesDocument, calculerTotaux, couleurDocument } from './document-render.js';
 
   const configured = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_ANON_KEY.includes('YOUR-ANON');
@@ -430,6 +438,7 @@
   const linesTotalValue = document.getElementById('lines-total-value');
 
   let brand = null;
+  let espaceId = null;
   let paramsFacturation = {};
   let clientsById = {};
   let clientsComplets = {};
@@ -677,6 +686,60 @@
     renderDocs(data);
   }
 
+  // ------------------------------------------------------------- export CSV
+  // Conventions Excel françaises : séparateur `;` (la virgule est déjà prise
+  // par les décimales), décimales à la virgule, BOM UTF-8 en tête pour que les
+  // accents s'affichent correctement à l'ouverture — sans lui, Excel suppose
+  // du Windows-1252 et « Généré » devient « GÃ©nÃ©rÃ© ».
+  function formaterMontantCSV(n){
+    return (Math.round((n || 0) * 100) / 100).toFixed(2).replace('.', ',');
+  }
+  function echapperCSV(val){
+    const s = val == null ? '' : String(val);
+    return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+  document.getElementById('export-csv-btn').addEventListener('click', ()=>{
+    // Les devis n'entrent pas dans un export comptable : seules les factures
+    // constituent un chiffre d'affaires réel. Les totaux réutilisent
+    // calculerTotaux(), la même fonction qui alimente l'aperçu et l'impression
+    // — le CSV ne peut donc jamais diverger de ce que le client a reçu.
+    const factures = (currentDocs || []).filter(d => d.type === 'facture');
+    if(!factures.length){
+      showToast("Aucune facture à exporter pour l'instant.");
+      return;
+    }
+
+    const entetes = ["Numéro", "Date d'émission", "Date d'échéance", "Client", "Statut", "Total HT (€)", "Total TVA (€)", "Total TTC (€)"];
+    const lignesCsv = factures
+      .slice()
+      .sort((a, b) => (a.date_emission || '').localeCompare(b.date_emission || ''))
+      .map(f => {
+        const { totalHT, totalTVA, totalTTC } = calculerTotaux(f.document_lignes, paramsFacturation);
+        return [
+          f.numero || '',
+          formatDate(f.date_emission),
+          formatDate(f.date_echeance),
+          clientsById[f.client_id] || '',
+          statutLabels[f.statut] || f.statut || '',
+          formaterMontantCSV(totalHT),
+          formaterMontantCSV(totalTVA),
+          formaterMontantCSV(totalTTC)
+        ].map(echapperCSV).join(';');
+      });
+
+    const csv = [entetes.map(echapperCSV).join(';'), ...lignesCsv].join('\r\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `cadence-export-factures-${todayISO()}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    showToast(`${factures.length} facture${factures.length > 1 ? 's' : ''} exportée${factures.length > 1 ? 's' : ''}.`);
+  });
+
   async function deleteDoc(doc){
     if(!window.confirm(`Supprimer ${doc.numero} ? Cette action est irréversible.`)) return;
     const { error } = await supabase.from('documents').delete().eq('id', doc.id);
@@ -699,7 +762,9 @@
       date_emission: todayISO(),
       date_echeance: echeance.toISOString().slice(0,10),
       converted_from: devis.id,
-      notes: devis.notes
+      notes: devis.notes,
+      // Posé explicitement à l'espace actif — voir la note dans clients.html.
+      owner_id: espaceId
     }).select().single();
 
     if(error){
@@ -793,7 +858,9 @@
     } else {
       const type = document.querySelector('input[name="type"]:checked').value;
       const result = await supabase.from('documents').insert({
-        type, client_id: clientId, date_emission: dateEmission, date_echeance: dateEcheance, notes
+        type, client_id: clientId, date_emission: dateEmission, date_echeance: dateEcheance, notes,
+        // Posé explicitement à l'espace actif — voir la note dans clients.html.
+        owner_id: espaceId
       }).select().single();
       error = result.error;
       docId = result.data?.id;
@@ -831,6 +898,7 @@
     }
     document.getElementById('user-email').textContent = data.session.user.email;
     brand = await initTheme(supabase, 'documents');
+    espaceId = await idEspaceActif(supabase);
     await chargerParametresFacturation();
     await loadClientsIntoSelect();
     loadDocs();

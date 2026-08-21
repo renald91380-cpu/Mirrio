@@ -149,6 +149,7 @@ export function appliquerTheme(brand){
 // signée discrètement en pied d'écran, pas en tête.
 
 const ONGLETS = [
+  { cle:'dashboard',href:'dashboard.html',      libelle:'Tableau de bord' },
   { cle:'clients',  href:'clients.html',        libelle:'Clients' },
   { cle:'agenda',   href:'agenda.html',         libelle:'Agenda' },
   { cle:'documents',href:'devis-factures.html', libelle:'Devis & factures' },
@@ -199,11 +200,18 @@ export function appliquerThemeEnCache(){
   return appliquerTheme(null);
 }
 
-export async function chargerBrand(supabase){
-  const { data, error } = await supabase
+// `espaceId` cible le profil dont on veut lire la marque : celui du propriétaire
+// de l'espace actif, pas forcément l'utilisateur connecté. Un collaborateur qui
+// travaille dans l'espace d'un tiers doit voir ET imprimer le nom commercial,
+// le logo et le vocabulaire de CE tiers, pas les siens (souvent vierges). Sans
+// ce paramètre (appel historique), on retombe sur la ligne de l'utilisateur
+// connecté via le filtre RLS implicite.
+export async function chargerBrand(supabase, espaceId){
+  let requete = supabase
     .from('profiles')
-    .select('business_name, metier, terme_singulier, terme_pluriel, accent, densite, logo_url, full_name, plan')
-    .maybeSingle();
+    .select('business_name, metier, terme_singulier, terme_pluriel, accent, densite, logo_url, full_name, plan');
+  requete = espaceId ? requete.eq('id', espaceId) : requete;
+  const { data, error } = await requete.maybeSingle();
 
   if(error || !data) return { ...DEFAUT };
 
@@ -231,8 +239,47 @@ export function viderCacheBrand(){
 // l'en-tête, et renvoie la marque résolue.
 export async function initTheme(supabase, ongletActif){
   appliquerThemeEnCache();
-  const brand = await chargerBrand(supabase);
+  const espaceId = await idEspaceActif(supabase);
+  const brand = await chargerBrand(supabase, espaceId);
   appliquerTheme(brand);
   monterEntete(brand, ongletActif);
   return brand;
+}
+
+// ---------------------------------------------------------------------------
+// Espace de travail actif
+// ---------------------------------------------------------------------------
+// Un compte solo est son propre espace : `owner_id` vaut son `auth.uid()`, comme
+// avant l'introduction du partage multi-collaborateurs. Un collaborateur qui a
+// rejoint l'espace d'un tiers doit en revanche poser `owner_id = <id du
+// propriétaire>` sur tout ce qu'il crée — sinon ses clients/rendez-vous/devis
+// lui appartiendraient en propre, invisibles au reste de l'équipe.
+//
+// `current_workspace_id()` tranche déjà cette question côté base (RLS s'appuie
+// dessus). On la rappelle ici via RPC pour connaître, côté client, LA valeur à
+// écrire dans `owner_id` au moment d'un insert — la fonction ne s'applique
+// qu'aux clauses `using`/`with check` d'une policy, jamais à la valeur envoyée
+// par le formulaire, qui reste à la charge de l'écran.
+//
+// Mise en cache en mémoire pour la durée de la page : l'espace actif ne change
+// qu'après un rechargement (bascule dans Paramètres → onglet Équipe).
+let cacheEspaceId = null;
+
+export async function idEspaceActif(supabase){
+  if(cacheEspaceId) return cacheEspaceId;
+  try{
+    const { data, error } = await supabase.rpc('current_workspace_id');
+    if(!error && data){
+      cacheEspaceId = data;
+      return cacheEspaceId;
+    }
+  }catch(e){ /* on retombe sur son propre compte ci-dessous */ }
+
+  const { data: auth } = await supabase.auth.getUser();
+  cacheEspaceId = auth?.user?.id || null;
+  return cacheEspaceId;
+}
+
+export function viderCacheEspace(){
+  cacheEspaceId = null;
 }
