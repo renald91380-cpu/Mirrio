@@ -56,12 +56,9 @@ Cadence/
 
 ## 4. État actuel — ce qui bloque
 
-**Supabase n'est pas encore configuré.** `supabase-config.js` contient des valeurs placeholder (`YOUR-PROJECT-REF`, `YOUR-ANON-PUBLIC-KEY`). Tant que ce n'est pas fait, les écrans applicatifs affichent un message "Supabase non configuré" — c'est le comportement voulu, pas un bug à corriger.
+**Supabase est configuré** (2026-08-21). Projet `supabase-lime-engine` (org Vercel Marketplace "Cadence"), URL et clé publishable renseignées dans `site/supabase-config.js`, `db/schema.sql` exécuté (tables `profiles`, `clients`, `rendez_vous`, `documents`, `document_lignes`, `document_counters` créées avec RLS).
 
-Pour l'activer :
-1. Créer un projet gratuit sur supabase.com
-2. Copier l'URL du projet et la clé "anon public" dans `site/supabase-config.js`
-3. Exécuter tout `db/schema.sql` dans l'éditeur SQL Supabase (sûr à rejouer en entier, toutes les commandes utilisent `if not exists` / `or replace`)
+**Déployé sur Vercel** — projet `cadence-site` (équipe Vercel "Cadence"), relié au repo GitHub `renald91380-cpu/Cadence`, branche `main`. `vercel.json` pointe `outputDirectory` vers `site/`.
 
 **Pas encore construit :**
 - Tableau de bord (CA du mois, taux de renouvellement)
