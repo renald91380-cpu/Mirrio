@@ -263,6 +263,14 @@
       </div>
 
       <div class="field">
+        <label for="prestation_id">Prestation</label>
+        <select id="prestation_id" name="prestation_id">
+          <option value="">Aucune prestation</option>
+        </select>
+        <div class="hint" id="prestation-hint" style="display:none;"></div>
+      </div>
+
+      <div class="field">
         <label for="date">Date <span class="req">*</span></label>
         <input type="date" id="date" name="date" aria-describedby="date-error" required>
         <div class="error" id="date-error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg><span></span></div>
@@ -341,6 +349,8 @@
   const toast = document.getElementById('toast');
   const toastText = document.getElementById('toast-text');
   const clientSelect = document.getElementById('client_id');
+  const prestationSelect = document.getElementById('prestation_id');
+  const prestationHint = document.getElementById('prestation-hint');
   const recurrenceField = document.getElementById('recurrence-field');
   const recurrenceCountField = document.getElementById('recurrence-count-field');
   const recurrenceSelect = document.getElementById('recurrence');
@@ -350,6 +360,7 @@
   let vocab = null;
   let espaceId = null;
   let clientsById = {};
+  let prestationsById = {};
   let currentAppointments = [];
 
   function escapeHtml(str){
@@ -399,6 +410,59 @@
       data.map(c => `<option value="${c.id}">${escapeHtml(c.full_name)}</option>`).join('');
   }
 
+  // Catalogue défini dans Paramètres > Prestations, même filtre "actif" que
+  // dans devis-factures.html : une prestation désactivée reste sur les
+  // rendez-vous passés mais ne doit plus être proposée pour en créer un nouveau.
+  async function loadPrestationsIntoSelect(){
+    const { data, error } = await supabase.from('prestations')
+      .select('id, libelle, prix_unitaire, duree_minutes')
+      .eq('actif', true)
+      .order('position');
+    if(error || !data) return;
+    prestationsById = Object.fromEntries(data.map(p => [p.id, p]));
+    prestationSelect.innerHTML = '<option value="">Aucune prestation</option>' +
+      data.map(p => `<option value="${p.id}">${escapeHtml(p.libelle)}</option>`).join('');
+  }
+
+  function majHintPrestation(){
+    const p = prestationsById[prestationSelect.value];
+    if(!p){ prestationHint.style.display = 'none'; return; }
+    const prix = Number(p.prix_unitaire || 0).toFixed(2).replace('.', ',');
+    prestationHint.textContent = `${p.duree_minutes} min · ${prix} €`;
+    prestationHint.style.display = 'block';
+  }
+
+  // Additionne des minutes à une heure "HH:MM" en gérant le passage de minuit.
+  function ajouterMinutesHeure(heureStr, minutes){
+    const [h, m] = heureStr.split(':').map(Number);
+    const total = ((h * 60 + m + minutes) % 1440 + 1440) % 1440;
+    const hh = String(Math.floor(total / 60)).padStart(2, '0');
+    const mm = String(total % 60).padStart(2, '0');
+    return `${hh}:${mm}`;
+  }
+
+  prestationSelect.addEventListener('change', ()=>{
+    const p = prestationsById[prestationSelect.value];
+    majHintPrestation();
+    if(!p) return;
+    document.getElementById('titre').value = p.libelle;
+    const heureDebutInput = document.getElementById('heure_debut');
+    if(heureDebutInput.value){
+      document.getElementById('heure_fin').value = ajouterMinutesHeure(heureDebutInput.value, p.duree_minutes);
+    }
+  });
+
+  // Si une prestation est déjà choisie, faire glisser l'heure de début
+  // recalcule l'heure de fin à partir de sa durée — pas de recalcul si aucune
+  // prestation n'est sélectionnée, pour ne pas gêner une saisie manuelle.
+  document.getElementById('heure_debut').addEventListener('input', ()=>{
+    const p = prestationsById[prestationSelect.value];
+    const heureDebutInput = document.getElementById('heure_debut');
+    if(p && heureDebutInput.value){
+      document.getElementById('heure_fin').value = ajouterMinutesHeure(heureDebutInput.value, p.duree_minutes);
+    }
+  });
+
   recurrenceSelect.addEventListener('change', ()=>{
     recurrenceCountField.classList.toggle('show', recurrenceSelect.value !== 'none');
   });
@@ -408,6 +472,7 @@
     ['titre','date','heures'].forEach(id => setFieldError(id, ''));
     recurrenceCountField.classList.remove('show');
     deleteSeriesLink.style.display = 'none';
+    prestationHint.style.display = 'none';
 
     if(appt){
       modalTitle.textContent = 'Modifier le rendez-vous';
@@ -415,6 +480,8 @@
       document.getElementById('recurring-group-id').value = appt.recurring_group_id || '';
       document.getElementById('titre').value = appt.titre;
       document.getElementById('client_id').value = appt.client_id || '';
+      document.getElementById('prestation_id').value = appt.prestation_id || '';
+      majHintPrestation();
       const start = new Date(appt.date_debut);
       const end = new Date(appt.date_fin);
       document.getElementById('date').value = toDateInput(start);
@@ -668,6 +735,7 @@
 
     const id = document.getElementById('appt-id').value;
     const clientId = document.getElementById('client_id').value || null;
+    const prestationId = document.getElementById('prestation_id').value || null;
     const notes = document.getElementById('notes').value.trim() || null;
     const startDate = combineDateTime(dateStr, heureDebut);
     const endDate = combineDateTime(dateStr, heureFin);
@@ -680,7 +748,7 @@
     if(id){
       let d;
       ({ data: d, error } = await supabase.from('rendez_vous').update({
-        titre, client_id: clientId, date_debut: startDate.toISOString(),
+        titre, client_id: clientId, prestation_id: prestationId, date_debut: startDate.toISOString(),
         date_fin: endDate.toISOString(), notes
       }).eq('id', id).select());
       lignesEnregistrees = d || [];
@@ -692,7 +760,7 @@
         const occStart = addInterval(startDate, recurrence, i);
         const occEnd = addInterval(endDate, recurrence, i);
         return {
-          titre, client_id: clientId, notes,
+          titre, client_id: clientId, prestation_id: prestationId, notes,
           date_debut: occStart.toISOString(),
           date_fin: occEnd.toISOString(),
           recurring_group_id: groupId,
@@ -746,6 +814,7 @@
     appliquerVocabulaire(brand);
     espaceId = await idEspaceActif(supabase);
     await loadClientsIntoSelect();
+    await loadPrestationsIntoSelect();
     loadAppointments();
   })();
   }
