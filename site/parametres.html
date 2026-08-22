@@ -1027,7 +1027,7 @@
 
   // État : `courant` est ce que l'utilisateur voit, `initial` ce qui est en base.
   // La comparaison des deux pilote la barre d'enregistrement.
-  let profil = {}, facturation = {}, prestations = [], reservation = {};
+  let profil = {}, facturation = {}, prestations = [], reservation = {}, estAdmin = false;
   let initial = { profil:{}, facturation:{}, reservation:{} };
   let session = null, feedToken = null, googleConn = null, espaceId = null;
   let previewType = 'facture';
@@ -1133,7 +1133,7 @@
         rendreApercuUI();
       }
       if(col === 'business_name' || col === 'logo_url'){
-        monterEntete({ ...profil }, 'reglages');
+        monterEntete({ ...profil }, 'reglages', estAdmin);
         rendreApercuUI();
       }
       if(col === 'metier' || col === 'terme_singulier' || col === 'terme_pluriel'){
@@ -1371,7 +1371,7 @@
       const { data } = supabase.storage.from('logos').getPublicUrl(chemin);
       profil.logo_url = data.publicUrl;
       majLogoApercu();
-      monterEntete({ ...profil }, 'reglages');
+      monterEntete({ ...profil }, 'reglages', estAdmin);
       rendreApercuUI();
       rendreApercuDoc();
       majBarre();
@@ -1387,7 +1387,7 @@
   document.getElementById('logo-remove').addEventListener('click', ()=>{
     profil.logo_url = null;
     majLogoApercu();
-    monterEntete({ ...profil }, 'reglages');
+    monterEntete({ ...profil }, 'reglages', estAdmin);
     rendreApercuUI(); rendreApercuDoc(); majBarre();
   });
 
@@ -2033,7 +2033,7 @@
     initial = { profil: clone(profil), facturation: clone(facturation), reservation: clone(reservation) };
     viderCacheBrand();
     appliquerTheme({ ...profil });
-    monterEntete({ ...profil }, 'reglages');
+    monterEntete({ ...profil }, 'reglages', estAdmin);
     majBarre();
     showToast('Paramètres enregistrés.');
   });
@@ -2046,7 +2046,7 @@
     monterAccents();
     majCouleursDocument();
     appliquerTheme({ ...profil });
-    monterEntete({ ...profil }, 'reglages');
+    monterEntete({ ...profil }, 'reglages', estAdmin);
     rendreApercuUI(); rendreApercuDoc(); majBarre();
     showToast('Modifications annulées.');
   });
@@ -2110,6 +2110,10 @@
     };
     delete reservation.owner_id;
 
+    // `is_admin` est un attribut du compte connecté (celui de `rp`, jamais
+    // filtré sur l'espace actif) — voir la même remarque dans theme.js.
+    estAdmin = !!rp.data?.is_admin;
+
     initial = { profil: clone(profil), facturation: clone(facturation), reservation: clone(reservation) };
 
     // L'en-tête affiche la marque de l'ESPACE actif (celle qu'imprimera un devis),
@@ -2117,7 +2121,7 @@
     // son propre profil individuel, mais travaille sous l'identité du propriétaire.
     const brandAffiche = estProprietaire() ? { ...profil } : await chargerBrand(supabase, espaceId);
     appliquerTheme(brandAffiche);
-    monterEntete(brandAffiche, 'reglages');
+    monterEntete(brandAffiche, 'reglages', estAdmin);
     monterAccents();
     majCouleursDocument();
     remplirChamps();

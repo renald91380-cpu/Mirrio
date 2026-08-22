@@ -162,7 +162,14 @@ function echapper(str){
   return d.innerHTML;
 }
 
-export function monterEntete(brand, actif){
+// Lien vers le back-office (admin.html), ajouté à la volée seulement pour les
+// comptes `is_admin` — jamais dans ONGLETS lui-même, qui reste la nav commune
+// à tout le monde. admin.html revérifie lui-même l'accès côté serveur
+// (`admin_est_admin()`) : ce lien n'est qu'une question de découvrabilité,
+// pas la barrière de sécurité.
+const ONGLET_ADMIN = { cle:'admin', href:'admin.html', libelle:'Back-office' };
+
+export function monterEntete(brand, actif, estAdmin){
   const b = { ...DEFAUT, ...(brand || {}) };
   const logoEl = document.querySelector('.app-header .logo');
   if(logoEl){
@@ -179,7 +186,8 @@ export function monterEntete(brand, actif){
 
   const nav = document.querySelector('.app-header .app-nav');
   if(nav){
-    nav.innerHTML = ONGLETS.map(o =>
+    const onglets = estAdmin ? [...ONGLETS, ONGLET_ADMIN] : ONGLETS;
+    nav.innerHTML = onglets.map(o =>
       `<a href="${o.href}"${o.cle === actif ? ' class="active"' : ''}>${o.libelle.replace('&','&amp;')}</a>`
     ).join('');
   }
@@ -200,25 +208,6 @@ export function appliquerThemeEnCache(){
   return appliquerTheme(null);
 }
 
-// Met en forme un nom de personne saisi sans convention (« renald gautier »,
-// « JEAN paul MARTIN »...) : chaque partie du prénom — y compris un prénom
-// composé avec un tiret, ex. « jean-paul » → « Jean-Paul » — prend une
-// majuscule initiale, et le dernier mot (nom de famille) passe en majuscules.
-// Utilisé uniquement en repli quand le compte n'a pas défini de nom
-// commercial : un vrai `business_name` ("Cabinet Martin & Associés") n'est
-// jamais reformaté, ce n'est pas un nom de personne.
-export function formaterNomAffichage(nom){
-  if(!nom) return nom;
-  const mots = nom.trim().split(/\s+/).filter(Boolean);
-  if(!mots.length) return nom;
-  const capitaliserPartie = (s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
-  const capitaliserMot = (m) => m.split('-').map(capitaliserPartie).join('-');
-  if(mots.length === 1) return capitaliserMot(mots[0]);
-  const nomFamille = mots[mots.length - 1].toUpperCase();
-  const prenom = mots.slice(0, -1).map(capitaliserMot).join(' ');
-  return `${prenom} ${nomFamille}`;
-}
-
 // `espaceId` cible le profil dont on veut lire la marque : celui du propriétaire
 // de l'espace actif, pas forcément l'utilisateur connecté. Un collaborateur qui
 // travaille dans l'espace d'un tiers doit voir ET imprimer le nom commercial,
@@ -235,7 +224,7 @@ export async function chargerBrand(supabase, espaceId){
   if(error || !data) return { ...DEFAUT };
 
   const brand = {
-    business_name: data.business_name || (data.full_name ? formaterNomAffichage(data.full_name) : null) || 'Cadence',
+    business_name: data.business_name || data.full_name || 'Cadence',
     metier: data.metier || 'autre',
     terme_singulier: data.terme_singulier,
     terme_pluriel: data.terme_pluriel,
@@ -254,14 +243,30 @@ export function viderCacheBrand(){
   try{ sessionStorage.removeItem(CLE_CACHE); }catch(e){}
 }
 
+// `is_admin` est un attribut du COMPTE connecté, pas de l'espace actif : un
+// collaborateur qui travaille dans l'espace d'un tiers ne doit jamais hériter
+// du lien Back-office de ce tiers, et un admin qui travaille dans un espace
+// qui n'est pas le sien doit quand même le voir. D'où une requête séparée de
+// `chargerBrand()`, filtrée sur l'utilisateur connecté, jamais sur `espaceId`.
+async function estCompteAdmin(supabase){
+  const { data } = await supabase.auth.getUser();
+  const uid = data?.user?.id;
+  if(!uid) return false;
+  const { data: profil } = await supabase.from('profiles').select('is_admin').eq('id', uid).maybeSingle();
+  return !!profil?.is_admin;
+}
+
 // Point d'entrée unique : applique le cache, charge la vraie valeur, remonte
 // l'en-tête, et renvoie la marque résolue.
 export async function initTheme(supabase, ongletActif){
   appliquerThemeEnCache();
   const espaceId = await idEspaceActif(supabase);
-  const brand = await chargerBrand(supabase, espaceId);
+  const [brand, estAdmin] = await Promise.all([
+    chargerBrand(supabase, espaceId),
+    estCompteAdmin(supabase)
+  ]);
   appliquerTheme(brand);
-  monterEntete(brand, ongletActif);
+  monterEntete(brand, ongletActif, estAdmin);
   return brand;
 }
 
