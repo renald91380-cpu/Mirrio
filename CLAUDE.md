@@ -165,7 +165,16 @@ Extension de `admin.html` (§3.7), posée par `schema-v7-admin-activite-geo.sql`
 - **Nouvelle carte « Répartition géographique »** dans `admin.html`, même style de légende à barres que le camembert métiers (§3.7) mais sans donut — un pays peut avoir zéro coordonnées géographiques utilisables pour un vrai tracé, une simple liste triée suffit.
 - **`admin.html` n'a jamais été lié depuis la nav principale** — un admin devait connaître l'URL par cœur. Corrigé en même temps que cette migration : `theme.js` → `monterEntete(brand, actif, estAdmin)` prend un 3ᵉ paramètre et ajoute un lien « Back-office » à la nav commune (`ONGLETS`) uniquement quand `estAdmin` est vrai ; `initTheme()` calcule ce booléen via une requête séparée sur `profiles.is_admin` filtrée par **le compte connecté** (`auth.getUser()`), jamais par `espaceId` — `chargerBrand()` lit la marque de l'espace actif (qui peut appartenir à un tiers pour un collaborateur), alors que `is_admin` est un attribut du compte, pas de l'espace. `parametres.html` (qui n'utilise pas `initTheme()`, mais appelle `monterEntete()` directement à 6 endroits) calcule son propre `estAdmin` à partir du `profiles.select('*')` déjà chargé au démarrage. Ce lien n'est qu'une question de découvrabilité : `admin.html` revérifie lui-même l'accès côté serveur (`admin_est_admin()`), donc son absence n'était jamais un trou de sécurité — seulement un compte admin qui ne savait pas où cliquer.
 
-### 3.12 Pages CGU / politique de confidentialité
+### 3.12 Sélection d'une prestation du catalogue (agenda, devis & factures)
+
+Le catalogue (`prestations`, réglé depuis Paramètres) existait déjà en base et servait uniquement de référence ; `agenda.html` et `devis-factures.html` proposent désormais de piocher dedans plutôt que de tout ressaisir à la main. Seules les prestations `actif = true` sont proposées — une prestation désactivée reste lisible sur les rendez-vous/lignes existants, mais ne doit plus être choisie pour en créer un nouveau.
+
+- **Un menu qui préremplit, jamais qui pilote la ligne.** Dans `devis-factures.html`, choisir une prestation dans le menu déroulant d'une ligne recopie libellé/prix/TVA dans les champs classiques puis le menu se réinitialise (`e.target.value = ''`) : la ligne reste ensuite une simple ligne éditable, sans lien vivant vers la prestation d'origine. Même logique dans `agenda.html` : la prestation préremplit le titre et l'heure de fin, mais le champ titre reste modifiable sans que le menu ne le corrige après coup.
+- **`agenda.html` recalcule l'heure de fin à partir de `prestations.duree_minutes`**, et continue de le faire si l'heure de début est modifiée ensuite — tant qu'une prestation reste sélectionnée. Sans prestation choisie, la saisie manuelle des heures n'est jamais recalculée.
+- **`rendez_vous.prestation_id` existait déjà en base** (migration antérieure) mais n'était jusqu'ici jamais renseigné depuis l'interface — c'est fait dans ce commit, y compris pour les occurrences générées par la récurrence.
+- **Angle mort corrigé au passage dans `devis-factures.html`** : le formulaire n'envoyait jamais `tva_taux` à l'enregistrement, qui restait donc à la valeur par défaut de la colonne (`0`). Les lignes saisies manuellement gardent ce comportement par défaut ; seule une ligne remplie via une prestation porte le taux de TVA de cette prestation.
+
+### 3.13 Pages CGU / politique de confidentialité
 
 Deux pages statiques autonomes, `site/cgu.html` et `site/confidentialite.html` — pas de connexion Supabase, pas de logique JS, juste la charte visuelle de `signup.html` (mêmes variables CSS, mêmes polices Fraunces/Inter/IBM Plex Mono) réutilisée pour un gabarit d'article long (`<article>` avec `h2`/`p`/`ul`, tableaux pour la politique de confidentialité).
 
@@ -183,7 +192,7 @@ Deux pages statiques autonomes, `site/cgu.html` et `site/confidentialite.html` �
 
 **Déployé sur Vercel** — projet `cadence-site` (équipe Vercel « Cadence »), relié au repo GitHub `renald91380-cpu/Cadence`, branche `main`. `vercel.json` pointe `outputDirectory` vers `site/`.
 
-**Connexion Google activée** (2026-08-21). Projet Google Cloud dédié « Cadence », fournisseur Google activé dans Supabase → Authentication → Providers avec l'URL de rappel `https://uymqmbvhneijboszcwsf.supabase.co/auth/v1/callback`, scope `calendar.events` demandé. L'app reste en statut **Test** côté Google (limite : 100 utilisateurs listés manuellement, `renald91380@gmail.com` déjà ajouté) — passer en production lèvera cette limite. Les pages CGU/confidentialité (voir §3.12) sont maintenant en place ; il reste à faire la démarche manuelle de passage en production dans la console Google, ce qui déclenchera l'écran « application non validée » tant que la vérification Google n'est pas faite.
+**Connexion Google activée** (2026-08-21). Projet Google Cloud dédié « Cadence », fournisseur Google activé dans Supabase → Authentication → Providers avec l'URL de rappel `https://uymqmbvhneijboszcwsf.supabase.co/auth/v1/callback`, scope `calendar.events` demandé. L'app reste en statut **Test** côté Google (limite : 100 utilisateurs listés manuellement, `renald91380@gmail.com` déjà ajouté) — passer en production lèvera cette limite. Les pages CGU/confidentialité (voir §3.13) sont maintenant en place ; il reste à faire la démarche manuelle de passage en production dans la console Google, ce qui déclenchera l'écran « application non validée » tant que la vérification Google n'est pas faite.
 
 **Reste à faire pour activer la personnalisation :**
 1. Exécuter dans l'ordre, dans le SQL Editor Supabase : `db/schema-v2-personnalisation.sql`, `db/schema-v3-espaces-et-relances.sql`, `db/schema-v4-admin.sql`, `db/schema-v5-envoi-document.sql`, `db/schema-v6-reservation-en-ligne.sql`, `db/schema-v7-admin-activite-geo.sql` (chacune dépend de la précédente). Vérifier que l'email dans la dernière ligne de `schema-v4-admin.sql` correspond bien au compte qui doit devenir admin avant de la rejouer.
@@ -191,7 +200,6 @@ Deux pages statiques autonomes, `site/cgu.html` et `site/confidentialite.html` �
 3. Pour les relances automatiques : déclarer `CRON_SECRET` (jeton arbitraire, à reporter nulle part ailleurs — Vercel s'en sert pour signer ses propres appels), `RESEND_API_KEY` et `RESEND_FROM` (ex. `Cadence <relances@votre-domaine.fr>`, avec SPF/DKIM posés sur ce domaine — voir `emails/README.md` pour la même démarche). Sans `RESEND_API_KEY`, le cron tourne mais n'envoie rien.
 
 **Pas encore construit :**
-- Sélection d'une prestation du catalogue depuis les écrans Agenda et Devis (le catalogue existe, le raccourci de saisie non)
 - Import d'un agenda externe vers Cadence (le sens entrant)
 - Encaissement Stripe des abonnements Cadence elle-même
 - Rôles au sein d'une équipe autres que propriétaire/collaborateur (pas de permissions fines par membre)
