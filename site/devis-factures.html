@@ -211,13 +211,19 @@
   }
   @media(max-width:600px){
     .line-row{ grid-template-columns:1fr 1fr 1fr; row-gap:6px; }
-    .line-desc{ grid-column:1 / -1; }
+    .line-first-col{ grid-column:1 / -1; }
   }
   .line-row input{
     padding:9px 10px; font-size:14px; border:1px solid rgba(28,35,51,0.18); border-radius:6px;
     background:#fff; min-height:40px; width:100%; font-family:var(--body);
   }
   .line-row input:focus{ outline:none; border-color:var(--teal); }
+  .line-first-col{ display:flex; flex-direction:column; gap:4px; }
+  .line-prestation{
+    padding:6px 8px; font-size:12px; border:1px solid rgba(28,35,51,0.14); border-radius:6px;
+    background:rgba(28,35,51,0.02); color:rgba(28,35,51,0.6); font-family:var(--body); width:100%;
+  }
+  .line-prestation:focus{ outline:none; border-color:var(--teal); }
   .line-total{ font-family:var(--mono); font-size:13.5px; text-align:right; padding-right:4px; }
   .line-remove{
     width:30px; height:30px; border:none; background:transparent; color:var(--slate);
@@ -443,6 +449,7 @@
   let paramsFacturation = {};
   let clientsById = {};
   let clientsComplets = {};
+  let prestationsById = {};
   let currentDocs = [];
   let activeFilter = 'all';
 
@@ -495,6 +502,29 @@
       data.map(c => `<option value="${c.id}">${escapeHtml(c.full_name)}</option>`).join('');
   }
 
+  // Catalogue défini dans Paramètres > Prestations. Seules les prestations
+  // actives sont proposées ici : une prestation désactivée reste éditable
+  // dans les anciens devis/factures, mais ne doit plus être choisie pour en
+  // créer un nouveau.
+  let prestationsOptionsHtml = '<option value="">Choisir une prestation…</option>';
+  async function chargerPrestations(){
+    const { data, error } = await supabase.from('prestations')
+      .select('id, libelle, prix_unitaire, tva_taux')
+      .eq('actif', true)
+      .order('position');
+    if(error || !data) return;
+    prestationsById = Object.fromEntries(data.map(p => [p.id, p]));
+    prestationsOptionsHtml = '<option value="">Choisir une prestation…</option>' +
+      data.map(p => `<option value="${p.id}">${escapeHtml(p.libelle)} — ${formatMoney(p.prix_unitaire)}</option>`).join('');
+    // Les lignes déjà à l'écran (cas d'une ouverture de modale avant la fin
+    // du chargement) reçoivent la liste à jour sans perdre leur sélection.
+    linesList.querySelectorAll('.line-prestation').forEach(sel=>{
+      const valeur = sel.value;
+      sel.innerHTML = prestationsOptionsHtml;
+      sel.value = valeur;
+    });
+  }
+
   function recalcLinesTotal(){
     let total = 0;
     linesList.querySelectorAll('.line-row').forEach(row=>{
@@ -511,13 +541,28 @@
   function addLineRow(line){
     const row = document.createElement('div');
     row.className = 'line-row';
+    if(line?.tva_taux != null) row.dataset.tvaTaux = line.tva_taux;
     row.innerHTML = `
-      <input type="text" class="line-desc" placeholder="Description" value="${escapeHtml(line?.description || '')}">
+      <div class="line-first-col">
+        <select class="line-prestation">${prestationsOptionsHtml}</select>
+        <input type="text" class="line-desc" placeholder="Description" value="${escapeHtml(line?.description || '')}">
+      </div>
       <input type="number" class="line-qty" min="0" step="1" value="${line?.quantite ?? 1}">
       <input type="number" class="line-price" min="0" step="0.01" value="${line?.prix_unitaire ?? 0}">
       <span class="line-total">${formatMoney((line?.quantite ?? 1) * (line?.prix_unitaire ?? 0))}</span>
       <button type="button" class="line-remove" aria-label="Supprimer la ligne">×</button>
     `;
+    row.querySelector('.line-prestation').addEventListener('change', (e)=>{
+      const prestation = prestationsById[e.target.value];
+      if(!prestation) return;
+      row.querySelector('.line-desc').value = prestation.libelle;
+      row.querySelector('.line-price').value = prestation.prix_unitaire;
+      row.dataset.tvaTaux = prestation.tva_taux;
+      recalcLinesTotal();
+      // Repart de zéro pour la prochaine sélection : la ligne reste ensuite
+      // librement modifiable sans que le menu ne prétende encore la piloter.
+      e.target.value = '';
+    });
     row.querySelector('.line-qty').addEventListener('input', recalcLinesTotal);
     row.querySelector('.line-price').addEventListener('input', recalcLinesTotal);
     row.querySelector('.line-remove').addEventListener('click', ()=>{
@@ -865,6 +910,7 @@
       description: row.querySelector('.line-desc').value.trim(),
       quantite: parseFloat(row.querySelector('.line-qty').value) || 0,
       prix_unitaire: parseFloat(row.querySelector('.line-price').value) || 0,
+      tva_taux: row.dataset.tvaTaux ? parseFloat(row.dataset.tvaTaux) : 0,
       position: i
     })).filter(l => l.description);
 
@@ -943,6 +989,7 @@
     espaceId = await idEspaceActif(supabase);
     await chargerParametresFacturation();
     await loadClientsIntoSelect();
+    chargerPrestations();
     loadDocs();
   })();
   }
