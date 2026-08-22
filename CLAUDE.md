@@ -143,6 +143,27 @@ Tout repose sur l'API Auth de Supabase — aucune table ni fonction SQL ajoutée
 - **Effet de bord assumé** : un document encore « brouillon » passe à « envoyé » dès l'envoi réussi — jamais l'inverse, un statut déjà avancé (accepté, payé…) n'est jamais reculé.
 - **Mêmes variables d'environnement que les relances** (`RESEND_API_KEY`, `RESEND_FROM`) : sans `RESEND_API_KEY`, le bouton répond poliment que l'expéditeur n'est pas encore configuré, ce n'est pas un échec.
 
+### 3.10 Réservation en ligne (widget public)
+
+`site/reservation.html` (+ `site/reservation-widget.js`) : une page publique, utilisable telle quelle comme lien partageable OU posée en `<iframe>` sur le site du praticien, qui laisse un prospect choisir une prestation puis un créneau libre et laisser ses coordonnées. `api/reservation-disponibilites.js` (GET) et `api/reservation-publique.js` (POST) sont les deux routes publiques associées ; `parametres.html` → onglet Réservation configure tout ça (`parametres_reservation`, schema-v6).
+
+- **Modèle de confiance : un slug, pas un jeton-capacité.** À la différence de `calendar_feeds.token` ou `documents.partage_token` (chaînes opaques générées par `new_feed_token()`, qui FONT l'autorisation à elles seules), le `slug` de `parametres_reservation` est un identifiant choisi par le praticien, pensé pour être diffusé publiquement — comme un nom d'utilisateur. Ne jamais le confondre avec un jeton-capacité dans une future fonctionnalité : un slug n'a aucune vocation à rester secret.
+- **`statut='en_attente'`** est la troisième valeur du champ libre `rendez_vous.statut` (avec `null`/absent = confirmé, et `'annule'`) — posée uniquement par `api/reservation-publique.js`. Un rendez-vous en attente n'a pas de fiche client (`client_id` reste `null` ; les coordonnées transitent par `prospect_nom`/`prospect_email`/`prospect_telephone`). C'est `site/agenda.html` qui referme la boucle : « Confirmer » crée la fiche client depuis ces colonnes puis les remplace par `client_id`, « Refuser » réutilise simplement `statut='annule'` — aucun nouveau statut pour le refus.
+- **Aucune fiche client n'est jamais créée automatiquement** — décision produit assumée, pas un oubli : c'est toujours le praticien qui confirme.
+- **Pas de contrainte anti-chevauchement en base.** Le projet n'a jamais empêché deux `rendez_vous` de se chevaucher ; l'imposer rétroactivement (`EXCLUDE`/`btree_gist`) risquerait de casser sur des données existantes jamais auditées. La protection reste applicative : `api/reservation-disponibilites.js` ne propose que des créneaux déjà libres, et `api/reservation-publique.js` re-vérifie l'absence de chevauchement juste avant d'insérer (fenêtre de course résiduelle, acceptée en v1).
+- **Un seul horaire hebdomadaire récurrent** (`jours_ouvres`, `heure_debut`/`heure_fin`) — pas de fermetures ponctuelles (vacances, jour férié) pour l'instant ; désactiver `activee` bloque tout.
+- **Conversion Europe/Paris ↔ UTC sans librairie**, dans les deux routes API (dupliquée à dessein, comme le reste des petits utilitaires de `api/`) : le décalage réel (CET/CEST) est lu via `Intl.DateTimeFormat` plutôt que supposé fixe, pour rester correct autour des changements d'heure de mars/octobre.
+- **Emails best-effort** (confirmation au prospect + notification au praticien sur `parametres_facturation.emetteur_email`), même parti pris que `api/envoyer-document.js` : sans `RESEND_API_KEY`, on n'envoie simplement rien, la réservation elle-même n'échoue jamais pour ça.
+
+### 3.11 Statut d'activité et localisation dans le back-office admin
+
+Extension de `admin.html` (§3.7), posée par `schema-v7-admin-activite-geo.sql` : `admin_liste_clients()` et `admin_stats()` renvoient désormais aussi la dernière connexion, un statut actif/arrêté calculé, et une localisation déclarée — pour répondre au besoin exploitant de voir qui a arrêté d'utiliser Cadence et où sont les clients.
+
+- **Pas de vrai statut d'abonnement — Cadence n'a aucune intégration de paiement.** `plan` (solo/studio) reste la seule notion de formule (voir §3.7, « Encaissement Stripe » toujours dans « Pas encore construit » plus bas) : il n'y a donc rien à lire côté résiliation d'abonnement. Le proxy retenu pour « une personne qui a arrêté » est l'**inactivité de connexion** : `statut_activite` vaut `'inactif'` quand `auth.users.last_sign_in_at` est `null` ou plus vieux que `admin_config.seuil_inactivite_jours` (réglable depuis l'écran, même patron que `seuil_alerte_clients`), `'actif'` sinon. Affiché explicitement comme tel dans l'UI (pastille + note en bas de la table) pour ne jamais laisser croire à une vraie donnée de facturation.
+- **Localisation = adresse professionnelle déclarée, pas de géolocalisation IP.** Ville/pays viennent de `parametres_facturation.emetteur_ville`/`emetteur_pays` (que le praticien remplit lui-même dans Paramètres → Devis & factures) — vide tant qu'il ne l'a pas fait, jamais déduit d'autre chose. `emetteur_pays` vaut `'France'` par défaut pour tout nouveau compte (colonne par défaut posée dès schema-v2), donc quasiment tous les comptes ont au moins un pays ; la ville reste souvent vide.
+- **`admin_liste_clients()` a dû être `drop`-ée avant d'être recréée** (pas un simple `create or replace`) : Postgres refuse de changer la liste de colonnes renvoyées par une fonction existante autrement.
+- **Nouvelle carte « Répartition géographique »** dans `admin.html`, même style de légende à barres que le camembert métiers (§3.7) mais sans donut — un pays peut avoir zéro coordonnées géographiques utilisables pour un vrai tracé, une simple liste triée suffit.
+
 ---
 
 ## 4. État actuel
@@ -154,7 +175,7 @@ Tout repose sur l'API Auth de Supabase — aucune table ni fonction SQL ajoutée
 **Connexion Google activée** (2026-08-21). Projet Google Cloud dédié « Cadence », fournisseur Google activé dans Supabase → Authentication → Providers avec l'URL de rappel `https://uymqmbvhneijboszcwsf.supabase.co/auth/v1/callback`, scope `calendar.events` demandé. L'app reste en statut **Test** côté Google (limite : 100 utilisateurs listés manuellement, `renald91380@gmail.com` déjà ajouté) — passer en production lèvera cette limite mais nécessite les pages CGU/confidentialité (voir plus bas) et déclenchera l'écran « application non validée » de Google tant que la vérification n'est pas faite.
 
 **Reste à faire pour activer la personnalisation :**
-1. Exécuter dans l'ordre, dans le SQL Editor Supabase : `db/schema-v2-personnalisation.sql`, `db/schema-v3-espaces-et-relances.sql`, `db/schema-v4-admin.sql`, `db/schema-v5-envoi-document.sql` (chacune dépend de la précédente). Vérifier que l'email dans la dernière ligne de `schema-v4-admin.sql` correspond bien au compte qui doit devenir admin avant de la rejouer.
+1. Exécuter dans l'ordre, dans le SQL Editor Supabase : `db/schema-v2-personnalisation.sql`, `db/schema-v3-espaces-et-relances.sql`, `db/schema-v4-admin.sql`, `db/schema-v5-envoi-document.sql`, `db/schema-v6-reservation-en-ligne.sql`, `db/schema-v7-admin-activite-geo.sql` (chacune dépend de la précédente). Vérifier que l'email dans la dernière ligne de `schema-v4-admin.sql` correspond bien au compte qui doit devenir admin avant de la rejouer.
 2. Déclarer sur Vercel la variable d'environnement `SUPABASE_SERVICE_ROLE_KEY` (nécessaire au flux iCalendar et aux relances). `SUPABASE_URL` est normalement déjà posée par l'intégration.
 3. Pour les relances automatiques : déclarer `CRON_SECRET` (jeton arbitraire, à reporter nulle part ailleurs — Vercel s'en sert pour signer ses propres appels), `RESEND_API_KEY` et `RESEND_FROM` (ex. `Cadence <relances@votre-domaine.fr>`, avec SPF/DKIM posés sur ce domaine — voir `emails/README.md` pour la même démarche). Sans `RESEND_API_KEY`, le cron tourne mais n'envoie rien.
 
@@ -165,6 +186,7 @@ Tout repose sur l'API Auth de Supabase — aucune table ni fonction SQL ajoutée
 - Pages CGU / politique de confidentialité (liens encore inertes sur `signup.html` — bloquent aussi le passage de l'app Google en production)
 - Rôles au sein d'une équipe autres que propriétaire/collaborateur (pas de permissions fines par membre)
 - Mesure réelle de l'usage Supabase/Vercel dans le back-office admin (`admin.html` estime la capacité à partir du nombre de clients, pas d'un appel aux API d'usage — voir §3.7)
+- Fermetures ponctuelles (vacances, jour férié) sur la réservation en ligne — seul un horaire hebdomadaire récurrent existe (voir §3.10)
 
 ---
 

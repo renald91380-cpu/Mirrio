@@ -99,6 +99,7 @@
   }
   .appt-row:hover{ box-shadow:0 8px 20px rgba(28,35,51,0.07); transform:translateY(-1px); }
   .appt-row.annule{ opacity:0.55; }
+  .appt-row.en-attente{ border-color:rgba(226,166,61,0.45); background:rgba(226,166,61,0.05); }
   .appt-time{
     font-family:var(--mono); font-size:13px; color:var(--teal); min-width:96px; flex-shrink:0;
   }
@@ -111,6 +112,7 @@
   }
   .badge-recurrent{ background:rgba(62,124,116,0.12); color:var(--teal); }
   .badge-annule{ background:rgba(181,83,63,0.12); color:var(--brick); }
+  .badge-en-attente{ background:rgba(226,166,61,0.18); color:#8a5f11; }
   .appt-row-actions{ display:flex; gap:4px; flex-shrink:0; }
   @media(max-width:480px){
     .appt-row{ flex-wrap:wrap; }
@@ -485,9 +487,10 @@
             ${items.map(a=>{
               const start = new Date(a.date_debut);
               const end = new Date(a.date_fin);
-              const clientName = a.client_id ? clientsById[a.client_id] : null;
+              const enAttente = a.statut === 'en_attente';
+              const clientName = a.client_id ? clientsById[a.client_id] : (a.prospect_nom || null);
               return `
-                <div class="appt-row ${a.statut === 'annule' ? 'annule' : ''}" data-id="${a.id}">
+                <div class="appt-row ${a.statut === 'annule' ? 'annule' : ''} ${enAttente ? 'en-attente' : ''}" data-id="${a.id}">
                   <div class="appt-time">${timeFormatter.format(start)} – ${timeFormatter.format(end)}</div>
                   <div class="appt-main">
                     <h3>${escapeHtml(a.titre)}</h3>
@@ -495,15 +498,21 @@
                       ${clientName ? `<span>${escapeHtml(clientName)}</span>` : ''}
                       ${a.recurring_group_id ? `<span class="badge badge-recurrent">Récurrent</span>` : ''}
                       ${a.statut === 'annule' ? `<span class="badge badge-annule">Annulé</span>` : ''}
+                      ${enAttente ? `<span class="badge badge-en-attente">Demande en ligne — en attente</span>` : ''}
                     </div>
                   </div>
                   <div class="appt-row-actions">
-                    <button class="icon-btn edit-btn" type="button" aria-label="Modifier ${escapeHtml(a.titre)}">
-                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
-                    </button>
-                    <button class="icon-btn danger delete-btn" type="button" aria-label="Supprimer ${escapeHtml(a.titre)}">
-                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
-                    </button>
+                    ${enAttente ? `
+                      <button class="btn btn-primary btn-sm confirm-btn" type="button" style="min-height:34px; padding:6px 12px; font-size:12.5px;">Confirmer</button>
+                      <button class="btn btn-secondary btn-sm refuse-btn" type="button" style="min-height:34px; padding:6px 12px; font-size:12.5px;">Refuser</button>
+                    ` : `
+                      <button class="icon-btn edit-btn" type="button" aria-label="Modifier ${escapeHtml(a.titre)}">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
+                      </button>
+                      <button class="icon-btn danger delete-btn" type="button" aria-label="Supprimer ${escapeHtml(a.titre)}">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
+                      </button>
+                    `}
                   </div>
                 </div>
               `;
@@ -516,10 +525,55 @@
     groupsEl.querySelectorAll('.appt-row').forEach(row=>{
       const id = row.dataset.id;
       const appt = appts.find(a => a.id === id);
-      row.querySelector('.edit-btn').addEventListener('click', (e)=>{ e.stopPropagation(); openModal(appt); });
-      row.querySelector('.delete-btn').addEventListener('click', (e)=>{ e.stopPropagation(); deleteAppointment(id, appt.titre); });
+      const editBtn = row.querySelector('.edit-btn');
+      const deleteBtn = row.querySelector('.delete-btn');
+      const confirmBtn = row.querySelector('.confirm-btn');
+      const refuseBtn = row.querySelector('.refuse-btn');
+      if(editBtn) editBtn.addEventListener('click', (e)=>{ e.stopPropagation(); openModal(appt); });
+      if(deleteBtn) deleteBtn.addEventListener('click', (e)=>{ e.stopPropagation(); deleteAppointment(id, appt.titre); });
+      if(confirmBtn) confirmBtn.addEventListener('click', (e)=>{ e.stopPropagation(); confirmerReservation(appt); });
+      if(refuseBtn) refuseBtn.addEventListener('click', (e)=>{ e.stopPropagation(); refuserReservation(appt); });
       row.addEventListener('click', ()=> openModal(appt));
     });
+  }
+
+  // Une réservation en ligne n'a pas encore de fiche client : « Confirmer »
+  // crée la fiche depuis les coordonnées laissées par le prospect, puis lie
+  // le rendez-vous à cette fiche et retire le statut « en attente ». Voir
+  // db/schema-v6-reservation-en-ligne.sql et CLAUDE.md.
+  async function confirmerReservation(appt){
+    if(!window.confirm(`Confirmer le rendez-vous avec ${appt.prospect_nom} et créer sa fiche client ?`)) return;
+    const { data: client, error: errClient } = await supabase.from('clients').insert({
+      full_name: appt.prospect_nom,
+      email: appt.prospect_email,
+      phone: appt.prospect_telephone,
+      // Posé explicitement à l'espace actif — voir la note plus haut dans ce fichier.
+      owner_id: espaceId
+    }).select().single();
+    if(errClient){
+      showToast("La création de la fiche client a échoué. Réessayez.");
+      return;
+    }
+    const { error: errMaj } = await supabase.from('rendez_vous')
+      .update({ client_id: client.id, statut: null })
+      .eq('id', appt.id);
+    if(errMaj){
+      showToast("La confirmation a échoué. Réessayez.");
+      return;
+    }
+    showToast('Rendez-vous confirmé, fiche client créée.');
+    loadAppointments();
+  }
+
+  async function refuserReservation(appt){
+    if(!window.confirm(`Refuser la demande de rendez-vous de ${appt.prospect_nom} ?`)) return;
+    const { error } = await supabase.from('rendez_vous').update({ statut: 'annule' }).eq('id', appt.id);
+    if(error){
+      showToast('Le refus a échoué. Réessayez.');
+      return;
+    }
+    showToast('Demande refusée.');
+    loadAppointments();
   }
 
   async function loadAppointments(){

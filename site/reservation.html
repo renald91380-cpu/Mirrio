@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Réserver un rendez-vous — Cadence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1C2333; --parchment:#F5F1E7; --teal:#3E7C74; --brick:#B5533F;
+    --accent:#E2A63D; --accent-text:#1C2333; --accent-doux:#F0C98A;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:'Inter', Arial, sans-serif; background:var(--parchment); color:var(--ink);
+    line-height:1.5; -webkit-font-smoothing:antialiased; min-height:100vh;
+  }
+  img,svg{display:block;}
+  button{font-family:inherit;}
+
+  .etat{ text-align:center; padding:60px 20px; color:rgba(28,35,51,0.55); font-size:14.5px; }
+  .etat.erreur{ color:var(--brick); }
+
+  .wrap{ max-width:560px; margin:0 auto; padding:24px 20px 60px; }
+  .shell{ background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(28,35,51,0.08), 0 12px 32px rgba(28,35,51,0.08); overflow:hidden; }
+
+  .entete{ padding:22px 26px; border-bottom:1px solid rgba(28,35,51,0.08); display:flex; align-items:center; gap:12px; }
+  .marque-logo{ max-height:36px; max-width:180px; }
+  .marque-texte{ font-family:'Fraunces', Georgia, serif; font-weight:700; font-size:18px; }
+
+  .corps{ padding:26px; }
+  .corps h2{ font-family:'Fraunces', Georgia, serif; font-size:19px; font-weight:700; margin-bottom:6px; }
+  .corps .sub{ font-size:13.5px; color:rgba(28,35,51,0.6); margin-bottom:18px; }
+
+  .retour{ display:inline-flex; align-items:center; gap:6px; font-size:13px; color:rgba(28,35,51,0.55); background:none; border:none; cursor:pointer; margin-bottom:14px; }
+  .retour:hover{ color:var(--ink); }
+
+  .liste-prestations{ display:flex; flex-direction:column; gap:10px; }
+  .carte-prestation{
+    text-align:left; background:#fff; border:1px solid rgba(28,35,51,0.14); border-radius:10px;
+    padding:14px 16px; cursor:pointer; transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .carte-prestation:hover, .carte-prestation.selectionnee{ border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-doux); }
+  .cp-titre{ font-weight:600; font-size:15px; margin-bottom:2px; }
+  .cp-desc{ font-size:13px; color:rgba(28,35,51,0.55); margin-bottom:8px; }
+  .cp-meta{ display:flex; justify-content:space-between; font-size:13px; color:rgba(28,35,51,0.6); }
+  .cp-prix{ font-weight:700; color:var(--ink); }
+
+  .jours-scroll{ display:flex; gap:8px; overflow-x:auto; padding-bottom:6px; margin-bottom:16px; }
+  .jour-btn{
+    flex-shrink:0; padding:10px 14px; border-radius:8px; border:1px solid rgba(28,35,51,0.14);
+    background:#fff; font-size:13px; cursor:pointer; white-space:nowrap;
+  }
+  .jour-btn:disabled{ opacity:0.35; cursor:not-allowed; }
+  .jour-btn.selectionne{ background:var(--accent); border-color:var(--accent); color:var(--accent-text); font-weight:600; }
+
+  .creneaux-grille{ display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; }
+  .creneau-btn{
+    padding:10px 8px; border-radius:8px; border:1px solid rgba(28,35,51,0.14);
+    background:#fff; font-size:13.5px; cursor:pointer; font-family:'IBM Plex Mono','Courier New',monospace;
+  }
+  .creneau-btn:hover{ border-color:var(--accent); }
+  .creneau-vide{ font-size:13.5px; color:rgba(28,35,51,0.5); padding:14px 0; }
+
+  .recap{ background:var(--parchment); border-radius:8px; padding:14px 16px; margin-bottom:18px; font-size:13.5px; }
+
+  .champ{ margin-bottom:16px; }
+  .champ label{ display:block; font-size:13.5px; font-weight:600; margin-bottom:6px; }
+  .champ input{
+    width:100%; padding:11px 13px; font-size:15px; font-family:inherit;
+    background:#fff; border:1px solid rgba(28,35,51,0.2); border-radius:7px; color:var(--ink);
+  }
+  .champ input:focus{ outline:none; border-color:var(--teal); box-shadow:0 0 0 3px rgba(62,124,116,0.15); }
+  .champ-erreur{ font-size:12.5px; color:var(--brick); margin-top:5px; display:none; }
+  .champ-erreur.show{ display:block; }
+
+  .btn-primaire{
+    width:100%; padding:13px 20px; border-radius:7px; font-weight:700; font-size:15px;
+    border:none; cursor:pointer; background:var(--accent); color:var(--accent-text);
+  }
+  .btn-primaire:disabled{ opacity:0.55; cursor:not-allowed; }
+  .btn-primaire:hover:not(:disabled){ filter:brightness(0.97); }
+
+  .erreur-form{ font-size:13px; color:var(--brick); margin-bottom:14px; display:none; }
+  .erreur-form.show{ display:block; }
+
+  .confirmation{ text-align:center; padding:20px 0; }
+  .confirmation .icone{
+    width:56px; height:56px; border-radius:50%; background:var(--accent-doux); color:var(--ink);
+    display:flex; align-items:center; justify-content:center; margin:0 auto 18px;
+  }
+  .confirmation h2{ margin-bottom:10px; }
+  .confirmation p{ font-size:14px; color:rgba(28,35,51,0.65); line-height:1.6; }
+
+  .note-vide{ font-size:14px; color:rgba(28,35,51,0.6); text-align:center; padding:20px 0; }
+</style>
+</head>
+<body>
+
+<div id="etat-chargement" class="etat">Chargement…</div>
+<div id="etat-erreur" class="etat erreur" style="display:none;">
+  Cette page de réservation est introuvable ou n'est plus disponible.
+</div>
+
+<div id="wrap" class="wrap" style="display:none;">
+  <div class="shell">
+    <div class="entete" id="entete"></div>
+    <div class="corps">
+
+      <div id="etape-prestation">
+        <h2>Choisissez une prestation</h2>
+        <p class="sub">Sélectionnez ce que vous souhaitez réserver.</p>
+        <div class="liste-prestations" id="liste-prestations"></div>
+        <div class="note-vide" id="note-aucune-prestation" style="display:none;">Aucune prestation n'est disponible à la réservation pour le moment.</div>
+      </div>
+
+      <div id="etape-date" style="display:none;">
+        <button type="button" class="retour" data-cible="etape-prestation">← Changer de prestation</button>
+        <h2>Choisissez un créneau</h2>
+        <p class="sub" id="date-sub"></p>
+        <div class="jours-scroll" id="jours-scroll"></div>
+        <div class="creneaux-grille" id="creneaux-grille"></div>
+        <div class="creneau-vide" id="creneau-vide" style="display:none;">Aucun créneau libre ce jour-là — essayez un autre jour.</div>
+      </div>
+
+      <div id="etape-form" style="display:none;">
+        <button type="button" class="retour" data-cible="etape-date">← Changer de créneau</button>
+        <h2>Vos coordonnées</h2>
+        <div class="recap" id="recap"></div>
+        <div class="erreur-form" id="erreur-form"></div>
+        <form id="form-contact">
+          <div class="champ">
+            <label for="nom">Nom complet</label>
+            <input type="text" id="nom" required>
+            <div class="champ-erreur" id="nom-erreur"></div>
+          </div>
+          <div class="champ">
+            <label for="email">Email</label>
+            <input type="email" id="email" required>
+            <div class="champ-erreur" id="email-erreur"></div>
+          </div>
+          <div class="champ">
+            <label for="telephone">Téléphone (optionnel)</label>
+            <input type="tel" id="telephone">
+          </div>
+          <button type="submit" class="btn-primaire" id="btn-envoyer">Envoyer la demande</button>
+        </form>
+      </div>
+
+      <div id="etape-confirmation" style="display:none;">
+        <div class="confirmation">
+          <div class="icone">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          </div>
+          <h2>Votre demande a été envoyée</h2>
+          <p id="confirmation-texte"></p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { stylesAccent, carteMarque, cartePrestation, boutonJour, boutonCreneau, echapperHtml } from './reservation-widget.js';
+
+  const slug = new URLSearchParams(location.search).get('p') || '';
+
+  const etatChargement = document.getElementById('etat-chargement');
+  const etatErreur = document.getElementById('etat-erreur');
+  const wrap = document.getElementById('wrap');
+
+  let bootstrap = null;
+  let prestationChoisie = null;
+  let dateChoisie = null;
+  let creneauChoisi = null;
+
+  function afficherErreur(){
+    etatChargement.style.display = 'none';
+    etatErreur.style.display = 'block';
+  }
+
+  function afficherEtape(id){
+    ['etape-prestation','etape-date','etape-form','etape-confirmation'].forEach(e=>{
+      document.getElementById(e).style.display = (e === id) ? 'block' : 'none';
+    });
+  }
+
+  document.querySelectorAll('.retour').forEach(btn=>{
+    btn.addEventListener('click', ()=> afficherEtape(btn.dataset.cible));
+  });
+
+  // ------------------------------------------------------------ prestations
+  function rendrePrestations(){
+    const liste = document.getElementById('liste-prestations');
+    const vide = document.getElementById('note-aucune-prestation');
+    if(!bootstrap.prestations.length){
+      liste.innerHTML = '';
+      vide.style.display = 'block';
+      return;
+    }
+    vide.style.display = 'none';
+    liste.innerHTML = bootstrap.prestations.map(p => cartePrestation(p, false)).join('');
+    liste.querySelectorAll('.carte-prestation').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        prestationChoisie = bootstrap.prestations.find(p => p.id === el.dataset.id);
+        ouvrirEtapeDate();
+      });
+    });
+  }
+
+  // ------------------------------------------------------------------ dates
+  function parisAujourdhui(){
+    const parts = Object.fromEntries(
+      new Intl.DateTimeFormat('en-US', { timeZone:'Europe/Paris', year:'numeric', month:'2-digit', day:'2-digit' })
+        .formatToParts(new Date()).map(p=>[p.type,p.value])
+    );
+    return { annee:+parts.year, mois:+parts.month, jour:+parts.day };
+  }
+
+  function ouvrirEtapeDate(){
+    document.getElementById('date-sub').textContent =
+      `${prestationChoisie.libelle} — sélectionnez un jour puis une heure.`;
+    const scroll = document.getElementById('jours-scroll');
+    const { annee, mois, jour } = parisAujourdhui();
+    const horizon = bootstrap.reglages.horizon_jours || 30;
+    const jours = [];
+    for(let i = 0; i <= horizon; i++){
+      const d = new Date(Date.UTC(annee, mois - 1, jour + i));
+      const ouvert = (bootstrap.reglages.jours_ouvres || []).includes(d.getUTCDay());
+      jours.push({ date:d, ouvert });
+    }
+    scroll.innerHTML = jours.map(j => boutonJour(j.date, j.ouvert)).join('');
+    scroll.querySelectorAll('.jour-btn:not(:disabled)').forEach(btn=>{
+      btn.addEventListener('click', ()=> selectionnerJour(btn));
+    });
+    document.getElementById('creneaux-grille').innerHTML = '';
+    document.getElementById('creneau-vide').style.display = 'none';
+    afficherEtape('etape-date');
+
+    // Sélectionne automatiquement le premier jour ouvert, pour éviter un
+    // écran vide au premier affichage.
+    const premier = scroll.querySelector('.jour-btn:not(:disabled)');
+    if(premier) selectionnerJour(premier);
+  }
+
+  async function selectionnerJour(btn){
+    document.querySelectorAll('.jour-btn').forEach(b => b.classList.remove('selectionne'));
+    btn.classList.add('selectionne');
+    dateChoisie = btn.dataset.date;
+    const grille = document.getElementById('creneaux-grille');
+    const vide = document.getElementById('creneau-vide');
+    grille.innerHTML = '';
+    vide.style.display = 'none';
+
+    let payload;
+    try{
+      const r = await fetch(`/api/reservation-disponibilites?slug=${encodeURIComponent(slug)}&prestation_id=${encodeURIComponent(prestationChoisie.id)}&date=${dateChoisie}`);
+      payload = await r.json();
+    }catch(e){
+      vide.textContent = 'Impossible de charger les créneaux — réessayez.';
+      vide.style.display = 'block';
+      return;
+    }
+    if(!payload.creneaux || !payload.creneaux.length){
+      vide.textContent = 'Aucun créneau libre ce jour-là — essayez un autre jour.';
+      vide.style.display = 'block';
+      return;
+    }
+    grille.innerHTML = payload.creneaux.map(iso => boutonCreneau(iso)).join('');
+    grille.querySelectorAll('.creneau-btn').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        creneauChoisi = el.dataset.iso;
+        ouvrirEtapeForm();
+      });
+    });
+  }
+
+  // ------------------------------------------------------------------- form
+  function ouvrirEtapeForm(){
+    const quand = new Intl.DateTimeFormat('fr-FR', {
+      timeZone:'Europe/Paris', weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'
+    }).format(new Date(creneauChoisi));
+    document.getElementById('recap').innerHTML =
+      `<strong>${echapperHtml(prestationChoisie.libelle)}</strong><br>${echapperHtml(quand)}`;
+    document.getElementById('erreur-form').classList.remove('show');
+    afficherEtape('etape-form');
+  }
+
+  document.getElementById('form-contact').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const nom = document.getElementById('nom').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const telephone = document.getElementById('telephone').value.trim();
+    const erreurForm = document.getElementById('erreur-form');
+    erreurForm.classList.remove('show');
+
+    let ok = true;
+    const nomErr = document.getElementById('nom-erreur');
+    const emailErr = document.getElementById('email-erreur');
+    if(nom.length < 2){ nomErr.textContent = 'Indiquez votre nom.'; nomErr.classList.add('show'); ok = false; }
+    else nomErr.classList.remove('show');
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ emailErr.textContent = 'Adresse email invalide.'; emailErr.classList.add('show'); ok = false; }
+    else emailErr.classList.remove('show');
+    if(!ok) return;
+
+    const btn = document.getElementById('btn-envoyer');
+    btn.disabled = true;
+    btn.textContent = 'Envoi…';
+
+    let resultat;
+    try{
+      const r = await fetch('/api/reservation-publique', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          slug, prestation_id: prestationChoisie.id, date_debut: creneauChoisi,
+          nom, email, telephone: telephone || undefined
+        })
+      });
+      resultat = await r.json();
+      if(!r.ok){
+        btn.disabled = false;
+        btn.textContent = 'Envoyer la demande';
+        erreurForm.textContent = resultat.error || "La demande a échoué. Réessayez.";
+        erreurForm.classList.add('show');
+        // Un 409 signifie le plus souvent que le créneau vient d'être pris :
+        // on retourne à l'étape date pour que la personne en choisisse un autre.
+        if(r.status === 409) afficherEtape('etape-date');
+        return;
+      }
+    }catch(e){
+      btn.disabled = false;
+      btn.textContent = 'Envoyer la demande';
+      erreurForm.textContent = "La demande a échoué. Vérifiez votre connexion et réessayez.";
+      erreurForm.classList.add('show');
+      return;
+    }
+
+    document.getElementById('confirmation-texte').textContent =
+      `Vous recevrez une confirmation par email dès que ${bootstrap.praticien.business_name} l'aura validée.`;
+    afficherEtape('etape-confirmation');
+  });
+
+  // -------------------------------------------------------------------- init
+  (async function init(){
+    if(!slug){ afficherErreur(); return; }
+    try{
+      const r = await fetch(`/api/reservation-disponibilites?slug=${encodeURIComponent(slug)}`);
+      if(!r.ok) throw new Error('introuvable');
+      bootstrap = await r.json();
+    }catch(e){
+      afficherErreur();
+      return;
+    }
+
+    document.title = `Réserver — ${bootstrap.praticien.business_name}`;
+    const style = document.createElement('style');
+    style.textContent = stylesAccent(bootstrap.praticien.accent);
+    document.head.appendChild(style);
+    document.getElementById('entete').innerHTML = carteMarque(bootstrap.praticien);
+
+    rendrePrestations();
+    afficherEtape('etape-prestation');
+
+    etatChargement.style.display = 'none';
+    wrap.style.display = 'block';
+  })();
+</script>
+
+</body>
+</html>

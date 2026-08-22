@@ -383,6 +383,7 @@
         <button class="tab" role="tab" id="tab-documents" aria-controls="panel-documents" aria-selected="false" data-tab="documents" type="button">Devis &amp; factures</button>
         <button class="tab" role="tab" id="tab-prestations" aria-controls="panel-prestations" aria-selected="false" data-tab="prestations" type="button">Prestations</button>
         <button class="tab" role="tab" id="tab-agenda" aria-controls="panel-agenda" aria-selected="false" data-tab="agenda" type="button">Agenda</button>
+        <button class="tab" role="tab" id="tab-reservation" aria-controls="panel-reservation" aria-selected="false" data-tab="reservation" type="button">Réservation</button>
         <button class="tab" role="tab" id="tab-equipe" aria-controls="panel-equipe" aria-selected="false" data-tab="equipe" type="button">Équipe</button>
       </div>
 
@@ -856,6 +857,84 @@
         </div>
       </div>
 
+      <!-- ========================== RÉSERVATION ============================ -->
+      <div class="panel" role="tabpanel" id="panel-reservation" aria-labelledby="tab-reservation" tabindex="0" hidden>
+        <div class="card">
+          <h2>Réservation en ligne</h2>
+          <p class="card-sub">Laissez vos futurs clients réserver un créneau depuis votre propre site (widget à intégrer) ou depuis un simple lien que vous partagez. Chaque demande arrive dans votre agenda « en attente » — vous décidez ensuite de la confirmer ou de la refuser, jamais de fiche client créée automatiquement.</p>
+
+          <div class="field" style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+            <input type="checkbox" id="resa-activee" data-bind="reservation.activee" style="width:20px; height:20px;">
+            <label for="resa-activee" style="margin:0;">Activer la réservation en ligne</label>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="resa-slug">Identifiant public</label>
+              <input type="text" id="resa-slug" data-bind="reservation.slug" placeholder="cabinet-marie" aria-describedby="resa-slug-error">
+              <div class="hint">Apparaît dans votre lien : .../reservation.html?p=<span id="resa-slug-apercu">…</span></div>
+              <div class="error" id="resa-slug-error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg><span></span></div>
+            </div>
+          </div>
+
+          <h3 style="margin:22px 0 10px; font-size:15px;">Horaires ouverts à la réservation</h3>
+          <div id="resa-jours" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;"></div>
+
+          <div class="grid-3">
+            <div class="field">
+              <label for="resa-heure-debut">Heure de début</label>
+              <input type="time" id="resa-heure-debut" data-bind="reservation.heure_debut">
+            </div>
+            <div class="field">
+              <label for="resa-heure-fin">Heure de fin</label>
+              <input type="time" id="resa-heure-fin" data-bind="reservation.heure_fin">
+            </div>
+            <div class="field">
+              <label for="resa-intervalle">Intervalle proposé</label>
+              <select id="resa-intervalle" data-bind="reservation.intervalle_minutes">
+                <option value="15">15 minutes</option>
+                <option value="30">30 minutes</option>
+                <option value="60">1 heure</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="resa-delai">Délai minimum avant un rendez-vous (heures)</label>
+              <input type="number" id="resa-delai" data-bind="reservation.delai_min_heures" min="0" step="1">
+            </div>
+            <div class="field">
+              <label for="resa-horizon">Réservable jusqu'à (jours à l'avance)</label>
+              <input type="number" id="resa-horizon" data-bind="reservation.horizon_jours" min="1" step="1">
+            </div>
+          </div>
+
+          <div id="resa-partage" style="display:none; margin-top:22px; border-top:1px solid rgba(28,35,51,0.1); padding-top:18px;">
+            <h3 style="margin-bottom:10px; font-size:15px;">Votre lien de réservation</h3>
+            <div class="feed-box">
+              <div class="feed-url" id="resa-lien" title=""></div>
+              <button class="btn btn-outline btn-sm" type="button" id="resa-lien-copy">Copier</button>
+            </div>
+
+            <h3 style="margin:18px 0 10px; font-size:15px;">À intégrer sur votre site</h3>
+            <div class="feed-box">
+              <div class="feed-url" id="resa-iframe" title=""></div>
+              <button class="btn btn-outline btn-sm" type="button" id="resa-iframe-copy">Copier</button>
+            </div>
+            <div class="hint" style="margin-top:8px;">Collez cet extrait dans le code de votre site, à l'endroit où la réservation doit apparaître.</div>
+          </div>
+
+          <div class="note-box" id="resa-inactif-note" style="margin-top:18px;">
+            Activez la réservation et choisissez un identifiant pour obtenir votre lien et l'extrait à intégrer.
+          </div>
+
+          <div class="note-box warn" style="margin-top:18px;">
+            <strong>Limite actuelle :</strong> un seul horaire hebdomadaire récurrent — pas encore de fermetures ponctuelles (vacances, jour férié). Désactivez temporairement la réservation si besoin.
+          </div>
+        </div>
+      </div>
+
       <!-- ============================= ÉQUIPE ============================== -->
       <div class="panel" role="tabpanel" id="panel-equipe" aria-labelledby="tab-equipe" tabindex="0" hidden>
 
@@ -948,8 +1027,8 @@
 
   // État : `courant` est ce que l'utilisateur voit, `initial` ce qui est en base.
   // La comparaison des deux pilote la barre d'enregistrement.
-  let profil = {}, facturation = {}, prestations = [];
-  let initial = { profil:{}, facturation:{} };
+  let profil = {}, facturation = {}, prestations = [], reservation = {};
+  let initial = { profil:{}, facturation:{}, reservation:{} };
   let session = null, feedToken = null, googleConn = null, espaceId = null;
   let previewType = 'facture';
 
@@ -982,7 +1061,8 @@
   const clone = (o) => JSON.parse(JSON.stringify(o));
   const estModifie = () =>
     JSON.stringify(profil) !== JSON.stringify(initial.profil) ||
-    JSON.stringify(facturation) !== JSON.stringify(initial.facturation);
+    JSON.stringify(facturation) !== JSON.stringify(initial.facturation) ||
+    JSON.stringify(reservation) !== JSON.stringify(initial.reservation);
 
   function majBarre(){
     saveBar.classList.toggle('show', estModifie());
@@ -1013,7 +1093,11 @@
   // ------------------------------------------------------- liaison champ ↔ état
   // Chaque champ porte `data-bind="table.colonne"`. Une seule boucle relie donc
   // tout le formulaire, plutôt qu'un écouteur écrit à la main par champ.
-  function cible(bind){ return bind.split('.')[0] === 'profil' ? profil : facturation; }
+  function cible(bind){
+    const obj = bind.split('.')[0];
+    if(obj === 'reservation') return reservation;
+    return obj === 'profil' ? profil : facturation;
+  }
   function colonne(bind){ return bind.split('.')[1]; }
 
   function remplirChamps(){
@@ -1028,6 +1112,8 @@
     majLogoApercu();
     majVocabDemo();
     majExemplesNumero();
+    monterJoursReservation();
+    majApercuReservation();
   }
 
   document.querySelectorAll('[data-bind]').forEach(el=>{
@@ -1054,10 +1140,66 @@
         majVocabDemo();
       }
       if(col === 'prefixe_devis' || col === 'prefixe_facture') majExemplesNumero();
+      if(col === 'slug' || col === 'activee') majApercuReservation();
 
       rendreApercuDoc();
       majBarre();
     });
+  });
+
+  // ------------------------------------------------------------- réservation
+  const JOURS_LABELS = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+
+  function monterJoursReservation(){
+    const cont = document.getElementById('resa-jours');
+    const actifs = new Set(reservation.jours_ouvres || []);
+    cont.innerHTML = JOURS_LABELS.map((label, i) => `
+      <label style="display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border:1px solid rgba(28,35,51,0.16); border-radius:7px; font-size:13px; cursor:pointer;">
+        <input type="checkbox" value="${i}" ${actifs.has(i) ? 'checked' : ''} style="width:16px;height:16px;">
+        ${label}
+      </label>`).join('');
+    cont.querySelectorAll('input[type="checkbox"]').forEach(el=>{
+      el.addEventListener('change', ()=>{
+        const jour = Number(el.value);
+        const set = new Set(reservation.jours_ouvres || []);
+        if(el.checked) set.add(jour); else set.delete(jour);
+        reservation.jours_ouvres = [...set].sort((a,b)=>a-b);
+        majBarre();
+      });
+    });
+  }
+
+  function majApercuReservation(){
+    const pret = !!(reservation.activee && reservation.slug);
+    document.getElementById('resa-partage').style.display = pret ? 'block' : 'none';
+    document.getElementById('resa-inactif-note').style.display = pret ? 'none' : 'block';
+    document.getElementById('resa-slug-apercu').textContent = reservation.slug || '…';
+    if(!pret) return;
+    const lien = `${window.location.origin}/reservation.html?p=${reservation.slug}`;
+    const iframe = `<iframe src="${lien}" style="width:100%;border:0;height:760px" title="Réserver un rendez-vous"></iframe>`;
+    document.getElementById('resa-lien').textContent = lien;
+    document.getElementById('resa-lien').title = lien;
+    document.getElementById('resa-iframe').textContent = iframe;
+    document.getElementById('resa-iframe').title = iframe;
+  }
+
+  document.getElementById('resa-slug').addEventListener('blur', (e)=>{
+    const v = e.target.value.trim().toLowerCase();
+    e.target.value = v;
+    reservation.slug = v || null;
+    setFieldError('resa-slug', v && !/^[a-z0-9-]{3,40}$/.test(v)
+      ? 'Utilisez seulement des lettres minuscules, des chiffres et des tirets (3 à 40 caractères).' : '');
+    majApercuReservation();
+    majBarre();
+  });
+
+  document.getElementById('resa-lien-copy').addEventListener('click', async ()=>{
+    try{ await navigator.clipboard.writeText(document.getElementById('resa-lien').textContent); showToast('Lien copié.'); }
+    catch(e){ showToast('La copie automatique a échoué — sélectionnez le texte à la main.', true); }
+  });
+  document.getElementById('resa-iframe-copy').addEventListener('click', async ()=>{
+    try{ await navigator.clipboard.writeText(document.getElementById('resa-iframe').textContent); showToast('Extrait copié.'); }
+    catch(e){ showToast('La copie automatique a échoué — sélectionnez le texte à la main.', true); }
   });
 
   // Validation au blur, jamais à la frappe (convention du projet).
@@ -1866,20 +2008,29 @@
     const pFact = { ...facturation, owner_id: espaceId };
     delete pFact.created_at; delete pFact.updated_at;
 
-    const [r1, r2] = await Promise.all([
+    const pReserv = { ...reservation, owner_id: espaceId };
+    delete pReserv.created_at; delete pReserv.updated_at;
+
+    const [r1, r2, r3] = await Promise.all([
       supabase.from('profiles').upsert(pProfil, { onConflict:'id' }),
-      supabase.from('parametres_facturation').upsert(pFact, { onConflict:'owner_id' })
+      supabase.from('parametres_facturation').upsert(pFact, { onConflict:'owner_id' }),
+      supabase.from('parametres_reservation').upsert(pReserv, { onConflict:'owner_id' })
     ]);
 
     saveBtn.disabled = false;
     saveBtn.textContent = 'Enregistrer';
 
-    if(r1.error || r2.error){
+    if(r3.error && r3.error.code === '23505'){
+      setFieldError('resa-slug', 'Ce lien est déjà pris, essayez une variante.');
+      showToast("L'enregistrement a échoué.", true);
+      return;
+    }
+    if(r1.error || r2.error || r3.error){
       showToast("L'enregistrement a échoué. Réessayez dans un instant.", true);
       return;
     }
 
-    initial = { profil: clone(profil), facturation: clone(facturation) };
+    initial = { profil: clone(profil), facturation: clone(facturation), reservation: clone(reservation) };
     viderCacheBrand();
     appliquerTheme({ ...profil });
     monterEntete({ ...profil }, 'reglages');
@@ -1890,6 +2041,7 @@
   document.getElementById('discard-btn').addEventListener('click', ()=>{
     profil = clone(initial.profil);
     facturation = clone(initial.facturation);
+    reservation = clone(initial.reservation);
     remplirChamps();
     monterAccents();
     majCouleursDocument();
@@ -1923,9 +2075,10 @@
     await accepterInvitationEnAttente();
     espaceId = await idEspaceActif(supabase);
 
-    const [rp, rf] = await Promise.all([
+    const [rp, rf, rr] = await Promise.all([
       supabase.from('profiles').select('*').maybeSingle(),
-      supabase.from('parametres_facturation').select('*').maybeSingle()
+      supabase.from('parametres_facturation').select('*').maybeSingle(),
+      supabase.from('parametres_reservation').select('*').maybeSingle()
     ]);
 
     profil = {
@@ -1949,7 +2102,15 @@
     };
     delete facturation.owner_id;
 
-    initial = { profil: clone(profil), facturation: clone(facturation) };
+    reservation = rr.data ? { ...rr.data } : {
+      activee: false, slug: null,
+      jours_ouvres: [1,2,3,4,5],
+      heure_debut: '09:00', heure_fin: '18:00',
+      intervalle_minutes: 30, delai_min_heures: 24, horizon_jours: 30
+    };
+    delete reservation.owner_id;
+
+    initial = { profil: clone(profil), facturation: clone(facturation), reservation: clone(reservation) };
 
     // L'en-tête affiche la marque de l'ESPACE actif (celle qu'imprimera un devis),
     // pas forcément le profil qu'on modifie ci-dessous : un collaborateur édite

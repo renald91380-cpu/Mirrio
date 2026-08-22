@@ -1,0 +1,290 @@
+// Cadence — création d'un rendez-vous « en attente » depuis le widget public
+// de réservation en ligne (site/reservation.html).
+//
+//   POST /api/reservation-publique
+//   { slug, prestation_id, date_debut, nom, email, telephone? }
+//
+// Crée une ligne `rendez_vous` avec `statut:'en_attente'` et `client_id:null` —
+// les coordonnées du prospect vivent dans les colonnes `prospect_*` jusqu'à ce
+// que le praticien confirme (et crée alors lui-même la fiche client depuis
+// site/agenda.html) ou refuse. Aucune fiche client n'est créée ici.
+//
+// Toutes les règles (jours ouverts, horaires, délai minimum, horizon,
+// chevauchement) sont re-vérifiées ici côté serveur — défense en profondeur
+// contre un appel forgé qui contournerait le widget. La fenêtre de course
+// entre la lecture des créneaux (api/reservation-disponibilites.js) et cet
+// insert reste possible en théorie (v1, choix assumé — voir CLAUDE.md) ;
+// cette re-vérification la réduit sans l'éliminer complètement.
+//
+// Emails best-effort (jamais bloquants), même logique que
+// api/envoyer-document.js : sans RESEND_API_KEY configurée, on ignore
+// simplement l'envoi plutôt que de faire échouer la réservation.
+//
+// Zéro dépendance npm, comme le reste de api/.
+//
+// Variables d'environnement attendues :
+//   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, RESEND_API_KEY, RESEND_FROM
+
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const RESEND_FROM = process.env.RESEND_FROM || 'Cadence <onboarding@resend.dev>';
+
+const INK = '#1C2333', PARCH = '#F5F1E7', PARCHDIM = '#EAE4D4', AMBER = '#E2A63D';
+const SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+
+function json(res, statut, corps){
+  res.statusCode = statut;
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.end(JSON.stringify(corps));
+}
+
+async function supabaseGet(chemin){
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${chemin}`, {
+    headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, Accept: 'application/json' }
+  });
+  if(!r.ok) throw new Error(`Supabase GET ${r.status} sur ${chemin}`);
+  return r.json();
+}
+
+async function supabasePost(chemin, corps){
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${chemin}`, {
+    method: 'POST',
+    headers: {
+      apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`,
+      'Content-Type': 'application/json', Prefer: 'return=minimal'
+    },
+    body: JSON.stringify(corps)
+  });
+  if(!r.ok){
+    const detail = await r.text().catch(() => '');
+    throw new Error(`Supabase POST ${r.status} sur ${chemin} : ${detail.slice(0, 200)}`);
+  }
+}
+
+// ------------------------------------------------------------ fuseau horaire
+// Même helper que api/reservation-disponibilites.js (dupliqué à dessein : pas
+// de fichier partagé dans api/, chaque route reste autonome — voir
+// api/envoyer-document.js pour le même parti pris ailleurs dans le projet).
+function composantsParis(date){
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Europe/Paris', hourCycle: 'h23',
+      year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
+    }).formatToParts(date).map(p => [p.type, p.value])
+  );
+  return { annee: +parts.year, mois: +parts.month, jour: +parts.day, heure: +parts.hour, minute: +parts.minute };
+}
+
+function formaterEuros(n){
+  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0);
+}
+function formaterDateHeure(date){
+  return new Intl.DateTimeFormat('fr-FR', {
+    timeZone: 'Europe/Paris', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit'
+  }).format(date);
+}
+function echapperHtml(str){
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+async function envoyerEmail({ to, replyTo, subject, html }){
+  const r = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from: RESEND_FROM, to: [to], reply_to: replyTo || undefined, subject, html })
+  });
+  if(!r.ok){
+    const corps = await r.text().catch(() => '');
+    throw new Error(`Resend ${r.status} : ${corps.slice(0, 200)}`);
+  }
+}
+
+function gabaritSimple({ titre, paragraphes, accent }){
+  return `<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light"><title>${echapperHtml(titre)}</title></head>
+<body style="margin:0; padding:0; background:${PARCHDIM}; font-family:${SANS};">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${PARCHDIM};">
+<tr><td align="center" style="padding:32px 16px;">
+<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px; width:100%; background:${PARCH}; border-radius:10px; overflow:hidden;">
+<tr><td style="background:${INK}; padding:22px 32px;">
+<span style="font-weight:700; font-size:17px; color:${PARCH};">Cadence</span>
+</td></tr>
+<tr><td style="padding:32px;">
+<h1 style="margin:0 0 16px; font-size:20px; color:${INK};">${echapperHtml(titre)}</h1>
+${paragraphes.map(p => `<p style="margin:0 0 14px; font-size:14.5px; line-height:1.6; color:${INK};">${p}</p>`).join('')}
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>`;
+}
+
+export default async function handler(req, res){
+  if(req.method !== 'POST'){
+    return json(res, 405, { error: 'Method Not Allowed' });
+  }
+  if(!SUPABASE_URL || !SERVICE_KEY){
+    return json(res, 500, { error: 'Configuration serveur incomplète.' });
+  }
+
+  let body = req.body;
+  if(typeof body === 'string'){
+    try{ body = JSON.parse(body); }catch(e){ body = {}; }
+  }
+  const slug = String(body?.slug || '');
+  const prestationId = String(body?.prestation_id || '');
+  const dateDebutStr = String(body?.date_debut || '');
+  const nom = String(body?.nom || '').trim();
+  const email = String(body?.email || '').trim();
+  const telephone = body?.telephone ? String(body.telephone).trim() : null;
+
+  if(!/^[a-z0-9-]{3,40}$/.test(slug)){
+    return json(res, 404, { error: 'Page de réservation introuvable.' });
+  }
+  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(prestationId)){
+    return json(res, 400, { error: 'Prestation invalide.' });
+  }
+  const dateDebut = new Date(dateDebutStr);
+  if(isNaN(dateDebut.getTime()) || dateDebut.getTime() < Date.now()){
+    return json(res, 400, { error: 'Créneau invalide.' });
+  }
+  if(nom.length < 2){
+    return json(res, 400, { error: 'Indiquez votre nom.' });
+  }
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    return json(res, 400, { error: 'Adresse email invalide.' });
+  }
+
+  let reglages;
+  try{
+    reglages = await supabaseGet(
+      `parametres_reservation?slug=eq.${slug}&activee=eq.true&select=owner_id,jours_ouvres,heure_debut,heure_fin,delai_min_heures,horizon_jours`
+    );
+  }catch(e){
+    return json(res, 503, { error: 'Page de réservation temporairement indisponible.' });
+  }
+  const reglage = reglages[0];
+  if(!reglage){
+    return json(res, 404, { error: 'Page de réservation introuvable.' });
+  }
+  const ownerId = reglage.owner_id;
+
+  let prestations;
+  try{
+    prestations = await supabaseGet(
+      `prestations?id=eq.${prestationId}&owner_id=eq.${ownerId}&actif=eq.true&select=id,libelle,prix_unitaire,duree_minutes`
+    );
+  }catch(e){
+    return json(res, 503, { error: 'Page de réservation temporairement indisponible.' });
+  }
+  const prestation = prestations[0];
+  if(!prestation){
+    return json(res, 404, { error: 'Prestation introuvable.' });
+  }
+
+  // ---- défense en profondeur : re-vérifier les règles côté serveur ----
+  const c = composantsParis(dateDebut);
+  const jourSemaine = new Date(Date.UTC(c.annee, c.mois - 1, c.jour)).getUTCDay();
+  if(!(reglage.jours_ouvres || []).includes(jourSemaine)){
+    return json(res, 409, { error: 'Ce jour n’est pas ouvert à la réservation.' });
+  }
+  const [hDebutH, hDebutM] = String(reglage.heure_debut).split(':').map(Number);
+  const [hFinH, hFinM] = String(reglage.heure_fin).split(':').map(Number);
+  const minuteDuJour = c.heure * 60 + c.minute;
+  if(minuteDuJour < hDebutH * 60 + hDebutM || minuteDuJour + prestation.duree_minutes > hFinH * 60 + hFinM){
+    return json(res, 409, { error: 'Ce créneau est hors des horaires de réservation.' });
+  }
+  const maintenant = Date.now();
+  if(dateDebut.getTime() < maintenant + (reglage.delai_min_heures || 0) * 3600000){
+    return json(res, 409, { error: 'Ce créneau est trop proche — choisissez-en un plus tard.' });
+  }
+  if(dateDebut.getTime() > maintenant + (reglage.horizon_jours || 0) * 86400000){
+    return json(res, 409, { error: 'Ce créneau est trop lointain.' });
+  }
+
+  const dateFin = new Date(dateDebut.getTime() + prestation.duree_minutes * 60000);
+
+  // ---- re-vérification anti-course juste avant l'insert ----
+  let occupes;
+  try{
+    occupes = await supabaseGet(
+      `rendez_vous?owner_id=eq.${ownerId}` +
+      `&date_debut=lt.${dateFin.toISOString()}&date_fin=gt.${dateDebut.toISOString()}` +
+      `&select=statut`
+    );
+  }catch(e){
+    return json(res, 503, { error: 'Vérification impossible, réessayez.' });
+  }
+  if(occupes.some(r => r.statut !== 'annule')){
+    return json(res, 409, { error: 'Ce créneau vient d’être pris, choisissez-en un autre.' });
+  }
+
+  try{
+    await supabasePost('rendez_vous', {
+      owner_id: ownerId,
+      titre: `${prestation.libelle} — ${nom}`,
+      prestation_id: prestation.id,
+      date_debut: dateDebut.toISOString(),
+      date_fin: dateFin.toISOString(),
+      statut: 'en_attente',
+      client_id: null,
+      prospect_nom: nom,
+      prospect_email: email,
+      prospect_telephone: telephone
+    });
+  }catch(e){
+    return json(res, 502, { error: 'La réservation a échoué. Réessayez.' });
+  }
+
+  // ---- emails best-effort : jamais bloquants ----
+  if(RESEND_API_KEY){
+    let profil = {}, facturation = {};
+    try{
+      const [profils, facs] = await Promise.all([
+        supabaseGet(`profiles?id=eq.${ownerId}&select=business_name,full_name`),
+        supabaseGet(`parametres_facturation?owner_id=eq.${ownerId}&select=emetteur_email`)
+      ]);
+      profil = profils[0] || {};
+      facturation = facs[0] || {};
+    }catch(e){ /* pas bloquant */ }
+    const nomPraticien = profil.business_name || profil.full_name || 'Cadence';
+    const quand = formaterDateHeure(dateDebut);
+
+    try{
+      await envoyerEmail({
+        to: email,
+        subject: `Votre demande de rendez-vous — ${nomPraticien}`,
+        html: gabaritSimple({
+          titre: 'Votre demande a bien été reçue',
+          paragraphes: [
+            `Vous avez demandé un rendez-vous pour <strong>${echapperHtml(prestation.libelle)}</strong> le ${echapperHtml(quand)}, auprès de ${echapperHtml(nomPraticien)}.`,
+            `Cette demande est <strong>en attente de confirmation</strong> — vous recevrez un message dès qu’elle sera validée.`
+          ]
+        })
+      });
+    }catch(e){ /* best-effort : ne bloque jamais la réservation */ }
+
+    if(facturation.emetteur_email){
+      try{
+        await envoyerEmail({
+          to: facturation.emetteur_email,
+          replyTo: email,
+          subject: `Nouvelle demande de rendez-vous — ${nom}`,
+          html: gabaritSimple({
+            titre: 'Nouvelle demande de réservation',
+            paragraphes: [
+              `<strong>${echapperHtml(nom)}</strong> a demandé un rendez-vous pour ${echapperHtml(prestation.libelle)} (${formaterEuros(prestation.prix_unitaire)}) le ${echapperHtml(quand)}.`,
+              `Contact : ${echapperHtml(email)}${telephone ? ` — ${echapperHtml(telephone)}` : ''}.`,
+              `Ouvrez votre agenda Cadence pour la confirmer ou la refuser.`
+            ]
+          })
+        });
+      }catch(e){ /* best-effort */ }
+    }
+  }
+
+  return json(res, 200, { ok: true });
+}

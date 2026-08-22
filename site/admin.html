@@ -72,13 +72,7 @@
 
   .loading-state, .denied-state{ text-align:center; padding:72px 20px; color:rgba(28,35,51,0.5); font-size:14px; }
 
-  .stat-row{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:20px; }
-  @media(max-width:900px){ .stat-row{ grid-template-columns:repeat(2,1fr); } }
-  @media(max-width:520px){ .stat-row{ grid-template-columns:1fr; } }
-  .stat-row-3{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin:16px 0; }
-  @media(max-width:820px){ .stat-row-3{ grid-template-columns:1fr; } }
-  .objectif-presets{ margin-bottom:14px; }
-  .objectif-presets .btn{ margin-right:8px; margin-top:8px; }
+  .stat-row{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:16px; margin-bottom:20px; }
   .stat-card{ background:#fff; border:1px solid rgba(28,35,51,0.09); border-radius:12px; padding:18px 20px; }
   .stat-label{ font-size:11.5px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:rgba(28,35,51,0.5); margin-bottom:8px; }
   .stat-value{ font-family:var(--display); font-size:27px; font-weight:700; line-height:1.1; }
@@ -142,7 +136,7 @@
   .filtres input, .filtres select{ padding:9px 12px; border:1px solid rgba(28,35,51,0.2); border-radius:6px; font-size:13.5px; }
   .filtres input{ flex:1; min-width:180px; }
   .table-scroll{ overflow-x:auto; }
-  table.clients-table{ width:100%; border-collapse:collapse; font-size:13px; min-width:820px; }
+  table.clients-table{ width:100%; border-collapse:collapse; font-size:13px; min-width:1180px; }
   .clients-table th{
     text-align:left; padding:9px 10px; font-size:11.5px; font-weight:600; text-transform:uppercase;
     letter-spacing:.04em; color:rgba(28,35,51,0.5); border-bottom:1px solid rgba(28,35,51,0.12); white-space:nowrap;
@@ -152,10 +146,27 @@
   .plan-pill{ font-size:11px; font-weight:600; padding:2px 9px; border-radius:20px; white-space:nowrap; }
   .plan-pill.solo{ background:rgba(139,143,152,0.15); color:rgba(28,35,51,0.7); }
   .plan-pill.studio{ background:rgba(62,124,116,0.14); color:var(--teal); }
+  .statut-pill{ font-size:11px; font-weight:600; padding:2px 9px; border-radius:20px; white-space:nowrap; }
+  .statut-pill.actif{ background:rgba(62,124,116,0.14); color:var(--teal); }
+  .statut-pill.inactif{ background:rgba(181,83,63,0.13); color:var(--brick); }
   .cell-entreprise .nom{ font-weight:600; }
   .cell-entreprise .email{ font-size:12px; color:rgba(28,35,51,0.5); }
   .table-empty{ text-align:center; padding:40px 20px; color:rgba(28,35,51,0.5); font-size:13.5px; }
   .table-foot{ font-size:12px; color:rgba(28,35,51,0.5); margin-top:10px; }
+
+  /* ---------- Répartition géographique ---------- */
+  .geo-list{ display:flex; flex-direction:column; gap:8px; }
+  .geo-row{ display:grid; grid-template-columns:140px 1fr auto; align-items:center; gap:10px; font-size:13px; }
+  .geo-pays{ font-weight:600; }
+  .geo-bar-track{ height:8px; border-radius:20px; background:rgba(28,35,51,0.07); overflow:hidden; }
+  .geo-bar-fill{ height:100%; border-radius:20px; background:var(--teal); }
+  .geo-valeur{ font-family:var(--mono); font-size:12px; color:rgba(28,35,51,0.55); white-space:nowrap; }
+
+  .inactivite-row{ display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+  .inactivite-row label{ font-size:13px; color:rgba(28,35,51,0.6); }
+  .inactivite-row input{ width:80px; padding:8px 10px; border:1px solid rgba(28,35,51,0.2); border-radius:6px; font-size:14px; font-family:var(--mono); }
+  .inactivite-msg{ font-size:12.5px; color:var(--teal); }
+  .assumption-note{ font-size:12px; color:rgba(28,35,51,0.45); margin-top:14px; line-height:1.6; }
 </style>
 </head>
 <body>
@@ -207,52 +218,15 @@
           <div class="stat-value" id="stat-nouveaux">—</div>
           <div class="stat-sub" id="stat-nouveaux-sub">—</div>
         </div>
-      </div>
-
-      <div class="card" id="objectif-card">
-        <div class="capacite-head">
-          <h2 style="margin-bottom:0;">Objectif — capital laverie</h2>
-          <span class="capacite-chiffre" id="objectif-chiffre">—</span>
+        <div class="stat-card">
+          <div class="stat-label">Comptes actifs</div>
+          <div class="stat-value" id="stat-actifs">—</div>
+          <div class="stat-sub">Connectés récemment</div>
         </div>
-        <p class="card-sub">Ce que Cadence doit générer chaque mois (net des cotisations sociales micro-entreprise) pour financer l'apport personnel du projet laverie, sur l'horizon choisi. Rien à voir avec ce que voient tes clients — visible ici seulement.</p>
-
-        <div class="jauge"><div class="jauge-fill" id="objectif-jauge-fill" style="width:0%;"></div></div>
-        <div class="capacite-note" id="objectif-note"></div>
-
-        <div class="stat-row-3">
-          <div class="stat-card">
-            <div class="stat-label">MRR actuel</div>
-            <div class="stat-value" id="objectif-mrr-actuel">—</div>
-            <div class="stat-sub" id="objectif-abonnes-actuels">—</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">MRR cible</div>
-            <div class="stat-value" id="objectif-mrr-cible">—</div>
-            <div class="stat-sub" id="objectif-abonnes-cible">—</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Écart</div>
-            <div class="stat-value" id="objectif-ecart">—</div>
-            <div class="stat-sub" id="objectif-ecart-abonnes">—</div>
-          </div>
-        </div>
-
-        <div class="objectif-presets">
-          <button class="btn btn-outline btn-sm" type="button" data-preset-eur="28000" data-preset-mois="12">France (28 000 € / 12 mois)</button>
-          <button class="btn btn-outline btn-sm" type="button" data-preset-eur="56000" data-preset-mois="24">France + Maroc (56 000 € / 24 mois)</button>
-        </div>
-
-        <div class="seuil-row">
-          <label for="objectif-input">Apport visé (€) :</label>
-          <input type="number" id="objectif-input" min="1" step="500">
-          <label for="horizon-input">Horizon (mois) :</label>
-          <input type="number" id="horizon-input" min="1" step="1">
-          <button class="btn btn-outline btn-sm" id="objectif-save" type="button">Enregistrer</button>
-          <span class="seuil-msg" id="objectif-msg"></span>
-        </div>
-
-        <div class="sources">
-          Hypothèse : 25,6 % de cotisations sociales micro-entreprise (régime BNC — à confirmer avec l'Urssaf), hors impôt sur le revenu et charges personnelles. Abonnés cible calculés sur ton prix moyen actuel par client (mix Solo/Studio réel) — ou 19,20 €/mois par défaut tant qu'il n'y a aucun client.
+        <div class="stat-card">
+          <div class="stat-label">Comptes arrêtés</div>
+          <div class="stat-value" id="stat-inactifs">—</div>
+          <div class="stat-sub" id="stat-inactifs-sub">—</div>
         </div>
       </div>
 
@@ -328,8 +302,22 @@
       </div>
 
       <div class="card">
+        <h2>Répartition géographique</h2>
+        <p class="card-sub">Ville/pays déclarés par chaque praticien dans Paramètres → Devis &amp; factures — pas de géolocalisation IP, donc « Non renseigné » tant que le champ est vide.</p>
+        <div class="geo-list" id="geo-list"></div>
+      </div>
+
+      <div class="card">
         <h2>Clients Cadence</h2>
         <p class="card-sub">Infos de compte et indicateurs d'activité — pas le détail des devis/factures de leurs propres clients.</p>
+
+        <div class="inactivite-row">
+          <label for="inactivite-input">Considérer un compte « arrêté » après (jours sans connexion) :</label>
+          <input type="number" id="inactivite-input" min="1" step="1">
+          <button class="btn btn-outline btn-sm" id="inactivite-save" type="button">Enregistrer</button>
+          <span class="inactivite-msg" id="inactivite-msg"></span>
+        </div>
+
         <div class="filtres">
           <input type="text" id="filtre-recherche" placeholder="Rechercher une entreprise, un nom, un email…">
           <select id="filtre-metier"><option value="">Tous les métiers</option></select>
@@ -337,6 +325,11 @@
             <option value="">Toutes les formules</option>
             <option value="solo">Solo</option>
             <option value="studio">Studio</option>
+          </select>
+          <select id="filtre-statut">
+            <option value="">Tous les statuts</option>
+            <option value="actif">Actifs</option>
+            <option value="inactif">Arrêtés</option>
           </select>
         </div>
         <div class="table-scroll">
@@ -346,7 +339,10 @@
                 <th>Entreprise</th>
                 <th>Métier</th>
                 <th>Formule</th>
+                <th>Statut</th>
+                <th>Localisation</th>
                 <th>Inscrit le</th>
+                <th>Dernière connexion</th>
                 <th>Clients gérés</th>
                 <th>Devis</th>
                 <th>Factures</th>
@@ -359,6 +355,7 @@
         </div>
         <div id="clients-empty" class="table-empty" style="display:none;">Aucun résultat pour ce filtre.</div>
         <div class="table-foot" id="clients-foot"></div>
+        <p class="assumption-note">Cadence n'a pas d'intégration de paiement (pas de Stripe) : « Formule » reflète le choix solo/studio déclaré, pas un abonnement facturé en direct. « Statut » est déduit de la dernière connexion, pas d'une résiliation explicite.</p>
       </div>
 
     </div>
@@ -368,7 +365,6 @@
 <script type="module">
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
   import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
-  import { formaterNomAffichage } from './theme.js';
 
   const configured = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_ANON_KEY.includes('YOUR-ANON');
   if(!configured){
@@ -403,6 +399,36 @@
   function formatDate(d){
     if(!d) return '—';
     return new Intl.DateTimeFormat('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' }).format(new Date(d));
+  }
+  function formatDateHeure(d){
+    if(!d) return 'Jamais connecté';
+    return new Intl.DateTimeFormat('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }).format(new Date(d));
+  }
+  function formatLocalisation(ville, pays){
+    if(ville && pays) return `${ville}, ${pays}`;
+    if(pays) return pays;
+    if(ville) return ville;
+    return 'Non renseigné';
+  }
+
+  function dessinerGeo(pays, total){
+    const wrap = document.getElementById('geo-list');
+    if(!total){
+      wrap.innerHTML = '<div class="geo-row">Aucun client pour l’instant.</div>';
+      return;
+    }
+    const entrees = Object.entries(pays || {}).sort((a, b) => b[1] - a[1]);
+    const max = entrees.length ? entrees[0][1] : 1;
+    wrap.innerHTML = entrees.map(([nom, n]) => {
+      const pct = Math.round((n / total) * 100);
+      const largeur = Math.round((n / max) * 100);
+      return `
+        <div class="geo-row">
+          <span class="geo-pays">${nom}</span>
+          <span class="geo-bar-track"><span class="geo-bar-fill" style="width:${largeur}%;"></span></span>
+          <span class="geo-valeur">${n} · ${pct}%</span>
+        </div>`;
+    }).join('');
   }
 
   function dessinerDonut(metiers, total){
@@ -489,56 +515,18 @@
     }
   }
 
-  const COTISATIONS_MICRO = 0.256; // BNC — à confirmer avec l'Urssaf au moment de l'immatriculation
-  const PRIX_MOYEN_DEFAUT = 19.2; // mix 70% Solo (15€) / 30% Studio (29€), tant qu'il n'y a aucun client réel
-
-  function majObjectif(stats, objectifEur, horizonMois){
-    const mrrActuel = stats.mrr_actuel || 0;
-    const abonnesActuels = stats.total_clients || 0;
-    const prixMoyen = abonnesActuels > 0 ? (mrrActuel / abonnesActuels) : PRIX_MOYEN_DEFAUT;
-
-    // MRR brut nécessaire pour que, une fois les cotisations sociales
-    // retirées, il reste (objectif / horizon) chaque mois.
-    const mrrCible = (objectifEur / horizonMois) / (1 - COTISATIONS_MICRO);
-    const abonnesCible = Math.ceil(mrrCible / prixMoyen);
-    const ecartMrr = Math.max(0, mrrCible - mrrActuel);
-    const ecartAbonnes = Math.max(0, abonnesCible - abonnesActuels);
-    const pct = mrrCible > 0 ? Math.min(999, Math.round((mrrActuel / mrrCible) * 100)) : 0;
-
-    document.getElementById('objectif-chiffre').textContent =
-      `${formatEuros(mrrActuel)} / ${formatEuros(mrrCible)} de MRR (${pct}%)`;
-
-    const fill = document.getElementById('objectif-jauge-fill');
-    fill.style.width = Math.min(100, pct) + '%';
-    fill.className = 'jauge-fill ' + (pct >= 100 ? 'ok' : pct >= 50 ? 'attention' : 'attention');
-
-    const note = document.getElementById('objectif-note');
-    if(pct >= 100){
-      note.textContent = `Objectif tenu au rythme actuel — ${formatEuros(objectifEur)} en ${horizonMois} mois, à ce MRR.`;
-      note.className = 'capacite-note';
-    } else {
-      note.textContent = `Il manque environ ${ecartAbonnes} abonné(s) (≈ ${formatEuros(ecartMrr)} de MRR) pour tenir ${formatEuros(objectifEur)} en ${horizonMois} mois.`;
-      note.className = 'capacite-note';
-    }
-
-    document.getElementById('objectif-mrr-actuel').textContent = formatEuros(mrrActuel);
-    document.getElementById('objectif-abonnes-actuels').textContent = `${abonnesActuels} abonné(s)`;
-    document.getElementById('objectif-mrr-cible').textContent = formatEuros(mrrCible);
-    document.getElementById('objectif-abonnes-cible').textContent = `≈ ${abonnesCible} abonné(s)`;
-    document.getElementById('objectif-ecart').textContent = formatEuros(ecartMrr);
-    document.getElementById('objectif-ecart-abonnes').textContent = `≈ ${ecartAbonnes} abonné(s) manquant(s)`;
-  }
-
   let clientsCache = [];
 
   function rendreTable(){
     const recherche = document.getElementById('filtre-recherche').value.trim().toLowerCase();
     const metier = document.getElementById('filtre-metier').value;
     const plan = document.getElementById('filtre-plan').value;
+    const statut = document.getElementById('filtre-statut').value;
 
     const filtres = clientsCache.filter(c => {
       if(metier && c.metier !== metier) return false;
       if(plan && c.plan !== plan) return false;
+      if(statut && c.statut_activite !== statut) return false;
       if(recherche){
         const hay = `${c.business_name || ''} ${c.full_name || ''} ${c.email || ''}`.toLowerCase();
         if(!hay.includes(recherche)) return false;
@@ -560,12 +548,15 @@
     tbody.innerHTML = filtres.map(c => `
       <tr>
         <td class="cell-entreprise">
-          <div class="nom">${c.business_name || (c.full_name ? formaterNomAffichage(c.full_name) : '') || '(sans nom)'}</div>
+          <div class="nom">${c.business_name || c.full_name || '(sans nom)'}</div>
           <div class="email">${c.email || ''}</div>
         </td>
         <td>${METIER_LABELS[c.metier] || c.metier || '—'}</td>
         <td><span class="plan-pill ${c.plan}">${c.plan === 'studio' ? 'Studio' : 'Solo'}</span></td>
+        <td><span class="statut-pill ${c.statut_activite}">${c.statut_activite === 'actif' ? 'Actif' : 'Arrêté'}</span></td>
+        <td>${formatLocalisation(c.ville, c.pays)}</td>
         <td>${formatDate(c.created_at)}</td>
+        <td>${formatDateHeure(c.derniere_connexion)}</td>
         <td>${c.nb_clients}</td>
         <td>${c.nb_devis}</td>
         <td>${c.nb_factures}</td>
@@ -596,8 +587,12 @@
     document.getElementById('stat-solo').textContent = String(stats.total_solo);
     document.getElementById('stat-studio').textContent = String(stats.total_studio);
     document.getElementById('stat-nouveaux').textContent = String(stats.nouveaux_30j);
+    document.getElementById('stat-actifs').textContent = String(stats.actifs);
+    document.getElementById('stat-inactifs').textContent = String(stats.inactifs);
+    document.getElementById('stat-inactifs-sub').textContent = `Sans connexion depuis ${stats.seuil_inactivite_jours}+ jours`;
 
     dessinerDonut(stats.metiers || {}, stats.total_clients);
+    dessinerGeo(stats.pays || {}, stats.total_clients);
     majJauge(stats.total_clients, stats.seuil_alerte);
     majDelaiEstime(stats.total_clients, stats.seuil_alerte, stats.nouveaux_30j);
 
@@ -614,32 +609,14 @@
       setTimeout(() => { msg.textContent = ''; }, 2500);
     });
 
-    let objectifEur = stats.objectif_apport_eur || 28000;
-    let horizonMois = stats.objectif_horizon_mois || 12;
-    document.getElementById('objectif-input').value = objectifEur;
-    document.getElementById('horizon-input').value = horizonMois;
-    majObjectif(stats, objectifEur, horizonMois);
-
-    document.querySelectorAll('#objectif-card [data-preset-eur]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.getElementById('objectif-input').value = btn.dataset.presetEur;
-        document.getElementById('horizon-input').value = btn.dataset.presetMois;
-      });
-    });
-
-    document.getElementById('objectif-save').addEventListener('click', async () => {
-      const valEur = parseFloat(document.getElementById('objectif-input').value);
-      const valMois = parseInt(document.getElementById('horizon-input').value, 10);
-      const msg = document.getElementById('objectif-msg');
-      if(!valEur || valEur <= 0){ msg.textContent = 'Montant invalide.'; return; }
-      if(!valMois || valMois < 1){ msg.textContent = 'Horizon invalide.'; return; }
-      const { error } = await supabase.rpc('admin_definir_objectif', { p_objectif: valEur, p_horizon: valMois });
+    document.getElementById('inactivite-input').value = stats.seuil_inactivite_jours;
+    document.getElementById('inactivite-save').addEventListener('click', async () => {
+      const val = parseInt(document.getElementById('inactivite-input').value, 10);
+      const msg = document.getElementById('inactivite-msg');
+      if(!val || val < 1){ msg.textContent = 'Seuil invalide.'; return; }
+      const { error } = await supabase.rpc('admin_definir_seuil_inactivite', { p_jours: val });
       if(error){ msg.textContent = 'Erreur : ' + error.message; return; }
-      objectifEur = valEur;
-      horizonMois = valMois;
-      msg.textContent = 'Objectif enregistré.';
-      majObjectif(stats, objectifEur, horizonMois);
-      setTimeout(() => { msg.textContent = ''; }, 2500);
+      msg.textContent = 'Seuil enregistré — rechargez la page pour recalculer les statuts.';
     });
 
     const { data: clients } = await supabase.rpc('admin_liste_clients');
@@ -655,6 +632,7 @@
     document.getElementById('filtre-recherche').addEventListener('input', rendreTable);
     document.getElementById('filtre-metier').addEventListener('change', rendreTable);
     document.getElementById('filtre-plan').addEventListener('change', rendreTable);
+    document.getElementById('filtre-statut').addEventListener('change', rendreTable);
     rendreTable();
   })();
   }
