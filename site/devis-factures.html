@@ -183,6 +183,7 @@
   .field-row{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
   .field-row .field{ margin:0; }
   @media(max-width:420px){ .field-row{ grid-template-columns:1fr; } }
+  .hint{ font-size:12px; color:rgba(28,35,51,0.5); margin-top:6px; }
 
   .type-picker{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .type-option{
@@ -200,30 +201,31 @@
   /* ---------- Line items ---------- */
   .lines-editor{ border:1px solid rgba(28,35,51,0.12); border-radius:10px; padding:16px; background:rgba(255,255,255,0.5); }
   .lines-head{
-    display:grid; grid-template-columns:1fr 56px 84px 84px 30px; gap:8px;
+    display:grid; grid-template-columns:1fr 56px 84px 68px 90px 30px; gap:8px;
     font-size:11.5px; font-weight:600; text-transform:uppercase; letter-spacing:.04em;
     color:rgba(28,35,51,0.45); margin-bottom:10px; padding:0 2px;
   }
   @media(max-width:600px){ .lines-head{ display:none; } }
   .line-row{
-    display:grid; grid-template-columns:1fr 56px 84px 84px 30px; gap:8px; align-items:center;
+    display:grid; grid-template-columns:1fr 56px 84px 68px 90px 30px; gap:8px; align-items:center;
     margin-bottom:8px;
   }
   @media(max-width:600px){
-    .line-row{ grid-template-columns:1fr 1fr 1fr; row-gap:6px; }
-    .line-first-col{ grid-column:1 / -1; }
+    .line-row{ display:flex; flex-wrap:wrap; gap:8px; }
+    .line-first-col{ flex:1 1 100%; }
+    .line-qty, .line-price, .line-tva{ flex:1 1 68px; }
+    .line-total{ flex:1 1 68px; }
+    .line-remove{ flex:0 0 auto; margin-left:auto; }
   }
-  .line-row input{
+  .line-row input, .line-row select{
     padding:9px 10px; font-size:14px; border:1px solid rgba(28,35,51,0.18); border-radius:6px;
     background:#fff; min-height:40px; width:100%; font-family:var(--body);
   }
-  .line-row input:focus{ outline:none; border-color:var(--teal); }
+  .line-row input:focus, .line-row select:focus{ outline:none; border-color:var(--teal); }
   .line-first-col{ display:flex; flex-direction:column; gap:4px; }
-  .line-prestation{
-    padding:6px 8px; font-size:12px; border:1px solid rgba(28,35,51,0.14); border-radius:6px;
-    background:rgba(28,35,51,0.02); color:rgba(28,35,51,0.6); font-family:var(--body); width:100%;
-  }
-  .line-prestation:focus{ outline:none; border-color:var(--teal); }
+  .line-prestation{ color:var(--ink); }
+  .line-desc{ font-size:13px; }
+  .line-tva{ text-align:right; padding-right:6px; }
   .line-total{ font-family:var(--mono); font-size:13.5px; text-align:right; padding-right:4px; }
   .line-remove{
     width:30px; height:30px; border:none; background:transparent; color:var(--slate);
@@ -362,8 +364,9 @@
           <input type="date" id="date_emission" name="date_emission" required>
         </div>
         <div class="field">
-          <label for="date_echeance">Date d'échéance</label>
+          <label for="date_echeance" id="date-echeance-label">Date d'échéance</label>
           <input type="date" id="date_echeance" name="date_echeance">
+          <div class="hint" id="echeance-hint" style="display:none;"></div>
         </div>
       </div>
 
@@ -383,11 +386,12 @@
         <label>Lignes <span class="req">*</span></label>
         <div class="lines-editor">
           <div class="lines-head">
-            <span>Description</span><span>Qté</span><span>Prix unit.</span><span>Total</span><span></span>
+            <span>Description</span><span>Qté</span><span>Prix unit.</span><span>TVA</span><span>Total</span><span></span>
           </div>
           <div id="lines-list"></div>
           <button type="button" class="add-line-btn" id="add-line-btn">+ Ajouter une ligne</button>
-          <div class="lines-total">Total <span id="lines-total-value">0,00&nbsp;€</span></div>
+          <div class="lines-total">Total TTC <span id="lines-total-value">0,00&nbsp;€</span></div>
+          <div class="hint" id="lines-total-tva-hint" style="text-align:right;"></div>
         </div>
         <div class="error" id="lines-error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg><span></span></div>
       </div>
@@ -442,6 +446,10 @@
   const statutField = document.getElementById('statut-field');
   const linesList = document.getElementById('lines-list');
   const linesTotalValue = document.getElementById('lines-total-value');
+  const linesTotalTvaHint = document.getElementById('lines-total-tva-hint');
+  const dateEmissionInput = document.getElementById('date_emission');
+  const dateEcheanceInput = document.getElementById('date_echeance');
+  const echeanceHint = document.getElementById('echeance-hint');
 
   let brand = null;
   let espaceId = null;
@@ -452,6 +460,16 @@
   let prestationsById = {};
   let currentDocs = [];
   let activeFilter = 'all';
+  // Le type n'est un champ éditable qu'à la création (les boutons radio) ;
+  // en modification c'est un badge statique, d'où cette variable qui fait
+  // foi dans les deux cas pour la limite de validité des devis ci-dessous.
+  let currentDocType = 'devis';
+
+  // Taux de TVA français courants — 0 % (franchise ou taux zéro), 5,5 % et
+  // 10 % (taux réduits), 20 % (taux normal). Voir CLAUDE.md pour le contexte
+  // "assujetti_tva" : ce sélecteur reste utile même en franchise en base,
+  // au cas où Renald dépasse le seuil et doit se mettre à facturer la TVA.
+  const TAUX_TVA_COURANTS = [0, 5.5, 10, 20];
 
   const statutLabels = {
     brouillon:'Brouillon', envoye:'Envoyé', accepte:'Accepté',
@@ -506,6 +524,7 @@
   // actives sont proposées ici : une prestation désactivée reste éditable
   // dans les anciens devis/factures, mais ne doit plus être choisie pour en
   // créer un nouveau.
+  const OPTION_SAISIE_LIBRE = '__manuel__';
   let prestationsOptionsHtml = '<option value="">Choisir une prestation…</option>';
   async function chargerPrestations(){
     const { data, error } = await supabase.from('prestations')
@@ -515,7 +534,8 @@
     if(error || !data) return;
     prestationsById = Object.fromEntries(data.map(p => [p.id, p]));
     prestationsOptionsHtml = '<option value="">Choisir une prestation…</option>' +
-      data.map(p => `<option value="${p.id}">${escapeHtml(p.libelle)} — ${formatMoney(p.prix_unitaire)}</option>`).join('');
+      data.map(p => `<option value="${p.id}">${escapeHtml(p.libelle)} — ${formatMoney(p.prix_unitaire)}</option>`).join('') +
+      `<option value="${OPTION_SAISIE_LIBRE}">Saisie libre…</option>`;
     // Les lignes déjà à l'écran (cas d'une ouverture de modale avant la fin
     // du chargement) reçoivent la liste à jour sans perdre leur sélection.
     linesList.querySelectorAll('.line-prestation').forEach(sel=>{
@@ -525,46 +545,78 @@
     });
   }
 
+  // Un menu qui ne propose pas le taux réellement stocké (ex. une prestation
+  // à un taux inhabituel) l'ajoute dynamiquement, pour ne jamais afficher un
+  // taux silencieusement différent de celui qui sera enregistré.
+  function optionsTvaHtml(tauxActuel){
+    const taux = Number(tauxActuel) || 0;
+    const valeurs = TAUX_TVA_COURANTS.includes(taux) ? TAUX_TVA_COURANTS : [...TAUX_TVA_COURANTS, taux].sort((a,b)=>a-b);
+    return valeurs.map(t => `<option value="${t}">${String(t).replace('.', ',')} %</option>`).join('');
+  }
+
   function recalcLinesTotal(){
-    let total = 0;
+    let totalHT = 0, totalTVA = 0;
     linesList.querySelectorAll('.line-row').forEach(row=>{
       const qty = parseFloat(row.querySelector('.line-qty').value) || 0;
       const price = parseFloat(row.querySelector('.line-price').value) || 0;
-      const lineTotal = qty * price;
-      row.querySelector('.line-total').textContent = formatMoney(lineTotal);
-      total += lineTotal;
+      const taux = parseFloat(row.querySelector('.line-tva').value) || 0;
+      const ht = qty * price;
+      const tva = ht * taux / 100;
+      row.querySelector('.line-total').textContent = formatMoney(ht + tva);
+      totalHT += ht;
+      totalTVA += tva;
     });
-    linesTotalValue.textContent = formatMoney(total);
-    return total;
+    linesTotalValue.textContent = formatMoney(totalHT + totalTVA);
+    linesTotalTvaHint.textContent = totalTVA > 0
+      ? `dont TVA : ${formatMoney(totalTVA)} (total HT : ${formatMoney(totalHT)})`
+      : '';
+    return totalHT + totalTVA;
   }
 
   function addLineRow(line){
     const row = document.createElement('div');
     row.className = 'line-row';
-    if(line?.tva_taux != null) row.dataset.tvaTaux = line.tva_taux;
+    const description = line?.description || '';
+    // Une ligne déjà enregistrée dont le libellé correspond exactement à une
+    // prestation active du catalogue s'affiche elle aussi comme une simple
+    // sélection, plutôt que de retomber en saisie libre à chaque édition.
+    const prestationCorrespondante = Object.values(prestationsById).find(p => p.libelle === description);
+    const valeurSelect = prestationCorrespondante ? prestationCorrespondante.id : (description ? OPTION_SAISIE_LIBRE : '');
+    const afficherDesc = valeurSelect === OPTION_SAISIE_LIBRE;
     row.innerHTML = `
       <div class="line-first-col">
         <select class="line-prestation">${prestationsOptionsHtml}</select>
-        <input type="text" class="line-desc" placeholder="Description" value="${escapeHtml(line?.description || '')}">
+        <input type="text" class="line-desc" placeholder="Description" value="${escapeHtml(description)}" style="display:${afficherDesc ? 'block' : 'none'};">
       </div>
       <input type="number" class="line-qty" min="0" step="1" value="${line?.quantite ?? 1}">
       <input type="number" class="line-price" min="0" step="0.01" value="${line?.prix_unitaire ?? 0}">
-      <span class="line-total">${formatMoney((line?.quantite ?? 1) * (line?.prix_unitaire ?? 0))}</span>
+      <select class="line-tva">${optionsTvaHtml(line?.tva_taux)}</select>
+      <span class="line-total">${formatMoney(0)}</span>
       <button type="button" class="line-remove" aria-label="Supprimer la ligne">×</button>
     `;
+    row.querySelector('.line-prestation').value = valeurSelect;
+    row.querySelector('.line-tva').value = Number(line?.tva_taux) || 0;
     row.querySelector('.line-prestation').addEventListener('change', (e)=>{
-      const prestation = prestationsById[e.target.value];
-      if(!prestation) return;
-      row.querySelector('.line-desc').value = prestation.libelle;
+      const val = e.target.value;
+      const descInput = row.querySelector('.line-desc');
+      if(val === OPTION_SAISIE_LIBRE){
+        descInput.style.display = 'block';
+        descInput.focus();
+        return;
+      }
+      descInput.style.display = 'none';
+      const prestation = prestationsById[val];
+      if(!prestation) return; // menu remis sur "Choisir une prestation…" : rien à préremplir
+      descInput.value = prestation.libelle;
       row.querySelector('.line-price').value = prestation.prix_unitaire;
-      row.dataset.tvaTaux = prestation.tva_taux;
+      const tvaSelect = row.querySelector('.line-tva');
+      tvaSelect.innerHTML = optionsTvaHtml(prestation.tva_taux);
+      tvaSelect.value = Number(prestation.tva_taux) || 0;
       recalcLinesTotal();
-      // Repart de zéro pour la prochaine sélection : la ligne reste ensuite
-      // librement modifiable sans que le menu ne prétende encore la piloter.
-      e.target.value = '';
     });
     row.querySelector('.line-qty').addEventListener('input', recalcLinesTotal);
     row.querySelector('.line-price').addEventListener('input', recalcLinesTotal);
+    row.querySelector('.line-tva').addEventListener('change', recalcLinesTotal);
     row.querySelector('.line-remove').addEventListener('click', ()=>{
       if(linesList.children.length > 1){
         row.remove();
@@ -576,11 +628,49 @@
 
   document.getElementById('add-line-btn').addEventListener('click', ()=>{
     addLineRow(null);
+    recalcLinesTotal();
   });
 
   function todayISO(){
     return new Date().toISOString().slice(0,10);
   }
+
+  // Un devis n'engage l'émetteur que sur une durée limitée — au-delà, les prix
+  // annoncés ne sont plus garantis. On plafonne donc sa date d'échéance à 1
+  // mois après l'émission (une facture, elle, n'a pas cette limite : son
+  // échéance est une date de paiement, pas une durée de validité).
+  function ajouterMoisISO(dateStr, mois){
+    if(!dateStr) return '';
+    const d = new Date(dateStr + 'T12:00:00');
+    d.setMonth(d.getMonth() + mois);
+    return d.toISOString().slice(0,10);
+  }
+
+  // forcerDefaut=false en ouverture d'un devis existant : on affiche la limite
+  // et l'astuce sans réécrire une échéance déjà enregistrée (même si elle a
+  // été posée avant l'existence de cette règle) juste parce qu'on l'ouvre.
+  function appliquerLimiteEcheance({ forcerDefaut = true } = {}){
+    if(currentDocType === 'devis'){
+      const limite = ajouterMoisISO(dateEmissionInput.value || todayISO(), 1);
+      dateEcheanceInput.max = limite;
+      echeanceHint.textContent = 'Un devis reste valable 1 mois maximum.';
+      echeanceHint.style.display = 'block';
+      if(forcerDefaut && (!dateEcheanceInput.value || dateEcheanceInput.value > limite)){
+        dateEcheanceInput.value = limite;
+      }
+    } else {
+      dateEcheanceInput.removeAttribute('max');
+      echeanceHint.style.display = 'none';
+    }
+  }
+
+  document.querySelectorAll('input[name="type"]').forEach(radio=>{
+    radio.addEventListener('change', (e)=>{
+      currentDocType = e.target.value;
+      appliquerLimiteEcheance();
+    });
+  });
+  dateEmissionInput.addEventListener('change', appliquerLimiteEcheance);
 
   function openModal(doc){
     form.reset();
@@ -590,6 +680,7 @@
     if(doc){
       modalTitle.textContent = `Modifier — ${doc.numero || (doc.type === 'devis' ? 'Devis' : 'Facture')}`;
       document.getElementById('doc-id').value = doc.id;
+      currentDocType = doc.type;
       typePickerField.style.display = 'none';
       typeStaticField.style.display = 'block';
       typeStaticLabel.textContent = doc.type === 'devis' ? 'Devis' : 'Facture';
@@ -605,15 +696,18 @@
       } else {
         addLineRow(null);
       }
+      appliquerLimiteEcheance({ forcerDefaut: false });
     } else {
       modalTitle.textContent = 'Nouveau document';
       document.getElementById('doc-id').value = '';
+      currentDocType = 'devis';
       typePickerField.style.display = 'block';
       typeStaticField.style.display = 'none';
       statutField.style.display = 'none';
       document.querySelector('input[name="type"][value="devis"]').checked = true;
       document.getElementById('date_emission').value = todayISO();
       addLineRow(null);
+      appliquerLimiteEcheance();
     }
     recalcLinesTotal();
     overlay.classList.add('show');
@@ -827,6 +921,10 @@
       description: l.description,
       quantite: l.quantite,
       prix_unitaire: l.prix_unitaire,
+      // Oubliée jusqu'ici : sans elle, une facture issue d'un devis avec TVA
+      // repartait à 0 % et ne facturait plus la taxe pourtant bien affichée
+      // et acceptée sur le devis d'origine.
+      tva_taux: l.tva_taux ?? 0,
       position: i
     }));
     if(lines.length){
@@ -910,7 +1008,7 @@
       description: row.querySelector('.line-desc').value.trim(),
       quantite: parseFloat(row.querySelector('.line-qty').value) || 0,
       prix_unitaire: parseFloat(row.querySelector('.line-price').value) || 0,
-      tva_taux: row.dataset.tvaTaux ? parseFloat(row.dataset.tvaTaux) : 0,
+      tva_taux: parseFloat(row.querySelector('.line-tva').value) || 0,
       position: i
     })).filter(l => l.description);
 
@@ -919,12 +1017,21 @@
       hasError = true;
     }
 
-    if(hasError) return;
-
     const id = document.getElementById('doc-id').value;
     const dateEmission = document.getElementById('date_emission').value || todayISO();
     const dateEcheance = document.getElementById('date_echeance').value || null;
     const notes = document.getElementById('notes').value.trim() || null;
+
+    // Un devis n'est engageant qu'un mois — même filet de sécurité que le
+    // plafond posé sur le champ (utile si la date d'émission a changé sans
+    // repasser par appliquerLimiteEcheance, ou sur un navigateur qui n'impose
+    // pas le "max" d'un <input type="date">).
+    if(currentDocType === 'devis' && dateEcheance && dateEcheance > ajouterMoisISO(dateEmission, 1)){
+      showToast("Un devis ne peut pas être valable plus d'un mois.");
+      hasError = true;
+    }
+
+    if(hasError) return;
 
     const saveBtn = document.getElementById('save-btn');
     saveBtn.disabled = true;
