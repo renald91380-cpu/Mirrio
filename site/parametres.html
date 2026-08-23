@@ -559,6 +559,7 @@
                 <div class="ui-preview" id="ui-preview"></div>
               </div>
             </div>
+            <p class="hint" style="margin-top:10px;">Cette couleur est aussi celle que voient vos clients sur vos devis/factures et sur votre page de réservation en ligne, avec votre logo (réglé dans l'onglet Entreprise).</p>
           </div>
         </div>
       </div>
@@ -863,6 +864,14 @@
           <h2>Réservation en ligne</h2>
           <p class="card-sub">Laissez vos futurs clients réserver un créneau depuis votre propre site (widget à intégrer) ou depuis un simple lien que vous partagez. Chaque demande arrive dans votre agenda « en attente » — vous décidez ensuite de la confirmer ou de la refuser, jamais de fiche client créée automatiquement.</p>
 
+          <div class="note-box" style="margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;">
+            <span>Le logo et la couleur affichés sur cette page vue par vos prospects reprennent automatiquement ceux réglés dans <strong>Entreprise</strong> et <strong>Apparence</strong> — rien à configurer ici.</span>
+            <span style="display:flex; gap:8px; flex-shrink:0;">
+              <button class="btn btn-outline btn-sm" type="button" id="resa-vers-entreprise">Logo</button>
+              <button class="btn btn-outline btn-sm" type="button" id="resa-vers-apparence">Couleur</button>
+            </span>
+          </div>
+
           <div class="field" style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
             <input type="checkbox" id="resa-activee" data-bind="reservation.activee" style="width:20px; height:20px;">
             <label for="resa-activee" style="margin:0;">Activer la réservation en ligne</label>
@@ -1088,6 +1097,8 @@
     if(cle === 'apparence') rendreApercuUI();
   }
   tabs.forEach(t => t.addEventListener('click', ()=> activerOnglet(t.dataset.tab)));
+  document.getElementById('resa-vers-entreprise').addEventListener('click', ()=> activerOnglet('entreprise', true));
+  document.getElementById('resa-vers-apparence').addEventListener('click', ()=> activerOnglet('apparence', true));
   document.querySelector('.tabs').addEventListener('keydown', (e)=>{
     const i = tabs.findIndex(t => t.getAttribute('aria-selected') === 'true');
     if(e.key === 'ArrowRight'){ e.preventDefault(); activerOnglet(tabs[(i+1) % tabs.length].dataset.tab, true); }
