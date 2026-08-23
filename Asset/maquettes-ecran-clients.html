@@ -1,0 +1,701 @@
+<title>Quatre visages de Cadence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* =====================================================================
+     Chrome de page (respecte le thème du visiteur — clair/sombre/système).
+     Les TROIS maquettes ci-dessous sont des aperçus figés d'une interface
+     hypothétique : leurs propres couleurs sont fixes par conception (on
+     compare des identités visuelles, pas des rendus qui s'adaptent).
+     ===================================================================== */
+  :root{
+    --page-bg:#F7F5F0;
+    --page-ink:#1B1D22;
+    --page-muted:#6B6E76;
+    --page-line:rgba(27,29,34,0.1);
+    --page-card:#FFFFFF;
+    --page-accent:#5B4FE8;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --page-bg:#14151A;
+      --page-ink:#EDEDF0;
+      --page-muted:#9A9CA6;
+      --page-line:rgba(237,237,240,0.12);
+      --page-card:#1D1F26;
+      --page-accent:#8A80FF;
+    }
+  }
+  :root[data-theme="dark"]{
+    --page-bg:#14151A;
+    --page-ink:#EDEDF0;
+    --page-muted:#9A9CA6;
+    --page-line:rgba(237,237,240,0.12);
+    --page-card:#1D1F26;
+    --page-accent:#8A80FF;
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; background:var(--page-bg); color:var(--page-ink);
+    font-family:'Inter', Arial, sans-serif; line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  img,svg{ display:block; }
+
+  .shell{ max-width:1180px; margin:0 auto; padding:56px 24px 90px; }
+
+  .intro{ max-width:680px; margin-bottom:36px; }
+  .eyebrow{
+    font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--page-accent); margin-bottom:14px;
+  }
+  h1{
+    font-family:'Fraunces', Georgia, serif; font-weight:600; font-size:clamp(30px,4vw,42px);
+    line-height:1.1; margin:0 0 14px; text-wrap:balance;
+  }
+  .intro p{ color:var(--page-muted); font-size:15.5px; margin:0 0 10px; max-width:60ch; }
+
+  /* ---------- Sélecteur de concept ---------- */
+  .switcher{
+    display:flex; gap:8px; padding:6px; background:var(--page-card);
+    border:1px solid var(--page-line); border-radius:12px; margin-bottom:18px;
+    width:fit-content; max-width:100%; overflow-x:auto;
+  }
+  .switcher button{
+    font-family:inherit; font-size:14px; font-weight:600; color:var(--page-muted);
+    background:transparent; border:none; border-radius:8px; padding:10px 18px;
+    cursor:pointer; white-space:nowrap; transition:background .15s ease, color .15s ease;
+  }
+  .switcher button:hover{ color:var(--page-ink); }
+  .switcher button[aria-selected="true"]{ background:var(--page-accent); color:#fff; }
+  .switcher button:focus-visible{ outline:2px solid var(--page-accent); outline-offset:2px; }
+
+  .concept-note{
+    font-size:14px; color:var(--page-muted); margin-bottom:34px; max-width:64ch; min-height:22px;
+  }
+  .concept-note strong{ color:var(--page-ink); }
+
+  /* ---------- Cadre "navigateur" autour de chaque maquette ---------- */
+  .stage{ position:relative; }
+  .frame{
+    border-radius:16px; overflow:hidden; box-shadow:0 30px 70px -30px rgba(20,20,30,0.35);
+    border:1px solid var(--page-line);
+  }
+  .frame[hidden]{ display:none; }
+  .chrome-bar{
+    display:flex; align-items:center; gap:14px; padding:13px 18px;
+    background:#E7E4DC; border-bottom:1px solid rgba(0,0,0,0.06);
+  }
+  .chrome-dots{ display:flex; gap:7px; flex-shrink:0; }
+  .chrome-dots span{ width:11px; height:11px; border-radius:50%; }
+  .chrome-dots span:nth-child(1){ background:#EC6A5E; }
+  .chrome-dots span:nth-child(2){ background:#F4BF4F; }
+  .chrome-dots span:nth-child(3){ background:#61C454; }
+  .chrome-url{
+    flex:1; text-align:center; font-family:'IBM Plex Mono', monospace; font-size:12.5px;
+    color:#6B6A63; background:#FCFBF8; border-radius:6px; padding:6px 14px; max-width:280px;
+    margin:0 auto;
+  }
+
+  .app-frame{ min-height:640px; }
+
+  footer.credits{
+    margin-top:38px; font-size:13px; color:var(--page-muted); max-width:64ch;
+  }
+  footer.credits a{ color:var(--page-accent); }
+
+  @media (prefers-reduced-motion: no-preference){
+    .frame{ transition:opacity .18s ease; }
+  }
+
+  /* =====================================================================
+     THÈME A — « Atelier »  (identité Cadence existante : parchemin, Fraunces,
+     ambre — nav horizontale comme le vrai clients.html aujourd'hui)
+     ===================================================================== */
+  .atelier{
+    --a-parchment:#F5F1E7; --a-ink:#1C2333; --a-slate:#8B8F98;
+    --a-amber:#E2A63D; --a-teal:#3E7C74; --a-brick:#B5533F; --a-card:#FFFFFF;
+    background:var(--a-parchment); color:var(--a-ink);
+    font-family:'Inter', Arial, sans-serif;
+  }
+  .atelier .a-header{
+    background:var(--a-ink); color:var(--a-parchment); padding:15px 28px;
+    display:flex; align-items:center; justify-content:space-between; gap:20px;
+  }
+  .atelier .a-logo{ font-family:'Fraunces', serif; font-weight:700; font-size:18px; }
+  .atelier .a-logo span{ color:var(--a-amber); }
+  .atelier .a-nav{ display:flex; gap:22px; font-size:13.5px; font-weight:500; }
+  .atelier .a-nav a{ color:rgba(245,241,231,0.62); text-decoration:none; padding:4px 0; border-bottom:2px solid transparent; }
+  .atelier .a-nav a.on{ color:#fff; border-color:var(--a-amber); }
+  .atelier .a-user{ width:30px; height:30px; border-radius:50%; background:var(--a-teal); color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+
+  .atelier .a-body{ padding:34px 32px 44px; position:relative; }
+  .atelier .a-greet{ font-family:'Fraunces', serif; font-weight:600; font-size:25px; margin:0 0 22px; }
+
+  .atelier .a-stat{
+    position:absolute; top:30px; right:32px; background:var(--a-ink); color:var(--a-parchment);
+    border-radius:14px; padding:16px 20px; width:172px; box-shadow:0 16px 30px -14px rgba(28,35,51,0.4);
+  }
+  .atelier .a-stat b{ font-family:'Fraunces', serif; font-size:26px; display:block; margin-bottom:2px; }
+  .atelier .a-stat span{ font-size:12px; color:rgba(245,241,231,0.65); }
+
+  .atelier .a-table-card{ background:var(--a-card); border:1px solid rgba(28,35,51,0.08); border-radius:14px; overflow:hidden; max-width:calc(100% - 200px); }
+  .atelier table{ width:100%; border-collapse:collapse; font-size:13.5px; }
+  .atelier th{ text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--a-slate); padding:12px 16px; border-bottom:1px solid rgba(28,35,51,0.08); }
+  .atelier td{ padding:13px 16px; border-bottom:1px solid rgba(28,35,51,0.05); vertical-align:middle; }
+  .atelier tr:last-child td{ border-bottom:none; }
+  .atelier .a-nom{ display:flex; align-items:center; gap:10px; font-weight:600; }
+  .atelier .a-avatar{ width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#fff; flex-shrink:0; }
+  .atelier .a-mono{ font-family:'IBM Plex Mono', monospace; font-size:12.5px; color:#4a4f5c; }
+  .atelier .a-pill{ font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:20px; letter-spacing:.02em; }
+  .atelier .a-pill.venir{ background:rgba(62,124,116,0.14); color:var(--a-teal); }
+  .atelier .a-pill.aucun{ background:rgba(139,143,152,0.14); color:var(--a-slate); }
+
+  .atelier .a-chat{
+    position:absolute; bottom:26px; right:32px; display:flex; flex-direction:column; align-items:flex-end; gap:12px;
+  }
+  .atelier .a-chat-bubble{
+    background:var(--a-card); border:1px solid rgba(28,35,51,0.08); border-radius:14px 14px 2px 14px;
+    padding:14px 16px; font-size:13px; max-width:220px; box-shadow:0 14px 26px -14px rgba(28,35,51,0.25);
+  }
+  .atelier .a-chat-fab{
+    width:50px; height:50px; border-radius:50%; background:var(--a-teal); color:#fff;
+    display:flex; align-items:center; justify-content:center; box-shadow:0 10px 20px -8px rgba(62,124,116,0.55);
+  }
+
+  /* =====================================================================
+     THÈME B — « Nocturne »  (sidebar sombre, violet — même famille visuelle
+     que l'inspiration, exécutée avec une identité Cadence propre)
+     ===================================================================== */
+  .nocturne{
+    --n-sidebar:#12131B; --n-bg:#F2F1F8; --n-ink:#181A24; --n-muted:#6E7188;
+    --n-violet:#5B4FE8; --n-violet-soft:#E9E7FC; --n-card:#FFFFFF;
+    background:var(--n-bg); color:var(--n-ink); font-family:'Inter', Arial, sans-serif;
+    display:flex; min-height:640px;
+  }
+  .nocturne .n-sidebar{
+    width:76px; background:var(--n-sidebar); display:flex; flex-direction:column;
+    align-items:center; padding:22px 0; gap:8px; flex-shrink:0;
+  }
+  .nocturne .n-logo{ width:34px; height:34px; border-radius:9px; background:var(--n-violet); color:#fff; display:flex; align-items:center; justify-content:center; font-family:'Manrope',sans-serif; font-weight:800; font-size:15px; margin-bottom:26px; }
+  .nocturne .n-icon{
+    width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center;
+    color:rgba(237,237,245,0.45); cursor:pointer;
+  }
+  .nocturne .n-icon.on{ background:var(--n-violet); color:#fff; }
+  .nocturne .n-icon svg{ width:19px; height:19px; }
+  .nocturne .n-spacer{ flex:1; }
+
+  .nocturne .n-main{ flex:1; padding:30px 34px 40px; position:relative; min-width:0; }
+  .nocturne .n-topbar{ display:flex; align-items:center; justify-content:space-between; margin-bottom:26px; gap:16px; }
+  .nocturne .n-greet{ font-family:'Manrope', sans-serif; font-weight:800; font-size:23px; letter-spacing:-.01em; }
+  .nocturne .n-search{
+    font-family:inherit; font-size:13.5px; border:1px solid rgba(24,26,36,0.1); background:#fff;
+    border-radius:9px; padding:9px 14px; width:220px; color:var(--n-ink);
+  }
+  .nocturne .n-search::placeholder{ color:var(--n-muted); }
+
+  .nocturne .n-stat{
+    position:absolute; top:28px; right:34px; background:var(--n-violet); color:#fff;
+    border-radius:16px; padding:16px 20px; width:168px; box-shadow:0 18px 34px -14px rgba(91,79,232,0.55);
+  }
+  .nocturne .n-stat b{ font-family:'Manrope',sans-serif; font-size:27px; font-weight:800; display:block; }
+  .nocturne .n-stat span{ font-size:11.5px; color:rgba(255,255,255,0.75); }
+  .nocturne .n-avatars{ display:flex; margin-top:10px; }
+  .nocturne .n-avatars div{ width:22px; height:22px; border-radius:50%; border:2px solid var(--n-violet); margin-left:-7px; font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center; color:#fff; }
+  .nocturne .n-avatars div:first-child{ margin-left:0; }
+
+  .nocturne .n-table-card{ background:var(--n-card); border-radius:16px; padding:6px; margin-top:60px; box-shadow:0 1px 0 rgba(24,26,36,0.04); max-width:calc(100% - 190px); }
+  .nocturne table{ width:100%; border-collapse:collapse; font-size:13.5px; }
+  .nocturne th{ text-align:left; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--n-muted); padding:13px 16px 10px; }
+  .nocturne td{ padding:12px 16px; border-top:1px solid rgba(24,26,36,0.05); }
+  .nocturne .n-nom{ display:flex; align-items:center; gap:10px; font-weight:700; }
+  .nocturne .n-avatar{ width:30px; height:30px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; color:#fff; flex-shrink:0; }
+  .nocturne .n-mono{ font-family:'IBM Plex Mono', monospace; font-size:12.5px; color:#4b4e60; }
+  .nocturne .n-pill{ font-size:10.5px; font-weight:700; padding:3px 10px; border-radius:20px; }
+  .nocturne .n-pill.venir{ background:var(--n-violet-soft); color:var(--n-violet); }
+  .nocturne .n-pill.aucun{ background:rgba(110,113,136,0.12); color:var(--n-muted); }
+
+  .nocturne .n-chat{
+    position:absolute; bottom:30px; right:34px; display:flex; flex-direction:column; align-items:flex-end; gap:12px;
+  }
+  .nocturne .n-chat-bubble{
+    background:var(--n-card); border-radius:16px 16px 2px 16px; padding:14px 16px; font-size:13px;
+    max-width:210px; box-shadow:0 16px 30px -14px rgba(24,26,36,0.25);
+  }
+  .nocturne .n-chat-fab{
+    width:52px; height:52px; border-radius:50%; background:var(--n-violet); color:#fff; position:relative;
+    display:flex; align-items:center; justify-content:center; box-shadow:0 12px 22px -8px rgba(91,79,232,0.6);
+  }
+  .nocturne .n-chat-badge{
+    position:absolute; top:-4px; right:-4px; background:#FF5C7A; color:#fff; font-size:10px; font-weight:800;
+    width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    border:2px solid var(--n-bg);
+  }
+
+  /* =====================================================================
+     THÈME C — « Clair »  (minimal, un seul accent, aucune barre latérale)
+     ===================================================================== */
+  .clair{
+    --c-bg:#FBFAF7; --c-ink:#22262E; --c-muted:#8B8677; --c-line:#E8E4DB; --c-accent:#2F5D50; --c-accent-soft:#E4ECE9;
+    background:var(--c-bg); color:var(--c-ink); font-family:'Inter', Arial, sans-serif;
+  }
+  .clair .c-tabbar{
+    display:flex; align-items:center; justify-content:space-between; padding:0 32px;
+    border-bottom:1px solid var(--c-line);
+  }
+  .clair .c-tabs{ display:flex; gap:28px; }
+  .clair .c-tabs a{
+    display:inline-block; padding:18px 0; font-size:13.5px; font-weight:600; color:var(--c-muted);
+    text-decoration:none; border-bottom:2px solid transparent; margin-bottom:-1px;
+  }
+  .clair .c-tabs a.on{ color:var(--c-ink); border-color:var(--c-accent); }
+  .clair .c-user{ font-size:12.5px; color:var(--c-muted); font-weight:600; padding:18px 0; }
+
+  .clair .c-body{ padding:32px; position:relative; }
+  .clair .c-greetrow{ display:flex; align-items:baseline; gap:14px; margin-bottom:26px; flex-wrap:wrap; }
+  .clair .c-greet{ font-weight:700; font-size:21px; letter-spacing:-.01em; }
+  .clair .c-inlinestat{ font-size:13px; color:var(--c-muted); }
+  .clair .c-inlinestat b{ color:var(--c-accent); font-variant-numeric:tabular-nums; }
+
+  .clair table{ width:100%; border-collapse:collapse; font-size:13.5px; }
+  .clair th{ text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--c-muted); padding:0 14px 10px; border-bottom:1px solid var(--c-line); }
+  .clair td{ padding:14px; border-bottom:1px solid var(--c-line); }
+  .clair tr:last-child td{ border-bottom:none; }
+  .clair .c-nom{ font-weight:600; }
+  .clair .c-mono{ font-variant-numeric:tabular-nums; color:#57534A; }
+  .clair .c-pill{ font-size:10.5px; font-weight:700; padding:2px 0; }
+  .clair .c-pill.venir{ color:var(--c-accent); }
+  .clair .c-pill.aucun{ color:var(--c-muted); }
+  .clair .c-pill::before{ content:'●'; font-size:7px; margin-right:6px; vertical-align:middle; }
+
+  .clair .c-chat{
+    position:absolute; bottom:26px; right:32px; display:flex; align-items:center; gap:10px;
+    background:#fff; border:1px solid var(--c-line); border-radius:24px; padding:9px 16px 9px 9px;
+    font-size:12.5px; color:var(--c-muted); box-shadow:0 10px 22px -14px rgba(34,38,46,0.2);
+  }
+  .clair .c-chat span.dot{ width:9px; height:9px; border-radius:50%; background:var(--c-accent); flex-shrink:0; }
+
+  /* =====================================================================
+     THÈME D — « Repère »  (l'identité Cadence réelle, réorganisée en menu
+     latéral standard — sidebar claire à libellés texte, rangée de cartes
+     KPI plutôt que les éléments flottants des trois autres. Le choix le
+     plus « SaaS classique », sans rien inventer côté couleurs.)
+     ===================================================================== */
+  .repere{
+    --r-parchment:#F5F1E7; --r-ink:#1C2333; --r-slate:#8B8F98;
+    --r-amber:#E2A63D; --r-teal:#3E7C74; --r-brick:#B5533F; --r-card:#FFFFFF;
+    --r-line:rgba(28,35,51,0.09);
+    display:flex; min-height:640px; background:var(--r-parchment); color:var(--r-ink);
+    font-family:'Inter', Arial, sans-serif;
+  }
+  .repere .r-sidebar{
+    width:224px; flex-shrink:0; background:#fff; border-right:1px solid var(--r-line);
+    display:flex; flex-direction:column; padding:20px 14px;
+  }
+  .repere .r-logo{ font-family:'Fraunces', serif; font-weight:700; font-size:17px; padding:5px 10px 24px; }
+  .repere .r-logo span{ color:var(--r-amber); }
+  .repere .r-nav{ display:flex; flex-direction:column; gap:2px; }
+  .repere .r-nav a{
+    display:flex; align-items:center; gap:11px; padding:9px 12px; border-radius:8px;
+    font-size:13.5px; font-weight:600; color:var(--r-slate); text-decoration:none;
+  }
+  .repere .r-nav a svg{ width:17px; height:17px; flex-shrink:0; stroke:currentColor; }
+  .repere .r-nav a.on{ background:rgba(226,166,61,0.16); color:var(--r-ink); }
+  .repere .r-spacer{ flex:1; }
+  .repere .r-user{
+    display:flex; align-items:center; gap:10px; padding:12px 12px 6px; border-top:1px solid var(--r-line); margin-top:8px;
+  }
+  .repere .r-avatar{
+    width:30px; height:30px; border-radius:50%; background:var(--r-teal); color:#fff;
+    font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .repere .r-user .name{ font-size:12.5px; font-weight:700; line-height:1.3; }
+  .repere .r-user .role{ font-size:11px; color:var(--r-slate); }
+
+  .repere .r-main{ flex:1; min-width:0; padding:26px 32px 40px; }
+  .repere .r-topbar{ display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:22px; }
+  .repere .r-title{ font-family:'Fraunces', serif; font-weight:700; font-size:22px; }
+  .repere .r-actions{ display:flex; align-items:center; gap:10px; }
+  .repere .r-search{
+    font-family:inherit; font-size:13px; border:1px solid var(--r-line); background:#fff;
+    border-radius:8px; padding:8px 12px; width:190px; color:var(--r-ink);
+  }
+  .repere .r-search::placeholder{ color:var(--r-slate); }
+  .repere .r-btn{
+    font-family:inherit; font-weight:600; font-size:13px; background:var(--r-teal); color:#fff;
+    border:none; border-radius:8px; padding:9px 16px; cursor:pointer;
+  }
+
+  .repere .r-stats{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:22px; }
+  .repere .r-stat-card{ background:var(--r-card); border:1px solid var(--r-line); border-radius:11px; padding:15px 17px; }
+  .repere .r-stat-card b{ font-family:'Fraunces', serif; font-size:23px; display:block; margin-bottom:2px; }
+  .repere .r-stat-card span{ font-size:11.5px; color:var(--r-slate); }
+
+  .repere .r-table-card{ background:var(--r-card); border:1px solid var(--r-line); border-radius:12px; overflow:hidden; }
+  .repere table{ width:100%; border-collapse:collapse; font-size:13.5px; }
+  .repere th{ text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--r-slate); padding:12px 16px; border-bottom:1px solid var(--r-line); }
+  .repere td{ padding:13px 16px; border-bottom:1px solid rgba(28,35,51,0.05); vertical-align:middle; }
+  .repere tr:last-child td{ border-bottom:none; }
+  .repere .r-nom{ display:flex; align-items:center; gap:10px; font-weight:600; }
+  .repere .r-cell-avatar{ width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:700; color:#fff; flex-shrink:0; }
+  .repere .r-mono{ font-family:'IBM Plex Mono', monospace; font-size:12.5px; color:#4a4f5c; }
+  .repere .r-pill{ font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:20px; letter-spacing:.02em; }
+  .repere .r-pill.venir{ background:rgba(62,124,116,0.14); color:var(--r-teal); }
+  .repere .r-pill.aucun{ background:rgba(139,143,152,0.14); color:var(--r-slate); }
+</style>
+
+<div class="shell">
+  <div class="intro">
+    <div class="eyebrow">Exploration visuelle — écran Clients</div>
+    <h1>Quatre visages pour la même interface</h1>
+    <p>Même contenu, même table de clients — quatre identités visuelles différentes. Les trois premières s'inspirent du repère que vous avez partagé (barre latérale sombre, carte flottante, bulle d'assistance) sans le recopier ; la quatrième, <strong>Repère</strong>, reprend l'identité Cadence actuelle mais avec un menu latéral au lieu d'une nav en haut — la disposition la plus classique des quatre. Choisissez une direction et je l'implémente pour de vrai dans l'écran Clients.</p>
+  </div>
+
+  <div class="switcher" role="tablist" aria-label="Choisir un concept">
+    <button type="button" role="tab" aria-selected="true" data-target="atelier">Atelier</button>
+    <button type="button" role="tab" aria-selected="false" data-target="nocturne">Nocturne</button>
+    <button type="button" role="tab" aria-selected="false" data-target="clair">Clair</button>
+    <button type="button" role="tab" aria-selected="false" data-target="repere">Repère</button>
+  </div>
+  <p class="concept-note" id="concept-note"></p>
+
+  <div class="stage">
+
+    <!-- ============================= ATELIER ============================= -->
+    <div class="frame app-frame" data-frame="atelier">
+      <div class="chrome-bar">
+        <div class="chrome-dots"><span></span><span></span><span></span></div>
+        <div class="chrome-url">cadence.app/clients</div>
+      </div>
+      <div class="atelier">
+        <header class="a-header">
+          <span class="a-logo">Cadence<span>.</span></span>
+          <nav class="a-nav">
+            <a>Tableau de bord</a>
+            <a class="on">Clients</a>
+            <a>Agenda</a>
+            <a>Devis &amp; factures</a>
+            <a>Paramètres</a>
+          </nav>
+          <span class="a-user">CM</span>
+        </header>
+        <div class="a-body">
+          <div class="a-stat">
+            <b>8</b>
+            <span>nouveaux clients ce mois-ci</span>
+          </div>
+          <h2 class="a-greet">Bonjour Camille 👋</h2>
+          <div class="a-table-card">
+            <table>
+              <thead><tr><th>Client</th><th>Téléphone</th><th>E-mail</th><th>Prochain RDV</th><th>Séances</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><div class="a-nom"><span class="a-avatar" style="background:#E2A63D;">SM</span>Sophie Marchand</div></td>
+                  <td class="a-mono">06 12 34 56 78</td>
+                  <td class="a-mono">sophie.marchand@mail.fr</td>
+                  <td><span class="a-pill venir">24 août</span></td>
+                  <td class="a-mono">8</td>
+                </tr>
+                <tr>
+                  <td><div class="a-nom"><span class="a-avatar" style="background:#3E7C74;">JP</span>Julien Petit</div></td>
+                  <td class="a-mono">06 45 12 89 33</td>
+                  <td class="a-mono">julien.petit@mail.fr</td>
+                  <td><span class="a-pill venir">27 août</span></td>
+                  <td class="a-mono">3</td>
+                </tr>
+                <tr>
+                  <td><div class="a-nom"><span class="a-avatar" style="background:#B5533F;">AR</span>Amélie Rousseau</div></td>
+                  <td class="a-mono">06 78 90 12 45</td>
+                  <td class="a-mono">amelie.r@mail.fr</td>
+                  <td><span class="a-pill aucun">Aucun programmé</span></td>
+                  <td class="a-mono">12</td>
+                </tr>
+                <tr>
+                  <td><div class="a-nom"><span class="a-avatar" style="background:#8B8F98;">KB</span>Karim Benali</div></td>
+                  <td class="a-mono">07 11 22 33 44</td>
+                  <td class="a-mono">karim.benali@mail.fr</td>
+                  <td><span class="a-pill venir">2 sept.</span></td>
+                  <td class="a-mono">1</td>
+                </tr>
+                <tr>
+                  <td><div class="a-nom"><span class="a-avatar" style="background:#E2A63D;">NL</span>Nora Lefèvre</div></td>
+                  <td class="a-mono">06 90 87 65 43</td>
+                  <td class="a-mono">nora.lefevre@mail.fr</td>
+                  <td><span class="a-pill venir">30 août</span></td>
+                  <td class="a-mono">5</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="a-chat">
+            <div class="a-chat-bubble">Bonjour Camille 👋<br>Une idée de crénau pour Sophie ?</div>
+            <div class="a-chat-fab">
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================= NOCTURNE ============================= -->
+    <div class="frame app-frame" data-frame="nocturne" hidden>
+      <div class="chrome-bar">
+        <div class="chrome-dots"><span></span><span></span><span></span></div>
+        <div class="chrome-url">cadence.app/clients</div>
+      </div>
+      <div class="nocturne">
+        <aside class="n-sidebar">
+          <div class="n-logo">C</div>
+          <div class="n-icon on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path></svg></div>
+          <div class="n-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg></div>
+          <div class="n-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg></div>
+          <div class="n-spacer"></div>
+          <div class="n-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></div>
+        </aside>
+        <div class="n-main">
+          <div class="n-stat">
+            <b>8</b>
+            <span>nouveaux clients ce mois-ci</span>
+            <div class="n-avatars">
+              <div style="background:#E2A63D;">S</div>
+              <div style="background:#3E7C74;">J</div>
+              <div style="background:#B5533F;">A</div>
+            </div>
+          </div>
+          <div class="n-topbar">
+            <span class="n-greet">Bonjour Camille 👋</span>
+            <input class="n-search" placeholder="Rechercher un client…" disabled>
+          </div>
+          <div class="n-table-card">
+            <table>
+              <thead><tr><th>Client</th><th>Téléphone</th><th>E-mail</th><th>Prochain RDV</th><th>Séances</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><div class="n-nom"><span class="n-avatar" style="background:#5B4FE8;">SM</span>Sophie Marchand</div></td>
+                  <td class="n-mono">06 12 34 56 78</td>
+                  <td class="n-mono">sophie.marchand@mail.fr</td>
+                  <td><span class="n-pill venir">24 août</span></td>
+                  <td class="n-mono">8</td>
+                </tr>
+                <tr>
+                  <td><div class="n-nom"><span class="n-avatar" style="background:#2FA398;">JP</span>Julien Petit</div></td>
+                  <td class="n-mono">06 45 12 89 33</td>
+                  <td class="n-mono">julien.petit@mail.fr</td>
+                  <td><span class="n-pill venir">27 août</span></td>
+                  <td class="n-mono">3</td>
+                </tr>
+                <tr>
+                  <td><div class="n-nom"><span class="n-avatar" style="background:#E2637A;">AR</span>Amélie Rousseau</div></td>
+                  <td class="n-mono">06 78 90 12 45</td>
+                  <td class="n-mono">amelie.r@mail.fr</td>
+                  <td><span class="n-pill aucun">Aucun programmé</span></td>
+                  <td class="n-mono">12</td>
+                </tr>
+                <tr>
+                  <td><div class="n-nom"><span class="n-avatar" style="background:#6E7188;">KB</span>Karim Benali</div></td>
+                  <td class="n-mono">07 11 22 33 44</td>
+                  <td class="n-mono">karim.benali@mail.fr</td>
+                  <td><span class="n-pill venir">2 sept.</span></td>
+                  <td class="n-mono">1</td>
+                </tr>
+                <tr>
+                  <td><div class="n-nom"><span class="n-avatar" style="background:#D89A3E;">NL</span>Nora Lefèvre</div></td>
+                  <td class="n-mono">06 90 87 65 43</td>
+                  <td class="n-mono">nora.lefevre@mail.fr</td>
+                  <td><span class="n-pill venir">30 août</span></td>
+                  <td class="n-mono">5</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="n-chat">
+            <div class="n-chat-bubble">Bonjour Camille 👋<br>Comment puis-je vous aider ?</div>
+            <div class="n-chat-fab">
+              <span class="n-chat-badge">2</span>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================= CLAIR ============================= -->
+    <div class="frame app-frame" data-frame="clair" hidden>
+      <div class="chrome-bar">
+        <div class="chrome-dots"><span></span><span></span><span></span></div>
+        <div class="chrome-url">cadence.app/clients</div>
+      </div>
+      <div class="clair">
+        <div class="c-tabbar">
+          <nav class="c-tabs">
+            <a>Tableau de bord</a>
+            <a class="on">Clients</a>
+            <a>Agenda</a>
+            <a>Devis &amp; factures</a>
+            <a>Paramètres</a>
+          </nav>
+          <span class="c-user">Camille M.</span>
+        </div>
+        <div class="c-body">
+          <div class="c-greetrow">
+            <span class="c-greet">Bonjour Camille 👋</span>
+            <span class="c-inlinestat"><b>8</b> nouveaux clients ce mois-ci</span>
+          </div>
+          <table>
+            <thead><tr><th>Client</th><th>Téléphone</th><th>E-mail</th><th>Prochain RDV</th><th>Séances</th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="c-nom">Sophie Marchand</td>
+                <td class="c-mono">06 12 34 56 78</td>
+                <td class="c-mono">sophie.marchand@mail.fr</td>
+                <td><span class="c-pill venir">24 août</span></td>
+                <td class="c-mono">8</td>
+              </tr>
+              <tr>
+                <td class="c-nom">Julien Petit</td>
+                <td class="c-mono">06 45 12 89 33</td>
+                <td class="c-mono">julien.petit@mail.fr</td>
+                <td><span class="c-pill venir">27 août</span></td>
+                <td class="c-mono">3</td>
+              </tr>
+              <tr>
+                <td class="c-nom">Amélie Rousseau</td>
+                <td class="c-mono">06 78 90 12 45</td>
+                <td class="c-mono">amelie.r@mail.fr</td>
+                <td><span class="c-pill aucun">Aucun programmé</span></td>
+                <td class="c-mono">12</td>
+              </tr>
+              <tr>
+                <td class="c-nom">Karim Benali</td>
+                <td class="c-mono">07 11 22 33 44</td>
+                <td class="c-mono">karim.benali@mail.fr</td>
+                <td><span class="c-pill venir">2 sept.</span></td>
+                <td class="c-mono">1</td>
+              </tr>
+              <tr>
+                <td class="c-nom">Nora Lefèvre</td>
+                <td class="c-mono">06 90 87 65 43</td>
+                <td class="c-mono">nora.lefevre@mail.fr</td>
+                <td><span class="c-pill venir">30 août</span></td>
+                <td class="c-mono">5</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="c-chat"><span class="dot"></span>Une question ?</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================= REPÈRE ============================= -->
+    <div class="frame app-frame" data-frame="repere" hidden>
+      <div class="chrome-bar">
+        <div class="chrome-dots"><span></span><span></span><span></span></div>
+        <div class="chrome-url">cadence.app/clients</div>
+      </div>
+      <div class="repere">
+        <aside class="r-sidebar">
+          <div class="r-logo">Cadence<span>.</span></div>
+          <nav class="r-nav">
+            <a><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>Tableau de bord</a>
+            <a class="on"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path></svg>Clients</a>
+            <a><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>Agenda</a>
+            <a><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>Devis &amp; factures</a>
+            <a><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>Paramètres</a>
+          </nav>
+          <div class="r-spacer"></div>
+          <div class="r-user">
+            <span class="r-avatar">CM</span>
+            <div>
+              <div class="name">Camille M.</div>
+              <div class="role">Formule Studio</div>
+            </div>
+          </div>
+        </aside>
+        <div class="r-main">
+          <div class="r-topbar">
+            <span class="r-title">Clients</span>
+            <div class="r-actions">
+              <input class="r-search" placeholder="Rechercher un client…" disabled>
+              <button class="r-btn" type="button">+ Nouveau client</button>
+            </div>
+          </div>
+          <div class="r-stats">
+            <div class="r-stat-card"><b>47</b><span>clients actifs</span></div>
+            <div class="r-stat-card"><b>8</b><span>nouveaux ce mois-ci</span></div>
+            <div class="r-stat-card"><b>12</b><span>rendez-vous à venir</span></div>
+          </div>
+          <div class="r-table-card">
+            <table>
+              <thead><tr><th>Client</th><th>Téléphone</th><th>E-mail</th><th>Prochain RDV</th><th>Séances</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><div class="r-nom"><span class="r-cell-avatar" style="background:#E2A63D;">SM</span>Sophie Marchand</div></td>
+                  <td class="r-mono">06 12 34 56 78</td>
+                  <td class="r-mono">sophie.marchand@mail.fr</td>
+                  <td><span class="r-pill venir">24 août</span></td>
+                  <td class="r-mono">8</td>
+                </tr>
+                <tr>
+                  <td><div class="r-nom"><span class="r-cell-avatar" style="background:#3E7C74;">JP</span>Julien Petit</div></td>
+                  <td class="r-mono">06 45 12 89 33</td>
+                  <td class="r-mono">julien.petit@mail.fr</td>
+                  <td><span class="r-pill venir">27 août</span></td>
+                  <td class="r-mono">3</td>
+                </tr>
+                <tr>
+                  <td><div class="r-nom"><span class="r-cell-avatar" style="background:#B5533F;">AR</span>Amélie Rousseau</div></td>
+                  <td class="r-mono">06 78 90 12 45</td>
+                  <td class="r-mono">amelie.r@mail.fr</td>
+                  <td><span class="r-pill aucun">Aucun programmé</span></td>
+                  <td class="r-mono">12</td>
+                </tr>
+                <tr>
+                  <td><div class="r-nom"><span class="r-cell-avatar" style="background:#8B8F98;">KB</span>Karim Benali</div></td>
+                  <td class="r-mono">07 11 22 33 44</td>
+                  <td class="r-mono">karim.benali@mail.fr</td>
+                  <td><span class="r-pill venir">2 sept.</span></td>
+                  <td class="r-mono">1</td>
+                </tr>
+                <tr>
+                  <td><div class="r-nom"><span class="r-cell-avatar" style="background:#E2A63D;">NL</span>Nora Lefèvre</div></td>
+                  <td class="r-mono">06 90 87 65 43</td>
+                  <td class="r-mono">nora.lefevre@mail.fr</td>
+                  <td><span class="r-pill venir">30 août</span></td>
+                  <td class="r-mono">5</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer class="credits">
+    Éléments décoratifs (bulle d'assistance, carte flottante) repris de l'esprit du repère partagé pour comparer les trois premières identités — aucune fonctionnalité de chat n'existe aujourd'hui dans Cadence, ce serait un chantier séparé si l'idée vous plaît. <strong>Repère</strong> laisse volontairement ces éléments de côté : c'est le concept le plus sobre des quatre, pensé pour ressembler à ce que Cadence a déjà, pas à une nouvelle direction.
+  </footer>
+</div>
+
+<script>
+  const NOTES = {
+    atelier: "<strong>Atelier</strong> — l'identité Cadence actuelle (parchemin, Fraunces, ambre), avec la même nav horizontale que l'écran Clients réel aujourd'hui. Le choix le plus proche de zéro changement de ton.",
+    nocturne: "<strong>Nocturne</strong> — barre latérale sombre et accent violet, dans l'esprit du repère partagé mais avec une palette et une typo (Manrope + IBM Plex Mono) propres à Cadence. Le changement le plus radical des trois.",
+    clair: "<strong>Clair</strong> — minimal et silencieux : un seul accent (vert bouteille), aucune carte flottante ni ombre, tout repose sur l'espacement et des filets fins. Le plus proche d'un outil type Linear/Notion.",
+    repere: "<strong>Repère</strong> — l'identité Cadence exacte (parchemin, encre, ambre, sarcelle), simplement réorganisée en menu latéral avec libellés texte plutôt qu'en nav du haut. Trois cartes KPI remplacent la carte flottante et la bulle d'assistance : la disposition la plus standard des quatre, celle qui ressemble le plus à un logiciel de gestion « classique »."
+  };
+  const buttons = document.querySelectorAll('.switcher button');
+  const frames = document.querySelectorAll('.frame');
+  const note = document.getElementById('concept-note');
+
+  function activer(cle){
+    buttons.forEach(b => b.setAttribute('aria-selected', String(b.dataset.target === cle)));
+    frames.forEach(f => { f.hidden = f.dataset.frame !== cle; });
+    note.innerHTML = NOTES[cle];
+  }
+  buttons.forEach(b => b.addEventListener('click', () => activer(b.dataset.target)));
+  activer('atelier');
+</script>

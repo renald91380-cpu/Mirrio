@@ -25,7 +25,8 @@ Cadence/
 ├── CLAUDE.md                          ce fichier
 ├── Asset/                             brief d'origine (accès restreint)
 │   ├── cadence-brand-guidelines.md    charte complète : couleurs, polices, ton, iconographie
-│   └── cadence-landing.html           mockup initial (base de la landing actuelle)
+│   ├── cadence-landing.html           mockup initial (base de la landing actuelle)
+│   └── maquettes-ecran-clients.html   4 pistes visuelles pour clients.html (Atelier/Nocturne/Clair/Repère), en attente d'un choix — voir §3.14
 ├── db/
 │   ├── schema.sql                          schéma de base (v1)
 │   ├── schema-v2-personnalisation.sql      migration : personnalisation & connexions agenda
@@ -183,6 +184,14 @@ Deux pages statiques autonomes, `site/cgu.html` et `site/confidentialite.html` �
 - **Contenu rédigé pour refléter l'infrastructure réelle**, pas un gabarit générique : hébergement Supabase (Zurich, AWS eu-central-2), Vercel (États-Unis), Resend (e-mails transactionnels), Google OAuth (connexion + synchronisation agenda, sur consentement explicite) sont listés nommément comme sous-traitants dans la politique de confidentialité. Le texte est explicite sur l'absence de facturation Stripe réelle (§5 des CGU) pour ne jamais laisser croire à un prélèvement automatique qui n'existe pas, et sur l'absence de cookies non essentiels (donc pas de bandeau de consentement).
 - **Liens câblés** : la case à cocher CGU/confidentialité de `signup.html` (auparavant `href="#"` ×2) pointe maintenant vers ces deux pages (`target="_blank"`, pour ne pas perdre la saisie du formulaire) ; le lien « Confidentialité » du pied de page de `index.html` (auparavant `href="#"`) pointe vers `confidentialite.html`.
 - Ces pages sont aussi le prérequis documenté pour faire passer l'app Google OAuth de « Test » à « Production » (voir §4) — elles ne suffisent pas à elles seules à déclencher ce passage, qui reste une démarche manuelle à faire côté console Google.
+
+### 3.14 Exploration visuelle pour clients.html (pas encore décidée)
+
+`Asset/maquettes-ecran-clients.html` — page de comparaison autonome (aucun lien avec le vrai `site/clients.html`, aucune dépendance Supabase) présentant 4 identités visuelles possibles pour l'écran Clients, sélectionnables via un switcher en haut de page : **Atelier** (identité Cadence actuelle, nav horizontale — le plus proche de zéro changement), **Nocturne** (sidebar sombre + accent violet, la direction la plus radicale), **Clair** (minimal, un seul accent, aucune barre latérale), **Repère** (identité Cadence actuelle mais réorganisée en menu latéral à libellés texte + cartes KPI au lieu des éléments flottants — la disposition la plus « SaaS classique »).
+
+- **Rien de tout ça n'est implémenté dans le vrai `clients.html`.** C'est un support de décision, pas une fonctionnalité livrée — voir BACKLOG.md.
+- Les éléments décoratifs (bulle d'assistance, carte flottante) sur Atelier/Nocturne/Clair ne correspondent à aucune fonctionnalité existante de Cadence ; **Repère** les omet volontairement.
+- Même charte typographique que le reste du site (Fraunces/Inter/IBM Plex Mono), mais chaque concept a sa propre palette figée pour la comparaison — ce fichier ne s'adapte pas au thème choisi par l'utilisateur dans Paramètres, contrairement au reste de l'app (voir §3.1).
 
 ---
 
