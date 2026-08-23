@@ -25,8 +25,7 @@ Cadence/
 ├── CLAUDE.md                          ce fichier
 ├── Asset/                             brief d'origine (accès restreint)
 │   ├── cadence-brand-guidelines.md    charte complète : couleurs, polices, ton, iconographie
-│   ├── cadence-landing.html           mockup initial (base de la landing actuelle)
-│   └── maquettes-ecran-clients.html   4 pistes visuelles pour clients.html (Atelier/Nocturne/Clair/Repère), en attente d'un choix — voir §3.14
+│   └── cadence-landing.html           mockup initial (base de la landing actuelle)
 ├── db/
 │   ├── schema.sql                          schéma de base (v1)
 │   ├── schema-v2-personnalisation.sql      migration : personnalisation & connexions agenda
@@ -49,6 +48,7 @@ Cadence/
     ├── voir-document.html             lecture publique d'un devis/facture (lien envoyé au client, sans compte)
     ├── parametres.html                identité, apparence, modèle de documents, prestations, agenda, équipe
     ├── admin.html                     back-office exploitant Cadence (réservé à `profiles.is_admin`)
+    ├── maquettes-clients.html         comparatif interne de 4 pistes visuelles pour clients.html, non lié dans la nav, `noindex` — voir §3.14
     ├── supabase-config.js             clés Supabase
     ├── theme.js                       thème, vocabulaire métier & résolution d'espace, partagés par les écrans
     ├── document-render.js             rendu d'un devis/facture (aperçu ET impression)
@@ -187,11 +187,13 @@ Deux pages statiques autonomes, `site/cgu.html` et `site/confidentialite.html` �
 
 ### 3.14 Exploration visuelle pour clients.html (pas encore décidée)
 
-`Asset/maquettes-ecran-clients.html` — page de comparaison autonome (aucun lien avec le vrai `site/clients.html`, aucune dépendance Supabase) présentant 4 identités visuelles possibles pour l'écran Clients, sélectionnables via un switcher en haut de page : **Atelier** (identité Cadence actuelle, nav horizontale — le plus proche de zéro changement), **Nocturne** (sidebar sombre + accent violet, la direction la plus radicale), **Clair** (minimal, un seul accent, aucune barre latérale), **Repère** (identité Cadence actuelle mais réorganisée en menu latéral à libellés texte + cartes KPI au lieu des éléments flottants — la disposition la plus « SaaS classique »).
+`site/maquettes-clients.html` — page de comparaison autonome (aucun lien avec le vrai `site/clients.html`, aucune dépendance Supabase) présentant 4 identités visuelles possibles pour l'écran Clients, sélectionnables via un switcher en haut de page : **Atelier** (identité Cadence actuelle, nav horizontale — le plus proche de zéro changement), **Nocturne** (sidebar sombre + accent violet, la direction la plus radicale), **Clair** (minimal, un seul accent, aucune barre latérale), **Repère** (identité Cadence actuelle mais réorganisée en menu latéral à libellés texte + cartes KPI au lieu des éléments flottants — la disposition la plus « SaaS classique »).
 
 - **Rien de tout ça n'est implémenté dans le vrai `clients.html`.** C'est un support de décision, pas une fonctionnalité livrée — voir BACKLOG.md.
+- **Servie par Vercel comme une page normale, mais volontairement pas dans le produit.** D'abord publiée comme artifact Claude externe (lien claude.ai) et liée depuis Paramètres → Apparence — retour terrain : la page demandait une connexion claude.ai et renvoyait « Page not found » pour un visiteur non authentifié sur ce compte, inutilisable en pratique. Corrigé en rapatriant le fichier tel quel dans `site/` (document HTML complet cette fois — doctype/head/body, absents de la version artifact qui compte sur l'enveloppe posée à la publication) : accessible sans connexion, comme n'importe quelle page du site. `<meta name="robots" content="noindex, nofollow">` et aucun lien dans `ONGLETS`/la nav : seul le bouton « Voir les 4 maquettes » de Paramètres → Apparence y mène.
 - Les éléments décoratifs (bulle d'assistance, carte flottante) sur Atelier/Nocturne/Clair ne correspondent à aucune fonctionnalité existante de Cadence ; **Repère** les omet volontairement.
 - Même charte typographique que le reste du site (Fraunces/Inter/IBM Plex Mono), mais chaque concept a sa propre palette figée pour la comparaison — ce fichier ne s'adapte pas au thème choisi par l'utilisateur dans Paramètres, contrairement au reste de l'app (voir §3.1).
+- **À supprimer une fois la décision prise** : que le choix retenu soit implémenté dans `clients.html` ou non, cette page de comparaison n'a plus de raison d'exister ensuite — ne pas la laisser traîner indéfiniment dans `site/`.
 
 ---
 

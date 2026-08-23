@@ -16,7 +16,7 @@ Dernière mise à jour : 22 août 2026.
 
 ## Décision en attente côté toi
 
-- [ ] **Choisir une direction visuelle pour la refonte de `clients.html`.** 3 maquettes livrées (Atelier / Nocturne / Clair) dans l'artifact « Trois visages de Cadence ». Rien n'est implémenté dans le vrai `clients.html` tant que tu n'as pas choisi une direction (ou demandé un mélange des trois).
+- [ ] **Choisir une direction visuelle pour la refonte de `clients.html`.** 4 maquettes livrées (Atelier / Nocturne / Clair / Repère) dans `site/maquettes-clients.html` — accessible depuis Paramètres → Apparence, bouton « Voir les 4 maquettes » (le lien externe vers l'artifact Claude a été abandonné : il exigeait une connexion claude.ai et affichait « Page not found » en pratique). Rien n'est implémenté dans le vrai `clients.html` tant que tu n'as pas choisi une direction. Une fois le choix fait, penser à supprimer `site/maquettes-clients.html` (voir CLAUDE.md §3.14).
 
 ## Configuration / infra à vérifier ou finaliser
 
