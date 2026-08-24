@@ -3,6 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+  // Applique le style d'interface mis en cache AVANT le premier rendu, pour
+  // éviter un flash de l'identité par défaut (Atelier, nav du haut) au clic
+  // sur un lien de nav : appliquerThemeEnCache() dans theme.js fait la même
+  // chose, mais trop tard — ce script module est différé et ne s'exécute
+  // qu'après que le navigateur a déjà peint le DOM. Doublon volontaire et
+  // minimal (un seul attribut), pas une dépendance vers theme.js.
+  (function(){
+    try{
+      var b = JSON.parse(sessionStorage.getItem('cadence:brand'));
+      if(b && b.style_interface) document.documentElement.setAttribute('data-style', b.style_interface);
+    }catch(e){}
+  })();
+</script>
 <title>Agenda — Cadence</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
