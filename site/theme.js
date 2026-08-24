@@ -317,6 +317,21 @@ async function estCompteAdmin(supabase){
   return !!profil?.is_admin;
 }
 
+// Prénom du compte RÉELLEMENT connecté, affiché dans le coin supérieur droit
+// des écrans à nav du haut (Atelier/Clair) à la place de l'email en clair —
+// pour familiariser l'app à la personne sans afficher son adresse. Toujours
+// une requête séparée de `chargerBrand()`/`espaceId`, même raison que
+// `estCompteAdmin()` ci-dessus : un collaborateur doit voir SON prénom, pas
+// celui du praticien dont il visite l'espace. Retombe sur l'email si
+// `full_name` n'est pas renseigné.
+export async function prenomConnecte(supabase, session){
+  try{
+    const { data: profil } = await supabase.from('profiles').select('full_name').eq('id', session.user.id).maybeSingle();
+    if(profil?.full_name?.trim()) return formaterNomAffichage(profil.full_name).split(' ')[0];
+  }catch(e){ /* on retombe sur l'email ci-dessous */ }
+  return session.user.email;
+}
+
 // Point d'entrée unique : applique le cache, charge la vraie valeur, remonte
 // l'en-tête, et renvoie la marque résolue.
 export async function initTheme(supabase, ongletActif){

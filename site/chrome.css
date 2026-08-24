@@ -131,6 +131,6 @@ html[data-style="clair"] .app-nav a{ color:var(--slate) !important; padding:18px
 html[data-style="clair"] .app-nav a:hover{ color:var(--ink) !important; }
 html[data-style="clair"] .app-nav a.active{ color:var(--ink) !important; border-bottom-color:var(--accent) !important; }
 html[data-style="clair"] .app-header-right{ padding:18px 0; }
-html[data-style="clair"] .user-email{ color:var(--slate) !important; }
+html[data-style="clair"] .user-name{ color:var(--slate) !important; }
 html[data-style="clair"] .app-header .btn-ghost{ color:var(--ink) !important; border-color:rgba(34,38,46,0.18) !important; }
 html[data-style="clair"] .app-header .btn-ghost:hover{ border-color:rgba(34,38,46,0.4) !important; }
