@@ -154,6 +154,12 @@ export function stylesDocument(couleur, modele){
   }
   .cad-doc .encadre .titre{ font-weight:600; margin-bottom:3px; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:rgba(28,35,51,0.5); }
   .cad-doc .encadre .mono{ font-family:'IBM Plex Mono',monospace; }
+  .cad-doc .acquittee{ display:flex; justify-content:flex-end; margin:-8px 0 22px; }
+  .cad-doc .acquittee-badge{
+    display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700;
+    text-transform:uppercase; letter-spacing:.06em; color:${couleur};
+    border:1.5px solid ${couleur}; border-radius:5px; padding:5px 11px;
+  }
   .cad-doc .notes{ font-size:11.5px; color:rgba(28,35,51,0.65); margin-bottom:16px; white-space:pre-wrap; }
   .cad-doc .pied{
     border-top:1px solid rgba(28,35,51,0.12); padding-top:11px; margin-top:20px;
@@ -173,6 +179,11 @@ export function rendreDocument({ doc, lignes, client, params, brand }){
   const p = { ...PARAMS_DEFAUT, ...(params || {}) };
   const couleur = couleurDocument(p, brand);
   const estDevis = (doc?.type || 'devis') === 'devis';
+  // 'paye' est le même statut que gère déjà l'écran Devis & factures (case
+  // à cocher « Acquitté(e) », badge de la liste, calcul du CA encaissé du
+  // tableau de bord) — un seul et même champ, pour ne jamais désynchroniser
+  // ce qui est marqué payé de ce qui s'affiche sur le document imprimé.
+  const estAcquitte = doc?.statut === 'paye';
   const totaux = calculerTotaux(lignes, p);
 
   const nomEmetteur = p.emetteur_nom || brand?.business_name || 'Votre activité';
@@ -245,8 +256,9 @@ export function rendreDocument({ doc, lignes, client, params, brand }){
         <div style="text-align:right;">
           <div class="label">Émis le</div>
           <div class="valeur mono">${formatDate(doc?.date_emission || new Date())}</div>
+          ${estAcquitte ? '' : `
           <div class="label" style="margin-top:9px;">${estDevis ? 'Valable jusqu’au' : 'Échéance'}</div>
-          <div class="valeur mono">${formatDate(doc?.date_echeance)}</div>
+          <div class="valeur mono">${formatDate(doc?.date_echeance)}</div>`}
         </div>
       </div>
 
@@ -265,9 +277,11 @@ export function rendreDocument({ doc, lignes, client, params, brand }){
 
       <div class="totaux"><table>${blocTotaux}</table></div>
 
+      ${estAcquitte ? `<div class="acquittee"><span class="acquittee-badge">✓ Acquittée</span></div>` : ''}
+
       ${doc?.notes ? `<div class="notes">${echapper(doc.notes)}</div>` : ''}
 
-      ${(p.iban || conditions) ? `
+      ${(!estAcquitte && (p.iban || conditions)) ? `
       <div class="encadre">
         <div class="titre">${estDevis ? 'Conditions' : 'Règlement'}</div>
         <div>${echapper(conditions)}</div>
@@ -278,7 +292,7 @@ export function rendreDocument({ doc, lignes, client, params, brand }){
 
       <div class="pied">
         ${mentionsLegales ? `<div>${echapper(mentionsLegales)}</div>` : ''}
-        ${(!estDevis && p.penalites_retard !== '') ? `<div>${echapper(p.penalites_retard || PENALITES_DEFAUT)}</div>` : ''}
+        ${(!estDevis && !estAcquitte && p.penalites_retard !== '') ? `<div>${echapper(p.penalites_retard || PENALITES_DEFAUT)}</div>` : ''}
         ${p.mentions_pied ? `<div>${echapper(p.mentions_pied)}</div>` : ''}
         ${p.afficher_mention_cadence ? '<div style="opacity:.7;">Édité avec Cadence</div>' : ''}
       </div>

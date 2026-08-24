@@ -799,7 +799,10 @@
             <div class="preview-shell">
               <div class="preview-bar">
                 <span>Aperçu — facture d'exemple</span>
-                <button class="btn btn-outline btn-sm" type="button" id="preview-type-btn" style="min-height:30px;padding:5px 10px;font-size:11.5px;text-transform:none;letter-spacing:0;">Voir en devis</button>
+                <div style="display:flex; gap:6px;">
+                  <button class="btn btn-outline btn-sm" type="button" id="preview-acquitte-btn" style="min-height:30px;padding:5px 10px;font-size:11.5px;text-transform:none;letter-spacing:0;">Marquer acquittée</button>
+                  <button class="btn btn-outline btn-sm" type="button" id="preview-type-btn" style="min-height:30px;padding:5px 10px;font-size:11.5px;text-transform:none;letter-spacing:0;">Voir en devis</button>
+                </div>
               </div>
               <div class="preview-scroll"><div id="doc-preview"></div></div>
             </div>
@@ -1410,10 +1413,11 @@
   }
 
   let styleDoc = null;
+  let previewAcquitte = false;
   function rendreApercuDoc(){
     const v = vocabulaire(profil);
     const ex = documentExemple(v);
-    const doc = { ...ex.doc, type: previewType };
+    const doc = { ...ex.doc, type: previewType, statut: previewAcquitte ? 'paye' : 'brouillon' };
     const html = rendreDocument({
       doc, lignes: ex.lignes, client: ex.client,
       params: facturation, brand: profil
@@ -1435,6 +1439,12 @@
     e.target.textContent = previewType === 'facture' ? 'Voir en devis' : 'Voir en facture';
     document.querySelector('#panel-documents .preview-bar span').textContent =
       previewType === 'facture' ? "Aperçu — facture d'exemple" : "Aperçu — devis d'exemple";
+    rendreApercuDoc();
+  });
+
+  document.getElementById('preview-acquitte-btn').addEventListener('click', (e)=>{
+    previewAcquitte = !previewAcquitte;
+    e.target.textContent = previewAcquitte ? 'Voir non acquittée' : 'Marquer acquittée';
     rendreApercuDoc();
   });
 

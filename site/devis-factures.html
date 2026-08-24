@@ -186,6 +186,16 @@
   @media(max-width:420px){ .field-row{ grid-template-columns:1fr; } }
   .hint{ font-size:12px; color:rgba(28,35,51,0.5); margin-top:6px; }
 
+  .switch-row{
+    display:flex; align-items:flex-start; gap:12px; padding:12px 14px;
+    background:rgba(62,124,116,0.06); border:1px solid rgba(62,124,116,0.18); border-radius:9px;
+  }
+  .switch-row input[type="checkbox"]{
+    width:20px; height:20px; margin-top:1px; flex-shrink:0; accent-color:var(--teal);
+  }
+  .switch-row .switch-label{ font-size:14px; font-weight:600; }
+  .switch-row .switch-desc{ font-size:12.5px; color:rgba(28,35,51,0.55); margin-top:2px; }
+
   .type-picker{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .type-option{
     position:relative; border:1px solid rgba(28,35,51,0.16); border-radius:9px;
@@ -383,11 +393,21 @@
           <label for="date_emission">Date d'émission <span class="req">*</span></label>
           <input type="date" id="date_emission" name="date_emission" required>
         </div>
-        <div class="field">
+        <div class="field" id="date-echeance-field">
           <label for="date_echeance" id="date-echeance-label">Date d'échéance</label>
           <input type="date" id="date_echeance" name="date_echeance">
           <div class="hint" id="echeance-hint" style="display:none;"></div>
         </div>
+      </div>
+
+      <div class="field">
+        <label class="switch-row" for="acquitte">
+          <input type="checkbox" id="acquitte">
+          <span>
+            <span class="switch-label">Acquitté(e)</span>
+            <span class="switch-desc" id="acquitte-desc">Le paiement a déjà été reçu — le document affichera « Acquittée » à la place de la date de validité/échéance, qui ne sera plus utilisée.</span>
+          </span>
+        </label>
       </div>
 
       <div class="field" id="statut-field" style="display:none;">
@@ -470,6 +490,9 @@
   const dateEmissionInput = document.getElementById('date_emission');
   const dateEcheanceInput = document.getElementById('date_echeance');
   const echeanceHint = document.getElementById('echeance-hint');
+  const dateEcheanceField = document.getElementById('date-echeance-field');
+  const acquitteInput = document.getElementById('acquitte');
+  const statutSelect = document.getElementById('statut');
 
   let brand = null;
   let espaceId = null;
@@ -692,6 +715,31 @@
   });
   dateEmissionInput.addEventListener('change', appliquerLimiteEcheance);
 
+  // « Acquitté » est un raccourci convivial sur le statut 'paye' déjà géré par
+  // le sélecteur Statut (et déjà lu par le tableau de bord pour le CA encaissé
+  // et les relances de retard) — pas un champ séparé, pour ne jamais désynchroniser
+  // les deux. statutAvantAcquitte retient le statut à restaurer si on décoche.
+  let statutAvantAcquitte = 'envoye';
+
+  function majAffichageAcquitte(){
+    dateEcheanceField.style.display = acquitteInput.checked ? 'none' : '';
+  }
+
+  acquitteInput.addEventListener('change', ()=>{
+    if(acquitteInput.checked){
+      if(statutSelect.value !== 'paye') statutAvantAcquitte = statutSelect.value;
+      statutSelect.value = 'paye';
+    } else if(statutSelect.value === 'paye'){
+      statutSelect.value = (statutAvantAcquitte && statutAvantAcquitte !== 'paye') ? statutAvantAcquitte : 'envoye';
+    }
+    majAffichageAcquitte();
+  });
+  statutSelect.addEventListener('change', ()=>{
+    if(statutSelect.value !== 'paye') statutAvantAcquitte = statutSelect.value;
+    acquitteInput.checked = statutSelect.value === 'paye';
+    majAffichageAcquitte();
+  });
+
   function openModal(doc){
     form.reset();
     linesList.innerHTML = '';
@@ -706,6 +754,8 @@
       typeStaticLabel.textContent = doc.type === 'devis' ? 'Devis' : 'Facture';
       statutField.style.display = 'block';
       document.getElementById('statut').value = doc.statut;
+      statutAvantAcquitte = doc.statut === 'paye' ? 'envoye' : doc.statut;
+      acquitteInput.checked = doc.statut === 'paye';
       document.getElementById('client_id').value = doc.client_id || '';
       document.getElementById('date_emission').value = doc.date_emission;
       document.getElementById('date_echeance').value = doc.date_echeance || '';
@@ -724,11 +774,15 @@
       typePickerField.style.display = 'block';
       typeStaticField.style.display = 'none';
       statutField.style.display = 'none';
+      statutSelect.value = 'brouillon';
+      statutAvantAcquitte = 'envoye';
+      acquitteInput.checked = false;
       document.querySelector('input[name="type"][value="devis"]').checked = true;
       document.getElementById('date_emission').value = todayISO();
       addLineRow(null);
       appliquerLimiteEcheance();
     }
+    majAffichageAcquitte();
     recalcLinesTotal();
     overlay.classList.add('show');
     document.getElementById('client_id').focus();
@@ -1039,7 +1093,9 @@
 
     const id = document.getElementById('doc-id').value;
     const dateEmission = document.getElementById('date_emission').value || todayISO();
-    const dateEcheance = document.getElementById('date_echeance').value || null;
+    // Acquitté efface la notion d'échéance/relance : pas d'intérêt à garder une
+    // date qui ne sera de toute façon plus affichée ni utilisée pour relancer.
+    const dateEcheance = acquitteInput.checked ? null : (document.getElementById('date_echeance').value || null);
     const notes = document.getElementById('notes').value.trim() || null;
 
     // Un devis n'est engageant qu'un mois — même filet de sécurité que le
@@ -1071,8 +1127,11 @@
       }
     } else {
       const type = document.querySelector('input[name="type"]:checked').value;
+      // Une facture réglée sur-le-champ (prestation payée immédiatement) doit
+      // pouvoir naître déjà acquittée, sans repasser par une étape "brouillon".
+      const statut = acquitteInput.checked ? 'paye' : 'brouillon';
       const result = await supabase.from('documents').insert({
-        type, client_id: clientId, date_emission: dateEmission, date_echeance: dateEcheance, notes,
+        type, client_id: clientId, date_emission: dateEmission, date_echeance: dateEcheance, notes, statut,
         // Posé explicitement à l'espace actif — voir la note dans clients.html.
         owner_id: espaceId
       }).select().single();
