@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Supervision des agents — Cadence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1C2333; --parchment:#F5F1E7; --teal:#3E7C74; --brick:#B5533F;
+    --paper:#ffffff; --line:#ece7df; --muted:rgba(28,35,51,0.55);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:'Inter', Arial, sans-serif; background:var(--parchment); color:var(--ink);
+    line-height:1.5; -webkit-font-smoothing:antialiased; min-height:100vh;
+    padding:20px 16px 60px;
+  }
+
+  .page{ max-width:1000px; margin:0 auto; }
+
+  header{
+    display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+    flex-wrap:wrap; margin-bottom:6px;
+  }
+  h1{ font-family:'Fraunces', Georgia, serif; font-weight:700; font-size:clamp(20px,3vw,26px); }
+  .sub{ color:var(--muted); font-size:14px; margin-bottom:24px; }
+
+  #list{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap:16px;
+  }
+
+  .etat-vide, .etat-erreur, .etat-chargement{
+    grid-column:1 / -1; text-align:center; padding:60px 20px; color:var(--muted); font-size:15px;
+  }
+  .etat-erreur{ color:var(--brick); }
+
+  .card{
+    background:var(--paper); border-radius:14px; padding:18px;
+    border:1px solid var(--line); box-shadow:0 1px 3px rgba(28,35,51,0.06);
+    display:flex; flex-direction:column;
+  }
+  .card-title{ font-weight:600; font-size:15px; margin-bottom:4px; display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+  .badge{
+    font-size:11px; padding:2px 9px; border-radius:20px; background:var(--parchment);
+    color:var(--muted); font-family:'IBM Plex Mono', monospace;
+  }
+  .meta{ font-size:12.5px; color:var(--muted); margin-bottom:12px; }
+
+  .email-preview{
+    background:var(--parchment); border-radius:10px; padding:12px; font-size:13.5px;
+    white-space:pre-wrap; margin-bottom:12px; border:1px solid var(--line); flex:1;
+  }
+  .email-objet{ font-weight:600; margin-bottom:6px; }
+
+  .infos{ font-size:12.5px; color:var(--muted); margin-bottom:14px; }
+
+  .actions{ display:flex; gap:8px; }
+  button{
+    flex:1; padding:11px; border-radius:10px; border:none; font-size:14px;
+    font-weight:600; cursor:pointer; font-family:inherit;
+    transition:transform .15s ease, opacity .15s ease;
+  }
+  button:hover{ transform:translateY(-1px); }
+  button:disabled{ opacity:0.5; cursor:default; transform:none; }
+  .approve{ background:var(--teal); color:#fff; }
+  .reject{ background:var(--parchment); color:var(--ink); border:1px solid var(--line); }
+
+  .toast{
+    position:fixed; left:16px; right:16px; bottom:20px; max-width:420px; margin:0 auto;
+    background:var(--ink); color:#fff; padding:12px 18px; border-radius:10px;
+    text-align:center; font-size:14px; display:none; box-shadow:0 8px 24px rgba(0,0,0,0.2);
+  }
+
+  @media (min-width:640px){
+    body{ padding:36px 24px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <header>
+    <h1>Supervision des agents</h1>
+  </header>
+  <div class="sub">Actions proposées en attente de validation</div>
+  <div id="list"><div class="etat-chargement">Chargement…</div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SECRET = new URLSearchParams(location.search).get('key') || '';
+const listEl = document.getElementById('list');
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 2500);
+}
+
+function echapper(s){
+  return String(s || '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+}
+
+async function charger(){
+  if(!SECRET){
+    listEl.innerHTML = '<div class="etat-erreur">Lien incomplet : le paramètre "key" est manquant.</div>';
+    return;
+  }
+  let data;
+  try{
+    const res = await fetch('/api/agent-actions?key=' + encodeURIComponent(SECRET));
+    if(res.status === 401){
+      listEl.innerHTML = '<div class="etat-erreur">Accès refusé — vérifiez le lien.</div>';
+      return;
+    }
+    if(!res.ok) throw new Error('erreur serveur');
+    data = await res.json();
+  }catch(e){
+    listEl.innerHTML = '<div class="etat-erreur">Impossible de charger les actions. Réessayez dans un instant.</div>';
+    return;
+  }
+
+  const actions = data.actions || [];
+  if(actions.length === 0){
+    listEl.innerHTML = '<div class="etat-vide">Aucune action en attente 🎉</div>';
+    return;
+  }
+
+  listEl.innerHTML = actions.map(a => {
+    const p = a.payload || {};
+    return `
+    <div class="card" data-id="${a.id}">
+      <div class="card-title">${echapper(a.titre)} <span class="badge">${echapper(a.agent_type)}</span></div>
+      <div class="meta">Créée le ${new Date(a.created_at).toLocaleString('fr-FR')}</div>
+      <div class="email-preview">
+        <div class="email-objet">Objet : ${echapper(p.objet || '(sans objet)')}</div>
+        <div>${echapper(p.corps || '')}</div>
+      </div>
+      <div class="infos">Destinataire : ${echapper(p.client_email || 'inconnu')} · Montant : ${echapper(p.montant || '?')} € · Retard : ${echapper(p.jours_de_retard || '?')} j</div>
+      <div class="actions">
+        <button class="reject" onclick="agir('${a.id}','reject',this)">Rejeter</button>
+        <button class="approve" onclick="agir('${a.id}','approve',this)">Valider &amp; envoyer</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function agir(id, action, bouton){
+  const carte = bouton.closest('.card');
+  carte.querySelectorAll('button').forEach(b => b.disabled = true);
+  try{
+    const res = await fetch(`/api/agent-actions?key=${encodeURIComponent(SECRET)}&id=${encodeURIComponent(id)}&action=${action}`, { method: 'POST' });
+    const data = await res.json();
+    if(data.error){ toast('Erreur : ' + data.error); carte.querySelectorAll('button').forEach(b => b.disabled = false); return; }
+    toast(action === 'approve' ? 'Action validée ✅' : 'Action rejetée');
+    charger();
+  }catch(e){
+    toast('Erreur réseau');
+    carte.querySelectorAll('button').forEach(b => b.disabled = false);
+  }
+}
+
+charger();
+</script>
+
+</body>
+</html>
