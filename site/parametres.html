@@ -148,6 +148,17 @@
   /* ---------- Sélecteur d'accent ---------- */
   .accent-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
   @media(max-width:620px){ .accent-grid{ grid-template-columns:repeat(2,1fr); } }
+  .style-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+  @media(max-width:480px){ .style-grid{ grid-template-columns:1fr; } }
+  .style-option{
+    position:relative; border:1.5px solid rgba(28,35,51,0.14); border-radius:10px;
+    padding:12px; cursor:pointer; transition:border-color .15s ease, box-shadow .15s ease; background:#fff;
+  }
+  .style-option:hover{ border-color:rgba(28,35,51,0.34); }
+  .style-option input{ position:absolute; opacity:0; width:1px; height:1px; }
+  .style-option:has(input:checked){ border-color:var(--ink); box-shadow:0 0 0 3px rgba(28,35,51,0.09); }
+  .style-option:has(input:focus-visible){ outline:2px solid var(--teal); outline-offset:2px; }
+  .style-option .accent-nom{ margin-top:9px; }
   .accent-option{
     position:relative; border:1.5px solid rgba(28,35,51,0.14); border-radius:10px;
     padding:14px; cursor:pointer; transition:border-color .15s ease, box-shadow .15s ease; background:#fff;
@@ -552,9 +563,9 @@
             </div>
 
             <div class="card">
-              <h2>Nouvelle direction visuelle à l'étude</h2>
-              <p class="card-sub">4 pistes pour repenser l'écran Clients (menu latéral, palettes différentes) sont en comparaison — rien n'est encore appliqué à Cadence, c'est une maquette de décision.</p>
-              <a class="btn btn-outline btn-sm" href="maquettes-clients.html" target="_blank" rel="noopener" style="display:inline-flex; width:auto; text-decoration:none;">Voir les 4 maquettes</a>
+              <h2>Style d'interface</h2>
+              <p class="card-sub">Nav en haut ou menu latéral, sobre ou classique — c'est vos client·e·s qui verront et utiliseront cet écran, choisissez ce qui leur parlera. Actif sur Clients et Agenda pour l'instant, les autres écrans suivent.</p>
+              <div class="style-grid" id="style-grid" role="radiogroup" aria-label="Style d'interface"></div>
             </div>
           </div>
 
@@ -1024,7 +1035,7 @@
 <script type="module">
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
   import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
-  import { ACCENTS, ACCENT_DEFAUT, METIERS, vocabulaire, appliquerTheme,
+  import { ACCENTS, ACCENT_DEFAUT, STYLES, STYLE_DEFAUT, METIERS, vocabulaire, appliquerTheme,
            appliquerThemeEnCache, monterEntete, viderCacheBrand, chargerBrand,
            idEspaceActif, viderCacheEspace } from './theme.js';
   import { rendreDocument, stylesDocument, documentExemple, PENALITES_DEFAUT } from './document-render.js';
@@ -1271,6 +1282,57 @@
         rendreApercuUI();
         rendreApercuDoc();
         majCouleursDocument();
+        majBarre();
+      });
+    });
+  }
+
+  // -------------------------------------------------------------- style d'interface
+  // Quatre identités visuelles au choix — pas une préférence personnelle : ce
+  // sont vos client·e·s qui verront/utiliseront l'écran, choisissez donc ce
+  // qui leur parlera le mieux. Un aperçu miniature (forme du chrome, police,
+  // tonalité) accompagne chaque option ; la couleur d'accent ci-dessus reste
+  // appliquée quel que soit le style choisi.
+  const STYLE_APERCU = {
+    atelier:  { forme:'top',  fond:'#F5F1E7', chrome:'#1C2333', police:"'Fraunces', serif" },
+    nocturne: { forme:'side', fond:'#F2F1F8', chrome:'#12131B', police:"'Manrope', sans-serif" },
+    clair:    { forme:'top2', fond:'#FBFAF7', chrome:'#FBFAF7', police:"'Inter', sans-serif" },
+    repere:   { forme:'side', fond:'#F5F1E7', chrome:'#FFFFFF', police:"'Fraunces', serif" }
+  };
+  function apercuStyleHtml(cle){
+    const a = STYLE_APERCU[cle];
+    const barreHaut = (a.forme === 'top' || a.forme === 'top2')
+      ? `<div style="height:9px; background:${a.chrome}; border-bottom:${a.forme==='top2' ? '1px solid rgba(0,0,0,0.1)' : 'none'};"></div>`
+      : '';
+    const rail = (a.forme === 'side')
+      ? `<div style="position:absolute; top:0; left:0; bottom:0; width:15px; background:${a.chrome};"></div>`
+      : '';
+    return `
+      <div style="position:relative; height:44px; border-radius:6px; overflow:hidden; background:${a.fond}; border:1px solid rgba(28,35,51,0.12);">
+        ${barreHaut}${rail}
+        <div style="position:absolute; ${a.forme==='side' ? 'left:21px;' : 'left:8px; top:15px;'} right:8px; top:${a.forme==='side'?'8px':'auto'}; bottom:8px; display:flex; flex-direction:column; gap:3px;">
+          <div style="width:60%; height:5px; border-radius:2px; background:rgba(28,35,51,0.18);"></div>
+          <div style="width:40%; height:5px; border-radius:2px; background:rgba(28,35,51,0.1);"></div>
+        </div>
+      </div>`;
+  }
+  function monterStyles(){
+    const grid = document.getElementById('style-grid');
+    if(!grid) return;
+    grid.innerHTML = Object.entries(STYLES).map(([cle, s]) => `
+      <label class="style-option">
+        <input type="radio" name="style_interface" value="${cle}" data-bind="profil.style_interface">
+        ${apercuStyleHtml(cle)}
+        <div class="accent-nom">${s.nom}</div>
+        <div class="accent-note">${s.note}</div>
+      </label>`).join('');
+
+    grid.querySelectorAll('input[type="radio"]').forEach(el=>{
+      el.checked = (profil.style_interface || STYLE_DEFAUT) === el.value;
+      el.addEventListener('change', ()=>{
+        if(!el.checked) return;
+        profil.style_interface = el.value;
+        appliquerTheme({ ...profil });
         majBarre();
       });
     });
@@ -2019,7 +2081,8 @@
       terme_pluriel: profil.terme_pluriel,
       accent: profil.accent || ACCENT_DEFAUT,
       densite: profil.densite || 'confortable',
-      logo_url: profil.logo_url
+      logo_url: profil.logo_url,
+      style_interface: STYLES[profil.style_interface] ? profil.style_interface : STYLE_DEFAUT
     };
     // owner_id vise l'espace actif, pas forcément la ligne de l'utilisateur
     // connecté : un collaborateur qui modifie la facturation doit corriger les
@@ -2065,6 +2128,7 @@
     reservation = clone(initial.reservation);
     remplirChamps();
     monterAccents();
+    monterStyles();
     majCouleursDocument();
     appliquerTheme({ ...profil });
     monterEntete({ ...profil }, 'reglages', estAdmin);
@@ -2109,7 +2173,8 @@
       terme_pluriel: rp.data?.terme_pluriel || null,
       accent: ACCENTS[rp.data?.accent] ? rp.data.accent : ACCENT_DEFAUT,
       densite: rp.data?.densite === 'compacte' ? 'compacte' : 'confortable',
-      logo_url: rp.data?.logo_url || null
+      logo_url: rp.data?.logo_url || null,
+      style_interface: STYLES[rp.data?.style_interface] ? rp.data.style_interface : STYLE_DEFAUT
     };
 
     facturation = rf.data ? { ...rf.data } : {
@@ -2144,6 +2209,7 @@
     appliquerTheme(brandAffiche);
     monterEntete(brandAffiche, 'reglages', estAdmin);
     monterAccents();
+    monterStyles();
     majCouleursDocument();
     remplirChamps();
     rendreApercuUI();

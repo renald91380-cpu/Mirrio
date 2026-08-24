@@ -6,7 +6,8 @@
 <title>Agenda — Cadence</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="chrome.css">
 <style>
   :root{
     --ink:#1C2333;
@@ -214,6 +215,24 @@
   </div>
 </header>
 
+<div class="app-shell">
+  <aside class="app-sidebar">
+    <div class="logo">Cadence<span class="dot">.</span></div>
+    <div class="logo-badge" aria-hidden="true"></div>
+    <nav class="sidebar-nav"></nav>
+    <div class="sidebar-spacer"></div>
+    <div class="sidebar-user">
+      <span class="sidebar-avatar" id="sidebar-avatar">–</span>
+      <div class="sidebar-user-text">
+        <div class="name" id="sidebar-name">…</div>
+        <div class="email" id="sidebar-email"></div>
+      </div>
+      <button class="icon-btn" id="sidebar-logout-btn" type="button" aria-label="Se déconnecter" title="Se déconnecter">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </aside>
+
 <main class="app-main">
   <div class="app-container">
     <div class="page-head">
@@ -241,6 +260,7 @@
     <div id="appt-groups"></div>
   </div>
 </main>
+</div>
 
 <div class="modal-overlay" id="modal-overlay">
   <div class="modal">
@@ -328,7 +348,7 @@
 <script type="module">
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
   import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
-  import { initTheme, vocabulaire, viderCacheBrand, idEspaceActif } from './theme.js';
+  import { initTheme, vocabulaire, viderCacheBrand, idEspaceActif, formaterNomAffichage, initiales } from './theme.js';
   import { pousserPlusieurs, supprimerRendezVous, messagePour } from './google-calendar.js';
 
   const configured = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_ANON_KEY.includes('YOUR-ANON');
@@ -797,11 +817,13 @@
     }
   });
 
-  document.getElementById('logout-btn').addEventListener('click', async ()=>{
+  async function seDeconnecter(){
     viderCacheBrand();
     await supabase.auth.signOut();
     window.location.href = 'login.html';
-  });
+  }
+  document.getElementById('logout-btn').addEventListener('click', seDeconnecter);
+  document.getElementById('sidebar-logout-btn').addEventListener('click', seDeconnecter);
 
   (async function init(){
     const { data } = await supabase.auth.getSession();
@@ -810,8 +832,14 @@
       return;
     }
     document.getElementById('user-email').textContent = data.session.user.email;
+    document.getElementById('sidebar-email').textContent = data.session.user.email;
     brand = await initTheme(supabase, 'agenda');
     appliquerVocabulaire(brand);
+    const nomAffiche = brand.business_name && brand.business_name !== 'Cadence'
+      ? brand.business_name
+      : (brand.full_name ? formaterNomAffichage(brand.full_name) : data.session.user.email);
+    document.getElementById('sidebar-name').textContent = nomAffiche;
+    document.getElementById('sidebar-avatar').textContent = initiales(nomAffiche);
     espaceId = await idEspaceActif(supabase);
     await loadClientsIntoSelect();
     await loadPrestationsIntoSelect();

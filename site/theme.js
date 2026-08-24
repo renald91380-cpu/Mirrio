@@ -31,6 +31,25 @@ export const ACCENTS = {
 export const ACCENT_DEFAUT = 'ambre';
 
 // ---------------------------------------------------------------------------
+// Styles d'interface
+// ---------------------------------------------------------------------------
+// Quatre identités visuelles au choix de chaque abonné (Paramètres → Apparence),
+// pas un réglage global : ce sont ses propres client·e·s qui verront/utiliseront
+// l'écran, donc c'est à lui de choisir ce qui leur parlera. La couleur d'accent
+// (ACCENTS ci-dessus) reste un réglage séparé et orthogonal : le style change la
+// disposition (nav du haut / menu latéral), la police et la tonalité de fond ;
+// l'accent reste la couleur de marque appliquée par-dessus, quel que soit le
+// style choisi.
+export const STYLES = {
+  atelier:  { nom:'Atelier',  note:'L’identité Cadence d’origine — nav en haut, parchemin, Fraunces.' },
+  nocturne: { nom:'Nocturne', note:'Menu latéral sombre, icônes seules, look feutré.' },
+  clair:    { nom:'Clair',    note:'Minimal et silencieux, un seul accent, aucune barre latérale.' },
+  repere:   { nom:'Repère',   note:'L’identité Cadence en menu latéral classique, avec libellés.' }
+};
+
+export const STYLE_DEFAUT = 'atelier';
+
+// ---------------------------------------------------------------------------
 // Vocabulaire métier
 // ---------------------------------------------------------------------------
 // Un photographe ne fait pas des « séances », il fait des shootings ; un
@@ -57,7 +76,8 @@ const DEFAUT = {
   terme_pluriel: null,
   accent: ACCENT_DEFAUT,
   densite: 'confortable',
-  logo_url: null
+  logo_url: null,
+  style_interface: STYLE_DEFAUT
 };
 
 // ---------------------------------------------------------------------------
@@ -109,6 +129,7 @@ export function appliquerTheme(brand){
   root.style.setProperty('--accent-text', accent.texte);
   root.setAttribute('data-densite', b.densite);
   root.setAttribute('data-accent', b.accent);
+  root.setAttribute('data-style', STYLES[b.style_interface] ? b.style_interface : STYLE_DEFAUT);
 
   if(!styleTag){
     styleTag = document.createElement('style');
@@ -185,11 +206,11 @@ export function monterEntete(brand, actif, estAdmin){
   const b = { ...DEFAUT, ...(brand || {}) };
   const nom = (b.business_name || 'Cadence').trim() || 'Cadence';
 
-  // `.app-header .logo` (nav du haut, historique) ou `.app-sidebar .logo`
-  // (menu latéral « Repère ») : un écran n'a jamais les deux à la fois, donc
-  // un seul de ces deux sélecteurs trouvera quelque chose.
-  const logoEl = document.querySelector('.app-header .logo, .app-sidebar .logo');
-  if(logoEl){
+  // `.app-header .logo` (nav du haut) ET `.app-sidebar .logo` (menu latéral)
+  // coexistent maintenant dans chaque écran — chrome.css n'affiche que l'un
+  // des deux selon le style choisi, mais les deux doivent être peuplés pour
+  // que la bascule soit instantanée (pas de re-rendu au changement de style).
+  document.querySelectorAll('.app-header .logo, .app-sidebar .logo').forEach(logoEl => {
     if(b.logo_url){
       logoEl.innerHTML =
         `<img src="${echapper(b.logo_url)}" alt="${echapper(nom)}" ` +
@@ -198,7 +219,14 @@ export function monterEntete(brand, actif, estAdmin){
       logoEl.innerHTML = `${echapper(nom)}<span class="dot">.</span>`;
     }
     logoEl.setAttribute('title', nom);
-  }
+  });
+
+  // Pastille compacte (une lettre) pour les styles à menu latéral étroit,
+  // icônes seules (« Nocturne ») — le nom complet ne tiendrait pas sur 76px.
+  document.querySelectorAll('.app-sidebar .logo-badge').forEach(el => {
+    el.textContent = nom.charAt(0).toUpperCase();
+    el.setAttribute('title', nom);
+  });
 
   const onglets = estAdmin ? [...ONGLETS, ONGLET_ADMIN] : ONGLETS;
 
@@ -246,7 +274,7 @@ export function appliquerThemeEnCache(){
 export async function chargerBrand(supabase, espaceId){
   let requete = supabase
     .from('profiles')
-    .select('business_name, metier, terme_singulier, terme_pluriel, accent, densite, logo_url, full_name, plan');
+    .select('business_name, metier, terme_singulier, terme_pluriel, accent, densite, logo_url, full_name, plan, style_interface');
   requete = espaceId ? requete.eq('id', espaceId) : requete;
   const { data, error } = await requete.maybeSingle();
 
@@ -261,7 +289,8 @@ export async function chargerBrand(supabase, espaceId){
     densite: data.densite === 'compacte' ? 'compacte' : 'confortable',
     logo_url: data.logo_url || null,
     full_name: data.full_name || null,
-    plan: data.plan || 'solo'
+    plan: data.plan || 'solo',
+    style_interface: STYLES[data.style_interface] ? data.style_interface : STYLE_DEFAUT
   };
 
   try{ sessionStorage.setItem(CLE_CACHE, JSON.stringify(brand)); }catch(e){}
@@ -335,4 +364,28 @@ export async function idEspaceActif(supabase){
 
 export function viderCacheEspace(){
   cacheEspaceId = null;
+}
+
+// ---------------------------------------------------------------------------
+// Affichage du nom
+// ---------------------------------------------------------------------------
+// `full_name` peut être saisi de n'importe quelle façon (tout en minuscules,
+// tout en majuscules, casse mêlée) — on le remet en forme "Prénom Nom" pour
+// l'affichage (menu latéral, avatar), sans jamais toucher à la valeur stockée.
+export function formaterNomAffichage(nom){
+  if(!nom) return '';
+  const capMot = (mot) => mot
+    .split('-')
+    .map(p => p ? p.charAt(0).toUpperCase() + p.slice(1).toLowerCase() : p)
+    .join('-');
+  return nom.trim().split(/\s+/).map(capMot).join(' ');
+}
+
+// Initiales pour l'avatar du menu latéral — « Sophie Marchand » → « SM »,
+// « Cadence » → « CA ». Utilisé sur tous les écrans dotés d'un menu latéral.
+export function initiales(nom){
+  const mots = (nom || '').trim().split(/\s+/).filter(Boolean);
+  if(!mots.length) return '?';
+  if(mots.length === 1) return mots[0].slice(0,2).toUpperCase();
+  return (mots[0][0] + mots[mots.length-1][0]).toUpperCase();
 }
