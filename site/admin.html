@@ -385,13 +385,15 @@
   const METIER_LABELS = {
     photographe: 'Photographe', coach: 'Coach sportif', formateur: 'Formateur',
     professeur: 'Professeur particulier', consultant: 'Consultant',
-    therapeute: 'Praticien bien-être', autre: 'Autre métier'
+    therapeute: 'Praticien bien-être', esthetique: 'Esthéticienne / institut',
+    coiffure: 'Coiffeur·euse', onglerie: 'Prothésiste ongulaire', autre: 'Autre métier'
   };
   const METIER_COULEURS = {
     photographe: '#E2A63D', coach: '#3E7C74', formateur: '#4C6FA5',
-    professeur: '#B5533F', consultant: '#8B6BAE', therapeute: '#7A8B4F', autre: '#8B8F98'
+    professeur: '#B5533F', consultant: '#8B6BAE', therapeute: '#7A8B4F',
+    esthetique: '#C15B7A', coiffure: '#3F6B52', onglerie: '#A6763B', autre: '#8B8F98'
   };
-  const METIER_ORDRE = ['photographe','coach','formateur','professeur','consultant','therapeute','autre'];
+  const METIER_ORDRE = ['photographe','coach','formateur','professeur','consultant','therapeute','esthetique','coiffure','onglerie','autre'];
 
   function formatEuros(n){
     return new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR', maximumFractionDigits:0 }).format(n || 0);
