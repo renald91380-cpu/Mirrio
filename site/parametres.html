@@ -1046,10 +1046,36 @@
             <button class="btn btn-outline btn-sm" type="button" id="paiement-webhook-url-copy">Copier</button>
           </div>
           <div class="hint" style="margin-top:8px;">Dans votre tableau de bord Stripe : Développeurs → Webhooks → Ajouter un point de terminaison, avec cette URL et l'événement <code>checkout.session.completed</code>. Copiez ensuite le secret de signature qu'il affiche dans le champ ci-dessus.</div>
+        </div>
 
-          <div class="note-box" style="margin-top:22px;">
-            <strong>PayPal :</strong> bientôt disponible — le principe sera le même (votre propre compte, choix au client entre les deux).
+        <div class="card">
+          <h2>PayPal</h2>
+          <p class="card-sub">Même principe que Stripe ci-dessus, sur le même rendez-vous déjà confirmé — vous choisissez lequel des deux proposer au moment de demander le paiement, depuis l'Agenda. L'argent arrive sur <strong>votre propre compte PayPal</strong>.</p>
+
+          <div class="field" style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+            <input type="checkbox" id="paiement-paypal-actif" data-bind="paiement.paypal_actif" style="width:20px; height:20px;">
+            <label for="paiement-paypal-actif" style="margin:0;">Activer les paiements PayPal</label>
           </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="paiement-paypal-client-id">Client ID</label>
+              <input type="text" id="paiement-paypal-client-id" data-bind="paiement.paypal_client_id" placeholder="AVx1…">
+            </div>
+            <div class="field">
+              <label for="paiement-paypal-secret">Client Secret</label>
+              <input type="password" id="paiement-paypal-secret" autocomplete="off" placeholder="ELx1…">
+              <div class="hint">Laissez ce champ vide pour conserver la clé déjà enregistrée — elle ne s'affiche jamais ici une fois enregistrée.</div>
+            </div>
+          </div>
+
+          <div class="field" style="display:flex; align-items:center; gap:10px; margin-top:6px;">
+            <input type="checkbox" id="paiement-paypal-sandbox" data-bind="paiement.paypal_sandbox" style="width:20px; height:20px;">
+            <label for="paiement-paypal-sandbox" style="margin:0;">Mode test (Sandbox)</label>
+          </div>
+          <div class="hint" style="margin-top:6px;">Décochez une fois vos identifiants <strong>Live</strong> (production) en place dans votre tableau de bord développeur PayPal — un identifiant Sandbox ne fonctionne qu'avec cette case cochée, et inversement.</div>
+
+          <div class="hint" style="margin-top:14px;">Créez une application dans le <a href="https://developer.paypal.com/dashboard/applications" target="_blank" rel="noopener">tableau de bord développeur PayPal</a> pour obtenir un Client ID et un Client Secret — un jeu pour le mode Sandbox (test), un autre pour le mode Live une fois prêt.</div>
         </div>
       </div>
 
@@ -1203,7 +1229,8 @@
     // n'arrivent jamais du serveur, voir §2 de schema-v8-paiements.sql) —
     // seule leur SAISIE compte comme une modification.
     !!document.getElementById('paiement-stripe-secret')?.value ||
-    !!document.getElementById('paiement-stripe-webhook-secret')?.value;
+    !!document.getElementById('paiement-stripe-webhook-secret')?.value ||
+    !!document.getElementById('paiement-paypal-secret')?.value;
 
   function majBarre(){
     saveBar.classList.toggle('show', estModifie());
@@ -1274,6 +1301,7 @@
   // champ lié à l'état — voir estModifie() plus haut.
   document.getElementById('paiement-stripe-secret').addEventListener('input', majBarre);
   document.getElementById('paiement-stripe-webhook-secret').addEventListener('input', majBarre);
+  document.getElementById('paiement-paypal-secret').addEventListener('input', majBarre);
 
   document.querySelectorAll('[data-bind]').forEach(el=>{
     const evt = (el.tagName === 'SELECT' || el.type === 'checkbox' || el.type === 'radio') ? 'change' : 'input';
@@ -2242,6 +2270,8 @@
     const stripeWebhookSecretSaisi = document.getElementById('paiement-stripe-webhook-secret').value.trim();
     if(stripeSecretSaisi) pPaiement.stripe_secret_key = stripeSecretSaisi;
     if(stripeWebhookSecretSaisi) pPaiement.stripe_webhook_secret = stripeWebhookSecretSaisi;
+    const paypalSecretSaisi = document.getElementById('paiement-paypal-secret').value.trim();
+    if(paypalSecretSaisi) pPaiement.paypal_client_secret = paypalSecretSaisi;
 
     const [r1, r2, r3, r4] = await Promise.all([
       supabase.from('profiles').upsert(pProfil, { onConflict:'id' }),
@@ -2265,6 +2295,7 @@
 
     document.getElementById('paiement-stripe-secret').value = '';
     document.getElementById('paiement-stripe-webhook-secret').value = '';
+    document.getElementById('paiement-paypal-secret').value = '';
     initial = { profil: clone(profil), facturation: clone(facturation), reservation: clone(reservation), paiement: clone(paiement) };
     viderCacheBrand();
     appliquerTheme({ ...profil });
@@ -2281,6 +2312,7 @@
     paiement = clone(initial.paiement);
     document.getElementById('paiement-stripe-secret').value = '';
     document.getElementById('paiement-stripe-webhook-secret').value = '';
+    document.getElementById('paiement-paypal-secret').value = '';
     remplirChamps();
     monterAccents();
     monterStyles();
@@ -2361,7 +2393,7 @@
 
     paiement = rpay.data ? { ...rpay.data } : {
       stripe_actif: false, stripe_publishable_key: null,
-      paypal_actif: false, paypal_client_id: null
+      paypal_actif: false, paypal_client_id: null, paypal_sandbox: true
     };
     delete paiement.owner_id;
 

@@ -1,11 +1,14 @@
-// Cadence — création d'une session de paiement Stripe, soit pour un
-// rendez-vous déjà confirmé (phase 1, depuis site/agenda.html), soit pour un
-// devis déjà émis (phase 2, depuis site/devis-factures.html — payer un
+// Cadence — création d'une session de paiement (Stripe ou PayPal), soit pour
+// un rendez-vous déjà confirmé (phase 1, depuis site/agenda.html), soit pour
+// un devis déjà émis (phase 2, depuis site/devis-factures.html — payer un
 // devis le convertit automatiquement en facture acquittée, voir le webhook).
-// La réservation en ligne avec auto-confirmation et PayPal viennent dans des
-// passes suivantes.
+// PayPal n'est câblé QUE pour la surface « rendez-vous déjà confirmé » —
+// même périmètre que Stripe phase 1, la plus simple (pas de client anonyme,
+// pas de risque de double réservation). Le devis reste Stripe uniquement
+// pour l'instant.
 //
-//   POST /api/paiement-creer-checkout   { rendez_vous_id }  — ou —  { document_id }
+//   POST /api/paiement-creer-checkout   { rendez_vous_id, provider? }  — ou —  { document_id }
+//   provider : 'stripe' (défaut) ou 'paypal' — ignoré pour document_id.
 //   Authorization: Bearer <jeton d'accès Supabase du praticien connecté>
 //
 // Même patron d'authentification que api/envoyer-document.js : bearer token
@@ -131,6 +134,47 @@ async function creerSessionStripe(cleSecrete, params){
   return data;
 }
 
+// PayPal, surface agenda uniquement (voir en-tête). Deux hôtes d'API selon
+// le mode choisi par le praticien (site/parametres.html) — contrairement à
+// Stripe, une clé PayPal ne porte aucune marque test/live reconnaissable, il
+// faut donc que le mode soit un réglage explicite (paypal_sandbox).
+function basePaypal(sandbox){
+  return sandbox ? 'https://api-m.sandbox.paypal.com' : 'https://api-m.paypal.com';
+}
+
+// OAuth2 client_credentials — un jeton neuf à chaque demande de paiement,
+// pas de cache : ce n'est pas un chemin à fort trafic (un praticien qui
+// clique « Demander un paiement »), pas la peine de gérer l'expiration d'un
+// jeton mis en cache pour économiser un aller-retour occasionnel.
+async function jetonPaypal(clientId, clientSecret, sandbox){
+  const r = await fetch(`${basePaypal(sandbox)}/v1/oauth2/token`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: 'grant_type=client_credentials'
+  });
+  const data = await r.json();
+  if(!r.ok){
+    throw new Error(`PayPal auth ${r.status} : ${data?.error_description || data?.error || 'erreur inconnue'}`);
+  }
+  return data.access_token;
+}
+
+async function creerCommandePaypal(accessToken, sandbox, corps){
+  const r = await fetch(`${basePaypal(sandbox)}/v2/checkout/orders`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(corps)
+  });
+  const data = await r.json();
+  if(!r.ok){
+    throw new Error(`PayPal ${r.status} : ${data?.message || data?.error_description || 'erreur inconnue'}`);
+  }
+  return data;
+}
+
 // Phase 2 : demander un paiement sur un devis déjà émis. Payer le devis le
 // convertit automatiquement en facture acquittée — voir
 // api/paiement-webhook-stripe.js, qui fait le travail à la confirmation.
@@ -252,6 +296,7 @@ export default async function handler(req, res){
   }
   const rendezVousId = body?.rendez_vous_id;
   const documentId = body?.document_id;
+  const provider = body?.provider === 'paypal' ? 'paypal' : 'stripe';
   if(!rendezVousId && !documentId){
     return json(res, 400, { error: 'rendez_vous_id ou document_id manquant.' });
   }
@@ -301,7 +346,7 @@ export default async function handler(req, res){
     [prestations, clients, paiements, profils] = await Promise.all([
       supabaseGet(`prestations?id=eq.${rdv.prestation_id}&owner_id=eq.${espaceId}&select=libelle,prix_unitaire,tva_taux`),
       supabaseGet(`clients?id=eq.${rdv.client_id}&select=full_name,email`),
-      supabaseGet(`parametres_paiement?owner_id=eq.${espaceId}&select=stripe_actif,stripe_secret_key`),
+      supabaseGet(`parametres_paiement?owner_id=eq.${espaceId}&select=stripe_actif,stripe_secret_key,paypal_actif,paypal_client_id,paypal_client_secret,paypal_sandbox`),
       supabaseGet(`profiles?id=eq.${espaceId}&select=business_name,full_name`)
     ]);
   }catch(e){
@@ -313,8 +358,11 @@ export default async function handler(req, res){
   }
   const client = clients[0];
   const paiement = paiements[0];
-  if(!paiement?.stripe_actif || !paiement?.stripe_secret_key){
-    return json(res, 400, { error: "Le paiement en ligne n'est pas configuré (Paramètres → Paiement)." });
+  if(provider === 'stripe' && (!paiement?.stripe_actif || !paiement?.stripe_secret_key)){
+    return json(res, 400, { error: "Le paiement par carte (Stripe) n'est pas configuré (Paramètres → Paiement)." });
+  }
+  if(provider === 'paypal' && (!paiement?.paypal_actif || !paiement?.paypal_client_id || !paiement?.paypal_client_secret)){
+    return json(res, 400, { error: "Le paiement PayPal n'est pas configuré (Paramètres → Paiement)." });
   }
   const nomPraticien = profils[0]?.business_name || profils[0]?.full_name || 'Cadence';
 
@@ -333,6 +381,53 @@ export default async function handler(req, res){
   }
 
   const origine = `https://${req.headers.host}`;
+
+  if(provider === 'paypal'){
+    // Commande PayPal (intent CAPTURE, non capturée ici) : le client approuve
+    // sur paypal.com, qui le redirige ensuite vers `return_url` — c'est LÀ
+    // que l'argent bouge réellement, via api/paiement-capturer-paypal.js
+    // (capture explicite côté serveur, pas de webhook PayPal dans cette
+    // v1 : voir l'en-tête de ce fichier-là pour le compromis assumé). `?o=`
+    // dans return_url/cancel_url permet à ces deux endpoints publics de
+    // retrouver les identifiants PayPal DE CE praticien sans session.
+    let accessToken, commande;
+    try{
+      accessToken = await jetonPaypal(paiement.paypal_client_id, paiement.paypal_client_secret, paiement.paypal_sandbox);
+      commande = await creerCommandePaypal(accessToken, paiement.paypal_sandbox, {
+        intent: 'CAPTURE',
+        purchase_units: [{
+          custom_id: rdv.id,
+          description: `${prestation.libelle} — ${nomPraticien}`.slice(0, 127),
+          amount: { currency_code: 'EUR', value: montantTTC.toFixed(2) }
+        }],
+        application_context: {
+          brand_name: nomPraticien.slice(0, 127),
+          user_action: 'PAY_NOW',
+          return_url: `${origine}/api/paiement-capturer-paypal?o=${espaceId}`,
+          cancel_url: `${origine}/api/paiement-annuler-paypal?o=${espaceId}&rdv=${rdv.id}`
+        }
+      });
+    }catch(e){
+      return json(res, 502, { error: 'La création du paiement PayPal a échoué.', detail: String(e.message || e) });
+    }
+    const lienApprobation = commande.links?.find(l => l.rel === 'approve')?.href;
+    if(!lienApprobation){
+      return json(res, 502, { error: 'PayPal n’a pas renvoyé de lien de paiement.' });
+    }
+
+    try{
+      await supabasePatch(`rendez_vous?id=eq.${rdv.id}`, {
+        paiement_statut: 'en_attente',
+        paiement_montant: montantTTC,
+        paiement_provider: 'paypal',
+        paiement_reference: commande.id
+      });
+    }catch(e){
+      return json(res, 502, { error: 'Impossible d’enregistrer la demande de paiement.' });
+    }
+
+    return json(res, 200, { url: lienApprobation });
+  }
 
   let session;
   try{

@@ -133,6 +133,7 @@
   .badge-paye{ background:rgba(62,124,116,0.14); color:var(--teal); }
   .badge-paiement-attente{ background:rgba(28,35,51,0.08); color:rgba(28,35,51,0.6); }
   .appt-row-actions{ display:flex; gap:4px; flex-shrink:0; }
+  .hint-paiement-attente{ font-size:12px; color:rgba(28,35,51,0.5); font-style:italic; white-space:nowrap; }
   @media(max-width:480px){
     .appt-row{ flex-wrap:wrap; }
     .appt-time{ min-width:auto; order:-1; width:100%; margin-bottom:2px; }
@@ -403,6 +404,12 @@
   let clientsById = {};
   let prestationsById = {};
   let currentAppointments = [];
+  // Quels fournisseurs de paiement ce praticien a activés (Paramètres →
+  // Paiement) — pilote quels boutons "Demander un paiement" s'affichent
+  // ci-dessous. Pas de pré-vérification plus poussée ici (clés valides,
+  // etc.) : l'API le fait déjà et remonte l'erreur par toast, comme partout
+  // ailleurs dans ce fichier.
+  let paiementConfig = { stripe_actif: false, paypal_actif: false };
 
   function escapeHtml(str){
     const div = document.createElement('div');
@@ -441,6 +448,11 @@
       if(input) input.removeAttribute('aria-invalid');
       errorEl.classList.remove('show');
     }
+  }
+
+  async function loadPaiementConfig(){
+    const { data } = await supabase.from('parametres_paiement_public').select('stripe_actif, paypal_actif').maybeSingle();
+    if(data) paiementConfig = data;
   }
 
   async function loadClientsIntoSelect(){
@@ -603,8 +615,13 @@
               // (pas une demande en ligne en attente), avec une fiche client
               // et une prestation choisie — cf. api/paiement-creer-checkout.js
               // qui applique exactement les mêmes conditions côté serveur.
-              const peutDemanderPaiement = !enAttente && a.statut !== 'annule' && a.client_id
+              // Un bouton par fournisseur ACTIVÉ (Paramètres → Paiement) :
+              // l'admin choisit lequel envoyer au client selon ce qui lui
+              // convient, les deux pouvant être actifs en même temps.
+              const peutDemanderPaiementBase = !enAttente && a.statut !== 'annule' && a.client_id
                 && a.prestation_id && (a.paiement_statut === 'non_requis' || a.paiement_statut === 'echoue');
+              const peutDemanderStripe = peutDemanderPaiementBase && paiementConfig.stripe_actif;
+              const peutDemanderPaypal = peutDemanderPaiementBase && paiementConfig.paypal_actif;
               return `
                 <div class="appt-row ${a.statut === 'annule' ? 'annule' : ''} ${enAttente ? 'en-attente' : ''}" data-id="${a.id}">
                   <div class="appt-time">${timeFormatter.format(start)} – ${timeFormatter.format(end)}</div>
@@ -620,13 +637,20 @@
                     </div>
                   </div>
                   <div class="appt-row-actions">
-                    ${enAttente ? `
+                    ${enAttente ? (paiementEnAttente ? `
+                      <span class="hint-paiement-attente" title="Paiement en cours côté client — le rendez-vous se confirmera tout seul dès réception, ou se libérera automatiquement si le paiement n'aboutit pas.">Paiement en cours…</span>
+                    ` : `
                       <button class="btn btn-primary btn-sm confirm-btn" type="button" style="min-height:34px; padding:6px 12px; font-size:12.5px;">Confirmer</button>
                       <button class="btn btn-secondary btn-sm refuse-btn" type="button" style="min-height:34px; padding:6px 12px; font-size:12.5px;">Refuser</button>
-                    ` : `
-                      ${peutDemanderPaiement ? `
-                        <button class="icon-btn payer-btn" type="button" aria-label="Demander un paiement pour ${escapeHtml(a.titre)}" title="Demander un paiement">
+                    `) : `
+                      ${peutDemanderStripe ? `
+                        <button class="icon-btn payer-btn" data-provider="stripe" type="button" aria-label="Demander un paiement par carte (Stripe) pour ${escapeHtml(a.titre)}" title="Demander un paiement par carte (Stripe)">
                           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2.5"/><path d="M2 10h20"/></svg>
+                        </button>
+                      ` : ''}
+                      ${peutDemanderPaypal ? `
+                        <button class="icon-btn payer-btn" data-provider="paypal" type="button" aria-label="Demander un paiement PayPal pour ${escapeHtml(a.titre)}" title="Demander un paiement PayPal">
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h9a4 4 0 0 1 0 8H9l-1 8H4l3-16Z"/><path d="M11 8h6a4 4 0 0 1 0 8h-4"/></svg>
                         </button>
                       ` : ''}
                       <button class="icon-btn edit-btn" type="button" aria-label="Modifier ${escapeHtml(a.titre)}">
@@ -652,28 +676,32 @@
       const deleteBtn = row.querySelector('.delete-btn');
       const confirmBtn = row.querySelector('.confirm-btn');
       const refuseBtn = row.querySelector('.refuse-btn');
-      const payerBtn = row.querySelector('.payer-btn');
+      const payerBtns = row.querySelectorAll('.payer-btn');
       if(editBtn) editBtn.addEventListener('click', (e)=>{ e.stopPropagation(); openModal(appt); });
       if(deleteBtn) deleteBtn.addEventListener('click', (e)=>{ e.stopPropagation(); deleteAppointment(id, appt.titre); });
       if(confirmBtn) confirmBtn.addEventListener('click', (e)=>{ e.stopPropagation(); confirmerReservation(appt); });
       if(refuseBtn) refuseBtn.addEventListener('click', (e)=>{ e.stopPropagation(); refuserReservation(appt); });
-      if(payerBtn) payerBtn.addEventListener('click', (e)=>{ e.stopPropagation(); demanderPaiement(appt, payerBtn); });
+      payerBtns.forEach(payerBtn=>{
+        payerBtn.addEventListener('click', (e)=>{ e.stopPropagation(); demanderPaiement(appt, payerBtn, payerBtn.dataset.provider); });
+      });
       row.addEventListener('click', ()=> openModal(appt));
     });
   }
 
-  // Crée une session de paiement Stripe pour ce rendez-vous (montant recalculé
-  // côté serveur depuis la prestation, jamais transmis par ce navigateur — voir
-  // api/paiement-creer-checkout.js) et copie le lien à envoyer au client :
-  // pas d'envoi automatique par email ici (contrairement aux devis/factures),
-  // le praticien transmet lui-même le lien par le canal de son choix.
-  async function demanderPaiement(appt, btn){
+  // Crée une session de paiement (Stripe ou PayPal, selon `provider`) pour ce
+  // rendez-vous (montant recalculé côté serveur depuis la prestation, jamais
+  // transmis par ce navigateur — voir api/paiement-creer-checkout.js) et
+  // copie le lien à envoyer au client : pas d'envoi automatique par email ici
+  // (contrairement aux devis/factures), le praticien transmet lui-même le
+  // lien par le canal de son choix.
+  async function demanderPaiement(appt, btn, provider){
     if(btn) btn.disabled = true;
+    const nomProvider = provider === 'paypal' ? 'PayPal' : 'Stripe';
     try{
       const r = await fetch('/api/paiement-creer-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-        body: JSON.stringify({ rendez_vous_id: appt.id })
+        body: JSON.stringify({ rendez_vous_id: appt.id, provider })
       });
       const resultat = await r.json().catch(() => ({}));
       if(!r.ok){
@@ -687,8 +715,8 @@
       }catch(e){ /* presse-papiers indisponible — le lien reste affiché dans la boîte de dialogue */ }
       const clientName = appt.client_id ? clientsById[appt.client_id] : null;
       showToast(copie
-        ? `Lien de paiement copié — envoyez-le à ${clientName || 'votre client'}.`
-        : `Lien de paiement : ${resultat.url}`);
+        ? `Lien de paiement ${nomProvider} copié — envoyez-le à ${clientName || 'votre client'}.`
+        : `Lien de paiement ${nomProvider} : ${resultat.url}`);
       loadAppointments();
     }catch(e){
       showToast('La demande de paiement a échoué. Réessayez.');
@@ -917,6 +945,7 @@
     espaceId = await idEspaceActif(supabase);
     await loadClientsIntoSelect();
     await loadPrestationsIntoSelect();
+    await loadPaiementConfig();
     loadAppointments();
   })();
   }
