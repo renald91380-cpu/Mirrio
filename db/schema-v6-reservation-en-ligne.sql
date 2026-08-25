@@ -97,9 +97,12 @@ create trigger set_parametres_reservation_updated_at
 -- Une réservation en ligne crée une ligne `rendez_vous` sans fiche client :
 -- `client_id` reste null, les coordonnées transitent par les colonnes
 -- `prospect_*` jusqu'à ce que le praticien confirme (et crée alors la fiche
--- client lui-même, depuis site/agenda.html). `statut` n'a jamais eu de
--- contrainte CHECK — 'en_attente' s'ajoute donc à 'annule' sans migration de
--- la colonne elle-même.
+-- client lui-même, depuis site/agenda.html). `statut` porte bien une
+-- contrainte CHECK (schema.sql) — elle n'autorisait à l'origine que
+-- 'confirme'/'annule', ce qui faisait échouer silencieusement tout insert
+-- 'en_attente' malgré ce que ce commentaire affirmait ici jusqu'à présent.
+-- Corrigée dans schema-v8-paiements.sql (en avant, ce fichier déjà appliqué
+-- n'est pas réécrit) — voir ce fichier pour le détail du bug.
 
 alter table public.rendez_vous
   add column if not exists prestation_id uuid references public.prestations(id) on delete set null,

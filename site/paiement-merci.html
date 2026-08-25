@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Paiement — Cadence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#1C2333; --parchment:#F5F1E7; --teal:#3E7C74; --brick:#B5533F; --amber:#E2A63D; }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:'Inter', Arial, sans-serif; background:var(--parchment); color:var(--ink);
+    line-height:1.5; -webkit-font-smoothing:antialiased;
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .carte{
+    max-width:440px; width:100%; background:#fff; border-radius:14px; padding:44px 36px;
+    text-align:center; box-shadow:0 1px 3px rgba(28,35,51,0.08), 0 16px 40px rgba(28,35,51,0.1);
+  }
+  .icone{
+    width:56px; height:56px; margin:0 auto 20px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .icone.succes{ background:rgba(62,124,116,0.14); }
+  .icone.annule{ background:rgba(181,83,63,0.12); }
+  .icone svg{ width:26px; height:26px; }
+  h1{ font-family:'Fraunces', Georgia, serif; font-weight:700; font-size:22px; margin-bottom:12px; }
+  p{ font-size:14.5px; color:rgba(28,35,51,0.68); }
+  .marque{
+    position:fixed; top:20px; left:24px; font-family:'Fraunces', Georgia, serif;
+    font-weight:700; font-size:16px; color:rgba(28,35,51,0.55);
+  }
+</style>
+</head>
+<body>
+<div class="marque">Cadence</div>
+<div class="carte" id="carte">
+  <div class="etat-chargement">
+    <p>Chargement…</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var params = new URLSearchParams(window.location.search);
+  var statut = params.get('statut');
+  var carte = document.getElementById('carte');
+
+  var contenus = {
+    succes: {
+      classe: 'succes',
+      icone: '<svg viewBox="0 0 24 24" fill="none" stroke="#3E7C74" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>',
+      titre: 'Paiement reçu',
+      texte: 'Merci ! Votre paiement a bien été transmis. Une confirmation et votre facture acquittée vous arriveront par email dans un instant.'
+    },
+    annule: {
+      classe: 'annule',
+      icone: '<svg viewBox="0 0 24 24" fill="none" stroke="#B5533F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>',
+      titre: 'Paiement annulé',
+      texte: "Vous avez annulé le paiement — rien n'a été débité. Vous pouvez revenir en arrière et réessayer si besoin."
+    }
+  };
+
+  var c = contenus[statut] || {
+    classe: 'annule',
+    icone: '<svg viewBox="0 0 24 24" fill="none" stroke="#B5533F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>',
+    titre: 'Statut inconnu',
+    texte: "Nous n'avons pas pu déterminer le statut de ce paiement. Contactez directement votre praticien si vous avez un doute."
+  };
+
+  carte.innerHTML =
+    '<div class="icone ' + c.classe + '">' + c.icone + '</div>' +
+    '<h1>' + c.titre + '</h1>' +
+    '<p>' + c.texte + '</p>';
+})();
+</script>
+</body>
+</html>

@@ -430,6 +430,7 @@
         <button class="tab" role="tab" id="tab-prestations" aria-controls="panel-prestations" aria-selected="false" data-tab="prestations" type="button">Prestations</button>
         <button class="tab" role="tab" id="tab-agenda" aria-controls="panel-agenda" aria-selected="false" data-tab="agenda" type="button">Agenda</button>
         <button class="tab" role="tab" id="tab-reservation" aria-controls="panel-reservation" aria-selected="false" data-tab="reservation" type="button">Réservation</button>
+        <button class="tab" role="tab" id="tab-paiement" aria-controls="panel-paiement" aria-selected="false" data-tab="paiement" type="button">Paiement</button>
         <button class="tab" role="tab" id="tab-equipe" aria-controls="panel-equipe" aria-selected="false" data-tab="equipe" type="button">Équipe</button>
       </div>
 
@@ -1006,6 +1007,52 @@
         </div>
       </div>
 
+      <!-- ============================= PAIEMENT ============================= -->
+      <div class="panel" role="tabpanel" id="panel-paiement" aria-labelledby="tab-paiement" tabindex="0" hidden>
+        <div class="card">
+          <h2>Paiement en ligne</h2>
+          <p class="card-sub">Demandez un paiement anticipé (prix plein, par carte) sur un rendez-vous déjà confirmé, directement depuis l'Agenda. L'argent arrive sur <strong>votre propre compte Stripe</strong> — Cadence ne le touche jamais.</p>
+
+          <div class="note-box" style="margin-bottom:20px;">
+            Pour l'instant, disponible uniquement depuis un rendez-vous déjà confirmé dans <strong>l'Agenda</strong> — pas encore depuis un devis, ni au moment d'une réservation en ligne.
+          </div>
+
+          <div class="field" style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+            <input type="checkbox" id="paiement-stripe-actif" data-bind="paiement.stripe_actif" style="width:20px; height:20px;">
+            <label for="paiement-stripe-actif" style="margin:0;">Activer les paiements par carte (Stripe)</label>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="paiement-stripe-publishable">Clé publique (publishable key)</label>
+              <input type="text" id="paiement-stripe-publishable" data-bind="paiement.stripe_publishable_key" placeholder="pk_live_…">
+            </div>
+            <div class="field">
+              <label for="paiement-stripe-secret">Clé secrète (secret key)</label>
+              <input type="password" id="paiement-stripe-secret" autocomplete="off" placeholder="sk_live_…">
+              <div class="hint">Laissez ce champ vide pour conserver la clé déjà enregistrée — elle ne s'affiche jamais ici une fois enregistrée.</div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="paiement-stripe-webhook-secret">Secret de webhook (signing secret)</label>
+            <input type="password" id="paiement-stripe-webhook-secret" autocomplete="off" placeholder="whsec_…">
+            <div class="hint">Laissez ce champ vide pour conserver le secret déjà enregistré.</div>
+          </div>
+
+          <h3 style="margin:22px 0 10px; font-size:15px;">URL de webhook à coller dans Stripe</h3>
+          <div class="feed-box">
+            <div class="feed-url" id="paiement-webhook-url" title=""></div>
+            <button class="btn btn-outline btn-sm" type="button" id="paiement-webhook-url-copy">Copier</button>
+          </div>
+          <div class="hint" style="margin-top:8px;">Dans votre tableau de bord Stripe : Développeurs → Webhooks → Ajouter un point de terminaison, avec cette URL et l'événement <code>checkout.session.completed</code>. Copiez ensuite le secret de signature qu'il affiche dans le champ ci-dessus.</div>
+
+          <div class="note-box" style="margin-top:22px;">
+            <strong>PayPal :</strong> bientôt disponible — le principe sera le même (votre propre compte, choix au client entre les deux).
+          </div>
+        </div>
+      </div>
+
       <!-- ============================= ÉQUIPE ============================== -->
       <div class="panel" role="tabpanel" id="panel-equipe" aria-labelledby="tab-equipe" tabindex="0" hidden>
 
@@ -1099,8 +1146,8 @@
 
   // État : `courant` est ce que l'utilisateur voit, `initial` ce qui est en base.
   // La comparaison des deux pilote la barre d'enregistrement.
-  let profil = {}, facturation = {}, prestations = [], reservation = {}, estAdmin = false;
-  let initial = { profil:{}, facturation:{}, reservation:{} };
+  let profil = {}, facturation = {}, prestations = [], reservation = {}, paiement = {}, estAdmin = false;
+  let initial = { profil:{}, facturation:{}, reservation:{}, paiement:{} };
   let session = null, feedToken = null, googleConn = null, espaceId = null;
   let previewType = 'facture';
 
@@ -1150,7 +1197,13 @@
   const estModifie = () =>
     JSON.stringify(profil) !== JSON.stringify(initial.profil) ||
     JSON.stringify(facturation) !== JSON.stringify(initial.facturation) ||
-    JSON.stringify(reservation) !== JSON.stringify(initial.reservation);
+    JSON.stringify(reservation) !== JSON.stringify(initial.reservation) ||
+    JSON.stringify(paiement) !== JSON.stringify(initial.paiement) ||
+    // Les champs secrets ne sont jamais reflétés dans `paiement` (ils
+    // n'arrivent jamais du serveur, voir §2 de schema-v8-paiements.sql) —
+    // seule leur SAISIE compte comme une modification.
+    !!document.getElementById('paiement-stripe-secret')?.value ||
+    !!document.getElementById('paiement-stripe-webhook-secret')?.value;
 
   function majBarre(){
     saveBar.classList.toggle('show', estModifie());
@@ -1186,6 +1239,7 @@
   function cible(bind){
     const obj = bind.split('.')[0];
     if(obj === 'reservation') return reservation;
+    if(obj === 'paiement') return paiement;
     return obj === 'profil' ? profil : facturation;
   }
   function colonne(bind){ return bind.split('.')[1]; }
@@ -1204,7 +1258,22 @@
     majExemplesNumero();
     monterJoursReservation();
     majApercuReservation();
+    majApercuPaiement();
   }
+
+  function majApercuPaiement(){
+    const url = `${window.location.origin}/api/paiement-webhook-stripe?o=${espaceId || ''}`;
+    document.getElementById('paiement-webhook-url').textContent = url;
+    document.getElementById('paiement-webhook-url').title = url;
+  }
+  document.getElementById('paiement-webhook-url-copy').addEventListener('click', async ()=>{
+    try{ await navigator.clipboard.writeText(document.getElementById('paiement-webhook-url').textContent); showToast('URL copiée.'); }
+    catch(e){ showToast('La copie automatique a échoué — sélectionnez le texte à la main.', true); }
+  });
+  // La saisie d'une clé secrète compte comme une modification, comme tout
+  // champ lié à l'état — voir estModifie() plus haut.
+  document.getElementById('paiement-stripe-secret').addEventListener('input', majBarre);
+  document.getElementById('paiement-stripe-webhook-secret').addEventListener('input', majBarre);
 
   document.querySelectorAll('[data-bind]').forEach(el=>{
     const evt = (el.tagName === 'SELECT' || el.type === 'checkbox' || el.type === 'radio') ? 'change' : 'input';
@@ -2161,10 +2230,24 @@
     const pReserv = { ...reservation, owner_id: espaceId };
     delete pReserv.created_at; delete pReserv.updated_at;
 
-    const [r1, r2, r3] = await Promise.all([
+    // `paiement` (état rechargeable) ne porte jamais les colonnes secrètes —
+    // lues via parametres_paiement_public, qui ne les expose pas (voir
+    // schema-v8-paiements.sql §2). On ne les ajoute au upsert QUE si la
+    // personne vient d'en saisir une nouvelle : une clé omise du payload
+    // garde sa valeur actuelle en base (upsert PostgREST, pas un `update`
+    // qui écraserait tout avec des colonnes absentes).
+    const pPaiement = { ...paiement, owner_id: espaceId };
+    delete pPaiement.created_at; delete pPaiement.updated_at;
+    const stripeSecretSaisi = document.getElementById('paiement-stripe-secret').value.trim();
+    const stripeWebhookSecretSaisi = document.getElementById('paiement-stripe-webhook-secret').value.trim();
+    if(stripeSecretSaisi) pPaiement.stripe_secret_key = stripeSecretSaisi;
+    if(stripeWebhookSecretSaisi) pPaiement.stripe_webhook_secret = stripeWebhookSecretSaisi;
+
+    const [r1, r2, r3, r4] = await Promise.all([
       supabase.from('profiles').upsert(pProfil, { onConflict:'id' }),
       supabase.from('parametres_facturation').upsert(pFact, { onConflict:'owner_id' }),
-      supabase.from('parametres_reservation').upsert(pReserv, { onConflict:'owner_id' })
+      supabase.from('parametres_reservation').upsert(pReserv, { onConflict:'owner_id' }),
+      supabase.from('parametres_paiement').upsert(pPaiement, { onConflict:'owner_id' })
     ]);
 
     saveBtn.disabled = false;
@@ -2175,12 +2258,14 @@
       showToast("L'enregistrement a échoué.", true);
       return;
     }
-    if(r1.error || r2.error || r3.error){
+    if(r1.error || r2.error || r3.error || r4.error){
       showToast("L'enregistrement a échoué. Réessayez dans un instant.", true);
       return;
     }
 
-    initial = { profil: clone(profil), facturation: clone(facturation), reservation: clone(reservation) };
+    document.getElementById('paiement-stripe-secret').value = '';
+    document.getElementById('paiement-stripe-webhook-secret').value = '';
+    initial = { profil: clone(profil), facturation: clone(facturation), reservation: clone(reservation), paiement: clone(paiement) };
     viderCacheBrand();
     appliquerTheme({ ...profil });
     monterEntete({ ...profil }, 'reglages', estAdmin);
@@ -2193,6 +2278,9 @@
     profil = clone(initial.profil);
     facturation = clone(initial.facturation);
     reservation = clone(initial.reservation);
+    paiement = clone(initial.paiement);
+    document.getElementById('paiement-stripe-secret').value = '';
+    document.getElementById('paiement-stripe-webhook-secret').value = '';
     remplirChamps();
     monterAccents();
     monterStyles();
@@ -2231,10 +2319,14 @@
     await accepterInvitationEnAttente();
     espaceId = await idEspaceActif(supabase);
 
-    const [rp, rf, rr] = await Promise.all([
+    const [rp, rf, rr, rpay] = await Promise.all([
       supabase.from('profiles').select('*').maybeSingle(),
       supabase.from('parametres_facturation').select('*').maybeSingle(),
-      supabase.from('parametres_reservation').select('*').maybeSingle()
+      supabase.from('parametres_reservation').select('*').maybeSingle(),
+      // Jamais la table de base ici : cette vue n'expose délibérément aucune
+      // colonne secrète (voir schema-v8-paiements.sql §2) — les clés
+      // sk_.../whsec_... ne transitent donc jamais par ce navigateur.
+      supabase.from('parametres_paiement_public').select('*').maybeSingle()
     ]);
 
     profil = {
@@ -2267,11 +2359,17 @@
     };
     delete reservation.owner_id;
 
+    paiement = rpay.data ? { ...rpay.data } : {
+      stripe_actif: false, stripe_publishable_key: null,
+      paypal_actif: false, paypal_client_id: null
+    };
+    delete paiement.owner_id;
+
     // `is_admin` est un attribut du compte connecté (celui de `rp`, jamais
     // filtré sur l'espace actif) — voir la même remarque dans theme.js.
     estAdmin = !!rp.data?.is_admin;
 
-    initial = { profil: clone(profil), facturation: clone(facturation), reservation: clone(reservation) };
+    initial = { profil: clone(profil), facturation: clone(facturation), reservation: clone(reservation), paiement: clone(paiement) };
 
     // L'en-tête affiche la marque de l'ESPACE actif (celle qu'imprimera un devis),
     // pas forcément le profil qu'on modifie ci-dessous : un collaborateur édite
