@@ -201,6 +201,87 @@ async function envoyerEmail({ to, replyTo, subject, html }){
   }
 }
 
+// Phase 2 : un devis payé se convertit automatiquement en facture acquittée
+// — même mécanique que le bouton "Convertir en facture" existant dans
+// site/devis-factures.html (nouvelle ligne `documents`, lignes dupliquées,
+// `converted_from` vers le devis d'origine), sauf que la facture naît déjà
+// `statut:'paye'` au lieu de `'brouillon'`. Le devis d'origine passe à
+// `statut:'accepte'` — payer vaut acceptation.
+async function traiterPaiementDevis({ documentId, ownerId, req, res }){
+  let docsConfirmes;
+  try{
+    docsConfirmes = await supabasePatchConditionnel(
+      `documents?id=eq.${documentId}&owner_id=eq.${ownerId}&paiement_statut=eq.en_attente`,
+      { paiement_statut: 'paye', statut: 'accepte' }
+    );
+  }catch(e){
+    return json(res, 502, { error: 'Confirmation du paiement impossible.' });
+  }
+  if(!docsConfirmes.length){
+    // Renvoi Stripe d'un événement déjà traité — rien à refaire.
+    return json(res, 200, { recu: true, deja_traite: true });
+  }
+  const devis = docsConfirmes[0];
+
+  // À partir d'ici, l'argent est marqué reçu quoi qu'il arrive : la
+  // conversion en facture et l'email sont best-effort, jamais un motif de
+  // renvoyer une erreur à Stripe (qui réessaierait indéfiniment un webhook
+  // déjà utile). Si ça échoue, le praticien garde le bouton "Convertir en
+  // facture" existant comme filet de rattrapage manuel.
+  try{
+    const [lignesDevis, clients, profils, facturation] = await Promise.all([
+      supabaseGet(`document_lignes?document_id=eq.${devis.id}&select=description,quantite,prix_unitaire,tva_taux,position&order=position.asc`),
+      supabaseGet(`clients?id=eq.${devis.client_id}&select=full_name,email`),
+      supabaseGet(`profiles?id=eq.${ownerId}&select=business_name,full_name,logo_url`),
+      supabaseGet(`parametres_facturation?owner_id=eq.${ownerId}&select=emetteur_nom,emetteur_email`)
+    ]);
+    const client = clients[0];
+    const profil = profils[0] || {};
+    const params = facturation[0] || {};
+
+    const docs = await supabasePost('documents', {
+      owner_id: ownerId,
+      client_id: devis.client_id,
+      type: 'facture',
+      statut: 'paye',
+      converted_from: devis.id,
+      notes: `Devis ${devis.numero || ''} réglé en ligne par carte (Stripe) le ${new Date().toLocaleDateString('fr-FR')}.`
+    });
+    const facture = docs[0];
+
+    if(lignesDevis.length){
+      await Promise.all(lignesDevis.map(l => supabasePost('document_lignes', {
+        document_id: facture.id,
+        description: l.description,
+        quantite: l.quantite,
+        prix_unitaire: l.prix_unitaire,
+        tva_taux: l.tva_taux || 0,
+        position: l.position
+      })));
+    }
+
+    if(client?.email && RESEND_API_KEY){
+      const jetonPartage = await nouveauJetonPartage();
+      await supabasePatchConditionnel(`documents?id=eq.${facture.id}`, { partage_token: jetonPartage });
+
+      const origine = `https://${req.headers.host}`;
+      const nomEmetteur = params.emetteur_nom || profil.business_name || profil.full_name || 'Cadence';
+      await envoyerEmail({
+        to: client.email,
+        replyTo: params.emetteur_email || undefined,
+        subject: `Facture ${facture.numero || ''} — ${nomEmetteur}`,
+        html: gabaritEmailFacturePayee({
+          nomEmetteur, logoUrl: profil.logo_url, nomClient: client.full_name,
+          numero: facture.numero, montant: devis.paiement_montant,
+          lienDocument: `${origine}/voir-document.html?t=${jetonPartage}`
+        })
+      });
+    }
+  }catch(e){ /* voir commentaire ci-dessus — best-effort */ }
+
+  return json(res, 200, { recu: true });
+}
+
 export default async function handler(req, res){
   if(req.method !== 'POST'){
     return json(res, 405, { error: 'Method Not Allowed' });
@@ -256,8 +337,9 @@ export default async function handler(req, res){
 
   const session = event.data?.object;
   const rendezVousId = session?.metadata?.rendez_vous_id;
+  const documentId = session?.metadata?.document_id;
   const ownerIdSession = session?.metadata?.owner_id;
-  if(!rendezVousId || !ownerIdSession){
+  if((!rendezVousId && !documentId) || !ownerIdSession){
     return json(res, 200, { recu: true, ignore: 'métadonnées absentes' });
   }
   // Garde-fou supplémentaire : l'espace qui a créé la session doit être
@@ -267,13 +349,19 @@ export default async function handler(req, res){
     return json(res, 200, { recu: true, ignore: 'espace non correspondant' });
   }
 
+  // `rendez_vous` (phase 1, agenda) et `documents` (phase 2, devis) portent
+  // toutes deux les mêmes colonnes paiement_* — voir schema-v8-paiements.sql
+  // et schema-v9-paiement-devis.sql.
+  const table = rendezVousId ? 'rendez_vous' : 'documents';
+  const cibleId = rendezVousId || documentId;
+
   if(event.type === 'checkout.session.expired'){
     // Libère la tentative de paiement pour permettre d'en redemander une —
     // ne touche rien si le paiement a entre-temps déjà abouti (idempotence
     // par le même filtre `paiement_statut=eq.en_attente`).
     try{
       await supabasePatchConditionnel(
-        `rendez_vous?id=eq.${rendezVousId}&owner_id=eq.${ownerId}&paiement_statut=eq.en_attente`,
+        `${table}?id=eq.${cibleId}&owner_id=eq.${ownerId}&paiement_statut=eq.en_attente`,
         { paiement_statut: 'echoue' }
       );
     }catch(e){ /* Stripe réessaiera si ça échoue vraiment côté réseau */ }
@@ -284,6 +372,11 @@ export default async function handler(req, res){
     return json(res, 200, { recu: true, ignore: 'paiement non finalisé' });
   }
 
+  if(documentId){
+    return traiterPaiementDevis({ documentId, ownerId, req, res });
+  }
+
+  // --- Rendez-vous déjà confirmé (phase 1, agenda) ---
   // Confirmation idempotente : ne procède à la suite (facture + email) que
   // si CETTE requête est bien celle qui a fait passer 'en_attente' → 'paye'.
   let rdvsConfirmes;

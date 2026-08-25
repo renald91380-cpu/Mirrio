@@ -1,10 +1,11 @@
-// Cadence — création d'une session de paiement Stripe pour un rendez-vous
-// déjà confirmé (phase 1 du connecteur paiements : demander un paiement
-// anticipé depuis site/agenda.html sur un rendez-vous existant — pas encore
-// la réservation en ligne avec auto-confirmation, ni PayPal, qui viennent
-// dans des passes suivantes).
+// Cadence — création d'une session de paiement Stripe, soit pour un
+// rendez-vous déjà confirmé (phase 1, depuis site/agenda.html), soit pour un
+// devis déjà émis (phase 2, depuis site/devis-factures.html — payer un
+// devis le convertit automatiquement en facture acquittée, voir le webhook).
+// La réservation en ligne avec auto-confirmation et PayPal viennent dans des
+// passes suivantes.
 //
-//   POST /api/paiement-creer-checkout   { rendez_vous_id }
+//   POST /api/paiement-creer-checkout   { rendez_vous_id }  — ou —  { document_id }
 //   Authorization: Bearer <jeton d'accès Supabase du praticien connecté>
 //
 // Même patron d'authentification que api/envoyer-document.js : bearer token
@@ -96,6 +97,23 @@ function aplatirFormulaire(objet, prefixe = ''){
   return paires;
 }
 
+// Identique à envoyer-document.js — total TTC d'un devis à partir de ses
+// lignes, TVA par ligne (jamais un taux unique par document, une facture
+// peut légalement mélanger plusieurs taux). Dupliqué à dessein, pas de
+// module partagé dans api/.
+function totalTTC(lignes, assujettiTva, tauxDefaut){
+  let totalHT = 0, totalTVA = 0;
+  (lignes || []).forEach(l => {
+    const ht = (Number(l.quantite) || 0) * (Number(l.prix_unitaire) || 0);
+    totalHT += ht;
+    if(assujettiTva){
+      const taux = Number(l.tva_taux ?? tauxDefaut) || 0;
+      totalTVA += ht * taux / 100;
+    }
+  });
+  return totalHT + totalTVA;
+}
+
 async function creerSessionStripe(cleSecrete, params){
   const corps = aplatirFormulaire(params).join('&');
   const r = await fetch('https://api.stripe.com/v1/checkout/sessions', {
@@ -111,6 +129,104 @@ async function creerSessionStripe(cleSecrete, params){
     throw new Error(`Stripe ${r.status} : ${data?.error?.message || 'erreur inconnue'}`);
   }
   return data;
+}
+
+// Phase 2 : demander un paiement sur un devis déjà émis. Payer le devis le
+// convertit automatiquement en facture acquittée — voir
+// api/paiement-webhook-stripe.js, qui fait le travail à la confirmation.
+async function creerCheckoutDevis({ documentId, espaceId, req, res }){
+  let docs;
+  try{
+    docs = await supabaseGet(
+      `documents?id=eq.${documentId}&select=id,owner_id,type,numero,statut,client_id,paiement_statut,` +
+      `document_lignes(description,quantite,prix_unitaire,tva_taux)`
+    );
+  }catch(e){
+    return json(res, 502, { error: 'Lecture du devis impossible.' });
+  }
+  const doc = docs[0];
+  // L'appartenance à l'ESPACE fait foi, comme envoyer-document.js : un
+  // collaborateur peut demander un paiement sur un devis du propriétaire.
+  if(!doc || doc.owner_id !== espaceId){
+    return json(res, 404, { error: 'Devis introuvable.' });
+  }
+  if(doc.type !== 'devis'){
+    return json(res, 400, { error: 'Seul un devis peut recevoir une demande de paiement — une facture se règle directement.' });
+  }
+  if(!['brouillon', 'envoye'].includes(doc.statut)){
+    return json(res, 400, { error: 'Ce devis a déjà été traité (accepté, refusé, ou déjà réglé).' });
+  }
+  if(!doc.client_id){
+    return json(res, 400, { error: "Ce devis n'a pas de client associé." });
+  }
+  if(!['non_requis', 'echoue'].includes(doc.paiement_statut)){
+    return json(res, 409, { error: doc.paiement_statut === 'paye' ? 'Ce devis est déjà payé.' : 'Un paiement est déjà en cours pour ce devis.' });
+  }
+  if(!doc.document_lignes?.length){
+    return json(res, 400, { error: 'Ce devis est vide — impossible de calculer un montant.' });
+  }
+
+  let clients, paiements, profils, facturations;
+  try{
+    [clients, paiements, profils, facturations] = await Promise.all([
+      supabaseGet(`clients?id=eq.${doc.client_id}&select=full_name,email`),
+      supabaseGet(`parametres_paiement?owner_id=eq.${espaceId}&select=stripe_actif,stripe_secret_key`),
+      supabaseGet(`profiles?id=eq.${espaceId}&select=business_name,full_name`),
+      supabaseGet(`parametres_facturation?owner_id=eq.${espaceId}&select=assujetti_tva,tva_taux_defaut`)
+    ]);
+  }catch(e){
+    return json(res, 502, { error: 'Lecture des réglages impossible.' });
+  }
+  const client = clients[0];
+  const paiement = paiements[0];
+  if(!paiement?.stripe_actif || !paiement?.stripe_secret_key){
+    return json(res, 400, { error: "Le paiement en ligne n'est pas configuré (Paramètres → Paiement)." });
+  }
+  const nomPraticien = profils[0]?.business_name || profils[0]?.full_name || 'Cadence';
+  const params = facturations[0] || {};
+
+  const montantTTC = totalTTC(doc.document_lignes, params.assujetti_tva, params.tva_taux_defaut);
+  const montantCentimes = Math.round(montantTTC * 100);
+  if(!(montantCentimes > 0)){
+    return json(res, 400, { error: 'Le montant de ce devis est invalide.' });
+  }
+
+  const origine = `https://${req.headers.host}`;
+
+  let session;
+  try{
+    session = await creerSessionStripe(paiement.stripe_secret_key, {
+      mode: 'payment',
+      payment_method_types: ['card'],
+      line_items: [{
+        quantity: 1,
+        price_data: {
+          currency: 'eur',
+          unit_amount: montantCentimes,
+          product_data: { name: `Devis ${doc.numero || ''} — ${nomPraticien}` }
+        }
+      }],
+      customer_email: client?.email || undefined,
+      success_url: `${origine}/paiement-merci.html?statut=succes`,
+      cancel_url: `${origine}/paiement-merci.html?statut=annule`,
+      metadata: { document_id: doc.id, owner_id: espaceId }
+    });
+  }catch(e){
+    return json(res, 502, { error: 'La création du paiement a échoué.', detail: String(e.message || e) });
+  }
+
+  try{
+    await supabasePatch(`documents?id=eq.${doc.id}`, {
+      paiement_statut: 'en_attente',
+      paiement_montant: montantTTC,
+      paiement_provider: 'stripe',
+      paiement_reference: session.id
+    });
+  }catch(e){
+    return json(res, 502, { error: 'Impossible d’enregistrer la demande de paiement.' });
+  }
+
+  return json(res, 200, { url: session.url });
 }
 
 export default async function handler(req, res){
@@ -135,8 +251,12 @@ export default async function handler(req, res){
     try{ body = JSON.parse(body); }catch(e){ body = {}; }
   }
   const rendezVousId = body?.rendez_vous_id;
-  if(!rendezVousId){
-    return json(res, 400, { error: 'rendez_vous_id manquant.' });
+  const documentId = body?.document_id;
+  if(!rendezVousId && !documentId){
+    return json(res, 400, { error: 'rendez_vous_id ou document_id manquant.' });
+  }
+  if(rendezVousId && documentId){
+    return json(res, 400, { error: "Un seul des deux à la fois." });
   }
 
   let espaceId;
@@ -144,6 +264,10 @@ export default async function handler(req, res){
     espaceId = await espaceActif(utilisateur.id);
   }catch(e){
     return json(res, 502, { error: 'Vérification impossible.' });
+  }
+
+  if(documentId){
+    return creerCheckoutDevis({ documentId, espaceId, req, res });
   }
 
   let rdvs;

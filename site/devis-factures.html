@@ -134,6 +134,8 @@
   .badge-statut-paye{ background:rgba(62,124,116,0.16); color:var(--teal); }
   .badge-statut-en_retard{ background:rgba(181,83,63,0.12); color:var(--brick); }
   .badge-statut-refuse{ background:rgba(181,83,63,0.12); color:var(--brick); }
+  .badge-paiement-attente{ background:rgba(28,35,51,0.08); color:rgba(28,35,51,0.6); }
+  .badge-paye-en-ligne{ background:rgba(62,124,116,0.14); color:var(--teal); }
   .doc-row-client{ flex:1; min-width:140px; font-size:14px; }
   .doc-row-client .name{ font-family:var(--display); font-size:15.5px; font-weight:600; }
   .doc-row-client .no-client{ color:rgba(28,35,51,0.4); font-style:italic; font-size:13.5px; }
@@ -854,6 +856,14 @@
 
     listEl.innerHTML = filtered.map(d=>{
       const clientName = d.client_id ? clientsById[d.client_id] : null;
+      // Demander un paiement : seulement un devis pas encore tranché, avec
+      // un client et au moins une ligne — cf. api/paiement-creer-checkout.js
+      // qui applique exactement les mêmes conditions côté serveur.
+      const peutDemanderPaiement = d.type === 'devis' && ['brouillon', 'envoye'].includes(d.statut)
+        && d.client_id && (d.document_lignes || []).length
+        && (d.paiement_statut === 'non_requis' || d.paiement_statut === 'echoue');
+      const paiementEnAttente = d.paiement_statut === 'en_attente';
+      const paiementPaye = d.paiement_statut === 'paye';
       return `
         <div class="doc-row" data-id="${d.id}">
           <div class="doc-row-id">
@@ -861,6 +871,8 @@
             <div class="doc-badges">
               <span class="badge badge-type-${d.type}">${d.type === 'devis' ? 'Devis' : 'Facture'}</span>
               <span class="badge badge-statut-${d.statut}">${statutLabels[d.statut]}</span>
+              ${paiementEnAttente ? `<span class="badge badge-paiement-attente">Paiement en attente</span>` : ''}
+              ${paiementPaye ? `<span class="badge badge-paye-en-ligne">Payé en ligne</span>` : ''}
             </div>
           </div>
           <div class="doc-row-client">
@@ -870,6 +882,11 @@
           <div class="doc-row-due">Échéance<br>${formatDate(d.date_echeance)}</div>
           ${d.type === 'devis' ? `<button class="convert-btn" type="button" data-action="convert">Convertir en facture</button>` : ''}
           <div class="doc-row-actions">
+            ${peutDemanderPaiement ? `
+              <button class="icon-btn" type="button" data-action="payer" aria-label="Demander un paiement pour ${escapeHtml(d.numero || '')}" title="Demander un paiement">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2.5"/><path d="M2 10h20"/></svg>
+              </button>
+            ` : ''}
             <button class="icon-btn" type="button" data-action="print" aria-label="Imprimer">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
             </button>
@@ -900,9 +917,43 @@
           if(action === 'print') printDoc(doc);
           if(action === 'envoyer') envoyerParEmail(doc, btn);
           if(action === 'convert') convertToFacture(doc);
+          if(action === 'payer') demanderPaiementDevis(doc, btn);
         });
       });
     });
+  }
+
+  // Même mécanique que demanderPaiement() dans agenda.html : montant recalculé
+  // côté serveur depuis les lignes du devis (voir api/paiement-creer-checkout.js),
+  // pas d'envoi automatique par email — le praticien transmet le lien lui-même.
+  async function demanderPaiementDevis(doc, btn){
+    if(btn) btn.disabled = true;
+    try{
+      const r = await fetch('/api/paiement-creer-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ document_id: doc.id })
+      });
+      const resultat = await r.json().catch(() => ({}));
+      if(!r.ok){
+        showToast(resultat.error || 'La demande de paiement a échoué. Réessayez.');
+        return;
+      }
+      let copie = false;
+      try{
+        await navigator.clipboard.writeText(resultat.url);
+        copie = true;
+      }catch(e){ /* presse-papiers indisponible */ }
+      const clientName = doc.client_id ? clientsById[doc.client_id] : null;
+      showToast(copie
+        ? `Lien de paiement copié — envoyez-le à ${clientName || 'votre client'}.`
+        : `Lien de paiement : ${resultat.url}`);
+      loadDocs();
+    }catch(e){
+      showToast('La demande de paiement a échoué. Réessayez.');
+    }finally{
+      if(btn) btn.disabled = false;
+    }
   }
 
   async function loadDocs(){
