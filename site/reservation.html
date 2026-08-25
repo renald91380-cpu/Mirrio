@@ -160,8 +160,9 @@
             <div class="champ-erreur" id="email-erreur"></div>
           </div>
           <div class="champ">
-            <label for="telephone">Téléphone (optionnel)</label>
-            <input type="tel" id="telephone">
+            <label for="telephone">Téléphone</label>
+            <input type="tel" id="telephone" required autocomplete="tel" placeholder="06 12 34 56 78">
+            <div class="champ-erreur" id="telephone-erreur"></div>
           </div>
           <button type="submit" class="btn-primaire" id="btn-envoyer">Envoyer la demande</button>
         </form>
@@ -364,10 +365,17 @@
     let ok = true;
     const nomErr = document.getElementById('nom-erreur');
     const emailErr = document.getElementById('email-erreur');
+    const telephoneErr = document.getElementById('telephone-erreur');
     if(nom.length < 2){ nomErr.textContent = 'Indiquez votre nom.'; nomErr.classList.add('show'); ok = false; }
     else nomErr.classList.remove('show');
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ emailErr.textContent = 'Adresse email invalide.'; emailErr.classList.add('show'); ok = false; }
     else emailErr.classList.remove('show');
+    // Le téléphone est obligatoire (pas seulement recommandé) : Cadence doit
+    // pouvoir joindre le client par SMS (confirmation, rappel la veille —
+    // fonctionnalité à venir) en plus de l'email.
+    const telephoneNettoye = telephone.replace(/[\s.-]/g, '');
+    if(!/^(?:\+33[1-9]\d{8}|0[1-9]\d{8})$/.test(telephoneNettoye)){ telephoneErr.textContent = 'Numéro de téléphone invalide.'; telephoneErr.classList.add('show'); ok = false; }
+    else telephoneErr.classList.remove('show');
     if(!ok) return;
 
     const paiementRequis = !!bootstrap.paiement_requis;
@@ -383,7 +391,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           slug, prestation_ids: prestationsChoisies.map(p => p.id), date_debut: creneauChoisi,
-          nom, email, telephone: telephone || undefined
+          nom, email, telephone
         })
       });
       resultat = await r.json();

@@ -217,7 +217,7 @@ export default async function handler(req, res){
   const dateDebutStr = String(body?.date_debut || '');
   const nom = String(body?.nom || '').trim();
   const email = String(body?.email || '').trim();
-  const telephone = body?.telephone ? String(body.telephone).trim() : null;
+  const telephone = String(body?.telephone || '').trim();
 
   if(!/^[a-z0-9-]{3,40}$/.test(slug)){
     return json(res, 404, { error: 'Page de réservation introuvable.' });
@@ -235,6 +235,14 @@ export default async function handler(req, res){
   }
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
     return json(res, 400, { error: 'Adresse email invalide.' });
+  }
+  // Obligatoire désormais (plus seulement recommandé) : le canal SMS
+  // (confirmation, rappel la veille — à venir) en a besoin en plus de
+  // l'email. Revalidé ici même si site/reservation.html le valide déjà
+  // côté client — jamais confiance dans une entrée non revérifiée côté
+  // serveur.
+  if(!/^(?:\+33[1-9]\d{8}|0[1-9]\d{8})$/.test(telephone.replace(/[\s.-]/g, ''))){
+    return json(res, 400, { error: 'Numéro de téléphone invalide.' });
   }
 
   let reglages;
