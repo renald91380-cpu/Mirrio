@@ -40,14 +40,26 @@
 
   .liste-prestations{ display:flex; flex-direction:column; gap:10px; }
   .carte-prestation{
+    display:flex; align-items:flex-start; gap:12px; width:100%;
     text-align:left; background:#fff; border:1px solid rgba(28,35,51,0.14); border-radius:10px;
     padding:14px 16px; cursor:pointer; transition:border-color .15s ease, box-shadow .15s ease;
   }
   .carte-prestation:hover, .carte-prestation.selectionnee{ border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-doux); }
+  .cp-case{
+    flex-shrink:0; width:20px; height:20px; margin-top:2px; border-radius:5px;
+    border:1.5px solid rgba(28,35,51,0.25); display:flex; align-items:center; justify-content:center;
+    font-size:12.5px; font-weight:700; color:var(--accent-text); transition:background .15s ease, border-color .15s ease;
+  }
+  .carte-prestation.selectionnee .cp-case{ background:var(--accent); border-color:var(--accent); }
+  .cp-corps{ flex:1; min-width:0; }
   .cp-titre{ font-weight:600; font-size:15px; margin-bottom:2px; }
   .cp-desc{ font-size:13px; color:rgba(28,35,51,0.55); margin-bottom:8px; }
   .cp-meta{ display:flex; justify-content:space-between; font-size:13px; color:rgba(28,35,51,0.6); }
   .cp-prix{ font-weight:700; color:var(--ink); }
+
+  .recap-selection{ font-size:13px; color:rgba(28,35,51,0.65); margin:14px 0 10px; min-height:1.4em; }
+  .recap-liste{ list-style:none; margin:0 0 8px; padding:0; }
+  .recap-liste li{ display:flex; justify-content:space-between; font-size:13.5px; padding:2px 0; }
 
   .jours-scroll{ display:flex; gap:8px; overflow-x:auto; padding-bottom:6px; margin-bottom:16px; }
   .jour-btn{
@@ -113,10 +125,12 @@
     <div class="corps">
 
       <div id="etape-prestation">
-        <h2>Choisissez une prestation</h2>
-        <p class="sub">Sélectionnez ce que vous souhaitez réserver.</p>
+        <h2>Choisissez une ou plusieurs prestations</h2>
+        <p class="sub">Sélectionnez ce que vous souhaitez réserver, puis continuez.</p>
         <div class="liste-prestations" id="liste-prestations"></div>
         <div class="note-vide" id="note-aucune-prestation" style="display:none;">Aucune prestation n'est disponible à la réservation pour le moment.</div>
+        <div class="recap-selection" id="recap-selection"></div>
+        <button type="button" class="btn-primaire" id="btn-continuer-prestations" disabled>Continuer</button>
       </div>
 
       <div id="etape-date" style="display:none;">
@@ -168,7 +182,7 @@
 </div>
 
 <script type="module">
-  import { stylesAccent, carteMarque, cartePrestation, boutonJour, boutonCreneau, echapperHtml, formaterEuros } from './reservation-widget.js';
+  import { stylesAccent, carteMarque, cartePrestation, boutonJour, boutonCreneau, echapperHtml, formaterEuros, formaterDuree, prixTTC, resumeSelection } from './reservation-widget.js';
 
   const slug = new URLSearchParams(location.search).get('p') || '';
 
@@ -177,7 +191,10 @@
   const wrap = document.getElementById('wrap');
 
   let bootstrap = null;
-  let prestationChoisie = null;
+  // Une ou plusieurs prestations choisies ensemble (ex. « Coupe + Couleur »)
+  // — l'ordre reflète l'ordre de sélection, conservé jusqu'au serveur pour
+  // que l'itemisation (facture, reçu Stripe) suive le même ordre.
+  let prestationsChoisies = [];
   let dateChoisie = null;
   let creneauChoisi = null;
 
@@ -203,17 +220,40 @@
     if(!bootstrap.prestations.length){
       liste.innerHTML = '';
       vide.style.display = 'block';
+      document.getElementById('btn-continuer-prestations').style.display = 'none';
       return;
     }
     vide.style.display = 'none';
-    liste.innerHTML = bootstrap.prestations.map(p => cartePrestation(p, false)).join('');
+    liste.innerHTML = bootstrap.prestations.map(p => cartePrestation(p, prestationsChoisies.some(c => c.id === p.id))).join('');
     liste.querySelectorAll('.carte-prestation').forEach(el=>{
-      el.addEventListener('click', ()=>{
-        prestationChoisie = bootstrap.prestations.find(p => p.id === el.dataset.id);
-        ouvrirEtapeDate();
-      });
+      el.addEventListener('click', ()=> basculerPrestation(el));
     });
+    majRecapSelection();
   }
+
+  function basculerPrestation(el){
+    const id = el.dataset.id;
+    const dejaChoisie = prestationsChoisies.some(p => p.id === id);
+    if(dejaChoisie){
+      prestationsChoisies = prestationsChoisies.filter(p => p.id !== id);
+      el.classList.remove('selectionnee');
+      el.setAttribute('aria-pressed', 'false');
+      el.querySelector('.cp-case').textContent = '';
+    }else{
+      prestationsChoisies.push(bootstrap.prestations.find(p => p.id === id));
+      el.classList.add('selectionnee');
+      el.setAttribute('aria-pressed', 'true');
+      el.querySelector('.cp-case').textContent = '✓';
+    }
+    majRecapSelection();
+  }
+
+  function majRecapSelection(){
+    document.getElementById('recap-selection').textContent = resumeSelection(prestationsChoisies);
+    document.getElementById('btn-continuer-prestations').disabled = !prestationsChoisies.length;
+  }
+
+  document.getElementById('btn-continuer-prestations').addEventListener('click', ouvrirEtapeDate);
 
   // ------------------------------------------------------------------ dates
   function parisAujourdhui(){
@@ -225,8 +265,9 @@
   }
 
   function ouvrirEtapeDate(){
+    const libelleCombine = prestationsChoisies.map(p => p.libelle).join(' + ');
     document.getElementById('date-sub').textContent =
-      `${prestationChoisie.libelle} — sélectionnez un jour puis une heure.`;
+      `${libelleCombine} — sélectionnez un jour puis une heure.`;
     const scroll = document.getElementById('jours-scroll');
     const { annee, mois, jour } = parisAujourdhui();
     const horizon = bootstrap.reglages.horizon_jours || 30;
@@ -259,9 +300,10 @@
     grille.innerHTML = '';
     vide.style.display = 'none';
 
+    const idsParam = prestationsChoisies.map(p => p.id).join(',');
     let payload;
     try{
-      const r = await fetch(`/api/reservation-disponibilites?slug=${encodeURIComponent(slug)}&prestation_id=${encodeURIComponent(prestationChoisie.id)}&date=${dateChoisie}`);
+      const r = await fetch(`/api/reservation-disponibilites?slug=${encodeURIComponent(slug)}&prestation_ids=${encodeURIComponent(idsParam)}&date=${dateChoisie}`);
       payload = await r.json();
     }catch(e){
       vide.textContent = 'Impossible de charger les créneaux — réessayez.';
@@ -288,9 +330,13 @@
       timeZone:'Europe/Paris', weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'
     }).format(new Date(creneauChoisi));
     const paiementRequis = !!bootstrap.paiement_requis;
+    const totalTTC = prestationsChoisies.reduce((s, p) => s + prixTTC(p), 0);
+    const listeHtml = prestationsChoisies.length > 1
+      ? `<ul class="recap-liste">${prestationsChoisies.map(p => `<li><span>${echapperHtml(p.libelle)}</span><span>${formaterEuros(prixTTC(p))}</span></li>`).join('')}</ul>`
+      : `<strong>${echapperHtml(prestationsChoisies[0].libelle)}</strong><br>`;
     document.getElementById('recap').innerHTML =
-      `<strong>${echapperHtml(prestationChoisie.libelle)}</strong><br>${echapperHtml(quand)}` +
-      (paiementRequis ? `<div class="recap-prix">${formaterEuros(prestationChoisie.prix_unitaire)}</div>` : '');
+      listeHtml + `<div>${echapperHtml(quand)}</div>` +
+      (paiementRequis ? `<div class="recap-prix">${formaterEuros(totalTTC)}</div>` : '');
 
     const notePaiement = document.getElementById('note-paiement');
     if(paiementRequis){
@@ -336,7 +382,7 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          slug, prestation_id: prestationChoisie.id, date_debut: creneauChoisi,
+          slug, prestation_ids: prestationsChoisies.map(p => p.id), date_debut: creneauChoisi,
           nom, email, telephone: telephone || undefined
         })
       });

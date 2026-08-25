@@ -20,6 +20,26 @@ export function formaterDuree(minutes){
   return `${Math.floor(minutes / 60)} h ${minutes % 60}`;
 }
 
+// Prix TTC d'une prestation — même calcul que côté serveur (voir
+// api/reservation-publique.js) : `prix_unitaire` est HT, la TVA s'ajoute
+// par-dessus. Affiché ici pour que le total montré au client corresponde
+// exactement au montant qui sera réellement débité.
+export function prixTTC(p){
+  const taux = Number(p.tva_taux) || 0;
+  return Number(p.prix_unitaire) * (1 + taux / 100);
+}
+
+// Résumé d'une sélection de prestations (durée + prix cumulés) — utilisé
+// pour le bouton « Continuer » de l'étape de choix, où plusieurs prestations
+// peuvent désormais être cochées ensemble.
+export function resumeSelection(liste){
+  if(!liste.length) return '';
+  const duree = liste.reduce((s, p) => s + (Number(p.duree_minutes) || 0), 0);
+  const total = liste.reduce((s, p) => s + prixTTC(p), 0);
+  const n = liste.length;
+  return `${n} prestation${n > 1 ? 's' : ''} sélectionnée${n > 1 ? 's' : ''} — ${formaterDuree(duree)} — ${formaterEuros(total)}`;
+}
+
 // Variables CSS d'accent posées sur :root — même jeu de couleurs que le reste
 // de l'app (theme.js), mais appliqué localement : cette page n'a pas de
 // session, donc pas de cache de marque à réutiliser.
@@ -35,14 +55,20 @@ export function carteMarque({ business_name, logo_url }){
   return `<span class="marque-texte">${echapperHtml(business_name)}</span>`;
 }
 
+// Sélection multiple : chaque carte est une case à cocher (une ou plusieurs
+// prestations peuvent être choisies ensemble, ex. « Coupe + Couleur »), pas
+// une navigation immédiate — voir le bouton « Continuer » de reservation.html.
 export function cartePrestation(p, selectionnee){
   return `
-    <button type="button" class="carte-prestation ${selectionnee ? 'selectionnee' : ''}" data-id="${p.id}">
-      <div class="cp-titre">${echapperHtml(p.libelle)}</div>
-      ${p.description ? `<div class="cp-desc">${echapperHtml(p.description)}</div>` : ''}
-      <div class="cp-meta">
-        <span>${formaterDuree(p.duree_minutes)}</span>
-        <span class="cp-prix">${formaterEuros(p.prix_unitaire)}</span>
+    <button type="button" class="carte-prestation ${selectionnee ? 'selectionnee' : ''}" data-id="${p.id}" aria-pressed="${selectionnee ? 'true' : 'false'}">
+      <div class="cp-case" aria-hidden="true">${selectionnee ? '✓' : ''}</div>
+      <div class="cp-corps">
+        <div class="cp-titre">${echapperHtml(p.libelle)}</div>
+        ${p.description ? `<div class="cp-desc">${echapperHtml(p.description)}</div>` : ''}
+        <div class="cp-meta">
+          <span>${formaterDuree(p.duree_minutes)}</span>
+          <span class="cp-prix">${formaterEuros(prixTTC(p))}</span>
+        </div>
       </div>
     </button>`;
 }

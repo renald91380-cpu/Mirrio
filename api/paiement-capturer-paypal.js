@@ -267,13 +267,20 @@ export default async function handler(req, res){
   const rdv = rdvsConfirmes[0];
 
   try{
-    const [prestations, clients, profils, facturation] = await Promise.all([
-      supabaseGet(`prestations?id=eq.${rdv.prestation_id}&select=libelle,prix_unitaire,tva_taux`),
+    const [liees, clients, profils, facturation] = await Promise.all([
+      // Voir schema-v13 : un rendez-vous peut porter plusieurs prestations,
+      // la liste complète vit dans rendez_vous_prestations.
+      supabaseGet(`rendez_vous_prestations?rendez_vous_id=eq.${rdv.id}&select=position,prestations(libelle,prix_unitaire,tva_taux)&order=position.asc`),
       supabaseGet(`clients?id=eq.${rdv.client_id}&select=full_name,email`),
       supabaseGet(`profiles?id=eq.${ownerId}&select=business_name,full_name,logo_url`),
       supabaseGet(`parametres_facturation?owner_id=eq.${ownerId}&select=emetteur_nom,emetteur_email`)
     ]);
-    const prestation = prestations[0];
+    // Rétrocompatible : un rendez-vous sans ligne dans rendez_vous_prestations
+    // (saisi à la main, ou créé avant schema-v13) retombe sur prestation_id.
+    let prestationsOrdonnees = liees.map(l => l.prestations).filter(Boolean);
+    if(!prestationsOrdonnees.length && rdv.prestation_id){
+      prestationsOrdonnees = await supabaseGet(`prestations?id=eq.${rdv.prestation_id}&select=libelle,prix_unitaire,tva_taux`);
+    }
     const client = clients[0];
     const profil = profils[0] || {};
     const params = facturation[0] || {};
@@ -287,15 +294,15 @@ export default async function handler(req, res){
     });
     const doc = docs[0];
 
-    if(prestation){
-      await supabasePost('document_lignes', {
+    if(prestationsOrdonnees.length){
+      await Promise.all(prestationsOrdonnees.map((p, i) => supabasePost('document_lignes', {
         document_id: doc.id,
-        description: prestation.libelle,
+        description: p.libelle,
         quantite: 1,
-        prix_unitaire: prestation.prix_unitaire,
-        position: 0,
-        tva_taux: prestation.tva_taux || 0
-      });
+        prix_unitaire: p.prix_unitaire,
+        position: i,
+        tva_taux: p.tva_taux || 0
+      })));
     }
 
     if(client?.email && RESEND_API_KEY){

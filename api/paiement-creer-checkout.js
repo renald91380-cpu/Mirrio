@@ -341,10 +341,13 @@ export default async function handler(req, res){
     return json(res, 400, { error: "Ce rendez-vous n'a pas de prestation associée — impossible de calculer un montant. Choisissez une prestation dans l'agenda avant de demander un paiement." });
   }
 
-  let prestations, clients, paiements, profils;
+  let liees, clients, paiements, profils;
   try{
-    [prestations, clients, paiements, profils] = await Promise.all([
-      supabaseGet(`prestations?id=eq.${rdv.prestation_id}&owner_id=eq.${espaceId}&select=libelle,prix_unitaire,tva_taux`),
+    [liees, clients, paiements, profils] = await Promise.all([
+      // Un rendez-vous issu de la réservation en ligne (voir schema-v13) peut
+      // porter plusieurs prestations — la liste complète vit ici, dans
+      // l'ordre choisi par le client.
+      supabaseGet(`rendez_vous_prestations?rendez_vous_id=eq.${rdv.id}&select=position,prestations(libelle,prix_unitaire,tva_taux)&order=position.asc`),
       supabaseGet(`clients?id=eq.${rdv.client_id}&select=full_name,email`),
       supabaseGet(`parametres_paiement?owner_id=eq.${espaceId}&select=stripe_actif,stripe_secret_key,paypal_actif,paypal_client_id,paypal_client_secret,paypal_sandbox`),
       supabaseGet(`profiles?id=eq.${espaceId}&select=business_name,full_name`)
@@ -352,8 +355,18 @@ export default async function handler(req, res){
   }catch(e){
     return json(res, 502, { error: 'Lecture des réglages impossible.' });
   }
-  const prestation = prestations[0];
-  if(!prestation){
+  // Rétrocompatible : un rendez-vous plus ancien (ou saisi à la main dans
+  // l'agenda) n'a jamais de ligne dans rendez_vous_prestations — on retombe
+  // alors sur la seule prestation_id qu'il porte.
+  let prestationsOrdonnees = liees.map(l => l.prestations).filter(Boolean);
+  if(!prestationsOrdonnees.length){
+    try{
+      prestationsOrdonnees = await supabaseGet(`prestations?id=eq.${rdv.prestation_id}&owner_id=eq.${espaceId}&select=libelle,prix_unitaire,tva_taux`);
+    }catch(e){
+      return json(res, 502, { error: 'Lecture des réglages impossible.' });
+    }
+  }
+  if(!prestationsOrdonnees.length){
     return json(res, 404, { error: 'Prestation introuvable.' });
   }
   const client = clients[0];
@@ -365,16 +378,19 @@ export default async function handler(req, res){
     return json(res, 400, { error: "Le paiement PayPal n'est pas configuré (Paramètres → Paiement)." });
   }
   const nomPraticien = profils[0]?.business_name || profils[0]?.full_name || 'Cadence';
+  const libelleCombine = prestationsOrdonnees.map(p => p.libelle).join(' + ');
 
   // `prestations.prix_unitaire` est HT, exactement comme `document_lignes` —
   // même paire de colonnes (prix_unitaire, tva_taux), même sens. Le montant
   // réellement facturé/encaissé est donc le TTC recalculé ici, jamais le HT
-  // brut : c'est ce montant TTC qui part chez Stripe ET qui est conservé
-  // dans `paiement_montant`, pour que la facture générée par le webhook
-  // (api/paiement-webhook-stripe.js), qui relit la même prestation, totalise
-  // exactement ce qui a été payé.
-  const tauxTva = Number(prestation.tva_taux) || 0;
-  const montantTTC = Number(prestation.prix_unitaire) * (1 + tauxTva / 100);
+  // brut, sommé sur TOUTES les prestations liées — c'est ce montant TTC qui
+  // part chez Stripe/PayPal ET qui est conservé dans `paiement_montant`, pour
+  // que la facture générée par le webhook (api/paiement-webhook-stripe.js),
+  // qui relit les mêmes prestations, totalise exactement ce qui a été payé.
+  const montantTTC = prestationsOrdonnees.reduce((s, p) => {
+    const taux = Number(p.tva_taux) || 0;
+    return s + Number(p.prix_unitaire) * (1 + taux / 100);
+  }, 0);
   const montantCentimes = Math.round(montantTTC * 100);
   if(!(montantCentimes > 0)){
     return json(res, 400, { error: 'Le prix de cette prestation est invalide.' });
@@ -397,7 +413,7 @@ export default async function handler(req, res){
         intent: 'CAPTURE',
         purchase_units: [{
           custom_id: rdv.id,
-          description: `${prestation.libelle} — ${nomPraticien}`.slice(0, 127),
+          description: `${libelleCombine} — ${nomPraticien}`.slice(0, 127),
           amount: { currency_code: 'EUR', value: montantTTC.toFixed(2) }
         }],
         application_context: {
@@ -434,14 +450,20 @@ export default async function handler(req, res){
     session = await creerSessionStripe(paiement.stripe_secret_key, {
       mode: 'payment',
       payment_method_types: ['card'],
-      line_items: [{
-        quantity: 1,
-        price_data: {
-          currency: 'eur',
-          unit_amount: montantCentimes,
-          product_data: { name: `${prestation.libelle} — ${nomPraticien}` }
-        }
-      }],
+      // Une ligne par prestation liée à ce rendez-vous — reçu détaillé plutôt
+      // qu'un montant global, même parti pris que la réservation en ligne.
+      line_items: prestationsOrdonnees.map(p => {
+        const taux = Number(p.tva_taux) || 0;
+        const montant = Number(p.prix_unitaire) * (1 + taux / 100);
+        return {
+          quantity: 1,
+          price_data: {
+            currency: 'eur',
+            unit_amount: Math.round(montant * 100),
+            product_data: { name: `${p.libelle} — ${nomPraticien}` }
+          }
+        };
+      }),
       customer_email: client?.email || undefined,
       success_url: `${origine}/paiement-merci.html?statut=succes`,
       cancel_url: `${origine}/paiement-merci.html?statut=annule`,

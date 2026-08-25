@@ -207,7 +207,13 @@ export default async function handler(req, res){
     try{ body = JSON.parse(body); }catch(e){ body = {}; }
   }
   const slug = String(body?.slug || '');
-  const prestationId = String(body?.prestation_id || '');
+  // `prestation_ids` (tableau) est le format actuel — `prestation_id`
+  // (singulier) reste accepté pour un appel plus ancien, converti dans la
+  // même liste juste en dessous.
+  const prestationIdsBrut = Array.isArray(body?.prestation_ids)
+    ? body.prestation_ids
+    : (body?.prestation_id ? [body.prestation_id] : []);
+  const prestationIds = [...new Set(prestationIdsBrut.map(String).filter(Boolean))];
   const dateDebutStr = String(body?.date_debut || '');
   const nom = String(body?.nom || '').trim();
   const email = String(body?.email || '').trim();
@@ -216,7 +222,8 @@ export default async function handler(req, res){
   if(!/^[a-z0-9-]{3,40}$/.test(slug)){
     return json(res, 404, { error: 'Page de réservation introuvable.' });
   }
-  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(prestationId)){
+  const idValide = id => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  if(!prestationIds.length || !prestationIds.every(idValide)){
     return json(res, 400, { error: 'Prestation invalide.' });
   }
   const dateDebut = new Date(dateDebutStr);
@@ -247,15 +254,30 @@ export default async function handler(req, res){
   let prestations;
   try{
     prestations = await supabaseGet(
-      `prestations?id=eq.${prestationId}&owner_id=eq.${ownerId}&actif=eq.true&select=id,libelle,prix_unitaire,tva_taux,duree_minutes`
+      `prestations?id=in.(${prestationIds.join(',')})&owner_id=eq.${ownerId}&actif=eq.true` +
+      `&select=id,libelle,prix_unitaire,tva_taux,duree_minutes`
     );
   }catch(e){
     return json(res, 503, { error: 'Page de réservation temporairement indisponible.' });
   }
-  const prestation = prestations[0];
-  if(!prestation){
+  if(prestations.length !== prestationIds.length){
     return json(res, 404, { error: 'Prestation introuvable.' });
   }
+  // Remet les prestations dans l'ordre choisi par le client (Supabase ne
+  // garantit pas l'ordre d'un `in.(...)`) — sert à l'ordre des lignes de la
+  // facture générée et du libellé du rendez-vous.
+  const prestationsParId = new Map(prestations.map(p => [p.id, p]));
+  const prestationsOrdonnees = prestationIds.map(id => prestationsParId.get(id));
+  const dureeMinutesTotale = prestationsOrdonnees.reduce((s, p) => s + (Number(p.duree_minutes) || 0), 0);
+  const montantTTC = prestationsOrdonnees.reduce((s, p) => {
+    const taux = Number(p.tva_taux) || 0;
+    return s + Number(p.prix_unitaire) * (1 + taux / 100);
+  }, 0);
+  const libelleCombine = prestationsOrdonnees.map(p => p.libelle).join(' + ');
+  // Représentant unique pour les colonnes historiques (rendez_vous.prestation_id,
+  // affichage à un seul champ dans agenda.html) — toujours la première
+  // prestation choisie, la liste complète vit dans rendez_vous_prestations.
+  const prestationPrincipale = prestationsOrdonnees[0];
 
   // ---- défense en profondeur : re-vérifier les règles côté serveur ----
   const c = composantsParis(dateDebut);
@@ -266,7 +288,7 @@ export default async function handler(req, res){
   const [hDebutH, hDebutM] = String(reglage.heure_debut).split(':').map(Number);
   const [hFinH, hFinM] = String(reglage.heure_fin).split(':').map(Number);
   const minuteDuJour = c.heure * 60 + c.minute;
-  if(minuteDuJour < hDebutH * 60 + hDebutM || minuteDuJour + prestation.duree_minutes > hFinH * 60 + hFinM){
+  if(minuteDuJour < hDebutH * 60 + hDebutM || minuteDuJour + dureeMinutesTotale > hFinH * 60 + hFinM){
     return json(res, 409, { error: 'Ce créneau est hors des horaires de réservation.' });
   }
   const maintenant = Date.now();
@@ -277,7 +299,7 @@ export default async function handler(req, res){
     return json(res, 409, { error: 'Ce créneau est trop lointain.' });
   }
 
-  const dateFin = new Date(dateDebut.getTime() + prestation.duree_minutes * 60000);
+  const dateFin = new Date(dateDebut.getTime() + dureeMinutesTotale * 60000);
 
   // ---- re-vérification anti-course juste avant l'insert ----
   let occupes;
@@ -315,8 +337,6 @@ export default async function handler(req, res){
   const paiementRequis = !!(paiementConfig?.stripe_actif && paiementConfig?.stripe_secret_key);
 
   if(paiementRequis){
-    const tauxTva = Number(prestation.tva_taux) || 0;
-    const montantTTC = Number(prestation.prix_unitaire) * (1 + tauxTva / 100);
     const montantCentimes = Math.round(montantTTC * 100);
     if(!(montantCentimes > 0)){
       return json(res, 400, { error: 'Le prix de cette prestation est invalide.' });
@@ -325,12 +345,15 @@ export default async function handler(req, res){
     // Le hold occupe le créneau dès l'insert (même logique de chevauchement
     // que les demandes gratuites), mais expire tout seul dans 15 minutes —
     // voir la note sur `expire_le` dans api/reservation-disponibilites.js.
+    // `paiement_montant` posé dès la création (pas seulement au retour de
+    // Stripe) : c'est ce total, toutes prestations comprises, que relit la
+    // facture générée par le webhook et l'email de confirmation.
     let rdv;
     try{
       const rows = await supabasePostRepresentation('rendez_vous', {
         owner_id: ownerId,
-        titre: `${prestation.libelle} — ${nom}`,
-        prestation_id: prestation.id,
+        titre: `${libelleCombine} — ${nom}`,
+        prestation_id: prestationPrincipale.id,
         date_debut: dateDebut.toISOString(),
         date_fin: dateFin.toISOString(),
         statut: 'en_attente',
@@ -340,11 +363,23 @@ export default async function handler(req, res){
         prospect_telephone: telephone,
         paiement_statut: 'en_attente',
         paiement_provider: 'stripe',
+        paiement_montant: montantTTC,
         expire_le: new Date(Date.now() + 15 * 60000).toISOString()
       });
       rdv = rows[0];
     }catch(e){
       return json(res, 502, { error: 'La réservation a échoué. Réessayez.' });
+    }
+
+    try{
+      await supabasePost('rendez_vous_prestations', prestationsOrdonnees.map((p, i) => ({
+        rendez_vous_id: rdv.id, prestation_id: p.id, position: i
+      })));
+    }catch(e){
+      // Pas bloquant côté créneau/paiement (déjà réservés ci-dessus), mais la
+      // facture générée par le webhook retombera sur la seule prestation
+      // principale plutôt que la liste complète — mieux qu'un échec total de
+      // la réservation pour ça.
     }
 
     let nomPraticien = 'Cadence';
@@ -359,14 +394,20 @@ export default async function handler(req, res){
       session = await creerSessionStripe(paiementConfig.stripe_secret_key, {
         mode: 'payment',
         payment_method_types: ['card'],
-        line_items: [{
-          quantity: 1,
-          price_data: {
-            currency: 'eur',
-            unit_amount: montantCentimes,
-            product_data: { name: `${prestation.libelle} — ${nomPraticien}` }
-          }
-        }],
+        // Une ligne Stripe par prestation choisie — un reçu détaillé plutôt
+        // qu'un unique montant global.
+        line_items: prestationsOrdonnees.map(p => {
+          const taux = Number(p.tva_taux) || 0;
+          const montant = Number(p.prix_unitaire) * (1 + taux / 100);
+          return {
+            quantity: 1,
+            price_data: {
+              currency: 'eur',
+              unit_amount: Math.round(montant * 100),
+              product_data: { name: `${p.libelle} — ${nomPraticien}` }
+            }
+          };
+        }),
         customer_email: email,
         success_url: `${origine}/paiement-merci.html?statut=succes`,
         cancel_url: `${origine}/paiement-merci.html?statut=annule`,
@@ -387,12 +428,13 @@ export default async function handler(req, res){
     return json(res, 200, { url: session.url });
   }
 
-  // ---- comportement existant, inchangé : demande en attente, confirmation manuelle ----
+  // ---- comportement existant : demande en attente, confirmation manuelle ----
+  let rdvGratuit;
   try{
-    await supabasePost('rendez_vous', {
+    const rows = await supabasePostRepresentation('rendez_vous', {
       owner_id: ownerId,
-      titre: `${prestation.libelle} — ${nom}`,
-      prestation_id: prestation.id,
+      titre: `${libelleCombine} — ${nom}`,
+      prestation_id: prestationPrincipale.id,
       date_debut: dateDebut.toISOString(),
       date_fin: dateFin.toISOString(),
       statut: 'en_attente',
@@ -401,9 +443,16 @@ export default async function handler(req, res){
       prospect_email: email,
       prospect_telephone: telephone
     });
+    rdvGratuit = rows[0];
   }catch(e){
     return json(res, 502, { error: 'La réservation a échoué. Réessayez.' });
   }
+
+  try{
+    await supabasePost('rendez_vous_prestations', prestationsOrdonnees.map((p, i) => ({
+      rendez_vous_id: rdvGratuit.id, prestation_id: p.id, position: i
+    })));
+  }catch(e){ /* pas bloquant, voir la même note plus haut sur le chemin payant */ }
 
   // ---- emails best-effort : jamais bloquants ----
   if(RESEND_API_KEY){
@@ -426,7 +475,7 @@ export default async function handler(req, res){
         html: gabaritSimple({
           titre: 'Votre demande a bien été reçue',
           paragraphes: [
-            `Vous avez demandé un rendez-vous pour <strong>${echapperHtml(prestation.libelle)}</strong> le ${echapperHtml(quand)}, auprès de ${echapperHtml(nomPraticien)}.`,
+            `Vous avez demandé un rendez-vous pour <strong>${echapperHtml(libelleCombine)}</strong> le ${echapperHtml(quand)}, auprès de ${echapperHtml(nomPraticien)}.`,
             `Cette demande est <strong>en attente de confirmation</strong> — vous recevrez un message dès qu’elle sera validée.`
           ]
         })
@@ -442,7 +491,7 @@ export default async function handler(req, res){
           html: gabaritSimple({
             titre: 'Nouvelle demande de réservation',
             paragraphes: [
-              `<strong>${echapperHtml(nom)}</strong> a demandé un rendez-vous pour ${echapperHtml(prestation.libelle)} (${formaterEuros(prestation.prix_unitaire)}) le ${echapperHtml(quand)}.`,
+              `<strong>${echapperHtml(nom)}</strong> a demandé un rendez-vous pour ${echapperHtml(libelleCombine)} (${formaterEuros(montantTTC)}) le ${echapperHtml(quand)}.`,
               `Contact : ${echapperHtml(email)}${telephone ? ` — ${echapperHtml(telephone)}` : ''}.`,
               `Ouvrez votre agenda Cadence pour la confirmer ou la refuser.`
             ]

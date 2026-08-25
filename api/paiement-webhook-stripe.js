@@ -405,12 +405,19 @@ async function traiterConfirmationReservation({ rdv, session, ownerId, stripeSec
   // phase 1, PLUS un email de notification au praticien : contrairement aux
   // phases 1/2, il n'était pas déjà au courant de ce rendez-vous.
   try{
-    const [prestations, profils, facturation] = await Promise.all([
-      supabaseGet(`prestations?id=eq.${resultat.prestation_id}&select=libelle,prix_unitaire,tva_taux`),
+    const [liees, profils, facturation] = await Promise.all([
+      // Voir schema-v13 : la liste complète des prestations de ce
+      // rendez-vous (pas seulement rendez_vous.prestation_id, qui ne porte
+      // que la première depuis une réservation multi-prestations).
+      supabaseGet(`rendez_vous_prestations?rendez_vous_id=eq.${rdv.id}&select=position,prestations(libelle,prix_unitaire,tva_taux)&order=position.asc`),
       supabaseGet(`profiles?id=eq.${ownerId}&select=business_name,full_name,logo_url`),
       supabaseGet(`parametres_facturation?owner_id=eq.${ownerId}&select=emetteur_nom,emetteur_email`)
     ]);
-    const prestation = prestations[0];
+    let prestationsOrdonnees = liees.map(l => l.prestations).filter(Boolean);
+    if(!prestationsOrdonnees.length && resultat.prestation_id){
+      prestationsOrdonnees = await supabaseGet(`prestations?id=eq.${resultat.prestation_id}&select=libelle,prix_unitaire,tva_taux`);
+    }
+    const libelleCombine = prestationsOrdonnees.map(p => p.libelle).join(' + ');
     const profil = profils[0] || {};
     const params = facturation[0] || {};
     const nomEmetteur = params.emetteur_nom || profil.business_name || profil.full_name || 'Cadence';
@@ -424,15 +431,15 @@ async function traiterConfirmationReservation({ rdv, session, ownerId, stripeSec
     });
     const doc = docs[0];
 
-    if(prestation){
-      await supabasePost('document_lignes', {
+    if(prestationsOrdonnees.length){
+      await Promise.all(prestationsOrdonnees.map((p, i) => supabasePost('document_lignes', {
         document_id: doc.id,
-        description: prestation.libelle,
+        description: p.libelle,
         quantite: 1,
-        prix_unitaire: prestation.prix_unitaire,
-        position: 0,
-        tva_taux: prestation.tva_taux || 0
-      });
+        prix_unitaire: p.prix_unitaire,
+        position: i,
+        tva_taux: p.tva_taux || 0
+      })));
     }
 
     const origine = `https://${req.headers.host}`;
@@ -465,7 +472,7 @@ async function traiterConfirmationReservation({ rdv, session, ownerId, stripeSec
           titre: 'Nouveau rendez-vous confirmé automatiquement',
           paragraphes: [
             `<strong>${echapperHtml(resultat.prospect_nom || 'Un client')}</strong> vient de réserver et payer un créneau en ligne — le paiement a automatiquement confirmé le rendez-vous.`,
-            `${prestation ? echapperHtml(prestation.libelle) : 'Prestation'} — le ${echapperHtml(new Date(resultat.date_debut).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' }))}.`,
+            `${libelleCombine ? echapperHtml(libelleCombine) : 'Prestation'} — le ${echapperHtml(new Date(resultat.date_debut).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' }))}.`,
             `Contact : ${echapperHtml(resultat.prospect_email || '')}${resultat.prospect_telephone ? ` — ${echapperHtml(resultat.prospect_telephone)}` : ''}.`,
             `Aucune action n’est requise : c’est déjà confirmé dans votre agenda.`
           ]
@@ -611,13 +618,19 @@ export default async function handler(req, res){
   // renvoyer une erreur à Stripe (qui réessaierait indéfiniment un webhook
   // déjà utile).
   try{
-    const [prestations, clients, profils, facturation] = await Promise.all([
-      supabaseGet(`prestations?id=eq.${rdv.prestation_id}&select=libelle,prix_unitaire,tva_taux`),
+    const [liees, clients, profils, facturation] = await Promise.all([
+      // Voir schema-v13 : la liste complète des prestations de ce
+      // rendez-vous (pas seulement rendez_vous.prestation_id, qui ne porte
+      // que la première depuis une réservation multi-prestations).
+      supabaseGet(`rendez_vous_prestations?rendez_vous_id=eq.${rdv.id}&select=position,prestations(libelle,prix_unitaire,tva_taux)&order=position.asc`),
       supabaseGet(`clients?id=eq.${rdv.client_id}&select=full_name,email`),
       supabaseGet(`profiles?id=eq.${ownerId}&select=business_name,full_name,logo_url`),
       supabaseGet(`parametres_facturation?owner_id=eq.${ownerId}&select=emetteur_nom,emetteur_email`)
     ]);
-    const prestation = prestations[0];
+    let prestationsOrdonnees = liees.map(l => l.prestations).filter(Boolean);
+    if(!prestationsOrdonnees.length && rdv.prestation_id){
+      prestationsOrdonnees = await supabaseGet(`prestations?id=eq.${rdv.prestation_id}&select=libelle,prix_unitaire,tva_taux`);
+    }
     const client = clients[0];
     const profil = profils[0] || {};
     const params = facturation[0] || {};
@@ -631,15 +644,15 @@ export default async function handler(req, res){
     });
     const doc = docs[0];
 
-    if(prestation){
-      await supabasePost('document_lignes', {
+    if(prestationsOrdonnees.length){
+      await Promise.all(prestationsOrdonnees.map((p, i) => supabasePost('document_lignes', {
         document_id: doc.id,
-        description: prestation.libelle,
+        description: p.libelle,
         quantite: 1,
-        prix_unitaire: prestation.prix_unitaire,
-        position: 0,
-        tva_taux: prestation.tva_taux || 0
-      });
+        prix_unitaire: p.prix_unitaire,
+        position: i,
+        tva_taux: p.tva_taux || 0
+      })));
     }
 
     if(client?.email && RESEND_API_KEY){

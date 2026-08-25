@@ -78,7 +78,13 @@ export default async function handler(req, res){
 
   const url = new URL(req.url, `https://${req.headers.host}`);
   const slug = url.searchParams.get('slug') || '';
-  const prestationId = url.searchParams.get('prestation_id') || '';
+  // Une ou plusieurs prestations, séparées par des virgules (ex. « Coupe +
+  // Couleur » choisies ensemble) — la durée du créneau proposé est la somme
+  // de toutes. `prestation_id` (singulier) reste accepté pour rétrocompat
+  // d'un éventuel appel externe déjà en place, les deux se rejoignent dans
+  // la même liste.
+  const prestationIdsParam = url.searchParams.get('prestation_ids') || url.searchParams.get('prestation_id') || '';
+  const prestationIds = prestationIdsParam.split(',').map(s => s.trim()).filter(Boolean);
   const dateStr = url.searchParams.get('date') || '';
 
   if(!/^[a-z0-9-]{3,40}$/.test(slug)){
@@ -102,8 +108,9 @@ export default async function handler(req, res){
   const ownerId = reglage.owner_id;
 
   // -------------------------------------------------- appel « par jour »
-  if(prestationId || dateStr){
-    if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(prestationId)){
+  if(prestationIds.length || dateStr){
+    const idValide = id => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    if(!prestationIds.length || !prestationIds.every(idValide)){
       return json(res, 400, { error: 'Prestation invalide.' });
     }
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
@@ -116,15 +123,19 @@ export default async function handler(req, res){
     let prestations;
     try{
       prestations = await supabase(
-        `prestations?id=eq.${prestationId}&owner_id=eq.${ownerId}&actif=eq.true&select=duree_minutes`
+        `prestations?id=in.(${prestationIds.join(',')})&owner_id=eq.${ownerId}&actif=eq.true&select=id,duree_minutes`
       );
     }catch(e){
       return json(res, 503, { error: 'Page de réservation temporairement indisponible.' });
     }
-    const prestation = prestations[0];
-    if(!prestation){
+    if(prestations.length !== prestationIds.length){
       return json(res, 404, { error: 'Prestation introuvable.' });
     }
+    // Durée totale = somme des prestations choisies — c'est elle qui
+    // détermine la longueur du créneau proposé, pas chaque prestation prise
+    // isolément.
+    const dureeMinutesTotale = prestations.reduce((s, p) => s + (Number(p.duree_minutes) || 0), 0);
+    const prestation = { duree_minutes: dureeMinutesTotale };
 
     // Jour de la semaine au format Date.getDay() (0=dimanche…6=samedi) — un
     // jour civil n'a pas d'ambiguïté de fuseau, contrairement à une heure.
