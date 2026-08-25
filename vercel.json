@@ -1,6 +1,7 @@
 {
   "outputDirectory": "site",
   "crons": [
-    { "path": "/api/relances", "schedule": "0 7 * * *" }
+    { "path": "/api/relances", "schedule": "0 7 * * *" },
+    { "path": "/api/paiement-nettoyer", "schedule": "50 6 * * *" }
   ]
 }

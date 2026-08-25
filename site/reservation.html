@@ -66,6 +66,8 @@
   .creneau-vide{ font-size:13.5px; color:rgba(28,35,51,0.5); padding:14px 0; }
 
   .recap{ background:var(--parchment); border-radius:8px; padding:14px 16px; margin-bottom:18px; font-size:13.5px; }
+  .recap .recap-prix{ margin-top:6px; font-weight:700; }
+  .note-paiement{ font-size:12.5px; color:rgba(28,35,51,0.55); margin:-4px 0 16px; line-height:1.5; }
 
   .champ{ margin-bottom:16px; }
   .champ label{ display:block; font-size:13.5px; font-weight:600; margin-bottom:6px; }
@@ -130,6 +132,7 @@
         <button type="button" class="retour" data-cible="etape-date">← Changer de créneau</button>
         <h2>Vos coordonnées</h2>
         <div class="recap" id="recap"></div>
+        <div class="note-paiement" id="note-paiement" style="display:none;"></div>
         <div class="erreur-form" id="erreur-form"></div>
         <form id="form-contact">
           <div class="champ">
@@ -165,7 +168,7 @@
 </div>
 
 <script type="module">
-  import { stylesAccent, carteMarque, cartePrestation, boutonJour, boutonCreneau, echapperHtml } from './reservation-widget.js';
+  import { stylesAccent, carteMarque, cartePrestation, boutonJour, boutonCreneau, echapperHtml, formaterEuros } from './reservation-widget.js';
 
   const slug = new URLSearchParams(location.search).get('p') || '';
 
@@ -284,8 +287,22 @@
     const quand = new Intl.DateTimeFormat('fr-FR', {
       timeZone:'Europe/Paris', weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'
     }).format(new Date(creneauChoisi));
+    const paiementRequis = !!bootstrap.paiement_requis;
     document.getElementById('recap').innerHTML =
-      `<strong>${echapperHtml(prestationChoisie.libelle)}</strong><br>${echapperHtml(quand)}`;
+      `<strong>${echapperHtml(prestationChoisie.libelle)}</strong><br>${echapperHtml(quand)}` +
+      (paiementRequis ? `<div class="recap-prix">${formaterEuros(prestationChoisie.prix_unitaire)}</div>` : '');
+
+    const notePaiement = document.getElementById('note-paiement');
+    if(paiementRequis){
+      notePaiement.textContent = 'Le règlement en carte bancaire est demandé pour confirmer votre créneau — vous serez redirigé vers une page de paiement sécurisée. Votre rendez-vous se confirme automatiquement dès le paiement reçu.';
+      notePaiement.style.display = 'block';
+    }else{
+      notePaiement.style.display = 'none';
+    }
+
+    const btn = document.getElementById('btn-envoyer');
+    btn.textContent = paiementRequis ? 'Payer et réserver' : 'Envoyer la demande';
+
     document.getElementById('erreur-form').classList.remove('show');
     afficherEtape('etape-form');
   }
@@ -307,9 +324,11 @@
     else emailErr.classList.remove('show');
     if(!ok) return;
 
+    const paiementRequis = !!bootstrap.paiement_requis;
     const btn = document.getElementById('btn-envoyer');
+    const libelleDepart = paiementRequis ? 'Payer et réserver' : 'Envoyer la demande';
     btn.disabled = true;
-    btn.textContent = 'Envoi…';
+    btn.textContent = paiementRequis ? 'Préparation du paiement…' : 'Envoi…';
 
     let resultat;
     try{
@@ -324,7 +343,7 @@
       resultat = await r.json();
       if(!r.ok){
         btn.disabled = false;
-        btn.textContent = 'Envoyer la demande';
+        btn.textContent = libelleDepart;
         erreurForm.textContent = resultat.error || "La demande a échoué. Réessayez.";
         erreurForm.classList.add('show');
         // Un 409 signifie le plus souvent que le créneau vient d'être pris :
@@ -334,9 +353,20 @@
       }
     }catch(e){
       btn.disabled = false;
-      btn.textContent = 'Envoyer la demande';
+      btn.textContent = libelleDepart;
       erreurForm.textContent = "La demande a échoué. Vérifiez votre connexion et réessayez.";
       erreurForm.classList.add('show');
+      return;
+    }
+
+    // Paiement requis : l'API a créé une Session Stripe Checkout et renvoie
+    // son URL — la réservation elle-même n'est confirmée qu'au retour du
+    // webhook (voir api/paiement-webhook-stripe.js), jamais à cette
+    // redirection. On quitte donc la page plutôt que d'afficher l'étape de
+    // confirmation, qui ne concerne que le parcours gratuit ci-dessous.
+    if(resultat.url){
+      btn.textContent = 'Redirection…';
+      window.location.href = resultat.url;
       return;
     }
 

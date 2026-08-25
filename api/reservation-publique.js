@@ -62,6 +62,78 @@ async function supabasePost(chemin, corps){
   }
 }
 
+// Variante qui renvoie la ligne créée — seulement utile quand un paiement
+// doit suivre (phase 3) : il faut l'id du rendez-vous fraîchement inséré
+// pour les métadonnées de la session Stripe. Le chemin sans paiement garde
+// `supabasePost` (return=minimal), inchangé.
+async function supabasePostRepresentation(chemin, corps){
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${chemin}`, {
+    method: 'POST',
+    headers: {
+      apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`,
+      'Content-Type': 'application/json', Prefer: 'return=representation'
+    },
+    body: JSON.stringify(corps)
+  });
+  if(!r.ok){
+    const detail = await r.text().catch(() => '');
+    throw new Error(`Supabase POST ${r.status} sur ${chemin} : ${detail.slice(0, 200)}`);
+  }
+  return r.json();
+}
+
+async function supabasePatch(chemin, corps){
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${chemin}`, {
+    method: 'PATCH',
+    headers: {
+      apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`,
+      'Content-Type': 'application/json', Prefer: 'return=minimal'
+    },
+    body: JSON.stringify(corps)
+  });
+  if(!r.ok){
+    const detail = await r.text().catch(() => '');
+    throw new Error(`Supabase PATCH ${r.status} sur ${chemin} : ${detail.slice(0, 200)}`);
+  }
+}
+
+// Stripe attend un corps `application/x-www-form-urlencoded` avec la
+// notation à crochets pour les objets/tableaux imbriqués — même aplatisseur
+// que api/paiement-creer-checkout.js, dupliqué à dessein (pas de module
+// partagé dans api/, voir CLAUDE.md).
+function aplatirFormulaire(objet, prefixe = ''){
+  const paires = [];
+  for(const [cle, valeur] of Object.entries(objet)){
+    const nomChamp = prefixe ? `${prefixe}[${cle}]` : cle;
+    if(valeur === undefined || valeur === null) continue;
+    if(typeof valeur === 'object' && !Array.isArray(valeur)){
+      paires.push(...aplatirFormulaire(valeur, nomChamp));
+    }else if(Array.isArray(valeur)){
+      valeur.forEach((v, i) => paires.push(...aplatirFormulaire({ [i]: v }, nomChamp)));
+    }else{
+      paires.push(`${encodeURIComponent(nomChamp)}=${encodeURIComponent(valeur)}`);
+    }
+  }
+  return paires;
+}
+
+async function creerSessionStripe(cleSecrete, params){
+  const corps = aplatirFormulaire(params).join('&');
+  const r = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${cleSecrete}`,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: corps
+  });
+  const data = await r.json();
+  if(!r.ok){
+    throw new Error(`Stripe ${r.status} : ${data?.error?.message || 'erreur inconnue'}`);
+  }
+  return data;
+}
+
 // ------------------------------------------------------------ fuseau horaire
 // Même helper que api/reservation-disponibilites.js (dupliqué à dessein : pas
 // de fichier partagé dans api/, chaque route reste autonome — voir
@@ -175,7 +247,7 @@ export default async function handler(req, res){
   let prestations;
   try{
     prestations = await supabaseGet(
-      `prestations?id=eq.${prestationId}&owner_id=eq.${ownerId}&actif=eq.true&select=id,libelle,prix_unitaire,duree_minutes`
+      `prestations?id=eq.${prestationId}&owner_id=eq.${ownerId}&actif=eq.true&select=id,libelle,prix_unitaire,tva_taux,duree_minutes`
     );
   }catch(e){
     return json(res, 503, { error: 'Page de réservation temporairement indisponible.' });
@@ -213,15 +285,109 @@ export default async function handler(req, res){
     occupes = await supabaseGet(
       `rendez_vous?owner_id=eq.${ownerId}` +
       `&date_debut=lt.${dateFin.toISOString()}&date_fin=gt.${dateDebut.toISOString()}` +
-      `&select=statut`
+      `&select=statut,paiement_statut,expire_le`
     );
   }catch(e){
     return json(res, 503, { error: 'Vérification impossible, réessayez.' });
   }
-  if(occupes.some(r => r.statut !== 'annule')){
+  const maintenantMs = Date.now();
+  // Un hold de paiement expiré (phase 3, voir schema-v8-paiements.sql) ne
+  // bloque plus le créneau — même règle que api/reservation-disponibilites.js.
+  const occupe = occupes.some(r => r.statut !== 'annule'
+    && !(r.paiement_statut === 'en_attente' && r.expire_le && new Date(r.expire_le).getTime() < maintenantMs));
+  if(occupe){
     return json(res, 409, { error: 'Ce créneau vient d’être pris, choisissez-en un autre.' });
   }
 
+  // ---- phase 3 : paiement anticipé, si le praticien l'a activé ----
+  // Rétrocompatible : sans Stripe configuré, le parcours reste exactement
+  // celui d'avant (demande en attente, confirmation manuelle) — voir plus
+  // bas. Avec Stripe actif, la réservation devient payante et
+  // s'auto-confirme au paiement — voir api/paiement-webhook-stripe.js.
+  let paiementConfig;
+  try{
+    paiementConfig = (await supabaseGet(
+      `parametres_paiement?owner_id=eq.${ownerId}&select=stripe_actif,stripe_secret_key`
+    ))[0];
+  }catch(e){
+    return json(res, 503, { error: 'Vérification impossible, réessayez.' });
+  }
+  const paiementRequis = !!(paiementConfig?.stripe_actif && paiementConfig?.stripe_secret_key);
+
+  if(paiementRequis){
+    const tauxTva = Number(prestation.tva_taux) || 0;
+    const montantTTC = Number(prestation.prix_unitaire) * (1 + tauxTva / 100);
+    const montantCentimes = Math.round(montantTTC * 100);
+    if(!(montantCentimes > 0)){
+      return json(res, 400, { error: 'Le prix de cette prestation est invalide.' });
+    }
+
+    // Le hold occupe le créneau dès l'insert (même logique de chevauchement
+    // que les demandes gratuites), mais expire tout seul dans 15 minutes —
+    // voir la note sur `expire_le` dans api/reservation-disponibilites.js.
+    let rdv;
+    try{
+      const rows = await supabasePostRepresentation('rendez_vous', {
+        owner_id: ownerId,
+        titre: `${prestation.libelle} — ${nom}`,
+        prestation_id: prestation.id,
+        date_debut: dateDebut.toISOString(),
+        date_fin: dateFin.toISOString(),
+        statut: 'en_attente',
+        client_id: null,
+        prospect_nom: nom,
+        prospect_email: email,
+        prospect_telephone: telephone,
+        paiement_statut: 'en_attente',
+        paiement_provider: 'stripe',
+        expire_le: new Date(Date.now() + 15 * 60000).toISOString()
+      });
+      rdv = rows[0];
+    }catch(e){
+      return json(res, 502, { error: 'La réservation a échoué. Réessayez.' });
+    }
+
+    let nomPraticien = 'Cadence';
+    try{
+      const profils = await supabaseGet(`profiles?id=eq.${ownerId}&select=business_name,full_name`);
+      nomPraticien = profils[0]?.business_name || profils[0]?.full_name || 'Cadence';
+    }catch(e){ /* pas bloquant : "Cadence" par défaut sur la page Stripe */ }
+
+    const origine = `https://${req.headers.host}`;
+    let session;
+    try{
+      session = await creerSessionStripe(paiementConfig.stripe_secret_key, {
+        mode: 'payment',
+        payment_method_types: ['card'],
+        line_items: [{
+          quantity: 1,
+          price_data: {
+            currency: 'eur',
+            unit_amount: montantCentimes,
+            product_data: { name: `${prestation.libelle} — ${nomPraticien}` }
+          }
+        }],
+        customer_email: email,
+        success_url: `${origine}/paiement-merci.html?statut=succes`,
+        cancel_url: `${origine}/paiement-merci.html?statut=annule`,
+        metadata: { rendez_vous_id: rdv.id, owner_id: ownerId }
+      });
+    }catch(e){
+      // La ligne « en_attente » reste en base : elle expirera d'elle-même
+      // (expire_le) et sera nettoyée par api/paiement-nettoyer.js, exactement
+      // comme un client qui abandonne le paiement Stripe en cours de route —
+      // aucun rollback manuel nécessaire ici.
+      return json(res, 502, { error: 'La création du paiement a échoué. Réessayez.' });
+    }
+
+    try{
+      await supabasePatch(`rendez_vous?id=eq.${rdv.id}`, { paiement_reference: session.id });
+    }catch(e){ /* pas bloquant : le webhook retrouve le rendez-vous par metadata.rendez_vous_id */ }
+
+    return json(res, 200, { url: session.url });
+  }
+
+  // ---- comportement existant, inchangé : demande en attente, confirmation manuelle ----
   try{
     await supabasePost('rendez_vous', {
       owner_id: ownerId,

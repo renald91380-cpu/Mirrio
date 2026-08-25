@@ -109,6 +109,38 @@ async function nouveauJetonPartage(){
   return r.json();
 }
 
+// Phase 3 : délègue la confirmation (avec vérification anti-conflit) à la
+// fonction SQL confirmer_reservation_payee() — voir
+// schema-v10-paiement-rembourse-et-confirmation.sql pour le détail de
+// pourquoi ça ne peut pas être fait de façon fiable en enchaînant de simples
+// requêtes REST ici.
+async function confirmerReservationPayee(rendezVousId, ownerId){
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/confirmer_reservation_payee`, {
+    method: 'POST',
+    headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p_rendez_vous_id: rendezVousId, p_owner_id: ownerId })
+  });
+  if(!r.ok){
+    const detail = await r.text().catch(() => '');
+    throw new Error(`Supabase RPC ${r.status} sur confirmer_reservation_payee : ${detail.slice(0, 200)}`);
+  }
+  const rows = await r.json();
+  return rows[0];
+}
+
+async function creerRemboursementStripe(cleSecrete, paymentIntentId){
+  const r = await fetch('https://api.stripe.com/v1/refunds', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${cleSecrete}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `payment_intent=${encodeURIComponent(paymentIntentId)}`
+  });
+  const data = await r.json();
+  if(!r.ok){
+    throw new Error(`Stripe refund ${r.status} : ${data?.error?.message || 'erreur inconnue'}`);
+  }
+  return data;
+}
+
 // Vérifie l'en-tête `Stripe-Signature: t=<timestamp>,v1=<signature>[,v1=...]`
 // contre le corps brut — voir https://stripe.com/docs/webhooks#verify-manually.
 // `corpsBrut` doit être le Buffer exact reçu, non ré-encodé.
@@ -150,6 +182,31 @@ function echapperHtml(str){
 // Gabarit d'email minimal, dérivé de celui de envoyer-document.js (dupliqué
 // à dessein, pas de module partagé dans api/) — spécialisé "facture payée",
 // pas de bouton "voir mon devis" à distinguer ici.
+// Gabarit générique minimal, dupliqué de api/reservation-publique.js — sert
+// aux deux emails de la phase 3 qui ne sont pas une facture (avis de
+// conflit remboursé côté client, nouvelle réservation confirmée côté
+// praticien).
+function gabaritSimple({ titre, paragraphes }){
+  return `<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light"><title>${echapperHtml(titre)}</title></head>
+<body style="margin:0; padding:0; background:${PARCHDIM}; font-family:${SANS};">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${PARCHDIM};">
+<tr><td align="center" style="padding:32px 16px;">
+<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px; width:100%; background:${PARCH}; border-radius:10px; overflow:hidden;">
+<tr><td style="background:${INK}; padding:22px 32px;">
+<span style="font-weight:700; font-size:17px; color:${PARCH};">Cadence</span>
+</td></tr>
+<tr><td style="padding:32px;">
+<h1 style="margin:0 0 16px; font-size:20px; color:${INK};">${echapperHtml(titre)}</h1>
+${paragraphes.map(p => `<p style="margin:0 0 14px; font-size:14.5px; line-height:1.6; color:${INK};">${p}</p>`).join('')}
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>`;
+}
+
 function gabaritEmailFacturePayee({ nomEmetteur, logoUrl, nomClient, numero, montant, lienDocument }){
   return `<!doctype html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -282,6 +339,147 @@ async function traiterPaiementDevis({ documentId, ownerId, req, res }){
   return json(res, 200, { recu: true });
 }
 
+// Phase 3 : rendez-vous créé par une réservation en ligne payée — `client_id`
+// est encore vide (voir api/reservation-publique.js, prospect_* renseignés à
+// la place). La confirmation passe par confirmer_reservation_payee(), seule
+// façon fiable de revérifier l'absence de conflit ET créer la fiche client
+// de façon atomique — voir schema-v10-paiement-rembourse-et-confirmation.sql
+// pour le détail du pourquoi de simples requêtes REST enchaînées ici ne
+// suffiraient pas à empêcher une double réservation entre deux paiements
+// concurrents sur des créneaux qui se chevauchent.
+async function traiterConfirmationReservation({ rdv, session, ownerId, stripeSecretKey, req, res }){
+  let resultat;
+  try{
+    resultat = await confirmerReservationPayee(rdv.id, ownerId);
+  }catch(e){
+    // Le paiement est déjà marqué 'paye' (compare-and-swap fait plus haut,
+    // avant cet appel) — pas la peine de faire réessayer Stripe
+    // indéfiniment sur une erreur qui ne fait que se répéter. Le praticien
+    // verra la ligne 'en_attente' avec paiement 'paye' dans son agenda et
+    // pourra confirmer à la main si jamais ça arrive vraiment.
+    return json(res, 200, { recu: true, erreur: 'confirmation_impossible' });
+  }
+
+  if(!resultat || resultat.resultat === 'introuvable'){
+    // Garde-fou, ne devrait pas arriver en pratique : le rendez-vous
+    // existait forcément pour que ce paiement ait pu être créé.
+    return json(res, 200, { recu: true, ignore: 'rendez-vous introuvable' });
+  }
+
+  if(resultat.resultat === 'conflit'){
+    // Un autre rendez-vous confirmé occupait déjà ce créneau au moment du
+    // paiement — remboursement automatique, jamais d'argent gardé sans
+    // service, jamais de double réservation silencieuse.
+    try{
+      if(stripeSecretKey && session.payment_intent){
+        await creerRemboursementStripe(stripeSecretKey, session.payment_intent);
+        await supabasePatchConditionnel(
+          `rendez_vous?id=eq.${rdv.id}&owner_id=eq.${ownerId}`,
+          { paiement_statut: 'rembourse' }
+        );
+      }
+    }catch(e){ /* best-effort — le praticien garde la main depuis l'agenda */ }
+
+    try{
+      if(resultat.prospect_email && RESEND_API_KEY){
+        await envoyerEmail({
+          to: resultat.prospect_email,
+          subject: 'Votre créneau vient d’être pris — remboursement en cours',
+          html: gabaritSimple({
+            titre: 'Ce créneau vient d’être réservé entre-temps',
+            paragraphes: [
+              `Bonjour ${echapperHtml(resultat.prospect_nom || '')},`,
+              `Nous sommes désolés : le créneau que vous veniez de payer a été réservé par quelqu’un d’autre quelques instants avant vous. Votre paiement va être intégralement remboursé (comptez quelques jours ouvrés selon votre banque).`,
+              `N’hésitez pas à choisir un autre créneau sur la page de réservation.`
+            ]
+          })
+        });
+      }
+    }catch(e){ /* best-effort */ }
+
+    return json(res, 200, { recu: true, conflit: true });
+  }
+
+  // resultat.resultat === 'confirme' : fiche client créée (ou déjà créée par
+  // un renvoi précédent — idempotent). Génère la facture acquittée comme en
+  // phase 1, PLUS un email de notification au praticien : contrairement aux
+  // phases 1/2, il n'était pas déjà au courant de ce rendez-vous.
+  try{
+    const [prestations, profils, facturation] = await Promise.all([
+      supabaseGet(`prestations?id=eq.${resultat.prestation_id}&select=libelle,prix_unitaire,tva_taux`),
+      supabaseGet(`profiles?id=eq.${ownerId}&select=business_name,full_name,logo_url`),
+      supabaseGet(`parametres_facturation?owner_id=eq.${ownerId}&select=emetteur_nom,emetteur_email`)
+    ]);
+    const prestation = prestations[0];
+    const profil = profils[0] || {};
+    const params = facturation[0] || {};
+    const nomEmetteur = params.emetteur_nom || profil.business_name || profil.full_name || 'Cadence';
+
+    const docs = await supabasePost('documents', {
+      owner_id: ownerId,
+      client_id: resultat.client_id,
+      type: 'facture',
+      statut: 'paye',
+      notes: `Réservation en ligne réglée par carte (Stripe) le ${new Date().toLocaleDateString('fr-FR')}.`
+    });
+    const doc = docs[0];
+
+    if(prestation){
+      await supabasePost('document_lignes', {
+        document_id: doc.id,
+        description: prestation.libelle,
+        quantite: 1,
+        prix_unitaire: prestation.prix_unitaire,
+        position: 0,
+        tva_taux: prestation.tva_taux || 0
+      });
+    }
+
+    const origine = `https://${req.headers.host}`;
+
+    if(resultat.prospect_email && RESEND_API_KEY){
+      const jetonPartage = await nouveauJetonPartage();
+      await supabasePatchConditionnel(`documents?id=eq.${doc.id}`, { partage_token: jetonPartage });
+      await envoyerEmail({
+        to: resultat.prospect_email,
+        replyTo: params.emetteur_email || undefined,
+        subject: `Facture ${doc.numero || ''} — ${nomEmetteur}`,
+        html: gabaritEmailFacturePayee({
+          nomEmetteur, logoUrl: profil.logo_url, nomClient: resultat.prospect_nom,
+          numero: doc.numero, montant: resultat.paiement_montant,
+          lienDocument: `${origine}/voir-document.html?t=${jetonPartage}`
+        })
+      });
+    }
+
+    // Le praticien n'a rien initié ici (contrairement aux phases 1/2) — à
+    // prévenir qu'un nouveau créneau vient d'être confirmé automatiquement
+    // dans son agenda, sur le même modèle que la notification "nouvelle
+    // demande" de api/reservation-publique.js.
+    if(params.emetteur_email && RESEND_API_KEY){
+      await envoyerEmail({
+        to: params.emetteur_email,
+        replyTo: resultat.prospect_email || undefined,
+        subject: `Nouveau rendez-vous payé et confirmé — ${resultat.prospect_nom || ''}`,
+        html: gabaritSimple({
+          titre: 'Nouveau rendez-vous confirmé automatiquement',
+          paragraphes: [
+            `<strong>${echapperHtml(resultat.prospect_nom || 'Un client')}</strong> vient de réserver et payer un créneau en ligne — le paiement a automatiquement confirmé le rendez-vous.`,
+            `${prestation ? echapperHtml(prestation.libelle) : 'Prestation'} — le ${echapperHtml(new Date(resultat.date_debut).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' }))}.`,
+            `Contact : ${echapperHtml(resultat.prospect_email || '')}${resultat.prospect_telephone ? ` — ${echapperHtml(resultat.prospect_telephone)}` : ''}.`,
+            `Aucune action n’est requise : c’est déjà confirmé dans votre agenda.`
+          ]
+        })
+      });
+    }
+  }catch(e){
+    // Le rendez-vous reste confirmé même si la facture/les emails ont raté
+    // — filet de rattrapage manuel possible depuis l'agenda si besoin.
+  }
+
+  return json(res, 200, { recu: true });
+}
+
 export default async function handler(req, res){
   if(req.method !== 'POST'){
     return json(res, 405, { error: 'Method Not Allowed' });
@@ -301,7 +499,9 @@ export default async function handler(req, res){
   let paiements;
   try{
     paiements = await supabaseGet(
-      `parametres_paiement?owner_id=eq.${ownerId}&select=stripe_actif,stripe_webhook_secret`);
+      // `stripe_secret_key` : nécessaire ici pour un remboursement éventuel
+      // (phase 3, conflit de créneau) — voir traiterConfirmationReservation.
+      `parametres_paiement?owner_id=eq.${ownerId}&select=stripe_actif,stripe_webhook_secret,stripe_secret_key`);
   }catch(e){
     // Ne renvoie jamais de détail à un appelant non authentifié à ce stade
     // (la signature n'est pas encore vérifiée) — 500 générique, Stripe
@@ -309,6 +509,7 @@ export default async function handler(req, res){
     return json(res, 500, { error: 'Erreur temporaire.' });
   }
   const secret = paiements[0]?.stripe_webhook_secret;
+  const stripeSecretKey = paiements[0]?.stripe_secret_key;
   if(!secret){
     // Espace inconnu ou paiement Stripe jamais configuré pour ce `o` — pas
     // la peine de faire réessayer Stripe indéfiniment sur une URL mal
@@ -395,6 +596,16 @@ export default async function handler(req, res){
   }
   const rdv = rdvsConfirmes[0];
 
+  // Phase 3 : un rendez-vous issu d'une réservation en ligne n'a pas encore
+  // de client_id à ce stade (voir api/reservation-publique.js) — bascule sur
+  // le parcours dédié (anti-conflit + auto-confirmation) plutôt que de
+  // continuer ci-dessous, qui suppose client_id/prestation_id déjà présents
+  // (vrai uniquement pour un rendez-vous déjà confirmé, phase 1).
+  if(!rdv.client_id){
+    return traiterConfirmationReservation({ rdv, session, ownerId, stripeSecretKey, req, res });
+  }
+
+  // --- Phase 1 (agenda) : rendez-vous déjà confirmé, client déjà connu ---
   // À partir d'ici, l'argent est marqué reçu quoi qu'il arrive : la
   // génération de facture et l'email sont best-effort, jamais un motif de
   // renvoyer une erreur à Stripe (qui réessaierait indéfiniment un webhook

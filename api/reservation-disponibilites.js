@@ -157,15 +157,21 @@ export default async function handler(req, res){
       occupes = await supabase(
         `rendez_vous?owner_id=eq.${ownerId}` +
         `&date_debut=lt.${finRequete}&date_fin=gt.${debutRequete}` +
-        `&select=date_debut,date_fin,statut`
+        `&select=date_debut,date_fin,statut,paiement_statut,expire_le`
       );
     }catch(e){
       return json(res, 503, { error: 'Page de réservation temporairement indisponible.' });
     }
+    const maintenantMs = Date.now();
     // Un rendez-vous 'en_attente' compte comme occupé : deux prospects ne
-    // doivent pas pouvoir demander le même créneau en même temps.
+    // doivent pas pouvoir demander le même créneau en même temps. Exception :
+    // un « hold » de paiement (phase 3) dont `expire_le` est dépassé libère le
+    // créneau immédiatement, sans attendre le cron de nettoyage
+    // (api/paiement-nettoyer.js) qui ne fait que ranger la ligne en `annule`
+    // plus tard — voir schema-v8-paiements.sql.
     const busy = occupes
       .filter(r => r.statut !== 'annule')
+      .filter(r => !(r.paiement_statut === 'en_attente' && r.expire_le && new Date(r.expire_le).getTime() < maintenantMs))
       .map(r => ({ debut: new Date(r.date_debut).getTime(), fin: new Date(r.date_fin).getTime() }));
 
     const creneaux = [];
@@ -184,16 +190,22 @@ export default async function handler(req, res){
   }
 
   // -------------------------------------------------- appel « bootstrap »
-  let profils, prestations;
+  let profils, prestations, paiements;
   try{
-    [profils, prestations] = await Promise.all([
+    [profils, prestations, paiements] = await Promise.all([
       supabase(`profiles?id=eq.${ownerId}&select=business_name,full_name,logo_url,accent,metier,terme_singulier,terme_pluriel`),
-      supabase(`prestations?owner_id=eq.${ownerId}&actif=eq.true&select=id,libelle,description,prix_unitaire,duree_minutes&order=position`)
+      supabase(`prestations?owner_id=eq.${ownerId}&actif=eq.true&select=id,libelle,description,prix_unitaire,tva_taux,duree_minutes&order=position`),
+      // Phase 3 : le widget doit savoir AVANT de soumettre le formulaire si un
+      // paiement immédiat va être exigé (prix plein) pour confirmer le
+      // créneau — voir api/reservation-publique.js et CLAUDE.md.
+      supabase(`parametres_paiement?owner_id=eq.${ownerId}&select=stripe_actif,stripe_secret_key`)
     ]);
   }catch(e){
     return json(res, 503, { error: 'Page de réservation temporairement indisponible.' });
   }
   const profil = profils[0] || {};
+  const paiement = paiements[0];
+  const paiementRequis = !!(paiement?.stripe_actif && paiement?.stripe_secret_key);
 
   return json(res, 200, {
     praticien: {
@@ -205,6 +217,7 @@ export default async function handler(req, res){
       terme_pluriel: profil.terme_pluriel || null
     },
     prestations,
+    paiement_requis: paiementRequis,
     reglages: {
       jours_ouvres: reglage.jours_ouvres,
       heure_debut: reglage.heure_debut,
