@@ -254,12 +254,12 @@
           <div class="stat-sub">Un espace de travail = un client</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Formule Solo</div>
+          <div class="stat-label">Formule Indépendant</div>
           <div class="stat-value" id="stat-solo">—</div>
           <div class="stat-sub">15€/mois</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Formule Studio</div>
+          <div class="stat-label">Formule Salon</div>
           <div class="stat-value" id="stat-studio">—</div>
           <div class="stat-sub">29€/mois</div>
         </div>
@@ -373,8 +373,8 @@
           <select id="filtre-metier"><option value="">Tous les métiers</option></select>
           <select id="filtre-plan">
             <option value="">Toutes les formules</option>
-            <option value="solo">Solo</option>
-            <option value="studio">Studio</option>
+            <option value="solo">Indépendant</option>
+            <option value="studio">Salon</option>
           </select>
           <select id="filtre-statut">
             <option value="">Tous les statuts</option>
@@ -608,7 +608,7 @@
           <div class="email">${c.email || ''}</div>
         </td>
         <td>${METIER_LABELS[c.metier] || c.metier || '—'}</td>
-        <td><span class="plan-pill ${c.plan}">${c.plan === 'studio' ? 'Studio' : 'Solo'}</span></td>
+        <td><span class="plan-pill ${c.plan}">${c.plan === 'studio' ? 'Salon' : 'Indépendant'}</span></td>
         <td><span class="statut-pill ${c.statut_activite}">${c.statut_activite === 'actif' ? 'Actif' : 'Arrêté'}</span></td>
         <td>${formatLocalisation(c.ville, c.pays)}</td>
         <td>${formatDate(c.created_at)}</td>

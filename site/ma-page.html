@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+  // Applique le style d'interface mis en cache AVANT le premier rendu, pour
+  // éviter un flash de l'identité par défaut (Atelier, nav du haut) au clic
+  // sur un lien de nav : appliquerThemeEnCache() dans theme.js fait la même
+  // chose, mais trop tard — ce script module est différé et ne s'exécute
+  // qu'après que le navigateur a déjà peint le DOM. Doublon volontaire et
+  // minimal (un seul attribut), pas une dépendance vers theme.js.
+  (function(){
+    try{
+      var b = JSON.parse(sessionStorage.getItem('cadence:brand'));
+      if(b && b.style_interface) document.documentElement.setAttribute('data-style', b.style_interface);
+    }catch(e){}
+  })();
+</script>
+<title>Ma page — Cadence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="chrome.css">
+<style>
+  :root{
+    --ink:#1C2333;
+    --ink-soft:#2A3346;
+    --parchment:#F5F1E7;
+    --parchment-dim:#EAE4D4;
+    --slate:#8B8F98;
+    --amber:#E2A63D;
+    --amber-soft:#f0c98a;
+    --teal:#3E7C74;
+    --brick:#B5533F;
+    --display:'Fraunces', Georgia, serif;
+    --body:'Inter', Arial, sans-serif;
+    --mono:'IBM Plex Mono', 'Courier New', monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:var(--body);
+    background:var(--parchment);
+    color:var(--ink);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  img,svg{display:block;}
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit;}
+
+  .logo{
+    font-family:var(--display); font-weight:700; font-size:20px;
+    display:flex; align-items:baseline; gap:2px;
+  }
+  .logo .dot{ color:var(--amber); animation:pulseDot 1.6s ease-in-out infinite; }
+  @keyframes pulseDot{
+    0%, 70%, 100%{ transform:scale(1); opacity:0.3; }
+    35%{ transform:scale(1.9); opacity:1; background:var(--amber); }
+  }
+  @media (prefers-reduced-motion: reduce){ .logo .dot{ animation:none !important; opacity:0.6 !important; } }
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    padding:12px 20px; border-radius:6px; font-weight:600; font-size:14.5px;
+    border:none; cursor:pointer; min-height:44px;
+    transition:transform .15s ease, box-shadow .15s ease, background .15s ease, opacity .15s ease;
+  }
+  .btn-primary{ background:var(--amber); color:var(--ink); }
+  .btn-primary:hover{ transform:translateY(-1px); box-shadow:0 8px 18px rgba(226,166,61,0.28); }
+  .btn-ghost{ background:transparent; color:var(--parchment); border:1px solid rgba(245,241,231,0.28); }
+  .btn-ghost:hover{ border-color:rgba(245,241,231,0.6); }
+  .btn:focus-visible, a:focus-visible, button:focus-visible{
+    outline:2px solid var(--teal); outline-offset:2px;
+  }
+
+  /* ---------- App header ---------- */
+  .app-header{
+    background:var(--ink); color:var(--parchment);
+    padding:16px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px;
+  }
+  .app-header-left{ display:flex; align-items:center; gap:28px; }
+  .app-nav{ display:none; gap:20px; font-size:14px; font-weight:500; overflow-x:auto; }
+  @media(min-width:640px){ .app-nav{ display:flex; } }
+  .app-nav a{ color:rgba(245,241,231,0.6); padding:6px 0; border-bottom:2px solid transparent; white-space:nowrap; }
+  .app-nav a:hover{ color:var(--parchment); }
+  .app-nav a.active{ color:var(--parchment); border-bottom-color:var(--amber); }
+  .app-header-right{ display:flex; align-items:center; gap:16px; }
+  .user-name{ font-size:13px; color:rgba(245,241,231,0.55); display:none; }
+  @media(min-width:640px){ .user-name{ display:block; } }
+  .btn-icon{ width:38px; height:38px; padding:0; min-height:0; flex-shrink:0; }
+  .btn-icon svg{ width:17px; height:17px; }
+
+  /* ---------- Main ---------- */
+  .app-main{ padding:36px 20px 60px; }
+  .app-container{ max-width:980px; margin:0 auto; }
+  .page-head{ margin-bottom:32px; }
+  .page-head h1{ font-family:var(--display); font-weight:700; font-size:30px; margin-bottom:6px; }
+  .page-head p{ font-size:14.5px; color:rgba(28,35,51,0.6); }
+
+  .loading-state{ text-align:center; padding:72px 20px; color:rgba(28,35,51,0.5); font-size:14px; }
+
+  /* ---------- Éditeur « Ma page » ---------- */
+  .editeur{ display:grid; grid-template-columns:minmax(0,1fr) 400px; gap:26px; align-items:start; }
+  @media(max-width:1100px){ .editeur{ grid-template-columns:1fr; } }
+  .apercu{ position:sticky; top:16px; }
+  .apercu .cadre{ border:1px solid rgba(28,35,51,0.15); border-radius:18px; overflow:hidden; background:#fff; height:calc(100vh - 150px); min-height:460px; box-shadow:0 10px 30px rgba(28,35,51,0.12); }
+  .apercu iframe{ width:100%; height:100%; border:0; }
+  .apercu-titre{ display:flex; justify-content:space-between; align-items:center; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:rgba(28,35,51,0.5); margin-bottom:8px; }
+  .apercu-titre button{ border:none; background:none; font:600 12px var(--body); color:var(--teal); cursor:pointer; text-transform:none; letter-spacing:0; }
+  .btn-apercu-mobile{ display:none; }
+  @media(max-width:1100px){
+    .apercu{ display:none; position:fixed; inset:0; z-index:60; background:var(--parchment); padding:14px; }
+    .apercu.ouvert{ display:block; }
+    .apercu .cadre{ height:calc(100vh - 70px); }
+    .btn-apercu-mobile{ display:inline-flex; }
+  }
+  .barre-actions{ position:sticky; top:0; z-index:30; background:var(--parchment); padding:10px 0 14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .barre-actions .etat{ font-size:13px; color:rgba(28,35,51,0.55); flex:1; min-width:140px; }
+  .barre-actions .etat.sale{ color:var(--brick); font-weight:600; }
+  .btn-sec{ background:#fff; color:var(--ink); border:1px solid rgba(28,35,51,0.18); }
+  .btn-sec:hover{ border-color:var(--ink); }
+  .btn-sm{ padding:7px 12px; min-height:34px; font-size:13px; }
+  .field{ margin-bottom:16px; }
+  .field label{ display:block; font-size:13px; font-weight:600; margin-bottom:6px; }
+  .field input[type=text], .field input[type=url], .field textarea, .field select{
+    width:100%; padding:11px 12px; border:1px solid rgba(28,35,51,0.18); border-radius:8px; font:14.5px var(--body); background:#fff; color:var(--ink);
+  }
+  .field textarea{ min-height:110px; resize:vertical; }
+  .field input:focus, .field textarea:focus, .field select:focus{ outline:2px solid var(--teal); outline-offset:1px; }
+  .hint{ font-size:12.5px; color:rgba(28,35,51,0.5); margin-top:5px; }
+  .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:14px; } @media(max-width:600px){ .grid-2{ grid-template-columns:1fr; } }
+  .choix{ display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:10px; }
+  .choix button{ border:1.5px solid rgba(28,35,51,0.15); background:#fff; border-radius:10px; padding:12px 10px; cursor:pointer; text-align:left; font:600 13.5px var(--body); color:var(--ink); }
+  .choix button small{ display:block; font-weight:400; color:rgba(28,35,51,0.55); margin-top:2px; font-size:12px; }
+  .choix button.on{ border-color:var(--teal); box-shadow:0 0 0 3px rgba(62,124,116,0.18); }
+  .pastilles{ display:flex; flex-wrap:wrap; gap:9px; align-items:center; }
+  .pastilles button{ width:34px; height:34px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 0 1.5px rgba(28,35,51,0.2); cursor:pointer; }
+  .pastilles button.on{ box-shadow:0 0 0 2.5px var(--ink); }
+  .pastilles input[type=color]{ width:42px; height:34px; border:none; background:none; padding:0; cursor:pointer; }
+  .vignettes{ display:grid; grid-template-columns:repeat(auto-fill, minmax(104px, 1fr)); gap:10px; margin-top:10px; }
+  .vignette{ position:relative; aspect-ratio:1; border-radius:10px; overflow:hidden; background:#EAE4D4; }
+  .vignette img{ width:100%; height:100%; object-fit:cover; }
+  .vignette .outils{ position:absolute; left:0; right:0; bottom:0; display:flex; justify-content:space-between; padding:4px; background:linear-gradient(transparent, rgba(0,0,0,.6)); }
+  .vignette .outils button{ border:none; background:rgba(255,255,255,.9); border-radius:6px; width:26px; height:24px; cursor:pointer; font-size:12px; }
+  .cover-zone{ height:130px; border-radius:12px; background:#EAE4D4 center/cover no-repeat; display:flex; align-items:center; justify-content:center; color:rgba(28,35,51,0.45); font-size:13px; margin-bottom:10px; }
+  .ligne-section{ display:flex; align-items:center; gap:10px; padding:9px 0; border-top:1px solid rgba(28,35,51,0.08); }
+  .ligne-section:first-child{ border-top:none; }
+  .ligne-section label{ flex:1; font-size:14.5px; cursor:pointer; display:flex; gap:10px; align-items:center; }
+  .ligne-section button{ border:1px solid rgba(28,35,51,0.15); background:#fff; border-radius:6px; width:30px; height:30px; cursor:pointer; }
+  .ligne-section button:disabled{ opacity:.3; cursor:default; }
+  .membre-ligne{ display:flex; align-items:center; gap:12px; padding:10px 0; border-top:1px solid rgba(28,35,51,0.08); }
+  .membre-ligne:first-child{ border-top:none; }
+  .membre-ligne .ph{ width:46px; height:46px; border-radius:50%; background:var(--amber); display:flex; align-items:center; justify-content:center; font-weight:700; overflow:hidden; flex-shrink:0; }
+  .membre-ligne .ph img{ width:100%; height:100%; object-fit:cover; }
+  .membre-ligne .txt{ flex:1; min-width:0; } .membre-ligne .txt small{ display:block; color:rgba(28,35,51,0.55); }
+  .membre-ligne button{ border:1px solid rgba(28,35,51,0.15); background:#fff; border-radius:6px; padding:6px 10px; cursor:pointer; font-size:13px; }
+  .form-membre{ margin-top:14px; padding-top:14px; border-top:1px dashed rgba(28,35,51,0.2); }
+  .alerte-pub{ background:#FFF4E0; border:1px solid #F0C98A; border-radius:10px; padding:14px 16px; font-size:14px; margin-bottom:20px; }
+  .lien-pub{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .lien-pub code{ background:#F3F1EC; padding:8px 12px; border-radius:8px; font-size:13px; word-break:break-all; }
+  .toast{ position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px); background:var(--ink); color:var(--parchment); padding:12px 20px; border-radius:10px; font-size:14px; opacity:0; pointer-events:none; transition:all .25s; z-index:80; }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); } .toast.err{ background:var(--brick); }
+</style>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#1C2333">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cadence">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<script src="/pwa.js" defer></script>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-header-left">
+    <span class="logo">Cadence<span class="dot">.</span></span>
+    <nav class="app-nav">
+      <a href="dashboard.html" class="active">Tableau de bord</a>
+      <a href="clients.html">Clients</a>
+      <a href="agenda.html">Agenda</a>
+      <a href="devis-factures.html">Devis &amp; factures</a>
+      <a href="parametres.html">Paramètres</a>
+    </nav>
+  </div>
+  <div class="app-header-right">
+    <span class="user-name" id="user-name"></span>
+    <button class="btn btn-ghost btn-icon" id="logout-btn" type="button" aria-label="Se déconnecter" title="Se déconnecter">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </button>
+  </div>
+</header>
+
+<div class="app-shell">
+  <aside class="app-sidebar">
+    <div class="logo">Cadence<span class="dot">.</span></div>
+    <div class="logo-badge" aria-hidden="true"></div>
+    <nav class="sidebar-nav"></nav>
+    <div class="sidebar-spacer"></div>
+    <div class="sidebar-user">
+      <span class="sidebar-avatar" id="sidebar-avatar">–</span>
+      <div class="sidebar-user-text">
+        <div class="name" id="sidebar-name">…</div>
+        <div class="email" id="sidebar-email"></div>
+      </div>
+      <button class="icon-btn" id="sidebar-logout-btn" type="button" aria-label="Se déconnecter" title="Se déconnecter">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </aside>
+
+<main class="app-main">
+  <div class="app-container" style="max-width:1280px;">
+    <div class="page-head">
+      <h1>Ma page</h1>
+      <p>La vitrine que voient vos clients : photos, couleurs, équipe, prestations. Chaque réglage s'affiche en direct à droite.</p>
+    </div>
+
+    <div id="loading-state" class="loading-state">Chargement…</div>
+
+    <div id="contenu" style="display:none;">
+      <div class="alerte-pub" id="alerte-pub" style="display:none;"></div>
+
+      <div class="editeur">
+        <div>
+          <div class="barre-actions">
+            <button class="btn btn-primary" id="enregistrer" type="button">Enregistrer</button>
+            <button class="btn btn-sec btn-apercu-mobile" id="voir-apercu" type="button">Aperçu</button>
+            <span class="etat" id="etat">Tout est enregistré.</span>
+          </div>
+
+          <div class="card">
+            <h2>Publication</h2>
+            <p class="card-sub">Votre page est publique dès que la réservation en ligne est activée avec un identifiant.</p>
+            <div class="lien-pub" id="lien-pub"></div>
+          </div>
+
+          <div class="card">
+            <h2>Présentation</h2>
+            <p class="card-sub">Ce qui accroche le regard en premier.</p>
+            <div class="field"><label for="accroche">Accroche</label>
+              <input type="text" id="accroche" maxlength="120" placeholder="Coiffure femme & homme · Colorations végétales · Paris 11e">
+              <div class="hint">Une phrase sous votre nom (120 caractères).</div></div>
+            <div class="field"><label for="a_propos">À propos</label>
+              <textarea id="a_propos" maxlength="2000" placeholder="Notre histoire, notre approche, ce qui nous distingue…"></textarea>
+              <div class="hint"><span id="cpt-apropos">0</span> / 2000 — une ligne vide sépare les paragraphes.</div></div>
+            <div class="field"><label for="texte_bouton">Texte du bouton de réservation</label>
+              <input type="text" id="texte_bouton" maxlength="40" placeholder="Réserver en ligne"></div>
+          </div>
+
+          <div class="card">
+            <h2>Photos</h2>
+            <p class="card-sub">JPEG, PNG ou WebP. Les images sont réduites automatiquement pour charger vite sur mobile.</p>
+            <div class="field"><label>Photo de couverture</label>
+              <div class="cover-zone" id="cover-zone">Aucune couverture</div>
+              <button class="btn btn-sec btn-sm" type="button" id="cover-choisir">Choisir une photo</button>
+              <button class="btn btn-sec btn-sm" type="button" id="cover-retirer" style="display:none;">Retirer</button>
+              <input type="file" id="cover-fichier" accept="image/jpeg,image/png,image/webp" hidden>
+              <div class="hint">Format paysage conseillé (ex. 1600 × 700). Le logo se règle dans <a href="parametres.html" style="text-decoration:underline;">Paramètres → Entreprise</a>.</div></div>
+            <div class="field" style="margin-bottom:0;"><label>Galerie (<span id="cpt-galerie">0</span> / 12)</label>
+              <button class="btn btn-sec btn-sm" type="button" id="galerie-ajouter">Ajouter des photos</button>
+              <input type="file" id="galerie-fichier" accept="image/jpeg,image/png,image/webp" multiple hidden>
+              <div class="vignettes" id="vignettes"></div></div>
+          </div>
+
+          <div class="card">
+            <h2>Style</h2>
+            <p class="card-sub">Faites-la à l'image de votre salon.</p>
+            <div class="field"><label>Mise en page</label>
+              <div class="choix" id="ch-mise_en_page">
+                <button type="button" data-v="classique">Classique<small>Bandeau photo + logo</small></button>
+                <button type="button" data-v="immersif">Immersif<small>Grande photo plein écran</small></button>
+                <button type="button" data-v="minimal">Minimal<small>Épuré, centré</small></button></div></div>
+            <div class="field"><label>Couleur principale</label>
+              <div class="pastilles" id="pastilles"></div>
+              <div class="hint">Le texte des boutons s'adapte automatiquement pour rester lisible.</div></div>
+            <div class="field"><label>Typographie</label>
+              <div class="choix" id="ch-police">
+                <button type="button" data-v="moderne" style="font-family:'Bricolage Grotesque',sans-serif;">Moderne<small>Net et contemporain</small></button>
+                <button type="button" data-v="elegante" style="font-family:Fraunces,serif;">Élégante<small>Serif chaleureux</small></button>
+                <button type="button" data-v="douce" style="font-family:Nunito,sans-serif;">Douce<small>Arrondie, amicale</small></button>
+                <button type="button" data-v="editoriale" style="font-family:'Playfair Display',serif;">Éditoriale<small>Magazine</small></button></div></div>
+            <div class="grid-2">
+              <div class="field"><label>Fond de la page</label>
+                <div class="choix" id="ch-fond">
+                  <button type="button" data-v="clair">Clair</button><button type="button" data-v="creme">Crème</button><button type="button" data-v="sombre">Sombre</button></div></div>
+              <div class="field"><label>Forme des boutons</label>
+                <div class="choix" id="ch-boutons">
+                  <button type="button" data-v="arrondi">Arrondi</button><button type="button" data-v="carre">Carré</button><button type="button" data-v="pilule">Pilule</button></div></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Sections</h2>
+            <p class="card-sub">Affichez ou masquez, et choisissez l'ordre.</p>
+            <div id="sections"></div>
+          </div>
+
+          <div class="card">
+            <h2>Équipe</h2>
+            <p class="card-sub">Présentez ceux qui vous accueillent, avec leur photo.</p>
+            <div id="equipe-liste"></div>
+            <div class="form-membre" id="form-membre">
+              <input type="hidden" id="m-id">
+              <div class="grid-2">
+                <div class="field"><label for="m-nom">Prénom / nom</label><input type="text" id="m-nom" maxlength="60" placeholder="Julie"></div>
+                <div class="field"><label for="m-role">Rôle</label><input type="text" id="m-role" maxlength="60" placeholder="Coloriste"></div>
+              </div>
+              <div class="field"><label for="m-bio">Mot de présentation (facultatif)</label><input type="text" id="m-bio" maxlength="200" placeholder="10 ans d'expérience, spécialiste du balayage."></div>
+              <div class="field"><label>Photo</label>
+                <div style="display:flex; gap:10px; align-items:center;">
+                  <div class="membre-ligne" style="border:none; padding:0;"><span class="ph" id="m-photo-apercu">?</span></div>
+                  <button class="btn btn-sec btn-sm" type="button" id="m-photo-btn">Choisir</button>
+                  <input type="file" id="m-photo-fichier" accept="image/jpeg,image/png,image/webp" hidden></div></div>
+              <button class="btn btn-primary btn-sm" type="button" id="m-enregistrer">Ajouter à l'équipe</button>
+              <button class="btn btn-sec btn-sm" type="button" id="m-annuler" style="display:none;">Annuler</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Contact & réseaux</h2>
+            <p class="card-sub">Affichés sur votre page. Laissez vide ce que vous ne voulez pas montrer.</p>
+            <div class="grid-2">
+              <div class="field"><label for="instagram">Instagram</label><input type="text" id="instagram" maxlength="200" placeholder="@monsalon"></div>
+              <div class="field"><label for="facebook">Facebook</label><input type="text" id="facebook" maxlength="200" placeholder="monsalon"></div>
+              <div class="field"><label for="tiktok">TikTok</label><input type="text" id="tiktok" maxlength="200" placeholder="@monsalon"></div>
+              <div class="field"><label for="site_web">Site web</label><input type="text" id="site_web" maxlength="200" placeholder="www.monsalon.fr"></div>
+              <div class="field"><label for="telephone_public">Téléphone affiché</label><input type="text" id="telephone_public" maxlength="30" placeholder="01 23 45 67 89"></div>
+              <div class="field"><label for="email_public">Email affiché</label><input type="text" id="email_public" maxlength="120" placeholder="contact@monsalon.fr"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Bandeau d'annonce</h2>
+            <p class="card-sub">Congés, promotion, nouveauté : un message en haut de votre page.</p>
+            <div class="field" style="display:flex; gap:10px; align-items:center;">
+              <input type="checkbox" id="bandeau_actif" style="width:20px; height:20px;"><label for="bandeau_actif" style="margin:0;">Afficher le bandeau</label></div>
+            <div class="field" style="margin-bottom:0;"><label for="bandeau_texte">Message</label>
+              <input type="text" id="bandeau_texte" maxlength="160" placeholder="Fermé du 12 au 26 août — réservations rouvertes le 27 !"></div>
+          </div>
+        </div>
+
+        <aside class="apercu" id="apercu">
+          <div class="apercu-titre"><span>Aperçu en direct</span><button type="button" id="fermer-apercu">Fermer</button></div>
+          <div class="cadre"><iframe id="cadre" title="Aperçu de votre page"></iframe></div>
+        </aside>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+  import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
+  import { initTheme, idEspaceActif, formaterNomAffichage, initiales, prenomConnecte, viderCacheBrand } from './theme.js';
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  const DEFAUT = {
+    accroche:null, a_propos:null, cover_url:null, galerie:[], mise_en_page:'classique', police:'moderne', couleur:null, fond:'clair',
+    boutons:'arrondi', texte_bouton:null, bandeau_actif:false, bandeau_texte:null,
+    sections:{ a_propos:true, prestations:true, galerie:true, equipe:true, avis:true, horaires:true, carte:true },
+    ordre:['a_propos','prestations','galerie','equipe','horaires','carte','avis'],
+    instagram:null, facebook:null, tiktok:null, site_web:null, telephone_public:null, email_public:null
+  };
+  const CHAMPS_TEXTE = ['accroche','a_propos','texte_bouton','bandeau_texte','instagram','facebook','tiktok','site_web','telephone_public','email_public'];
+  const SECTIONS = { a_propos:'À propos', prestations:'Prestations', galerie:'Galerie photos', equipe:"L'équipe", horaires:'Horaires', carte:'Carte & contact', avis:'Avis clients' };
+  const COULEURS = ['#E2A63D','#C0392B','#D96C8A','#8E44AD','#244990','#1F7A8C','#3E7C74','#2E7D32','#6D4C41','#1C2333','#B5533F','#C9A227'];
+
+  let espaceId = null, vit = structuredClone(DEFAUT), equipe = [], prestations = [], reglage = {}, profil = {}, ville = null, avis = [];
+  let sale = false, enregistre = null, membrePhoto = null;
+
+  function toast(msg, err){ const t = $('toast'); t.textContent = msg; t.className = 'toast show' + (err ? ' err' : ''); clearTimeout(toast.h); toast.h = setTimeout(() => t.className = 'toast', 3200); }
+  function marquerSale(){ sale = true; const e = $('etat'); e.textContent = 'Modifications non enregistrées'; e.classList.add('sale'); envoyerApercu(); }
+
+  // ------------------------------------------------------------------ aperçu
+  function payload(){
+    return {
+      slug: reglage.slug || 'apercu', nom: profil.business_name || profil.full_name || 'Votre salon', metier: profil.metier || 'autre',
+      logo_url: profil.logo_url || null, accent: profil.accent || 'ambre', ville,
+      horaires: { jours: reglage.jours_ouvres || [1,2,3,4,5], debut: reglage.heure_debut || '09:00', fin: reglage.heure_fin || '18:00' },
+      adresse: reglage.adresse_annuaire, latitude: reglage.latitude, longitude: reglage.longitude,
+      vitrine: vit, equipe, prestations, avis
+    };
+  }
+  let apercuPret = false, minuterie = null;
+  function envoyerApercu(){
+    clearTimeout(minuterie);
+    minuterie = setTimeout(() => { if(apercuPret) $('cadre').contentWindow.postMessage({ type:'cadence-vitrine', data: payload() }, location.origin); }, 120);
+  }
+  window.addEventListener('message', e => {
+    if(e.origin !== location.origin || !e.data || e.data.type !== 'cadence-vitrine-ready') return;
+    apercuPret = true; envoyerApercu();
+  });
+
+  // ----------------------------------------------------------------- images
+  async function compresser(fichier, maxPx){
+    const bmp = await createImageBitmap(fichier, { imageOrientation:'from-image' });
+    const k = Math.min(1, maxPx / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(bmp, 0, 0, c.width, c.height);
+    return new Promise((ok, ko) => c.toBlob(b => b ? ok(b) : ko(new Error('conversion')), 'image/jpeg', 0.82));
+  }
+  async function televerser(fichier, maxPx){
+    if(!/^image\/(jpeg|png|webp)$/.test(fichier.type)){ toast('Format non pris en charge (JPEG, PNG ou WebP).', true); return null; }
+    let blob;
+    try{ blob = await compresser(fichier, maxPx); }catch(e){ toast("Impossible de lire cette image.", true); return null; }
+    const chemin = `${espaceId}/vitrine/${crypto.randomUUID()}.jpg`;
+    const { error } = await supabase.storage.from('vitrines').upload(chemin, blob, { contentType:'image/jpeg', cacheControl:'31536000' });
+    if(error){ toast("L'envoi de la photo a échoué.", true); return null; }
+    return supabase.storage.from('vitrines').getPublicUrl(chemin).data.publicUrl;
+  }
+  function supprimerFichier(url){
+    const m = (url || '').match(/\/vitrines\/(.+)$/);
+    if(m && m[1].startsWith(espaceId + '/')) supabase.storage.from('vitrines').remove([decodeURIComponent(m[1])]).catch(() => {});
+  }
+
+  // ----------------------------------------------------------- rendu éditeur
+  function rendreChoix(id, cle){
+    const zone = $(id);
+    zone.querySelectorAll('button').forEach(b => {
+      b.classList.toggle('on', vit[cle] === b.dataset.v);
+      b.onclick = () => { vit[cle] = b.dataset.v; rendreChoix(id, cle); marquerSale(); };
+    });
+  }
+  function rendreCouleurs(){
+    const z = $('pastilles');
+    const courante = (vit.couleur || '').toLowerCase();
+    z.innerHTML = COULEURS.map(c => `<button type="button" data-c="${c}" style="background:${c}" class="${courante === c.toLowerCase() ? 'on' : ''}" aria-label="Couleur ${c}"></button>`).join('') +
+      `<input type="color" id="couleur-libre" value="${vit.couleur || '#E2A63D'}" aria-label="Couleur personnalisée" title="Couleur personnalisée">
+       <button type="button" class="btn btn-sec btn-sm" id="couleur-defaut" style="width:auto; height:auto; border-radius:6px; border:1px solid rgba(28,35,51,.18); box-shadow:none;">Couleur de ma marque</button>`;
+    z.querySelectorAll('button[data-c]').forEach(b => b.onclick = () => { vit.couleur = b.dataset.c; rendreCouleurs(); marquerSale(); });
+    $('couleur-libre').oninput = e => { vit.couleur = e.target.value; marquerSale(); };
+    $('couleur-libre').onchange = () => rendreCouleurs();
+    $('couleur-defaut').onclick = () => { vit.couleur = null; rendreCouleurs(); marquerSale(); };
+  }
+  function rendreImages(){
+    const cz = $('cover-zone');
+    cz.style.backgroundImage = vit.cover_url ? `url("${vit.cover_url}")` : 'none';
+    cz.textContent = vit.cover_url ? '' : 'Aucune couverture';
+    $('cover-retirer').style.display = vit.cover_url ? '' : 'none';
+    $('cpt-galerie').textContent = vit.galerie.length;
+    $('vignettes').innerHTML = vit.galerie.map((u, i) => `<div class="vignette"><img src="${esc(u)}" alt="">
+      <div class="outils"><span><button data-a="g" data-i="${i}" ${i === 0 ? 'disabled' : ''} title="Avancer">◀</button><button data-a="d" data-i="${i}" ${i === vit.galerie.length - 1 ? 'disabled' : ''} title="Reculer">▶</button></span>
+      <button data-a="x" data-i="${i}" title="Supprimer">✕</button></div></div>`).join('');
+    $('vignettes').querySelectorAll('button').forEach(b => b.onclick = () => {
+      const i = +b.dataset.i, g = vit.galerie;
+      if(b.dataset.a === 'x'){ const [u] = g.splice(i, 1); supprimerFichier(u); }
+      else { const j = b.dataset.a === 'g' ? i - 1 : i + 1; [g[i], g[j]] = [g[j], g[i]]; }
+      rendreImages(); marquerSale();
+    });
+  }
+  function rendreSections(){
+    const z = $('sections');
+    z.innerHTML = vit.ordre.map((k, i) => `<div class="ligne-section"><label><input type="checkbox" data-k="${k}" ${vit.sections[k] !== false ? 'checked' : ''}> ${SECTIONS[k]}</label>
+      <button type="button" data-a="h" data-i="${i}" ${i === 0 ? 'disabled' : ''} aria-label="Monter">▲</button>
+      <button type="button" data-a="b" data-i="${i}" ${i === vit.ordre.length - 1 ? 'disabled' : ''} aria-label="Descendre">▼</button></div>`).join('');
+    z.querySelectorAll('input').forEach(c => c.onchange = () => { vit.sections[c.dataset.k] = c.checked; marquerSale(); });
+    z.querySelectorAll('button').forEach(b => b.onclick = () => {
+      const i = +b.dataset.i, j = b.dataset.a === 'h' ? i - 1 : i + 1; [vit.ordre[i], vit.ordre[j]] = [vit.ordre[j], vit.ordre[i]]; rendreSections(); marquerSale();
+    });
+  }
+  function rendreEquipe(){
+    $('equipe-liste').innerHTML = equipe.length ? equipe.map((m, i) => `<div class="membre-ligne"><span class="ph">${m.photo_url ? `<img src="${esc(m.photo_url)}" alt="">` : esc(m.nom.charAt(0).toUpperCase())}</span>
+      <div class="txt"><b>${esc(m.nom)}</b><small>${esc(m.role || '')}</small></div>
+      <button data-a="h" data-i="${i}" ${i === 0 ? 'disabled' : ''}>▲</button><button data-a="b" data-i="${i}" ${i === equipe.length - 1 ? 'disabled' : ''}>▼</button>
+      <button data-a="e" data-i="${i}">Modifier</button><button data-a="x" data-i="${i}">Retirer</button></div>`).join('')
+      : '<p class="hint">Aucun membre pour l\'instant.</p>';
+    $('equipe-liste').querySelectorAll('button').forEach(b => b.onclick = () => actionMembre(b.dataset.a, +b.dataset.i));
+  }
+  async function actionMembre(a, i){
+    const m = equipe[i];
+    if(a === 'e'){ $('m-id').value = m.id; $('m-nom').value = m.nom; $('m-role').value = m.role || ''; $('m-bio').value = m.bio || ''; membrePhoto = m.photo_url || null;
+      majPhotoMembre(); $('m-enregistrer').textContent = 'Mettre à jour'; $('m-annuler').style.display = ''; $('m-nom').focus(); return; }
+    if(a === 'x'){
+      if(!confirm(`Retirer ${m.nom} de la page ?`)) return;
+      const { error } = await supabase.from('vitrine_equipe').delete().eq('id', m.id);
+      if(error){ toast('La suppression a échoué.', true); return; }
+      supprimerFichier(m.photo_url); equipe.splice(i, 1); rendreEquipe(); envoyerApercu(); return;
+    }
+    const j = a === 'h' ? i - 1 : i + 1; [equipe[i], equipe[j]] = [equipe[j], equipe[i]];
+    await Promise.all(equipe.map((x, k) => supabase.from('vitrine_equipe').update({ position:k }).eq('id', x.id)));
+    rendreEquipe(); envoyerApercu();
+  }
+  function majPhotoMembre(){ const p = $('m-photo-apercu'); p.innerHTML = membrePhoto ? `<img src="${esc(membrePhoto)}" alt="" style="width:100%;height:100%;object-fit:cover;">` : '?'; }
+  function reinitMembre(){ ['m-id','m-nom','m-role','m-bio'].forEach(i => $(i).value = ''); membrePhoto = null; majPhotoMembre(); $('m-enregistrer').textContent = "Ajouter à l'équipe"; $('m-annuler').style.display = 'none'; }
+
+  function rendrePublication(){
+    const pret = !!(reglage.activee && reglage.slug);
+    const a = $('alerte-pub');
+    if(!pret){
+      a.style.display = '';
+      a.innerHTML = `<strong>Votre page n'est pas encore publiée.</strong> Activez la réservation en ligne et choisissez un identifiant dans <a href="parametres.html" style="text-decoration:underline;">Paramètres → Réservation</a>. En attendant, l'aperçu fonctionne.`;
+      $('lien-pub').innerHTML = '<span class="hint">Lien disponible après activation.</span>';
+      return;
+    }
+    a.style.display = 'none';
+    const lien = `${location.origin}/pro.html?p=${reglage.slug}`;
+    $('lien-pub').innerHTML = `<code>${esc(lien)}</code><button class="btn btn-sec btn-sm" id="copier" type="button">Copier</button><a class="btn btn-sec btn-sm" href="${esc(lien)}" target="_blank" rel="noopener">Ouvrir</a>`;
+    $('copier').onclick = async () => { try{ await navigator.clipboard.writeText(lien); toast('Lien copié.'); }catch(e){ prompt('Copiez ce lien :', lien); } };
+  }
+
+  function lierChamps(){
+    CHAMPS_TEXTE.forEach(k => {
+      const el = $(k); el.value = vit[k] || '';
+      el.addEventListener('input', () => { vit[k] = el.value.trim() === '' ? null : el.value; if(k === 'a_propos') $('cpt-apropos').textContent = el.value.length; marquerSale(); });
+    });
+    $('cpt-apropos').textContent = ($('a_propos').value || '').length;
+    $('bandeau_actif').checked = !!vit.bandeau_actif;
+    $('bandeau_actif').onchange = e => { vit.bandeau_actif = e.target.checked; marquerSale(); };
+    rendreChoix('ch-mise_en_page', 'mise_en_page'); rendreChoix('ch-police', 'police'); rendreChoix('ch-fond', 'fond'); rendreChoix('ch-boutons', 'boutons');
+    rendreCouleurs(); rendreImages(); rendreSections(); rendreEquipe(); rendrePublication();
+  }
+
+  // ---------------------------------------------------------------- actions
+  $('cover-choisir').onclick = () => $('cover-fichier').click();
+  $('cover-fichier').onchange = async e => {
+    const f = e.target.files[0]; e.target.value = ''; if(!f) return;
+    toast('Envoi de la photo…'); const u = await televerser(f, 2000); if(!u) return;
+    if(vit.cover_url) supprimerFichier(vit.cover_url);
+    vit.cover_url = u; rendreImages(); marquerSale();
+  };
+  $('cover-retirer').onclick = () => { supprimerFichier(vit.cover_url); vit.cover_url = null; rendreImages(); marquerSale(); };
+  $('galerie-ajouter').onclick = () => $('galerie-fichier').click();
+  $('galerie-fichier').onchange = async e => {
+    const fichiers = [...e.target.files]; e.target.value = '';
+    const place = 12 - vit.galerie.length;
+    if(fichiers.length > place) toast(`La galerie est limitée à 12 photos (${Math.max(place, 0)} place${place > 1 ? 's' : ''} restante${place > 1 ? 's' : ''}).`, true);
+    for(const f of fichiers.slice(0, Math.max(place, 0))){ toast('Envoi de la photo…'); const u = await televerser(f, 1600); if(u){ vit.galerie.push(u); rendreImages(); marquerSale(); } }
+  };
+  $('m-photo-btn').onclick = () => $('m-photo-fichier').click();
+  $('m-photo-fichier').onchange = async e => {
+    const f = e.target.files[0]; e.target.value = ''; if(!f) return;
+    toast('Envoi de la photo…'); const u = await televerser(f, 600); if(u){ membrePhoto = u; majPhotoMembre(); }
+  };
+  $('m-annuler').onclick = reinitMembre;
+  $('m-enregistrer').onclick = async () => {
+    const nom = $('m-nom').value.trim();
+    if(!nom){ toast('Indiquez un nom.', true); $('m-nom').focus(); return; }
+    const ligne = { nom, role: $('m-role').value.trim() || null, bio: $('m-bio').value.trim() || null, photo_url: membrePhoto };
+    const id = $('m-id').value;
+    if(id){
+      const { error } = await supabase.from('vitrine_equipe').update(ligne).eq('id', id);
+      if(error){ toast("L'enregistrement a échoué.", true); return; }
+      Object.assign(equipe.find(m => m.id === id), ligne);
+    }else{
+      const { data, error } = await supabase.from('vitrine_equipe').insert({ ...ligne, owner_id: espaceId, position: equipe.length }).select().single();
+      if(error){ toast("L'enregistrement a échoué.", true); return; }
+      equipe.push(data);
+    }
+    reinitMembre(); rendreEquipe(); envoyerApercu(); toast('Équipe mise à jour.');
+  };
+
+  $('enregistrer').onclick = async () => {
+    const b = $('enregistrer'); b.disabled = true; b.textContent = 'Enregistrement…';
+    const ligne = { ...vit, owner_id: espaceId, updated_at: new Date().toISOString() };
+    const { error } = await supabase.from('vitrine').upsert(ligne, { onConflict:'owner_id' });
+    b.disabled = false; b.textContent = 'Enregistrer';
+    if(error){ toast("L'enregistrement a échoué. La migration schema-v18 a-t-elle été exécutée ?", true); return; }
+    sale = false; const e = $('etat'); e.textContent = 'Tout est enregistré.'; e.classList.remove('sale'); toast('Votre page est à jour.');
+  };
+  window.addEventListener('beforeunload', e => { if(sale){ e.preventDefault(); e.returnValue = ''; } });
+  $('voir-apercu').onclick = () => $('apercu').classList.add('ouvert');
+  $('fermer-apercu').onclick = () => $('apercu').classList.remove('ouvert');
+
+  async function seDeconnecter(){ viderCacheBrand(); await supabase.auth.signOut(); window.location.href = 'login.html'; }
+  $('logout-btn').addEventListener('click', seDeconnecter);
+  $('sidebar-logout-btn').addEventListener('click', seDeconnecter);
+
+  (async function init(){
+    const { data } = await supabase.auth.getSession();
+    if(!data.session){ window.location.href = 'login.html'; return; }
+    $('user-name').textContent = await prenomConnecte(supabase, data.session);
+    $('sidebar-email').textContent = data.session.user.email;
+    const brand = await initTheme(supabase, 'vitrine');
+    const nomAffiche = brand.business_name && brand.business_name !== 'Cadence' ? brand.business_name : (brand.full_name ? formaterNomAffichage(brand.full_name) : data.session.user.email);
+    $('sidebar-name').textContent = nomAffiche; $('sidebar-avatar').textContent = initiales(nomAffiche);
+    espaceId = await idEspaceActif(supabase);
+
+    const [v, eq, pr, rg, pf, fa, av] = await Promise.all([
+      supabase.from('vitrine').select('*').eq('owner_id', espaceId).maybeSingle(),
+      supabase.from('vitrine_equipe').select('*').eq('owner_id', espaceId).order('position'),
+      supabase.from('prestations').select('id,libelle,description,prix_unitaire,duree_minutes,public_cible,categorie').eq('owner_id', espaceId).eq('actif', true).order('position'),
+      supabase.from('parametres_reservation').select('*').eq('owner_id', espaceId).maybeSingle(),
+      supabase.from('profiles').select('business_name,full_name,logo_url,accent,metier').eq('id', espaceId).maybeSingle(),
+      supabase.from('parametres_facturation').select('emetteur_ville').eq('owner_id', espaceId).maybeSingle(),
+      supabase.from('avis').select('note,commentaire,auteur,created_at').eq('owner_id', espaceId).eq('masque', false).order('created_at', { ascending:false }).limit(50)
+    ]);
+    $('loading-state').style.display = 'none';
+    if(v.error && /vitrine/.test(v.error.message || '')){
+      $('loading-state').style.display = ''; $('loading-state').textContent = "La migration schema-v18-vitrine.sql n'a pas encore été exécutée dans Supabase."; return;
+    }
+    if(v.data){ const { owner_id, created_at, updated_at, ...reste } = v.data; vit = { ...structuredClone(DEFAUT), ...reste, sections:{ ...DEFAUT.sections, ...(reste.sections || {}) } }; }
+    equipe = eq.data || []; prestations = pr.data || []; reglage = rg.data || {}; profil = pf.data || {}; ville = fa.data?.emetteur_ville || null; avis = av.data || [];
+    // Une section ajoutée plus tard doit toujours apparaître dans l'ordre.
+    DEFAUT.ordre.forEach(k => { if(!vit.ordre.includes(k)) vit.ordre.push(k); });
+
+    $('contenu').style.display = 'block';
+    lierChamps();
+    $('cadre').src = `pro.html?p=${encodeURIComponent(reglage.slug || 'apercu')}&preview=1`;
+  })();
+</script>
+</body>
+</html>

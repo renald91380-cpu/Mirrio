@@ -3,117 +3,304 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fiche professionnel — Cadence</title>
+<title>Réserver en ligne | Cadence</title>
+<meta name="description" content="Découvrez les prestations et réservez en ligne.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=DM+Sans:wght@400;500;700&family=Geist:wght@400;500;600&family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600;700&family=Manrope:wght@500;700;800&family=Nunito:wght@400;600;800&family=Playfair+Display:wght@500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<style>
-  :root{ --ink:#1C2333; --parchment:#F5F1E7; --teal:#3E7C74; --amber:#E2A63D; }
-  *{box-sizing:border-box; margin:0; padding:0;}
-  body{ font-family:'Inter', Arial, sans-serif; background:var(--parchment); color:var(--ink); line-height:1.5; -webkit-font-smoothing:antialiased; }
-  header{ background:var(--ink); padding:14px 20px; display:flex; justify-content:space-between; }
-  header a{ color:var(--parchment); text-decoration:none; font-size:14px; }
-  .logo{ font-family:'Fraunces', Georgia, serif; font-weight:700; font-size:20px; }
-  main{ max-width:900px; margin:0 auto; padding:24px 20px 70px; }
-  .galerie{ display:grid; grid-template-columns:2fr 1fr 1fr; grid-auto-rows:150px; gap:8px; border-radius:12px; overflow:hidden; margin-bottom:20px; }
-  .galerie img{ width:100%; height:100%; object-fit:cover; }
-  .galerie img:first-child{ grid-row:span 2; }
-  @media(max-width:600px){ .galerie{ grid-template-columns:1fr 1fr; } .galerie img:first-child{ grid-column:span 2; grid-row:auto; } }
-  h1{ font-family:'Fraunces', Georgia, serif; font-size:30px; }
-  .meta{ color:rgba(28,35,51,0.6); font-size:14px; margin:4px 0 14px; }
-  .etoiles{ color:var(--amber); letter-spacing:1px; }
-  .bloc{ background:#fff; border-radius:12px; padding:20px; margin-bottom:16px; box-shadow:0 1px 3px rgba(28,35,51,0.08); }
-  .bloc h2{ font-family:'Fraunces', Georgia, serif; font-size:19px; margin-bottom:12px; }
-  .onglets{ display:inline-flex; background:rgba(28,35,51,0.06); border-radius:9px; padding:3px; margin-bottom:12px; }
-  .onglets button{ border:none; background:none; padding:7px 16px; border-radius:7px; font:600 13.5px Inter, sans-serif; color:rgba(28,35,51,0.6); cursor:pointer; }
-  .onglets button.on{ background:#fff; color:var(--ink); box-shadow:0 1px 3px rgba(28,35,51,0.15); }
-  .cat{ font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:rgba(28,35,51,0.5); margin:14px 0 2px; font-weight:700; }
-  .presta{ display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-top:1px solid rgba(28,35,51,0.08); }
-  .presta:first-of-type{ border-top:none; }
-  .presta small{ color:rgba(28,35,51,0.55); display:block; }
-  .avis{ padding:12px 0; border-top:1px solid rgba(28,35,51,0.08); font-size:14px; }
-  .avis:first-of-type{ border-top:none; }
-  .avis small{ color:rgba(28,35,51,0.55); }
-  #carte{ height:260px; border-radius:10px; margin-top:10px; }
-  .cta{ position:sticky; bottom:0; background:var(--parchment); padding:12px 0; text-align:center; }
-  .btn{ display:inline-block; padding:13px 30px; font-weight:700; border-radius:10px; background:var(--ink); color:var(--parchment); text-decoration:none; }
-  .btn:hover{ background:var(--teal); }
-  .etat{ text-align:center; padding:60px 20px; color:rgba(28,35,51,0.55); }
-</style>
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#1C2333">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Cadence">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-<script src="/pwa.js" defer></script>
+<style>
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{ scroll-behavior:smooth; }
+  body{ background:var(--bg, #fff); color:var(--ink, #1C2333); font-family:var(--corps, Inter, sans-serif); line-height:1.6; -webkit-font-smoothing:antialiased; }
+  h1,h2,h3{ font-family:var(--titre); line-height:1.05; letter-spacing:-.025em; }
+  a{ color:inherit; }
+  img{ display:block; max-width:100%; }
+  .etat{ text-align:center; padding:90px 20px; color:#6b7080; font-family:Inter, sans-serif; }
+
+  .bandeau{ background:var(--c); color:var(--c-texte); text-align:center; padding:9px 16px; font-size:14px; font-weight:600; }
+  .wrap{ max-width:880px; margin:0 auto; padding:0 20px; }
+
+  /* ---- en-têtes ---- */
+  .cover{ height:clamp(190px, 34vh, 320px); background:var(--cover) center/cover no-repeat, linear-gradient(135deg, var(--c), color-mix(in srgb, var(--c) 45%, #000)); }
+  .ident{ display:flex; gap:18px; align-items:flex-end; margin-top:-44px; padding-bottom:6px; flex-wrap:wrap; }
+  .logo{ width:96px; height:96px; border-radius:28px; background:var(--surface); border:4px solid var(--bg); display:flex; align-items:center; justify-content:center;
+         font-family:var(--titre); font-weight:700; font-size:34px; color:var(--c); overflow:hidden; flex-shrink:0; box-shadow:0 4px 14px rgba(0,0,0,.12); }
+  .logo img{ width:100%; height:100%; object-fit:cover; }
+  .ident h1{ font-size:clamp(32px, 6vw, 52px); font-weight:800; }
+  .accroche{ color:var(--muted); font-size:16px; margin-top:4px; }
+  .meta{ font-size:14px; color:var(--muted); margin-top:6px; }
+  .etoiles{ color:#E2A63D; letter-spacing:1px; }
+  .actions{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:18px 0 6px; }
+
+  .immersif{ min-height:78vh; display:flex; align-items:flex-end; color:#fff; padding:60px 0 54px;
+    background:linear-gradient(180deg, rgba(0,0,0,.15), rgba(0,0,0,.72)), var(--cover) center/cover no-repeat, linear-gradient(135deg, var(--c), color-mix(in srgb, var(--c) 40%, #000)); }
+  .immersif h1{ font-size:clamp(44px, 10vw, 96px); font-weight:800; max-width:12ch; }
+  .immersif .accroche, .immersif .meta{ color:rgba(255,255,255,.85); }
+  .immersif .logo{ margin-bottom:14px; }
+  .minimal{ text-align:center; padding:54px 0 10px; }
+  .minimal .logo{ margin:0 auto 14px; }
+  .minimal .actions{ justify-content:center; }
+
+  .btn{ display:inline-block; background:var(--c); color:var(--c-texte); font:600 15.5px var(--corps); text-decoration:none; padding:14px 28px; border:none; cursor:pointer; border-radius:var(--rayon); transition:transform .35s cubic-bezier(.16,1,.3,1), box-shadow .35s; box-shadow:0 10px 26px -12px var(--c); }
+  .btn:hover{ transform:translateY(-2px); }
+  .btn:active{ transform:scale(.98); }
+  .reseaux{ display:flex; gap:8px; flex-wrap:wrap; }
+  .reseaux a{ font-size:13px; font-weight:600; padding:8px 14px; border-radius:var(--rayon); background:var(--surface); text-decoration:none; }
+  .immersif .reseaux a{ background:rgba(255,255,255,.18); color:#fff; }
+
+  /* ---- sections ---- */
+  section{ padding:46px 0 10px; }
+  section > h2{ font-size:clamp(28px, 4vw, 38px); font-weight:800; margin-bottom:20px; }
+  .texte p{ margin-bottom:12px; opacity:.88; }
+  .carte-s{ background:var(--surface); border-radius:24px; padding:8px 24px; border:1px solid var(--trait); }
+  .onglets{ display:inline-flex; background:var(--surface); border-radius:var(--rayon); padding:3px; margin-bottom:14px; }
+  .onglets button{ border:none; background:none; padding:7px 18px; border-radius:var(--rayon); font:600 14px var(--corps); color:var(--muted); cursor:pointer; }
+  .onglets button.on{ background:var(--c); color:var(--c-texte); }
+  .cat{ font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:16px 0 0; font-weight:700; }
+  .presta{ display:flex; justify-content:space-between; align-items:center; gap:14px; padding:18px 0; border-top:1px solid var(--trait); }
+  .presta:first-child, .cat + .presta{ border-top:none; }
+  .presta small{ display:block; color:var(--muted); font-size:13px; }
+  .prix{ font-family:var(--titre); font-weight:800; font-size:20px; letter-spacing:-.02em; white-space:nowrap; }
+  .galerie{ display:grid; grid-template-columns:repeat(4, 1fr); grid-auto-rows:150px; gap:10px; }
+  .galerie button{ border:none; padding:0; border-radius:20px; overflow:hidden; cursor:zoom-in; background:var(--surface); }
+  .galerie button:first-child{ grid-column:span 2; grid-row:span 2; }
+  @media(max-width:620px){ .galerie{ grid-template-columns:repeat(2, 1fr); grid-auto-rows:130px; } }
+  .galerie img{ width:100%; height:100%; object-fit:cover; transition:transform .25s; }
+  .galerie button:hover img{ transform:scale(1.04); }
+  .equipe{ display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:14px; }
+  .membre{ text-align:center; background:var(--surface); border:1px solid var(--trait); border-radius:24px; padding:24px 14px; }
+  .membre .ph{ width:84px; height:84px; border-radius:50%; margin:0 auto 10px; background:var(--c); color:var(--c-texte); display:flex; align-items:center; justify-content:center; font:700 28px var(--titre); overflow:hidden; }
+  .membre .ph img{ width:100%; height:100%; object-fit:cover; }
+  .membre b{ display:block; } .membre small{ color:var(--muted); display:block; font-size:13px; } .membre p{ font-size:13px; margin-top:6px; opacity:.85; }
+  .horaires li{ list-style:none; display:flex; justify-content:space-between; padding:9px 0; border-top:1px solid var(--trait); font-size:15px; }
+  .horaires li:first-child{ border-top:none; } .horaires .ferme{ color:var(--muted); }
+  #carte{ height:300px; border-radius:24px; margin-top:12px; }
+  .avis{ padding:14px 0; border-top:1px solid var(--trait); font-size:15px; } .avis:first-child{ border-top:none; }
+  .avis small{ color:var(--muted); }
+  .contact a{ display:inline-block; margin-right:16px; font-weight:600; }
+
+  .pied{ text-align:center; padding:50px 20px 110px; font-size:13px; color:var(--muted); }
+  .barre-resa{ position:fixed; left:12px; right:12px; bottom:12px; z-index:20; background:color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border:1px solid var(--trait); border-radius:999px; padding:8px; text-align:center; box-shadow:0 14px 34px -14px rgba(0,0,0,.35); }
+  .haut{ position:fixed; top:12px; left:50%; z-index:30; transform:translate(-50%, -140%); width:min(560px, calc(100% - 24px)); display:flex; align-items:center; justify-content:space-between; gap:14px; padding:8px 8px 8px 22px; border-radius:999px; background:color-mix(in srgb, var(--bg) 80%, transparent); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border:1px solid var(--trait); box-shadow:0 14px 34px -14px rgba(0,0,0,.35); transition:transform .5s cubic-bezier(.16,1,.3,1); }
+  .haut.on{ transform:translate(-50%, 0); } .haut b{ font-family:var(--titre); font-weight:800; font-size:17px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .haut .btn{ padding:10px 20px; box-shadow:none; }
+  @media (prefers-reduced-motion: reduce){ .haut, .btn{ transition:none; } }
+  .barre-resa .btn{ width:100%; max-width:420px; box-shadow:none; }
+  .lightbox{ position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:50; display:flex; align-items:center; justify-content:center; padding:20px; cursor:zoom-out; }
+  .lightbox img{ max-height:92vh; max-width:96vw; border-radius:8px; }
+  @media (min-width:900px){ .barre-resa{ display:none; } .pied{ padding-bottom:50px; } }
+</style>
 </head>
 <body>
-<header><a class="logo" href="index.html">Cadence</a><a href="explorer.html">← Tous les professionnels</a></header>
-<main id="contenu"><div class="etat">Chargement…</div></main>
+<div id="app"><div class="etat">Chargement…</div></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-  const slug = new URLSearchParams(location.search).get('p') || '';
-  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const urlSure = u => /^https:\/\//i.test(u) ? u : '';
-  const etoiles = n => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n));
-  const prix = n => Number(n).toFixed(2).replace('.', ',') + ' €';
-  const LIB = { coiffure:'Coiffure', barbier:'Barbier', massage:'Massage & spa', esthetique:'Esthétique', onglerie:'Onglerie', therapeute:'Bien-être', coach:'Coaching',
-    photographe:'Photographie', formateur:'Formation', professeur:'Cours particuliers', consultant:'Conseil', autre:'Autre' };
+(function(){
+  const params = new URLSearchParams(location.search);
+  const slug = (params.get('p') || '').toLowerCase();
+  const apercu = params.get('preview') === '1';
 
-  (async () => {
-    const el = document.getElementById('contenu');
-    try{
-      const r = await fetch('/api/annuaire?slug=' + encodeURIComponent(slug));
-      if(!r.ok) throw 0;
-      const x = await r.json();
-      document.title = `${x.nom} — Cadence`;
-      const photos = (x.photos || []).map(urlSure).filter(Boolean).slice(0, 5);
-      el.innerHTML = `
-        ${photos.length ? `<div class="galerie">${photos.map(u => `<img src="${esc(u)}" alt="" loading="lazy">`).join('')}</div>` : ''}
-        <h1>${esc(x.nom)}</h1>
-        <div class="meta">${esc(LIB[x.metier] || 'Autre')}${x.ville ? ' · ' + esc(x.ville) : ''}
-          ${x.nb_avis ? ` · <span class="etoiles">${etoiles(x.note_moyenne)}</span> ${x.note_moyenne} (${x.nb_avis} avis)` : ' · Pas encore d\'avis'}</div>
-        ${x.description ? `<div class="bloc"><p>${esc(x.description)}</p></div>` : ''}
-        <div class="bloc"><h2>Prestations</h2>
-          ${(x.publics || []).length > 1 ? `<div class="onglets" id="onglets"><button data-p="" class="on">Tous</button><button data-p="femme">Femme</button><button data-p="homme">Homme</button></div>` : ''}
-          <div id="liste-presta"></div></div>
-        ${x.latitude != null ? `<div class="bloc"><h2>Où nous trouver</h2>${x.adresse ? `<p>${esc(x.adresse)}</p>` : ''}<div id="carte"></div></div>` : ''}
-        <div class="bloc"><h2>Avis clients</h2>
-          ${x.avis.length ? x.avis.map(a => `<div class="avis"><span class="etoiles">${etoiles(a.note)}</span>
-            <small> ${esc(a.auteur || 'Client')} · ${new Date(a.created_at).toLocaleDateString('fr-FR')}</small>
-            ${a.commentaire ? `<p>${esc(a.commentaire)}</p>` : ''}</div>`).join('')
-            : '<p class="meta">Les avis sont déposés uniquement par des clients ayant eu un rendez-vous.</p>'}</div>
-        <div class="cta"><a class="btn" href="reservation.html?p=${encodeURIComponent(x.slug)}">Réserver un rendez-vous</a></div>`;
-      const dessinerPrestations = pub => {
-        const liste = x.prestations.filter(p => !pub || (p.public_cible || 'mixte') === 'mixte' || p.public_cible === pub);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const https = u => (typeof u === 'string' && /^https:\/\//i.test(u)) ? u : '';
+  const prix = n => Number(n || 0).toFixed(2).replace('.00', '').replace('.', ',') + ' €';
+  const etoiles = n => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n));
+  const LIB = { coiffure:'Coiffure', barbier:'Barbier', esthetique:'Esthétique', onglerie:'Onglerie', massage:'Massage & spa', therapeute:'Bien-être',
+    coach:'Coaching', photographe:'Photographie', formateur:'Formation', professeur:'Cours particuliers', consultant:'Conseil', autre:'' };
+  const ACCENTS = { ambre:'#E2A63D', marine:'#244990', ciel:'#58A1E5', acajou:'#822E02', foret:'#155D16', rose:'#CC7097' };
+  const POLICES = {
+    elegante:   { titre:"'Fraunces', Georgia, serif",         corps:"'Inter', Arial, sans-serif" },
+    moderne:    { titre:"'Bricolage Grotesque', system-ui, sans-serif", corps:"'Geist', system-ui, sans-serif" },
+    douce:      { titre:"'Nunito', Arial, sans-serif",        corps:"'Nunito', Arial, sans-serif" },
+    editoriale: { titre:"'Playfair Display', Georgia, serif", corps:"'DM Sans', Arial, sans-serif" }
+  };
+  const FONDS = {
+    clair:  { bg:'#FFFFFF', surface:'#F5F4F1', ink:'#1C2333', muted:'#6B7080', trait:'rgba(28,35,51,.1)' },
+    creme:  { bg:'#F5F1E7', surface:'#FFFFFF', ink:'#1C2333', muted:'#6B6B66', trait:'rgba(28,35,51,.1)' },
+    sombre: { bg:'#14171F', surface:'#1F2430', ink:'#F3F1EA', muted:'#A4A8B5', trait:'rgba(255,255,255,.12)' }
+  };
+  const RAYONS = { arrondi:'10px', carre:'2px', pilule:'999px' };
+  const ORDRE_DEFAUT = ['a_propos','prestations','galerie','equipe','horaires','carte','avis'];
+  const JOURS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+
+  function luminance(hex){
+    const [r,g,b] = [1,3,5].map(i => parseInt(hex.slice(i, i+2), 16) / 255)
+      .map(v => v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4));
+    return .2126*r + .7152*g + .0722*b;
+  }
+  const texteSur = hex => luminance(hex) > .38 ? '#1C2333' : '#FFFFFF';
+
+  let carteL = null;
+
+  function lienReseau(v, base){
+    v = (v || '').trim(); if(!v) return '';
+    if(/^https?:\/\//i.test(v)) return https(v);
+    return base + v.replace(/^@/, '').replace(/[^\w.\-]/g, '');
+  }
+  const hh = t => String(t || '').slice(0, 5).replace(':', 'h').replace(/h00$/, 'h');
+  const tel = t => esc(String(t).replace(/[^+\d]/g, ''));
+
+  function rendre(d){
+    const v = d.vitrine || {};
+    const couleur = /^#[0-9a-fA-F]{6}$/.test(v.couleur || '') ? v.couleur : (ACCENTS[d.accent] || ACCENTS.ambre);
+    const police = POLICES[v.police] || POLICES.moderne;
+    const fond = FONDS[v.fond] || FONDS.clair;
+    const coverUrl = https(v.cover_url);
+    const vars = {
+      '--c':couleur, '--c-texte':texteSur(couleur), '--bg':fond.bg, '--surface':fond.surface, '--ink':fond.ink,
+      '--muted':fond.muted, '--trait':fond.trait, '--titre':police.titre, '--corps':police.corps,
+      '--rayon':RAYONS[v.boutons] || RAYONS.arrondi, '--cover': coverUrl ? `url("${coverUrl.replace(/["()\\]/g, '')}")` : 'none'
+    };
+    Object.entries(vars).forEach(([k, val]) => document.body.style.setProperty(k, val));
+    document.body.style.background = fond.bg;
+
+    const sections = Object.assign({ a_propos:true, prestations:true, galerie:true, equipe:true, avis:true, horaires:true, carte:true }, v.sections || {});
+    const ordre = (v.ordre && v.ordre.length ? v.ordre : ORDRE_DEFAUT).filter((k, i, a) => a.indexOf(k) === i);
+    ORDRE_DEFAUT.forEach(k => { if(!ordre.includes(k)) ordre.push(k); });
+
+    const nbAvis = (d.avis || []).length;
+    const note = nbAvis ? Math.round(d.avis.reduce((s, a) => s + a.note, 0) / nbAvis * 10) / 10 : null;
+    const libMetier = LIB[d.metier] || '';
+    const cta = esc(v.texte_bouton || 'Réserver en ligne');
+    const ctaHref = apercu ? '#' : `reservation.html?p=${encodeURIComponent(d.slug || slug)}`;
+
+    const siteWeb = (v.site_web || '').trim();
+    const reseaux = [
+      [lienReseau(v.instagram, 'https://instagram.com/'), 'Instagram'],
+      [lienReseau(v.facebook, 'https://facebook.com/'), 'Facebook'],
+      [lienReseau(v.tiktok, 'https://tiktok.com/@'), 'TikTok'],
+      [siteWeb ? (https(siteWeb) || https('https://' + siteWeb.replace(/^https?:\/\//i, ''))) : '', 'Site web']
+    ].filter(r => r[0]).map(r => `<a href="${esc(r[0])}" target="_blank" rel="noopener">${r[1]}</a>`).join('');
+
+    const logo = `<div class="logo">${https(d.logo_url) ? `<img src="${esc(https(d.logo_url))}" alt="">` : esc((d.nom || '?').charAt(0).toUpperCase())}</div>`;
+    const sousTitre = [libMetier, d.ville].filter(Boolean).map(esc).join(' · ');
+    const infos = `<h1>${esc(d.nom)}</h1>
+      ${v.accroche ? `<div class="accroche">${esc(v.accroche)}</div>` : ''}
+      <div class="meta">${sousTitre}${nbAvis ? `${sousTitre ? ' · ' : ''}<span class="etoiles">${etoiles(note)}</span> ${note} (${nbAvis})` : ''}</div>`;
+    const boutons = `<div class="actions"><a class="btn" href="${ctaHref}">${cta}</a>${reseaux ? `<div class="reseaux">${reseaux}</div>` : ''}</div>`;
+
+    let entete;
+    if(v.mise_en_page === 'immersif')
+      entete = `<header class="immersif"><div class="wrap">${logo}${infos}${boutons}</div></header>`;
+    else if(v.mise_en_page === 'minimal')
+      entete = `<header class="minimal"><div class="wrap">${logo}${infos}${boutons}</div></header>`;
+    else
+      entete = `<div class="cover"></div><header class="wrap"><div class="ident">${logo}<div>${infos}</div></div>${boutons}</header>`;
+
+    const bandeau = v.bandeau_actif && v.bandeau_texte ? `<div class="bandeau">${esc(v.bandeau_texte)}</div>` : '';
+
+    const contact = (v.telephone_public || v.email_public)
+      ? `<p class="contact" style="margin-top:12px;">${v.telephone_public ? `<a href="tel:${tel(v.telephone_public)}">${esc(v.telephone_public)}</a>` : ''}${v.email_public ? `<a href="mailto:${esc(v.email_public)}">${esc(v.email_public)}</a>` : ''}</p>` : '';
+
+    const rendus = {
+      a_propos: () => v.a_propos ? `<section id="a-propos"><h2>À propos</h2><div class="texte">${esc(v.a_propos).split(/\n+/).map(p => `<p>${p}</p>`).join('')}</div></section>` : '',
+      prestations: () => (d.prestations || []).length ? `<section id="prestations"><h2>Prestations</h2>
+          <div id="zone-onglets"></div><div class="carte-s" id="liste-presta"></div>
+          <div class="actions"><a class="btn" href="${ctaHref}">${cta}</a></div></section>` : '',
+      galerie: () => {
+        const imgs = (v.galerie || []).map(https).filter(Boolean);
+        return imgs.length ? `<section id="galerie"><h2>Galerie</h2><div class="galerie">${imgs.map(u =>
+          `<button type="button" data-src="${esc(u)}" aria-label="Agrandir"><img src="${esc(u)}" alt="" loading="lazy"></button>`).join('')}</div></section>` : '';
+      },
+      equipe: () => (d.equipe || []).length ? `<section id="equipe"><h2>L'équipe</h2><div class="equipe">${d.equipe.map(m => `
+          <div class="membre"><div class="ph">${https(m.photo_url) ? `<img src="${esc(https(m.photo_url))}" alt="">` : esc((m.nom || '?').charAt(0).toUpperCase())}</div>
+          <b>${esc(m.nom)}</b>${m.role ? `<small>${esc(m.role)}</small>` : ''}${m.bio ? `<p>${esc(m.bio)}</p>` : ''}</div>`).join('')}</div></section>` : '',
+      horaires: () => {
+        const h = d.horaires; if(!h || !h.jours) return '';
+        const lignes = [1,2,3,4,5,6,0].map(j => h.jours.includes(j)
+          ? `<li><span>${JOURS[j]}</span><b>${hh(h.debut)} - ${hh(h.fin)}</b></li>`
+          : `<li class="ferme"><span>${JOURS[j]}</span><span>Fermé</span></li>`).join('');
+        return `<section id="horaires"><h2>Horaires de réservation</h2><ul class="carte-s horaires" style="padding:8px 20px;">${lignes}</ul></section>`;
+      },
+      carte: () => (d.latitude != null && d.longitude != null)
+        ? `<section id="lieu"><h2>Où nous trouver</h2>${d.adresse ? `<p>${esc(d.adresse)}</p>` : ''}<div id="carte"></div>${contact}</section>`
+        : (contact ? `<section id="lieu"><h2>Contact</h2>${contact}</section>` : ''),
+      avis: () => nbAvis ? `<section id="avis"><h2>Avis clients <span class="etoiles" style="font-size:18px;">${etoiles(note)}</span> <small style="font-size:15px; color:var(--muted); font-family:var(--corps);">${note} · ${nbAvis} avis</small></h2>
+          <div class="carte-s">${d.avis.map(a => `<div class="avis"><span class="etoiles">${etoiles(a.note)}</span>
+          <small> ${esc(a.auteur || 'Client')} · ${new Date(a.created_at).toLocaleDateString('fr-FR')}</small>${a.commentaire ? `<p>${esc(a.commentaire)}</p>` : ''}</div>`).join('')}</div></section>` : ''
+    };
+
+    const corps = ordre.filter(k => sections[k] !== false && rendus[k]).map(k => rendus[k]()).join('');
+
+    document.getElementById('app').innerHTML = `${bandeau}${entete}<main class="wrap">${corps}</main>
+      <footer class="pied">Page propulsée par <a href="beaute.html">Cadence</a> · <a href="cgu.html">CGU</a> · <a href="confidentialite.html">Confidentialité</a></footer>
+      <div class="barre-resa"><a class="btn" href="${ctaHref}">${cta}</a></div>
+      <div class="haut" id="haut" aria-hidden="true"><b>${esc(d.nom)}</b><a class="btn" href="${ctaHref}" tabindex="-1">${cta}</a></div>`;
+    const premierBouton = document.querySelector('.actions .btn');
+    if(premierBouton && 'IntersectionObserver' in window){
+      new IntersectionObserver(es => document.getElementById('haut').classList.toggle('on', !es[0].isIntersecting && es[0].boundingClientRect.bottom < 0)).observe(premierBouton);
+    }
+
+    document.title = `${d.nom} | Réservation en ligne`;
+    const md = document.querySelector('meta[name=description]');
+    if(md) md.content = (v.accroche || `Réservez en ligne chez ${d.nom}.`).slice(0, 160);
+
+    // Prestations : onglets Femme / Homme + catégories
+    if(document.getElementById('liste-presta')){
+      const dessiner = pub => {
         let cat = null, out = '';
-        liste.forEach(p => {
+        d.prestations.filter(p => !pub || (p.public_cible || 'mixte') === 'mixte' || p.public_cible === pub).forEach(p => {
           const c = p.categorie || '';
           if(c !== cat){ cat = c; if(c) out += `<div class="cat">${esc(c)}</div>`; }
-          out += `<div class="presta"><div><strong>${esc(p.libelle)}</strong>
-            <small>${p.duree_minutes} min${p.description ? ' · ' + esc(p.description) : ''}</small></div>
-            <strong>${prix(p.prix_unitaire)}</strong></div>`;
+          out += `<div class="presta"><div><b>${esc(p.libelle)}</b><small>${p.duree_minutes} min${p.description ? ' · ' + esc(p.description) : ''}</small></div><span class="prix">${prix(p.prix_unitaire)}</span></div>`;
         });
-        document.getElementById('liste-presta').innerHTML = out || '<p class="meta">Aucune prestation pour ce public.</p>';
+        document.getElementById('liste-presta').innerHTML = out || '<p style="padding:14px 0; color:var(--muted);">Aucune prestation pour ce public.</p>';
       };
-      dessinerPrestations('');
-      document.querySelectorAll('#onglets button').forEach(b => b.addEventListener('click', () => {
-        document.querySelectorAll('#onglets button').forEach(o => o.classList.toggle('on', o === b));
-        dessinerPrestations(b.dataset.p);
-      }));
-      if(x.latitude != null && window.L){
-        const m = L.map('carte').setView([x.latitude, x.longitude], 15);
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(m);
-        L.marker([x.latitude, x.longitude]).addTo(m);
+      dessiner('');
+      const zone = document.getElementById('zone-onglets');
+      if(d.prestations.some(p => (p.public_cible || 'mixte') !== 'mixte')){
+        zone.innerHTML = `<div class="onglets"><button data-p="" class="on">Tous</button><button data-p="femme">Femme</button><button data-p="homme">Homme</button></div>`;
+        zone.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+          zone.querySelectorAll('button').forEach(o => o.classList.toggle('on', o === b)); dessiner(b.dataset.p);
+        }));
       }
+    }
+
+    // Galerie : visionneuse
+    document.querySelectorAll('.galerie button').forEach(b => b.addEventListener('click', () => {
+      const l = document.createElement('div'); l.className = 'lightbox';
+      l.innerHTML = `<img src="${esc(b.dataset.src)}" alt="">`;
+      const fermer = () => { l.remove(); document.removeEventListener('keydown', onKey); };
+      const onKey = e => { if(e.key === 'Escape') fermer(); };
+      l.addEventListener('click', fermer); document.addEventListener('keydown', onKey);
+      document.body.appendChild(l);
+    }));
+
+    // Carte
+    if(carteL){ carteL.remove(); carteL = null; }
+    if(document.getElementById('carte') && window.L){
+      carteL = L.map('carte', { scrollWheelZoom:false }).setView([d.latitude, d.longitude], 15);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OpenStreetMap' }).addTo(carteL);
+      L.marker([d.latitude, d.longitude]).addTo(carteL);
+    }
+  }
+
+  if(apercu){
+    // Aperçu depuis l'éditeur « Ma page » : les données arrivent par message, même origine uniquement.
+    const r = document.createElement('meta'); r.name = 'robots'; r.content = 'noindex'; document.head.appendChild(r);
+    window.addEventListener('message', e => {
+      if(e.origin !== location.origin || !e.data || e.data.type !== 'cadence-vitrine') return;
+      const y = window.scrollY; rendre(e.data.data); window.scrollTo(0, y);
+    });
+    if(window.parent !== window) window.parent.postMessage({ type:'cadence-vitrine-ready' }, location.origin);
+    return;
+  }
+
+  (async () => {
+    try{
+      const r = await fetch('/api/vitrine?slug=' + encodeURIComponent(slug));
+      if(!r.ok) throw 0;
+      rendre(await r.json());
     }catch(e){
-      el.innerHTML = '<div class="etat">Cette fiche est introuvable.</div>';
+      document.getElementById('app').innerHTML = '<div class="etat">Cette page est introuvable ou n\'est pas encore publiée.</div>';
     }
   })();
+})();
 </script>
 </body>
 </html>

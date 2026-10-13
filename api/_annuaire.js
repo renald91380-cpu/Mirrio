@@ -90,13 +90,15 @@ export default async function handler(req, res){
     if(!fiches.length) return json(res, 200, { praticiens: [] });
 
     const ids = fiches.map(f => f.owner_id).join(',');
-    const [profils, villes, prestations, avis] = await Promise.all([
+    const [profils, villes, prestations, avis, vitrines] = await Promise.all([
       supabase(`profiles?id=in.(${ids})&select=id,business_name,full_name,logo_url,metier`),
       supabase(`parametres_facturation?owner_id=in.(${ids})&select=owner_id,emetteur_ville`),
       supabase(`prestations?owner_id=in.(${ids})&actif=eq.true&select=owner_id,prix_unitaire,public_cible`)
         .catch(() => supabase(`prestations?owner_id=in.(${ids})&actif=eq.true&select=owner_id,prix_unitaire`)),
-      supabase(`avis?owner_id=in.(${ids})&masque=eq.false&select=owner_id,note`)
+      supabase(`avis?owner_id=in.(${ids})&masque=eq.false&select=owner_id,note`),
+      supabase(`vitrine?owner_id=in.(${ids})&select=owner_id,cover_url,galerie`).catch(() => [])
     ]);
+    const vitParId = Object.fromEntries(vitrines.map(v => [v.owner_id, v]));
     const profilParId = Object.fromEntries(profils.map(p => [p.id, p]));
     const villeParId = Object.fromEntries(villes.map(v => [v.owner_id, v.emetteur_ville]));
     const prixParId = {}, avisParId = {};
@@ -116,7 +118,7 @@ export default async function handler(req, res){
         metier: p.metier || 'autre',
         ville: villeParId[f.owner_id] || null,
         logo_url: p.logo_url || null,
-        photo: (f.photos || [])[0] || null,
+        photo: vitParId[f.owner_id]?.cover_url || (vitParId[f.owner_id]?.galerie || [])[0] || (f.photos || [])[0] || null,
         description: f.description_annuaire || null,
         latitude: f.latitude, longitude: f.longitude,
         prix_a_partir_de: px && isFinite(px.min) ? px.min : null,

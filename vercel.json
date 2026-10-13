@@ -46,6 +46,10 @@
     {
       "source": "/api/rendez-vous-ics",
       "destination": "/api/reservation-disponibilites?action=ics"
+    },
+    {
+      "source": "/api/vitrine",
+      "destination": "/api/reservation-disponibilites?action=vitrine"
     }
   ]
 }

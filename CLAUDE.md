@@ -13,8 +13,10 @@ Ce fichier est chargé automatiquement par Claude Code à chaque session ouverte
 **Positionnement :** France/Belgique/Suisse en priorité. Ton direct, chiffré, sans superlatif marketing creux (voir `Asset/cadence-brand-guidelines.md` pour le détail complet de la charte : couleurs, typographies, voix).
 
 **Tarifs actuels affichés (non encore facturés réellement, pas de Stripe branché) :**
-- Solo — 15€/mois — jusqu'à 25 clients actifs
-- Studio — 29€/mois — clients illimités, multi-collaborateurs
+- Indépendant — 15€/mois — jusqu'à 25 clients actifs (valeur interne `plan = 'solo'`)
+- Salon — 29€/mois — clients illimités, multi-collaborateurs (valeur interne `plan = 'studio'`)
+
+*Seuls les libellés affichés ont changé : les valeurs `solo`/`studio` restent les clés en base, dans les URLs (`signup.html?plan=studio`) et dans le code.*
 
 ---
 
@@ -48,6 +50,8 @@ Cadence/
     ├── voir-document.html             lecture publique d'un devis/facture (lien envoyé au client, sans compte)
     ├── parametres.html                identité, apparence, modèle de documents, prestations, agenda, équipe
     ├── admin.html                     back-office exploitant Cadence (réservé à `profiles.is_admin`)
+    ├── ma-page.html                   éditeur de la vitrine publique (photos, style, sections, équipe) avec aperçu en direct
+    ├── pro.html                       vitrine publique d'un praticien/salon (lecture seule, pilotée par ma-page.html)
     ├── maquettes-clients.html         comparatif interne de 4 pistes visuelles pour clients.html, non lié dans la nav, `noindex` — voir §3.14
     ├── supabase-config.js             clés Supabase
     ├── theme.js                       thème, vocabulaire métier & résolution d'espace, partagés par les écrans
@@ -195,7 +199,7 @@ Deux pages statiques autonomes, `site/cgu.html` et `site/confidentialite.html` �
 - Même charte typographique que le reste du site (Fraunces/Inter/IBM Plex Mono), mais chaque concept a sa propre palette figée pour la comparaison — ce fichier ne s'adapte pas au thème choisi par l'utilisateur dans Paramètres, contrairement au reste de l'app (voir §3.1).
 - **À supprimer une fois la décision prise** : que le choix retenu soit implémenté dans `clients.html` ou non, cette page de comparaison n'a plus de raison d'exister ensuite — ne pas la laisser traîner indéfiniment dans `site/`.
 
-> **Limite Vercel Hobby : 12 fonctions serverless par déploiement** (dépassée = « Deploying outputs » échoue sans message clair). `api/` contient déjà 12 routes ; `/api/annuaire`, `/api/avis` et `/api/rendez-vous-ics` sont des modules `_annuaire.js`/`_avis.js`/`_rdv-ics.js` servis par `reservation-disponibilites.js` via des réécritures `vercel.json` (`?action=`). Tout nouvel endpoint doit suivre ce patron (ou fusionner deux routes existantes).
+> **Limite Vercel Hobby : 12 fonctions serverless par déploiement** (dépassée = « Deploying outputs » échoue sans message clair). `api/` contient déjà 12 routes ; `/api/annuaire`, `/api/avis`, `/api/vitrine` et `/api/rendez-vous-ics` sont des modules `_annuaire.js`/`_avis.js`/`_vitrine.js`/`_rdv-ics.js` servis par `reservation-disponibilites.js` via des réécritures `vercel.json` (`?action=`). Tout nouvel endpoint doit suivre ce patron (ou fusionner deux routes existantes).
 
 ### 3.15 Annuaire public (explorer.html) et modèle de commission
 
@@ -230,6 +234,31 @@ Cadence se positionne aussi comme logiciel de salon, façon Planity — **sans c
 - **Femme / Homme** : onglets sur `reservation.html` et `pro.html` (affichés seulement si le catalogue sert les deux publics ; `mixte` apparaît dans les deux), regroupement par catégorie, filtre « Pour qui » dans `explorer.html` (`/api/annuaire?public=femme|homme`, calculé depuis les prestations — `publics`).
 - Vocabulaire : `barbier` → « rendez-vous », `massage` → « massage(s) » dans `theme.js` ; `admin.html` connaît les deux nouveaux métiers.
 - **Pas construit** : liste d'attente, rappels SMS, fiches client beauté (allergies, couleur…), horaires par collaborateur, choix du coiffeur à la réservation, produits/vente en boutique.
+
+### 3.19 Vitrine publique personnalisable (« Ma page »)
+
+Chaque praticien/salon a une page publique `site/pro.html?p=<slug>` (servie par `api/_vitrine.js` via `/api/vitrine`) et un éditeur `site/ma-page.html` (onglet « Ma page » de la nav, `theme.js` → `ONGLETS`), avec **aperçu en direct** : l'éditeur charge `pro.html?preview=1` dans une iframe et lui envoie les données par `postMessage` (même origine uniquement, des deux côtés) — la page publique et l'aperçu passent par la même fonction `rendre()`, donc ce que le pro voit est ce que voit son client (même principe que `document-render.js`, §3.1).
+
+- **Migration `db/schema-v18-vitrine.sql`** : tables `vitrine` (une ligne par espace : accroche, à propos, couverture, galerie ≤ 12, mise en page classique/immersif/minimal, police, couleur libre `#RRGGBB`, fond clair/crème/sombre, forme des boutons, texte du bouton, sections activables + ordre, réseaux, contact public, bandeau d'annonce) et `vitrine_equipe` (nom, rôle, mot, photo, position), toutes deux sous RLS `current_workspace_id()`. Contraintes SQL sur les énumérations, longueurs et format de couleur.
+- **Photos : bucket Supabase Storage public `vitrines`** (JPEG/PNG/WebP ≤ 5 Mo). Écriture réservée au dossier `<workspace_id>/…` par policy sur `storage.objects` (`(storage.foldername(name))[1] = current_workspace_id()::text`). Les images sont redimensionnées et recompressées côté navigateur (couverture 2000 px, galerie 1600 px, portrait 600 px, JPEG 82 %) avant envoi. Retirer une photo supprime aussi le fichier.
+- **Couleur libre assumée ici**, contrairement à l'interface applicative (§3.1, liste fermée) : la vitrine n'utilise ni la Sarcelle « payé » ni la Brique « alerte ». Le contraste est garanti autrement — la couleur du texte des boutons est calculée sur la luminance de la couleur choisie (`texteSur()` dans `pro.html`).
+- **Sécurité de l'affichage** : tout texte est échappé, toute URL d'image doit être en `https://`, les liens de réseaux sont normalisés (`@pseudo` → URL) ; l'API ne renvoie jamais d'email de facturation ni de clé de paiement. La page n'existe que si `parametres_reservation.activee` et `slug` sont posés ET qu'il y a au moins une prestation active ; l'annuaire (`visible_annuaire`) reste un choix séparé.
+- **Tolérance** : sans migration v18, `/api/vitrine` renvoie quand même la page avec le style par défaut, et l'éditeur affiche un message clair au lieu d'échouer en silence.
+- **Pas construit** : domaine personnalisé, thèmes enregistrés/dupliqués, brouillon vs publié (un « Enregistrer » publie tout de suite), éditeur de la page de réservation elle-même (`reservation.html` reprend seulement logo + accent), espace client connecté (historique, favoris).
+
+### 3.20 Identité visuelle des pages publiques (« ultra moderne »)
+
+`beaute.html`, `explorer.html` et `pro.html` ont leur propre langage visuel, **distinct de l'application connectée** (qui garde l'identité « Atelier » de §3.1 : Fraunces, parchemin, ambre). Ne pas y reporter les règles de §3.1, et inversement.
+
+- **Typographie** : Bricolage Grotesque (titres, tracking serré) + Geist (texte). Pas de serif par défaut ; Fraunces reste un choix proposé au pro dans « Ma page » mais n'est plus le défaut (`police = 'moderne'`, aussi dans `schema-v18` et `ma-page.html`).
+- **Palette** : neutres froids (`#F5F5F3` / `#101216`, jamais de blanc ni de noir purs) et **un seul accent, l'ambre de Cadence** (`#E2A63D`, texte d'encre dessus). Pas de parchemin/beige, pas de dégradé de texte (contraste insuffisant sur fond clair : on surligne avec un trait ambre). **Clair/sombre automatique** (`prefers-color-scheme`), un seul thème par page.
+- **Formes** : une règle, boutons/champs/puces en pilule (`999px`), conteneurs à `22px`. Navigation flottante en verre dépoli (repli opaque sous `prefers-reduced-transparency`), une seule ligne, 64 px.
+- **Mouvement** : `IntersectionObserver` pour l'apparition au scroll (jamais d'écouteur `scroll`), survol/appui tactiles sur les boutons, tout coupé sous `prefers-reduced-motion` et sans JavaScript (`@media (scripting: none)`).
+- **Icônes** : Phosphor (`@phosphor-icons/web@2.1.1` depuis unpkg), jamais de SVG dessiné à la main.
+- **Aucun tiret long (`—`, `–`) dans le texte visible** : trait d'union simple ou deux phrases. Titres de page avec `|`.
+- **Pas de fausse capture d'écran** : le héros de `beaute.html` montre la vraie `pro.html?preview=1` dans un cadre de téléphone, alimentée par un salon d'exemple (Maison Éloïse) via le même `postMessage` que l'éditeur « Ma page ».
+- **Photos : à fournir.** Aucun outil de génération d'image n'a été utilisé ; les visuels sont des halos et dégradés d'ambre. Emplacements prévus : une photo par métier dans le rail de `beaute.html` (commentaire `TODO photo`), et les couvertures des salons dans l'annuaire (issues de « Ma page », avec repli en dégradé).
+- **Pas encore refait dans ce style** : `reservation.html`, `login.html`/`signup.html`, `index.html` et tout le back-office.
 
 ---
 

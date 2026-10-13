@@ -3,153 +3,345 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Logiciel de réservation pour salons de beauté — Cadence</title>
-<meta name="description" content="Agenda en ligne, réservation 24h/24, catalogue femme & homme, équipe en colonnes, avis clients. Pour coiffeurs, barbiers, instituts, onglerie et massage. Sans commission sur vos réservations.">
+<title>Logiciel de réservation pour salons de beauté | Cadence</title>
+<meta name="description" content="Réservation en ligne, équipe en colonnes, catalogue femme et homme, avis vérifiés. Pour coiffeurs, barbiers, instituts, onglerie et massage. Zéro commission sur vos rendez-vous.">
+<meta name="color-scheme" content="light dark">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#101216">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <style>
-  :root{ --ink:#1C2333; --parchment:#F5F1E7; --teal:#3E7C74; --amber:#E2A63D; --brick:#B5533F; }
+  :root{
+    --bg:#F5F5F3; --surface:#FBFBFA; --ink:#101216; --muted:#5B606B; --line:rgba(16,18,22,.1);
+    --accent:#E2A63D; --accent-ink:#101216; --sombre:#101216; --sombre-ink:#F1F1EE; --sombre-muted:#A3A8B3;
+    --r:22px; --pill:999px;
+    --display:'Bricolage Grotesque', system-ui, sans-serif; --body:'Geist', system-ui, sans-serif;
+    --ease:cubic-bezier(.16,1,.3,1);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#0D0F13; --surface:#15181E; --ink:#F1F1EE; --muted:#9CA2AE; --line:rgba(255,255,255,.1); --sombre:#15181E; }
+  }
   *{box-sizing:border-box; margin:0; padding:0;}
   html{ scroll-behavior:smooth; }
-  body{ font-family:'Inter', Arial, sans-serif; background:var(--parchment); color:var(--ink); line-height:1.55; -webkit-font-smoothing:antialiased; }
-  a{ color:inherit; }
-  .wrap{ max-width:1080px; margin:0 auto; padding:0 20px; }
-  header{ background:var(--ink); color:var(--parchment); }
-  header .wrap{ display:flex; align-items:center; justify-content:space-between; gap:16px; height:62px; }
-  .logo{ font-family:'Fraunces', Georgia, serif; font-weight:700; font-size:21px; text-decoration:none; }
-  header nav{ display:flex; gap:22px; align-items:center; font-size:14px; }
-  header nav a{ text-decoration:none; opacity:.85; } header nav a:hover{ opacity:1; }
-  @media(max-width:720px){ header nav a:not(.cta){ display:none; } }
-  .cta, .btn{ display:inline-block; background:var(--amber); color:var(--ink); font-weight:700; text-decoration:none; padding:11px 20px; border-radius:9px; font-size:15px; opacity:1 !important; }
-  .btn.sombre{ background:var(--ink); color:var(--parchment); }
-  .btn.lg{ padding:15px 28px; font-size:16px; }
-  .hero{ background:var(--ink); color:var(--parchment); padding:64px 0 80px; }
-  .hero .wrap{ display:grid; grid-template-columns:1.1fr .9fr; gap:40px; align-items:center; }
-  @media(max-width:860px){ .hero .wrap{ grid-template-columns:1fr; } }
-  .hero h1{ font-family:'Fraunces', Georgia, serif; font-size:clamp(32px, 5.4vw, 52px); line-height:1.1; margin-bottom:16px; }
-  .hero h1 em{ color:var(--amber); font-style:normal; }
-  .hero p{ color:rgba(245,241,231,.75); font-size:17px; margin-bottom:26px; max-width:520px; }
-  .hero .note{ font-size:13px; color:rgba(245,241,231,.55); margin-top:12px; }
-  .maquette{ background:#fff; color:var(--ink); border-radius:14px; padding:14px; box-shadow:0 24px 60px rgba(0,0,0,.35); }
-  .maquette .cols{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; font-size:11.5px; }
-  .maquette .tete{ display:flex; align-items:center; gap:6px; font-weight:600; padding:6px; background:#F3F1EC; border-radius:8px; }
-  .maquette .tete i{ width:20px; height:20px; border-radius:50%; background:var(--ink); color:#fff; font-style:normal; display:flex; align-items:center; justify-content:center; font-size:10px; }
-  .maquette .bloc{ background:#F3F1EC; border-left:3px solid var(--amber); border-radius:6px; padding:5px 7px; margin-top:6px; line-height:1.3; }
-  .maquette .bloc b{ display:block; }
-  .maquette .bloc.long{ min-height:64px; } .maquette .bloc.att{ border-left-color:var(--brick); background:#FBF1EE; }
-  section{ padding:70px 0; }
-  h2{ font-family:'Fraunces', Georgia, serif; font-size:clamp(26px, 4vw, 36px); line-height:1.15; margin-bottom:12px; }
-  .sous{ color:rgba(28,35,51,.65); font-size:17px; max-width:640px; margin-bottom:34px; }
-  .grille{ display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; }
-  .carte{ background:#fff; border-radius:12px; padding:22px; box-shadow:0 1px 3px rgba(28,35,51,.08); }
-  .carte h3{ font-size:17px; margin-bottom:6px; } .carte p{ font-size:14.5px; color:rgba(28,35,51,.7); }
-  .carte .ico{ font-size:26px; margin-bottom:10px; }
-  .bande{ background:#fff; }
-  .duo{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-  @media(max-width:700px){ .duo{ grid-template-columns:1fr; } }
-  .liste{ list-style:none; margin-top:10px; font-size:14.5px; } .liste li{ padding:5px 0; border-top:1px solid rgba(28,35,51,.08); display:flex; justify-content:space-between; gap:10px; }
-  .liste li:first-child{ border-top:none; } .liste span{ color:rgba(28,35,51,.55); white-space:nowrap; }
-  table{ width:100%; border-collapse:collapse; background:#fff; border-radius:12px; overflow:hidden; font-size:14.5px; box-shadow:0 1px 3px rgba(28,35,51,.08); }
-  th, td{ padding:14px 16px; text-align:left; border-bottom:1px solid rgba(28,35,51,.08); vertical-align:top; }
-  th{ background:var(--ink); color:var(--parchment); font-size:13px; } tr.nous td{ background:#FFF8E8; font-weight:600; }
-  .petit{ font-size:12.5px; color:rgba(28,35,51,.55); margin-top:12px; }
-  .prix{ display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px; max-width:640px; }
-  .prix .carte strong{ font-family:'Fraunces', Georgia, serif; font-size:34px; display:block; margin:6px 0; } .prix .carte strong small{ font-size:15px; font-family:Inter; }
-  .final{ background:var(--ink); color:var(--parchment); text-align:center; }
-  .final p{ color:rgba(245,241,231,.7); margin:0 auto 24px; max-width:520px; }
-  footer{ padding:28px 0; font-size:13px; color:rgba(28,35,51,.6); text-align:center; }
+  body{ background:var(--bg); color:var(--ink); font-family:var(--body); line-height:1.6; -webkit-font-smoothing:antialiased; }
+  a{ color:inherit; text-decoration:none; }
+  i.ph{ font-size:1.25em; line-height:1; }
+  .wrap{ max-width:1200px; margin:0 auto; padding:0 24px; }
+  h1,h2,h3{ font-family:var(--display); letter-spacing:-.03em; line-height:1.04; }
+  h2{ font-size:clamp(32px, 4.6vw, 54px); font-weight:800; max-width:15ch; }
+  :focus-visible{ outline:2px solid var(--accent); outline-offset:3px; }
+
+  /* ---------- boutons : pilule partout ---------- */
+  .btn{ display:inline-flex; align-items:center; gap:10px; background:var(--accent); color:var(--accent-ink); font:600 15.5px var(--body); padding:15px 26px; border-radius:var(--pill); border:none; cursor:pointer; white-space:nowrap;
+    transition:transform .35s var(--ease), box-shadow .35s var(--ease); box-shadow:0 1px 0 rgba(255,255,255,.4) inset, 0 8px 24px -8px rgba(226,166,61,.55); }
+  .btn:hover{ transform:translateY(-2px); box-shadow:0 1px 0 rgba(255,255,255,.4) inset, 0 14px 30px -8px rgba(226,166,61,.6); }
+  .btn:active{ transform:translateY(0) scale(.98); }
+  .btn.discret{ background:transparent; color:var(--ink); box-shadow:inset 0 0 0 1.5px var(--line); }
+  .btn.discret:hover{ box-shadow:inset 0 0 0 1.5px var(--ink); }
+  .btn.petit{ padding:10px 20px; font-size:14.5px; }
+
+  /* ---------- navigation flottante ---------- */
+  header{ position:sticky; top:14px; z-index:40; padding:0 14px; }
+  .nav{ max-width:1100px; height:64px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:0 12px 0 24px;
+    border-radius:var(--pill); background:color-mix(in srgb, var(--bg) 72%, transparent); backdrop-filter:blur(18px) saturate(160%); -webkit-backdrop-filter:blur(18px) saturate(160%);
+    border:1px solid var(--line); box-shadow:0 10px 30px -14px rgba(16,18,22,.25); }
+  @media (prefers-reduced-transparency: reduce){ .nav{ background:var(--bg); backdrop-filter:none; -webkit-backdrop-filter:none; } }
+  .logo{ font-family:var(--display); font-weight:800; font-size:21px; letter-spacing:-.04em; }
+  .logo b{ color:var(--accent); }
+  .nav ul{ display:flex; gap:26px; list-style:none; font-size:14.5px; color:var(--muted); font-weight:500; }
+  .nav ul a:hover{ color:var(--ink); }
+  @media(max-width:860px){ .nav ul{ display:none; } }
+
+  /* ---------- hero : asymétrique ---------- */
+  .hero{ padding:56px 0 90px; }
+  .hero .wrap{ display:grid; grid-template-columns:1.12fr .88fr; gap:56px; align-items:center; }
+  @media(max-width:960px){ .hero .wrap{ grid-template-columns:1fr; gap:44px; } }
+  .hero h1{ font-size:clamp(38px, 4.7vw, 64px); font-weight:800; margin-bottom:22px; }
+  .hero h1 em{ font-style:normal; background:linear-gradient(var(--accent), var(--accent)) 0 92%/100% .2em no-repeat; padding-bottom:.04em; }
+  .hero p{ font-size:19px; color:var(--muted); max-width:46ch; margin-bottom:32px; }
+  .actions{ display:flex; gap:12px; flex-wrap:wrap; }
+  .phone{ position:relative; justify-self:center; width:min(100%, 372px); aspect-ratio:9/18.5; border-radius:46px; padding:11px; background:linear-gradient(160deg, #2a2e37, #0b0c0f);
+    box-shadow:0 50px 90px -30px rgba(16,18,22,.55), 0 0 0 1px rgba(255,255,255,.08) inset; transform:rotate(2.2deg); transition:transform .8s var(--ease); }
+  .phone:hover{ transform:rotate(0); }
+  .phone::before{ content:""; position:absolute; top:22px; left:50%; width:92px; height:26px; margin-left:-46px; border-radius:var(--pill); background:#000; z-index:3; }
+  .phone iframe{ width:100%; height:100%; border:0; border-radius:36px; background:#14171F; }
+  .halo{ position:absolute; inset:-14% -18%; z-index:-1; background:radial-gradient(closest-side, rgba(226,166,61,.42), transparent 72%); filter:blur(14px); }
+
+  /* ---------- bento ---------- */
+  section{ padding:96px 0; }
+  .bento{ display:grid; grid-template-columns:repeat(6, 1fr); gap:16px; margin-top:44px; }
+  .cell{ position:relative; overflow:hidden; border-radius:var(--r); padding:30px; background:var(--surface); border:1px solid var(--line); display:flex; flex-direction:column; justify-content:flex-end; min-height:250px; }
+  .cell i.ph{ font-size:30px; color:var(--accent); margin-bottom:auto; }
+  .cell h3{ font-size:26px; font-weight:700; margin:22px 0 8px; }
+  .cell p{ color:var(--muted); font-size:15.5px; max-width:38ch; }
+  .c1{ grid-column:span 4; min-height:340px; background:var(--sombre); color:var(--sombre-ink); border:none; }
+  .c1 p{ color:var(--sombre-muted); }
+  .c1::before{ content:""; position:absolute; right:-80px; top:-80px; width:420px; height:420px; background:radial-gradient(closest-side, rgba(226,166,61,.55), transparent 72%); }
+  .c1 h3{ font-size:38px; max-width:14ch; }
+  .c2{ grid-column:span 2; background:var(--accent); border:none; color:var(--accent-ink); }
+  .c2 i.ph{ color:var(--accent-ink); } .c2 p{ color:rgba(16,18,22,.72); }
+  .c3{ grid-column:span 2; }
+  .c4{ grid-column:span 2; background:repeating-linear-gradient(135deg, transparent 0 14px, var(--line) 14px 15px), var(--surface); }
+  .c5{ grid-column:span 2; }
+  .c3, .c4, .c5{ justify-content:flex-start; } .c3 i.ph, .c4 i.ph, .c5 i.ph{ margin-bottom:56px; } .c3 h3, .c4 h3, .c5 h3{ margin-top:0; }
+  .gros{ font-family:var(--display); font-weight:800; font-size:64px; letter-spacing:-.05em; line-height:1; margin-bottom:auto; }
+  @media(max-width:900px){ .bento{ grid-template-columns:1fr 1fr; } .c1{ grid-column:span 2; } .c2,.c3,.c4,.c5{ grid-column:span 1; } }
+  @media(max-width:560px){ .bento{ grid-template-columns:1fr; } .c1,.c2,.c3,.c4,.c5{ grid-column:span 1; } .c1 h3{ font-size:30px; } }
+
+  /* ---------- métiers : défilement ---------- */
+  .metiers{ background:var(--sombre); color:var(--sombre-ink); border-radius:44px; margin:0 14px; padding:96px 0; overflow:hidden; }
+  .metiers h2{ margin-bottom:12px; } .metiers .lead{ color:var(--sombre-muted); max-width:52ch; font-size:18px; margin-bottom:44px; }
+  .rail{ display:flex; gap:16px; overflow-x:auto; scroll-snap-type:x mandatory; padding:4px 24px 26px max(24px, calc((100vw - 1200px) / 2 + 10px)); scrollbar-width:none; }
+  .rail::-webkit-scrollbar{ display:none; }
+  .metier{ flex:0 0 min(300px, 78vw); scroll-snap-align:start; border-radius:var(--r); padding:26px; min-height:360px; display:flex; flex-direction:column; justify-content:space-between; position:relative; overflow:hidden; background:#1C2028; border:1px solid rgba(255,255,255,.08); transition:transform .5s var(--ease), border-color .3s; }
+  .metier:hover{ transform:translateY(-6px); border-color:rgba(226,166,61,.6); }
+  .metier::before{ content:""; position:absolute; inset:0; opacity:.9; background:radial-gradient(120% 80% at var(--x,80%) var(--y,0%), rgba(226,166,61,.30), transparent 60%); }
+  .metier > *{ position:relative; }
+  .metier i.ph{ font-size:38px; color:var(--accent); }
+  .metier h3{ font-size:30px; font-weight:700; margin-bottom:8px; }
+  .metier p{ color:var(--sombre-muted); font-size:15px; }
+  .metier:nth-child(2){ --x:10%; --y:100%; } .metier:nth-child(3){ --x:90%; --y:90%; } .metier:nth-child(4){ --x:0%; --y:0%; } .metier:nth-child(5){ --x:60%; --y:40%; }
+
+  /* ---------- catalogue femme / homme : onglets ---------- */
+  .catalogue .tete{ display:flex; justify-content:space-between; align-items:flex-end; gap:24px; flex-wrap:wrap; margin-bottom:34px; }
+  .onglets{ display:inline-flex; padding:5px; border-radius:var(--pill); background:var(--surface); border:1px solid var(--line); }
+  .onglets button{ border:none; background:none; padding:11px 26px; border-radius:var(--pill); font:600 15px var(--body); color:var(--muted); cursor:pointer; transition:all .3s var(--ease); }
+  .onglets button[aria-selected=true]{ background:var(--ink); color:var(--bg); }
+  .grille-presta{ display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:14px; }
+  .presta{ padding:24px; border-radius:var(--r); background:var(--surface); border:1px solid var(--line); display:flex; flex-direction:column; gap:20px; transition:transform .45s var(--ease), border-color .3s; }
+  .presta:hover{ transform:translateY(-4px); border-color:var(--accent); }
+  .presta b{ font-family:var(--display); font-size:20px; font-weight:700; letter-spacing:-.02em; line-height:1.2; }
+  .presta .bas{ display:flex; justify-content:space-between; align-items:baseline; margin-top:auto; color:var(--muted); font-size:14px; }
+  .presta .bas strong{ font-family:var(--display); font-size:26px; color:var(--ink); letter-spacing:-.03em; }
+  .note{ font-size:13px; color:var(--muted); margin-top:18px; }
+
+  /* ---------- tarifs ---------- */
+  .tarifs{ display:grid; grid-template-columns:1.1fr .9fr; gap:16px; margin-top:44px; align-items:stretch; }
+  @media(max-width:900px){ .tarifs{ grid-template-columns:1fr; } }
+  .plan{ border-radius:var(--r); padding:34px; background:var(--surface); border:1px solid var(--line); display:flex; flex-direction:column; gap:10px; }
+  .plan.fort{ background:var(--sombre); color:var(--sombre-ink); border:none; position:relative; overflow:hidden; }
+  .plan.fort::after{ content:""; position:absolute; right:-60px; bottom:-90px; width:300px; height:300px; background:radial-gradient(closest-side, rgba(226,166,61,.45), transparent 72%); }
+  .plan h3{ font-size:24px; font-weight:700; }
+  .plan .prix{ font-family:var(--display); font-weight:800; font-size:64px; letter-spacing:-.05em; line-height:1; }
+  .plan .prix small{ font-size:17px; font-family:var(--body); font-weight:500; letter-spacing:0; color:var(--muted); }
+  .plan.fort .prix small, .plan.fort p{ color:var(--sombre-muted); }
+  .plan ul{ list-style:none; margin:10px 0 18px; display:grid; gap:10px; font-size:15.5px; }
+  .plan li{ display:flex; gap:10px; align-items:flex-start; } .plan li i{ color:var(--accent); margin-top:3px; }
+  .plan .btn{ align-self:flex-start; margin-top:auto; position:relative; z-index:1; }
+  .compare{ display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin-top:60px; }
+  @media(max-width:760px){ .compare{ grid-template-columns:1fr; } }
+  .stat{ padding:28px; border-radius:var(--r); border:1px solid var(--line); background:var(--surface); }
+  .stat.moi{ background:var(--accent); color:var(--accent-ink); border:none; }
+  .stat .n{ font-family:var(--display); font-weight:800; font-size:clamp(46px, 6vw, 68px); letter-spacing:-.05em; line-height:1; }
+  .stat b{ display:block; margin:10px 0 4px; font-size:17px; } .stat p{ font-size:14.5px; color:var(--muted); } .stat.moi p{ color:rgba(16,18,22,.75); }
+
+  /* ---------- appel final ---------- */
+  .final{ margin:0 14px 14px; border-radius:44px; background:var(--sombre); color:var(--sombre-ink); text-align:left; padding:100px 0; position:relative; overflow:hidden; }
+  .final::before{ content:""; position:absolute; left:50%; top:-40%; width:900px; height:700px; margin-left:-450px; background:radial-gradient(closest-side, rgba(226,166,61,.4), transparent 70%); }
+  .final .wrap{ position:relative; }
+  .final h2{ max-width:16ch; margin-bottom:28px; }
+  footer{ padding:34px 0 50px; color:var(--muted); font-size:14px; }
+  footer .wrap{ display:flex; justify-content:space-between; gap:18px; flex-wrap:wrap; }
+  footer a:hover{ color:var(--ink); }
+
+  /* ---------- apparition au scroll (motivée : hiérarchie de lecture) ---------- */
+  @media (scripting: none){ .rv{ opacity:1 !important; transform:none !important; } }
+  @media (prefers-reduced-motion: no-preference){
+    .rv{ opacity:0; transform:translateY(26px); transition:opacity .9s var(--ease), transform .9s var(--ease); transition-delay:var(--d,0ms); }
+    .rv.in{ opacity:1; transform:none; }
+  }
 </style>
-<link rel="manifest" href="/manifest.webmanifest">
-<meta name="theme-color" content="#1C2333">
-<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 </head>
 <body>
-<header><div class="wrap">
-  <a class="logo" href="index.html">Cadence</a>
-  <nav><a href="#metiers">Métiers</a><a href="#fonctions">Fonctions</a><a href="#tarifs">Tarifs</a><a href="explorer.html">Trouver un salon</a><a href="login.html">Se connecter</a><a class="cta" href="signup.html">Essayer gratuitement</a></nav>
-</div></header>
 
-<div class="hero"><div class="wrap">
-  <div>
-    <h1>Le logiciel des salons de beauté qui remplit l'agenda <em>sans prendre de commission.</em></h1>
-    <p>Réservation en ligne 24h/24, agenda de toute l'équipe en colonnes, catalogue femme et homme prêt à l'emploi, avis clients vérifiés. Pour coiffeurs, barbiers, instituts, onglerie et massage.</p>
-    <a class="btn lg" href="signup.html">Créer mon salon gratuitement</a>
-    <div class="note">Sans carte bancaire · Sans engagement · Installable comme une application</div>
-  </div>
-  <div class="maquette" aria-hidden="true">
-    <div style="font-weight:700; margin:2px 4px 10px;">vendredi 16 octobre</div>
-    <div class="cols">
-      <div><div class="tete"><i>J</i>Jean</div><div class="bloc"><b>10:00 - 11:00</b>Coupe + Barbe</div><div class="bloc"><b>11:00 - 12:00</b>Coupe + Barbe + Soin</div></div>
-      <div><div class="tete"><i>J</i>Julie</div><div class="bloc"><b>10:00 - 10:45</b>Coupe homme</div><div class="bloc long"><b>11:00 - 13:00</b>Couleur + Brushing</div><div class="bloc att"><b>15:00 - 16:00</b>Demande en attente</div></div>
-      <div><div class="tete"><i>M</i>Marc</div><div class="bloc"><b>10:00 - 11:00</b>Taille de barbe</div><div class="bloc long"><b>11:00 - 13:00</b>Rasage traditionnel</div></div>
+<header>
+  <nav class="nav" aria-label="Navigation principale">
+    <a class="logo" href="index.html">Cadence<b>.</b></a>
+    <ul>
+      <li><a href="#fonctions">Fonctions</a></li>
+      <li><a href="#metiers">Métiers</a></li>
+      <li><a href="#catalogue">Catalogue</a></li>
+      <li><a href="#tarifs">Tarifs</a></li>
+      <li><a href="explorer.html">Trouver un salon</a></li>
+    </ul>
+    <a class="btn petit" href="signup.html">Créer mon salon</a>
+  </nav>
+</header>
+
+<main>
+  <section class="hero" style="padding-top:56px;">
+    <div class="wrap">
+      <div>
+        <h1 class="rv">Réservations en ligne, <em>zéro commission.</em></h1>
+        <p class="rv" style="--d:90ms">Réservation en ligne, équipe en colonnes, avis vérifiés et paiement direct. À partir de 15 € par mois.</p>
+        <div class="actions rv" style="--d:180ms">
+          <a class="btn" href="signup.html">Créer mon salon <i class="ph ph-arrow-right"></i></a>
+          <a class="btn discret" href="explorer.html">Voir l'annuaire</a>
+        </div>
+      </div>
+      <div class="rv" style="--d:140ms; position:relative;">
+        <div class="halo" aria-hidden="true"></div>
+        <div class="phone">
+          <iframe id="demo" src="pro.html?p=demo&preview=1" title="Exemple de page salon générée par Cadence" loading="lazy"></iframe>
+        </div>
+      </div>
     </div>
-  </div>
-</div></div>
+  </section>
 
-<section id="metiers"><div class="wrap">
-  <h2>Pensé pour tous les métiers de la beauté</h2>
-  <p class="sous">Choisissez votre métier : Cadence adapte le vocabulaire et vous propose un catalogue de prestations types, pour elle comme pour lui.</p>
-  <div class="grille">
-    <div class="carte"><div class="ico">✂️</div><h3>Coiffure</h3><p>Coupe, couleur, balayage, brushing, cérémonie. Durées longues et enchaînement de prestations.</p></div>
-    <div class="carte"><div class="ico">🪒</div><h3>Barbier</h3><p>Coupe, dégradé, taille de barbe, rasage traditionnel. Des créneaux courts, très fréquents.</p></div>
-    <div class="carte"><div class="ico">🌿</div><h3>Institut & esthétique</h3><p>Soins du visage, épilations, regard, mains et pieds, maquillage.</p></div>
-    <div class="carte"><div class="ico">💅</div><h3>Onglerie</h3><p>Semi-permanent, gel, remplissage, dépose, nail art.</p></div>
-    <div class="carte"><div class="ico">💆</div><h3>Massage & spa</h3><p>Relaxant, californien, pierres chaudes, sportif, rituels duo.</p></div>
-  </div>
-</div></section>
+  <section id="fonctions" style="padding-top:40px;">
+    <div class="wrap">
+      <h2 class="rv">Tout le salon dans un seul outil.</h2>
+      <div class="bento">
+        <article class="cell c1 rv">
+          <i class="ph ph-calendar-check"></i>
+          <h3>Réservation en ligne, ouverte la nuit.</h3>
+          <p>Vos clients choisissent une ou plusieurs prestations, un créneau libre, et réservent depuis votre lien ou votre site.</p>
+        </article>
+        <article class="cell c2 rv" style="--d:80ms">
+          <div class="gros">0 %</div>
+          <h3>Commission sur vos rendez-vous.</h3>
+          <p>Un abonnement fixe, nouveaux clients compris.</p>
+        </article>
+        <article class="cell c3 rv">
+          <i class="ph ph-users-three"></i>
+          <h3>Équipe en colonnes</h3>
+          <p>Une colonne par coiffeur ou praticien, vue du jour, clic sur un créneau vide pour réserver.</p>
+        </article>
+        <article class="cell c4 rv" style="--d:80ms">
+          <i class="ph ph-star"></i>
+          <h3>Avis vérifiés</h3>
+          <p>Seuls les clients ayant eu un rendez-vous peuvent noter. Personne ne peut les supprimer.</p>
+        </article>
+        <article class="cell c5 rv" style="--d:160ms">
+          <i class="ph ph-credit-card"></i>
+          <h3>Paiement direct</h3>
+          <p>Carte ou PayPal à la réservation, sur votre compte, avec facture acquittée.</p>
+        </article>
+      </div>
+    </div>
+  </section>
 
-<section class="bande"><div class="wrap">
-  <h2>Un catalogue Femme & Homme, prêt en un clic</h2>
-  <p class="sous">Importez les prestations types de votre métier depuis les Paramètres, ajustez prix et durées, c'est publié. Vos clients filtrent par « Femme » ou « Homme » sur votre page de réservation.</p>
-  <div class="duo">
-    <div class="carte"><h3>Femme</h3><ul class="liste"><li>Shampoing, coupe, brushing<span>70 min · 55 €</span></li><li>Coloration racines<span>90 min · 58 €</span></li><li>Balayage / mèches<span>150 min · 120 €</span></li><li>Nettoyage de peau<span>60 min · 55 €</span></li></ul></div>
-    <div class="carte"><h3>Homme</h3><ul class="liste"><li>Coupe homme<span>30 min · 26 €</span></li><li>Coupe + barbe<span>45 min · 38 €</span></li><li>Rasage traditionnel<span>30 min · 28 €</span></li><li>Soin visage homme<span>60 min · 55 €</span></li></ul></div>
-  </div>
-  <p class="petit">Exemples de prix indicatifs, modifiables prestation par prestation.</p>
-</div></section>
+  <section class="metiers" id="metiers">
+    <div class="wrap">
+      <h2 class="rv">Un outil pour chaque métier de la beauté.</h2>
+      <p class="lead rv">Choisissez votre métier : le vocabulaire s'adapte et un catalogue type vous attend.</p>
+    </div>
+    <div class="rail" tabindex="0" aria-label="Métiers">
+      <!-- TODO photo : une image réelle par métier (format 3:4) remplacerait les halos -->
+      <article class="metier"><i class="ph ph-scissors"></i><div><h3>Coiffure</h3><p>Coupe, couleur, balayage, brushing, cérémonie.</p></div></article>
+      <article class="metier"><i class="ph ph-razor"></i><div><h3>Barbier</h3><p>Dégradé, barbe, rasage traditionnel. Des créneaux courts et fréquents.</p></div></article>
+      <article class="metier"><i class="ph ph-flower-lotus"></i><div><h3>Institut</h3><p>Soins du visage, épilations, regard, mains et pieds.</p></div></article>
+      <article class="metier"><i class="ph ph-hand-heart"></i><div><h3>Onglerie</h3><p>Semi-permanent, gel, remplissage, nail art.</p></div></article>
+      <article class="metier"><i class="ph ph-leaf"></i><div><h3>Massage et spa</h3><p>Relaxant, californien, pierres chaudes, rituels duo.</p></div></article>
+    </div>
+  </section>
 
-<section id="fonctions"><div class="wrap">
-  <h2>Tout ce qu'il faut pour faire tourner un salon</h2>
-  <p class="sous">Un seul outil pour l'agenda, la prise de rendez-vous, l'équipe et la facturation.</p>
-  <div class="grille">
-    <div class="carte"><h3>Réservation en ligne 24h/24</h3><p>Vos clients choisissent une ou plusieurs prestations, un créneau libre, et réservent. Lien partageable ou à intégrer sur votre site.</p></div>
-    <div class="carte"><h3>Agenda d'équipe en colonnes</h3><p>Une colonne par coiffeur ou praticien, vue du jour, clic sur un créneau vide pour créer un rendez-vous.</p></div>
-    <div class="carte"><h3>Annuaire & avis vérifiés</h3><p>Apparaissez dans l'annuaire Cadence avec photos, adresse sur la carte et avis laissés uniquement par de vrais clients.</p></div>
-    <div class="carte"><h3>Paiement en ligne</h3><p>Encaissez à la réservation par carte (Stripe) ou PayPal, directement sur votre compte, avec facture acquittée.</p></div>
-    <div class="carte"><h3>Ajout à l'agenda du client</h3><p>Chaque réservation envoie une invitation .ics au client et à vous : Google, Apple, Outlook.</p></div>
-    <div class="carte"><h3>Devis & factures</h3><p>Numérotation automatique, TVA, export comptable, relances des impayés. Tout est déjà dedans.</p></div>
-    <div class="carte"><h3>Sur mobile, comme une app</h3><p>Installez Cadence sur l'écran d'accueil de votre téléphone, sans passer par un store.</p></div>
-    <div class="carte"><h3>Fiches clients</h3><p>Historique, coordonnées, notes. Les nouvelles réservations créent la fiche à la confirmation.</p></div>
-  </div>
-</div></section>
+  <section class="catalogue" id="catalogue">
+    <div class="wrap">
+      <div class="tete">
+        <h2 class="rv">Un catalogue prêt pour elle comme pour lui.</h2>
+        <div class="onglets rv" role="tablist" aria-label="Public">
+          <button role="tab" aria-selected="true" data-p="femme">Femme</button>
+          <button role="tab" aria-selected="false" data-p="homme">Homme</button>
+        </div>
+      </div>
+      <div class="grille-presta" id="grille-presta" role="tabpanel"></div>
+      <p class="note">Prix indicatifs. Importez le catalogue de votre métier en un clic, puis ajustez prix et durées.</p>
+    </div>
+  </section>
 
-<section class="bande" id="tarifs"><div class="wrap">
-  <h2>Un abonnement. Zéro commission sur vos rendez-vous.</h2>
-  <p class="sous">Ce que vous encaissez est à vous. Cadence ne prélève rien sur vos réservations, nouveaux clients compris.</p>
-  <div class="prix">
-    <div class="carte"><h3>Solo</h3><strong>15 €<small> / mois</small></strong><p>Jusqu'à 25 clients actifs. Pour un indépendant.</p></div>
-    <div class="carte"><h3>Studio</h3><strong>29 €<small> / mois</small></strong><p>Clients illimités et équipe multi-collaborateurs.</p></div>
-  </div>
-  <p class="petit" style="margin-bottom:26px;">Paiements en ligne : seuls les frais de votre prestataire de paiement (Stripe ou PayPal) s'appliquent, versés à ce prestataire et pas à Cadence.</p>
+  <section id="tarifs" style="padding-top:40px;">
+    <div class="wrap">
+      <h2 class="rv">Un abonnement, jamais de pourcentage.</h2>
+      <div class="tarifs">
+        <article class="plan fort rv">
+          <h3>Salon</h3>
+          <div class="prix">29 €<small> /mois</small></div>
+          <p>Pour une équipe.</p>
+          <ul>
+            <li><i class="ph ph-check-circle"></i>Clients illimités</li>
+            <li><i class="ph ph-check-circle"></i>Agenda en colonnes pour toute l'équipe</li>
+            <li><i class="ph ph-check-circle"></i>Page salon personnalisable avec vos photos</li>
+            <li><i class="ph ph-check-circle"></i>Relances et tableau de bord</li>
+          </ul>
+          <a class="btn" href="signup.html?plan=studio">Créer mon salon</a>
+        </article>
+        <article class="plan rv" style="--d:100ms">
+          <h3>Indépendant</h3>
+          <div class="prix">15 €<small> /mois</small></div>
+          <p>Pour travailler seul·e.</p>
+          <ul>
+            <li><i class="ph ph-check-circle"></i>Jusqu'à 25 clients actifs</li>
+            <li><i class="ph ph-check-circle"></i>Réservation en ligne et annuaire</li>
+            <li><i class="ph ph-check-circle"></i>Devis et factures</li>
+          </ul>
+          <a class="btn discret" href="signup.html?plan=solo">Créer mon salon</a>
+        </article>
+      </div>
 
-  <h3 style="margin:30px 0 12px; font-family:'Fraunces', Georgia, serif; font-size:21px;">Comment ça se compare ?</h3>
-  <div style="overflow-x:auto;"><table>
-    <tr><th>Plateforme</th><th>Modèle</th><th>Commission sur les rendez-vous</th></tr>
-    <tr class="nous"><td>Cadence</td><td>Abonnement fixe, 15 ou 29 €/mois</td><td>Aucune</td></tr>
-    <tr><td>Planity</td><td>Abonnement fixe, tarif non publié</td><td>Aucune</td></tr>
-    <tr><td>Treatwell</td><td>Commission sur les nouveaux clients</td><td>Environ 25 % du premier rendez-vous d'un nouveau client apporté par la plateforme</td></tr>
-  </table></div>
-  <p class="petit">Informations publiques relevées dans un comparatif FrenchWeb de juillet 2026, à titre indicatif : vérifiez les conditions en vigueur auprès de chaque plateforme.</p>
-</div></section>
+      <div class="compare">
+        <div class="stat moi rv"><div class="n">0 %</div><b>Cadence</b><p>Abonnement fixe de 15 ou 29 € par mois.</p></div>
+        <div class="stat rv" style="--d:80ms"><div class="n">0 %</div><b>Planity</b><p>Abonnement fixe, tarif non publié.</p></div>
+        <div class="stat rv" style="--d:160ms"><div class="n">25 %</div><b>Treatwell</b><p>Du premier rendez-vous d'un nouveau client apporté par la plateforme.</p></div>
+      </div>
+      <p class="note">Relevé dans un comparatif FrenchWeb de juillet 2026, à titre indicatif. Les frais de paiement en ligne (Stripe ou PayPal) vont à ces prestataires, jamais à Cadence.</p>
+    </div>
+  </section>
 
-<section class="final"><div class="wrap">
-  <h2>Ouvrez les réservations de votre salon aujourd'hui</h2>
-  <p>Créez votre espace, importez votre catalogue type, partagez votre lien. C'est en ligne en quelques minutes.</p>
-  <a class="btn lg" href="signup.html">Créer mon salon gratuitement</a>
-</div></section>
+  <section class="final">
+    <div class="wrap">
+      <h2 class="rv">Ouvrez les réservations de votre salon aujourd'hui.</h2>
+      <a class="btn rv" style="--d:100ms" href="signup.html">Créer mon salon <i class="ph ph-arrow-right"></i></a>
+    </div>
+  </section>
+</main>
 
-<footer><div class="wrap">© Cadence · <a href="cgu.html">CGU</a> · <a href="confidentialite.html">Confidentialité</a> · <a href="explorer.html">Trouver un salon</a></div></footer>
+<footer><div class="wrap"><span>© Cadence</span><span><a href="cgu.html">CGU</a> &nbsp; <a href="confidentialite.html">Confidentialité</a> &nbsp; <a href="explorer.html">Trouver un salon</a></span></div></footer>
+
+<script>
+  // ---- Catalogue : onglets Femme / Homme (exemples réalistes, prix indicatifs)
+  const CAT = {
+    femme:[['Shampoing, coupe, brushing','70 min',55],['Coloration racines','90 min',58],['Balayage','2 h 30',120],['Soin visage éclat','60 min',65],['Pose semi-permanent','45 min',35],['Massage relaxant','60 min',75]],
+    homme:[['Coupe homme','30 min',26],['Coupe et barbe','45 min',38],['Rasage traditionnel','30 min',28],['Soin visage homme','60 min',55],['Coloration barbe','30 min',25],['Massage sportif','60 min',75]]
+  };
+  const grille = document.getElementById('grille-presta');
+  function dessiner(p){
+    grille.innerHTML = CAT[p].map(([n,d,pr]) => `<div class="presta"><b>${n}</b><div class="bas"><span>${d}</span><strong>${pr} €</strong></div></div>`).join('');
+  }
+  dessiner('femme');
+  document.querySelectorAll('.onglets button').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.onglets button').forEach(o => o.setAttribute('aria-selected', o === b));
+    dessiner(b.dataset.p);
+  }));
+
+  // ---- Apparition au scroll : IntersectionObserver, sans écouteur de scroll
+  const io = new IntersectionObserver(es => es.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold:.15 });
+  document.querySelectorAll('.rv').forEach(el => io.observe(el));
+
+  // ---- Héros : la vraie page vitrine de Cadence, alimentée par un salon d'exemple
+  const DEMO = {
+    slug:'demo', nom:'Maison Éloïse', metier:'coiffure', logo_url:null, accent:'ambre', ville:'Lyon 6e',
+    horaires:{ jours:[2,3,4,5,6], debut:'09:00:00', fin:'19:00:00' },
+    adresse:null, latitude:null, longitude:null,
+    vitrine:{ accroche:'Coiffure mixte, colorations végétales', a_propos:null, cover_url:null, galerie:[], mise_en_page:'classique', police:'moderne',
+      couleur:'#E2A63D', fond:'sombre', boutons:'pilule', texte_bouton:'Prendre rendez-vous', bandeau_actif:false, bandeau_texte:null,
+      sections:{ a_propos:false, galerie:false, equipe:true, horaires:false, carte:false, avis:true, prestations:true }, ordre:['prestations','equipe','avis'] },
+    equipe:[{ nom:'Éloïse', role:'Coloriste' },{ nom:'Karim', role:'Barbier' },{ nom:'Inès', role:'Coiffeuse' }],
+    prestations:[
+      { id:'1', libelle:'Coupe femme', duree_minutes:45, prix_unitaire:38, public_cible:'femme', categorie:'Coupe' },
+      { id:'2', libelle:'Coupe et barbe', duree_minutes:45, prix_unitaire:38, public_cible:'homme', categorie:'Coupe' },
+      { id:'3', libelle:'Balayage', duree_minutes:150, prix_unitaire:120, public_cible:'femme', categorie:'Couleur' }
+    ],
+    avis:[{ note:5, commentaire:'Une équipe attentive, le balayage est parfait.', auteur:'Camille', created_at:'2026-09-28' }]
+  };
+  window.addEventListener('message', e => {
+    if(e.origin !== location.origin || !e.data || e.data.type !== 'cadence-vitrine-ready') return;
+    document.getElementById('demo').contentWindow.postMessage({ type:'cadence-vitrine', data:DEMO }, location.origin);
+  });
+</script>
 <script src="/pwa.js" defer></script>
 </body>
 </html>
