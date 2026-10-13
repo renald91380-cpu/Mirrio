@@ -33,5 +33,19 @@
         }
       ]
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/annuaire",
+      "destination": "/api/reservation-disponibilites?action=annuaire"
+    },
+    {
+      "source": "/api/avis",
+      "destination": "/api/reservation-disponibilites?action=avis"
+    },
+    {
+      "source": "/api/rendez-vous-ics",
+      "destination": "/api/reservation-disponibilites?action=ics"
+    }
   ]
 }

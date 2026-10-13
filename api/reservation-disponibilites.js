@@ -23,6 +23,10 @@
 // Variables d'environnement attendues :
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 
+import annuaire from './_annuaire.js';
+import avis from './_avis.js';
+import rdvIcs from './_rdv-ics.js';
+
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -68,7 +72,18 @@ function parisVersUtc(annee, mois, jour, heure, minute){
 
 // ------------------------------------------------------------------ requête
 
+// Plan Vercel Hobby : 12 fonctions serverless maximum par déploiement. Les
+// routes publiques /api/annuaire, /api/avis et /api/rendez-vous-ics sont donc
+// servies par CETTE fonction (réécritures dans vercel.json → ?action=…) ;
+// leur code vit dans api/_annuaire.js, _avis.js et _rdv-ics.js (le préfixe `_`
+// les exclut du décompte). Ne pas recréer de fichier de route dans api/ sans
+// en retirer un autre.
+const ACTIONS = { annuaire, avis, ics: rdvIcs };
+
 export default async function handler(req, res){
+  const action = new URL(req.url, 'http://x').searchParams.get('action');
+  if(action && ACTIONS[action]) return ACTIONS[action](req, res);
+
   if(req.method !== 'GET'){
     return json(res, 405, { error: 'Method Not Allowed' });
   }
