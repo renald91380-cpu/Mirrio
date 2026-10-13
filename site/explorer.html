@@ -6,11 +6,15 @@
 <title>Trouver un salon et réserver en ligne | Cadence</title>
 <meta name="description" content="Coiffeurs, barbiers, instituts, onglerie et massage près de chez vous. Comparez, consultez les avis vérifiés et réservez en ligne.">
 <meta name="color-scheme" content="light dark">
+<meta property="og:title" content="Trouver un salon et réserver en ligne | Cadence">
+<meta property="og:description" content="Coiffeurs, barbiers, instituts, onglerie et massage. Avis vérifiés, réservation en ligne.">
+<meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://unpkg.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1" defer></script>
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#101216">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
@@ -18,6 +22,7 @@
   :root{
     --bg:#F5F5F3; --surface:#FBFBFA; --ink:#101216; --muted:#5B606B; --line:rgba(16,18,22,.1);
     --accent:#E2A63D; --accent-ink:#101216; --sombre:#101216;
+    --ombre:0 1px 2px rgba(16,18,22,.05), 0 12px 30px -14px rgba(16,18,22,.18);
     --r:22px; --pill:999px;
     --display:'Bricolage Grotesque', system-ui, sans-serif; --body:'Geist', system-ui, sans-serif;
     --ease:cubic-bezier(.16,1,.3,1);
@@ -29,7 +34,11 @@
   body{ background:var(--bg); color:var(--ink); font-family:var(--body); line-height:1.55; -webkit-font-smoothing:antialiased; }
   a{ color:inherit; text-decoration:none; }
   i.ph, i.ph-fill{ font-size:1.2em; line-height:1; }
-  :focus-visible{ outline:2px solid var(--accent); outline-offset:3px; }
+  html{ scroll-padding-top:96px; }
+  :focus-visible{ outline:3px solid var(--accent); outline-offset:3px; }
+  .evitement{ position:absolute; left:16px; top:-80px; z-index:100; background:var(--ink); color:var(--bg); padding:12px 20px; border-radius:var(--pill); font-weight:600; transition:top .2s; }
+  .evitement:focus{ top:12px; }
+  .sr{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
   h1,h2,h3{ font-family:var(--display); letter-spacing:-.03em; line-height:1.05; }
 
   header{ position:sticky; top:14px; z-index:40; padding:0 14px; }
@@ -37,7 +46,7 @@
     background:color-mix(in srgb, var(--bg) 72%, transparent); backdrop-filter:blur(18px) saturate(160%); -webkit-backdrop-filter:blur(18px) saturate(160%); border:1px solid var(--line); box-shadow:0 10px 30px -14px rgba(16,18,22,.25); }
   @media (prefers-reduced-transparency: reduce){ .nav{ background:var(--bg); backdrop-filter:none; -webkit-backdrop-filter:none; } }
   .logo{ font-family:var(--display); font-weight:800; font-size:21px; letter-spacing:-.04em; } .logo b{ color:var(--accent); }
-  .btn{ display:inline-flex; align-items:center; gap:8px; background:var(--accent); color:var(--accent-ink); font:600 14.5px var(--body); padding:10px 20px; border-radius:var(--pill); border:none; cursor:pointer; white-space:nowrap; transition:transform .35s var(--ease); }
+  .btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; background:var(--accent); color:var(--accent-ink); font:600 14.5px var(--body); padding:10px 22px; border-radius:var(--pill); border:none; cursor:pointer; white-space:nowrap; transition:transform .35s var(--ease); }
   .btn:hover{ transform:translateY(-2px); } .btn:active{ transform:scale(.98); }
   .btn.discret{ background:transparent; color:var(--ink); box-shadow:inset 0 0 0 1.5px var(--line); }
 
@@ -51,6 +60,8 @@
   .champ input, .champ select{ width:100%; border:none; background:transparent; color:var(--ink); font:500 15.5px var(--body); padding:10px 0; outline:none; min-width:0; appearance:none; -webkit-appearance:none; }
   .champ input::placeholder{ color:var(--muted); }
   .champ select option{ color:#101216; }
+  .champ select{ cursor:pointer; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%237a7f8a' stroke-width='2'%3E%3Cpath d='m1 1.5 5 5 5-5'/%3E%3C/svg%3E") right 2px center no-repeat; padding-right:22px; }
+  .champ{ min-height:52px; }
   .recherche .btn{ padding:0 28px; font-size:15.5px; }
   @media(max-width:820px){
     .recherche{ grid-template-columns:1fr 1fr; border-radius:28px; gap:4px; }
@@ -58,7 +69,7 @@
     .recherche .btn{ grid-column:span 2; justify-content:center; padding:14px; margin-top:6px; }
   }
   .puces{ display:flex; gap:8px; flex-wrap:wrap; margin-top:20px; }
-  .puces button{ display:inline-flex; align-items:center; gap:8px; padding:9px 16px; border-radius:var(--pill); border:1px solid var(--line); background:transparent; color:var(--ink); font:500 14px var(--body); cursor:pointer; transition:all .3s var(--ease); }
+  .puces button{ display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:9px 18px; border-radius:var(--pill); border:1px solid var(--line); background:transparent; color:var(--ink); font:500 14px var(--body); cursor:pointer; transition:all .3s var(--ease); }
   .puces button:hover{ border-color:var(--ink); }
   @media(max-width:620px){ .puces{ flex-wrap:nowrap; overflow-x:auto; margin:20px -24px 0; padding:0 24px 6px; scrollbar-width:none; } .puces::-webkit-scrollbar{ display:none; } .puces button{ flex-shrink:0; } }
   @media(max-width:520px){ .nav .discret{ display:none; } .nav{ padding-left:18px; } }
@@ -68,7 +79,7 @@
   @media(max-width:1060px){ .corps{ grid-template-columns:1fr; } }
   .compte{ font-size:14px; color:var(--muted); margin-bottom:16px; min-height:1.5em; }
   .grille{ display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:18px; }
-  .carte{ border-radius:var(--r); background:var(--surface); border:1px solid var(--line); overflow:hidden; display:flex; flex-direction:column; transition:transform .5s var(--ease), box-shadow .5s var(--ease), border-color .3s; }
+  .carte{ box-shadow:var(--ombre); border-radius:var(--r); background:var(--surface); border:1px solid var(--line); overflow:hidden; display:flex; flex-direction:column; transition:transform .5s var(--ease), box-shadow .5s var(--ease), border-color .3s; }
   .carte:hover{ transform:translateY(-5px); border-color:var(--accent); box-shadow:0 26px 50px -28px rgba(16,18,22,.5); }
   .visuel{ position:relative; aspect-ratio:16/10; background:var(--g, linear-gradient(135deg, #2a2e37, #101216)) center/cover no-repeat; display:flex; align-items:flex-end; padding:14px; }
   .visuel .initiale{ position:absolute; right:16px; top:6px; font:800 96px/1 var(--display); color:rgba(255,255,255,.16); letter-spacing:-.05em; }
@@ -87,10 +98,11 @@
   .squelette .v, .squelette .l{ background:linear-gradient(100deg, var(--line) 30%, rgba(128,128,128,.04) 50%, var(--line) 70%); background-size:200% 100%; animation:eclat 1.4s linear infinite; }
   .squelette .v{ aspect-ratio:16/10; } .squelette .l{ height:14px; border-radius:8px; margin:16px 20px 0; } .squelette .l + .l{ width:55%; margin-bottom:20px; }
   @keyframes eclat{ to{ background-position:-200% 0; } }
-  @media (prefers-reduced-motion: reduce){ .squelette .v, .squelette .l{ animation:none; } .carte, .btn{ transition:none; } }
+  @media (prefers-reduced-motion: reduce){ .squelette .v, .squelette .l{ animation:none; } .carte, .btn, .puces button{ transition:none; } .carte:hover, .btn:hover{ transform:none; } }
   .vide{ grid-column:1/-1; text-align:center; padding:70px 20px; border:1.5px dashed var(--line); border-radius:var(--r); color:var(--muted); }
   .vide i{ font-size:40px; color:var(--accent); display:block; margin-bottom:12px; }
   .vide h3{ font-size:24px; color:var(--ink); margin-bottom:6px; }
+  .vide .btn{ margin-top:18px; }
 
   .colonne-carte{ position:sticky; top:96px; height:calc(100vh - 124px); min-height:420px; }
   #carte{ width:100%; height:100%; border-radius:var(--r); border:1px solid var(--line); }
@@ -107,6 +119,7 @@
 </style>
 </head>
 <body>
+<a class="evitement" href="#resultats">Aller aux résultats</a>
 <header>
   <nav class="nav" aria-label="Navigation principale">
     <a class="logo" href="index.html">Cadence<b>.</b></a>
@@ -120,35 +133,36 @@
 <section class="hero">
   <h1>Réservez votre prochain rendez&#8209;vous beauté.</h1>
   <form class="recherche" id="form" role="search">
-    <div class="champ"><i class="ph ph-magnifying-glass"></i><label for="q">Nom ou prestation</label><input type="search" id="q" placeholder="Nom ou prestation" autocomplete="off"></div>
-    <div class="champ"><i class="ph ph-map-pin"></i><label for="ville">Ville</label><input type="text" id="ville" placeholder="Ville" autocomplete="off"></div>
-    <div class="champ"><i class="ph ph-users"></i><label for="public">Pour qui</label>
+    <div class="champ"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><label for="q">Nom ou prestation</label><input type="search" id="q" placeholder="Nom ou prestation" autocomplete="off"></div>
+    <div class="champ"><i class="ph ph-map-pin" aria-hidden="true"></i><label for="ville">Ville</label><input type="text" id="ville" placeholder="Ville" autocomplete="off"></div>
+    <div class="champ"><i class="ph ph-users" aria-hidden="true"></i><label for="public">Pour qui</label>
       <select id="public"><option value="">Femme ou homme</option><option value="femme">Femme</option><option value="homme">Homme</option></select></div>
     <button class="btn" type="submit">Rechercher</button>
   </form>
   <div class="puces" id="puces" role="group" aria-label="Catégories">
     <button type="button" data-m="" aria-pressed="true">Tout</button>
-    <button type="button" data-m="coiffure" aria-pressed="false"><i class="ph ph-scissors"></i>Coiffure</button>
-    <button type="button" data-m="barbier" aria-pressed="false"><i class="ph ph-razor"></i>Barbier</button>
-    <button type="button" data-m="esthetique" aria-pressed="false"><i class="ph ph-flower-lotus"></i>Institut</button>
-    <button type="button" data-m="onglerie" aria-pressed="false"><i class="ph ph-hand-heart"></i>Onglerie</button>
-    <button type="button" data-m="massage" aria-pressed="false"><i class="ph ph-leaf"></i>Massage et spa</button>
+    <button type="button" data-m="coiffure" aria-pressed="false"><i class="ph ph-scissors" aria-hidden="true"></i>Coiffure</button>
+    <button type="button" data-m="barbier" aria-pressed="false"><i class="ph ph-razor" aria-hidden="true"></i>Barbier</button>
+    <button type="button" data-m="esthetique" aria-pressed="false"><i class="ph ph-flower-lotus" aria-hidden="true"></i>Institut</button>
+    <button type="button" data-m="onglerie" aria-pressed="false"><i class="ph ph-hand-heart" aria-hidden="true"></i>Onglerie</button>
+    <button type="button" data-m="massage" aria-pressed="false"><i class="ph ph-leaf" aria-hidden="true"></i>Massage et spa</button>
   </div>
 </section>
 
 <main class="corps">
   <div>
-    <div class="compte" id="compte" aria-live="polite"></div>
-    <div class="grille" id="grille"></div>
+    <h2 class="sr" id="resultats" tabindex="-1">Résultats de la recherche</h2>
+    <div class="compte" id="compte" role="status" aria-live="polite"></div>
+    <div class="grille" id="grille" aria-busy="false"></div>
     <aside class="pro">
       <h2>Vous tenez un salon ?</h2>
       <p>Apparaissez ici, recevez des réservations jour et nuit, sans commission.</p>
       <a class="btn" href="beaute.html">Découvrir Cadence</a>
     </aside>
   </div>
-  <div class="colonne-carte" id="colonne-carte"><div id="carte"></div></div>
+  <div class="colonne-carte" id="colonne-carte"><div id="carte" role="region" aria-label="Carte des salons"></div></div>
 </main>
-<button class="btn bascule-mobile" id="bascule" type="button"><i class="ph ph-map-trifold"></i><span>Carte</span></button>
+<button class="btn bascule-mobile" id="bascule" type="button"><i class="ph ph-map-trifold" aria-hidden="true"></i><span>Carte</span></button>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -183,14 +197,15 @@
     const vals = { q:document.getElementById('q').value.trim(), ville:document.getElementById('ville').value.trim(), public:document.getElementById('public').value, metier };
     Object.entries(vals).forEach(([k, v]) => { if(v) p.set(k, v); });
     history.replaceState(null, '', p.toString() ? `?${p}` : location.pathname);
-    grille.innerHTML = squelettes(); compte.textContent = '';
+    grille.innerHTML = squelettes(); compte.textContent = ''; grille.setAttribute('aria-busy', 'true');
     try{
       const r = await fetch('/api/annuaire?' + p);
       if(!r.ok) throw 0;
       const { praticiens } = await r.json();
       if(!praticiens?.length){
-        grille.innerHTML = '<div class="vide"><i class="ph ph-magnifying-glass"></i><h3>Aucun salon trouvé</h3><p>Essayez une autre ville ou une autre catégorie.</p></div>';
-        majCarte([]); return;
+        grille.innerHTML = '<div class="vide"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><h3>Aucun salon trouvé</h3><p>Essayez une autre ville ou une autre catégorie.</p><button class="btn" type="button" id="effacer">Effacer les filtres</button></div>';
+        document.getElementById('effacer').addEventListener('click', effacerFiltres);
+        compte.textContent = 'Aucun résultat.'; majCarte([]); return;
       }
       compte.textContent = `${praticiens.length} ${praticiens.length > 1 ? 'professionnels' : 'professionnel'}`;
       grille.innerHTML = praticiens.map(x => {
@@ -199,7 +214,7 @@
         const pub = (x.publics || []);
         return `<a class="carte" href="pro.html?p=${encodeURIComponent(x.slug)}">
           <div class="visuel" style="--g:${fond}">${https(x.photo) ? '' : `<span class="initiale" aria-hidden="true">${esc(x.nom.charAt(0).toUpperCase())}</span>`}
-            ${x.nb_avis ? `<span class="note"><i class="ph-fill ph-star"></i>${x.note_moyenne} (${x.nb_avis})</span>` : ''}</div>
+            ${x.nb_avis ? `<span class="note"><i class="ph-fill ph-star" aria-hidden="true"></i>${x.note_moyenne} (${x.nb_avis})</span>` : ''}</div>
           <div class="contenu">
             <h3>${esc(x.nom)}</h3>
             <div class="meta">${esc(LIB[x.metier] || 'Autre')}${x.ville ? ', ' + esc(x.ville) : ''}</div>
@@ -211,9 +226,22 @@
       majCarte(praticiens);
     }catch(e){
       compte.textContent = '';
-      grille.innerHTML = '<div class="vide"><i class="ph ph-cloud-slash"></i><h3>Chargement impossible</h3><p>Vérifiez votre connexion puis réessayez.</p></div>';
-    }
+      grille.innerHTML = '<div class="vide" role="alert"><i class="ph ph-cloud-slash" aria-hidden="true"></i><h3>Chargement impossible</h3><p>Vérifiez votre connexion puis réessayez.</p><button class="btn" type="button" id="reessayer">Réessayer</button></div>';
+      document.getElementById('reessayer').addEventListener('click', chercher);
+    }finally{ grille.setAttribute('aria-busy', 'false'); }
   }
+
+  function effacerFiltres(){
+    ['q', 'ville', 'public'].forEach(id => { document.getElementById(id).value = ''; });
+    metier = '';
+    document.querySelectorAll('#puces button').forEach(o => o.setAttribute('aria-pressed', o.dataset.m === ''));
+    chercher();
+  }
+
+  // Recherche instantanée : on attend 350 ms après la dernière frappe.
+  let minuterie;
+  ['q', 'ville'].forEach(id => document.getElementById(id).addEventListener('input', () => { clearTimeout(minuterie); minuterie = setTimeout(chercher, 350); }));
+  document.getElementById('public').addEventListener('change', chercher);
 
   // Puces de catégorie
   document.querySelectorAll('#puces button').forEach(b => b.addEventListener('click', () => {

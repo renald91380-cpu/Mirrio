@@ -6,33 +6,40 @@
 <title>Logiciel de réservation pour salons de beauté | Cadence</title>
 <meta name="description" content="Réservation en ligne, équipe en colonnes, catalogue femme et homme, avis vérifiés. Pour coiffeurs, barbiers, instituts, onglerie et massage. Zéro commission sur vos rendez-vous.">
 <meta name="color-scheme" content="light dark">
+<meta property="og:title" content="Cadence pour les salons de beauté : réservations en ligne, zéro commission">
+<meta property="og:description" content="Réservation 24h/24, équipe en colonnes, avis vérifiés et paiement direct. À partir de 15 € par mois.">
+<meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://unpkg.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1" defer></script>
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#101216">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <style>
   :root{
     --bg:#F5F5F3; --surface:#FBFBFA; --ink:#101216; --muted:#5B606B; --line:rgba(16,18,22,.1);
-    --accent:#E2A63D; --accent-ink:#101216; --sombre:#101216; --sombre-ink:#F1F1EE; --sombre-muted:#A3A8B3;
+    --accent:#E2A63D; --accent-ink:#101216; --icone:#A1700A;
+    --ombre:0 1px 2px rgba(16,18,22,.05), 0 12px 30px -14px rgba(16,18,22,.18); --sombre:#101216; --sombre-ink:#F1F1EE; --sombre-muted:#A3A8B3;
     --r:22px; --pill:999px;
     --display:'Bricolage Grotesque', system-ui, sans-serif; --body:'Geist', system-ui, sans-serif;
     --ease:cubic-bezier(.16,1,.3,1);
   }
   @media (prefers-color-scheme: dark){
-    :root{ --bg:#0D0F13; --surface:#15181E; --ink:#F1F1EE; --muted:#9CA2AE; --line:rgba(255,255,255,.1); --sombre:#15181E; }
+    :root{ --icone:#E2A63D; --ombre:0 1px 2px rgba(0,0,0,.3), 0 14px 34px -14px rgba(0,0,0,.6); --bg:#0D0F13; --surface:#15181E; --ink:#F1F1EE; --muted:#9CA2AE; --line:rgba(255,255,255,.1); --sombre:#15181E; }
   }
   *{box-sizing:border-box; margin:0; padding:0;}
-  html{ scroll-behavior:smooth; }
+  html{ scroll-behavior:smooth; scroll-padding-top:96px; }
   body{ background:var(--bg); color:var(--ink); font-family:var(--body); line-height:1.6; -webkit-font-smoothing:antialiased; }
   a{ color:inherit; text-decoration:none; }
   i.ph{ font-size:1.25em; line-height:1; }
   .wrap{ max-width:1200px; margin:0 auto; padding:0 24px; }
   h1,h2,h3{ font-family:var(--display); letter-spacing:-.03em; line-height:1.04; }
   h2{ font-size:clamp(32px, 4.6vw, 54px); font-weight:800; max-width:15ch; }
-  :focus-visible{ outline:2px solid var(--accent); outline-offset:3px; }
+  :focus-visible{ outline:3px solid var(--accent); outline-offset:3px; border-radius:6px; }
+  .evitement{ position:absolute; left:16px; top:-80px; z-index:100; background:var(--ink); color:var(--bg); padding:12px 20px; border-radius:var(--pill); font-weight:600; transition:top .2s; }
+  .evitement:focus{ top:12px; }
 
   /* ---------- boutons : pilule partout ---------- */
   .btn{ display:inline-flex; align-items:center; gap:10px; background:var(--accent); color:var(--accent-ink); font:600 15.5px var(--body); padding:15px 26px; border-radius:var(--pill); border:none; cursor:pointer; white-space:nowrap;
@@ -41,7 +48,8 @@
   .btn:active{ transform:translateY(0) scale(.98); }
   .btn.discret{ background:transparent; color:var(--ink); box-shadow:inset 0 0 0 1.5px var(--line); }
   .btn.discret:hover{ box-shadow:inset 0 0 0 1.5px var(--ink); }
-  .btn.petit{ padding:10px 20px; font-size:14.5px; }
+  .btn.petit{ padding:11px 22px; font-size:14.5px; min-height:44px; }
+  .btn{ min-height:48px; justify-content:center; }
 
   /* ---------- navigation flottante ---------- */
   header{ position:sticky; top:14px; z-index:40; padding:0 14px; }
@@ -73,10 +81,11 @@
   /* ---------- bento ---------- */
   section{ padding:96px 0; }
   .bento{ display:grid; grid-template-columns:repeat(6, 1fr); gap:16px; margin-top:44px; }
-  .cell{ position:relative; overflow:hidden; border-radius:var(--r); padding:30px; background:var(--surface); border:1px solid var(--line); display:flex; flex-direction:column; justify-content:flex-end; min-height:250px; }
-  .cell i.ph{ font-size:30px; color:var(--accent); margin-bottom:auto; }
+  .cell{ position:relative; overflow:hidden; border-radius:var(--r); padding:30px; background:var(--surface); border:1px solid var(--line); box-shadow:var(--ombre); display:flex; flex-direction:column; justify-content:flex-end; min-height:250px; }
+  .cell i.ph{ font-size:30px; color:var(--icone); margin-bottom:auto; }
   .cell h3{ font-size:26px; font-weight:700; margin:22px 0 8px; }
   .cell p{ color:var(--muted); font-size:15.5px; max-width:38ch; }
+  .c1 i.ph{ color:var(--accent); }
   .c1{ grid-column:span 4; min-height:340px; background:var(--sombre); color:var(--sombre-ink); border:none; }
   .c1 p{ color:var(--sombre-muted); }
   .c1::before{ content:""; position:absolute; right:-80px; top:-80px; width:420px; height:420px; background:radial-gradient(closest-side, rgba(226,166,61,.55), transparent 72%); }
@@ -94,6 +103,9 @@
   /* ---------- métiers : défilement ---------- */
   .metiers{ background:var(--sombre); color:var(--sombre-ink); border-radius:44px; margin:0 14px; padding:96px 0; overflow:hidden; }
   .metiers h2{ margin-bottom:12px; } .metiers .lead{ color:var(--sombre-muted); max-width:52ch; font-size:18px; margin-bottom:44px; }
+  .rail-outils{ display:flex; gap:10px; margin-top:-8px; padding:0 0 18px; }
+  .rail-outils button{ width:48px; height:48px; border-radius:var(--pill); border:1.5px solid rgba(255,255,255,.22); background:transparent; color:var(--sombre-ink); cursor:pointer; display:grid; place-items:center; transition:border-color .3s, transform .35s var(--ease); }
+  .rail-outils button:hover{ border-color:var(--accent); transform:translateY(-2px); }
   .rail{ display:flex; gap:16px; overflow-x:auto; scroll-snap-type:x mandatory; padding:4px 24px 26px max(24px, calc((100vw - 1200px) / 2 + 10px)); scrollbar-width:none; }
   .rail::-webkit-scrollbar{ display:none; }
   .metier{ flex:0 0 min(300px, 78vw); scroll-snap-align:start; border-radius:var(--r); padding:26px; min-height:360px; display:flex; flex-direction:column; justify-content:space-between; position:relative; overflow:hidden; background:#1C2028; border:1px solid rgba(255,255,255,.08); transition:transform .5s var(--ease), border-color .3s; }
@@ -108,10 +120,10 @@
   /* ---------- catalogue femme / homme : onglets ---------- */
   .catalogue .tete{ display:flex; justify-content:space-between; align-items:flex-end; gap:24px; flex-wrap:wrap; margin-bottom:34px; }
   .onglets{ display:inline-flex; padding:5px; border-radius:var(--pill); background:var(--surface); border:1px solid var(--line); }
-  .onglets button{ border:none; background:none; padding:11px 26px; border-radius:var(--pill); font:600 15px var(--body); color:var(--muted); cursor:pointer; transition:all .3s var(--ease); }
+  .onglets button{ border:none; background:none; min-height:44px; padding:11px 28px; border-radius:var(--pill); font:600 15px var(--body); color:var(--muted); cursor:pointer; transition:all .3s var(--ease); }
   .onglets button[aria-selected=true]{ background:var(--ink); color:var(--bg); }
   .grille-presta{ display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:14px; }
-  .presta{ padding:24px; border-radius:var(--r); background:var(--surface); border:1px solid var(--line); display:flex; flex-direction:column; gap:20px; transition:transform .45s var(--ease), border-color .3s; }
+  .presta{ box-shadow:var(--ombre); padding:24px; border-radius:var(--r); background:var(--surface); border:1px solid var(--line); display:flex; flex-direction:column; gap:20px; transition:transform .45s var(--ease), border-color .3s; }
   .presta:hover{ transform:translateY(-4px); border-color:var(--accent); }
   .presta b{ font-family:var(--display); font-size:20px; font-weight:700; letter-spacing:-.02em; line-height:1.2; }
   .presta .bas{ display:flex; justify-content:space-between; align-items:baseline; margin-top:auto; color:var(--muted); font-size:14px; }
@@ -129,11 +141,11 @@
   .plan .prix small{ font-size:17px; font-family:var(--body); font-weight:500; letter-spacing:0; color:var(--muted); }
   .plan.fort .prix small, .plan.fort p{ color:var(--sombre-muted); }
   .plan ul{ list-style:none; margin:10px 0 18px; display:grid; gap:10px; font-size:15.5px; }
-  .plan li{ display:flex; gap:10px; align-items:flex-start; } .plan li i{ color:var(--accent); margin-top:3px; }
+  .plan li{ display:flex; gap:10px; align-items:flex-start; } .plan li i{ color:var(--icone); margin-top:3px; } .plan.fort li i{ color:var(--accent); }
   .plan .btn{ align-self:flex-start; margin-top:auto; position:relative; z-index:1; }
   .compare{ display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin-top:60px; }
   @media(max-width:760px){ .compare{ grid-template-columns:1fr; } }
-  .stat{ padding:28px; border-radius:var(--r); border:1px solid var(--line); background:var(--surface); }
+  .stat{ box-shadow:var(--ombre); padding:28px; border-radius:var(--r); border:1px solid var(--line); background:var(--surface); }
   .stat.moi{ background:var(--accent); color:var(--accent-ink); border:none; }
   .stat .n{ font-family:var(--display); font-weight:800; font-size:clamp(46px, 6vw, 68px); letter-spacing:-.05em; line-height:1; }
   .stat b{ display:block; margin:10px 0 4px; font-size:17px; } .stat p{ font-size:14.5px; color:var(--muted); } .stat.moi p{ color:rgba(16,18,22,.75); }
@@ -149,6 +161,7 @@
 
   /* ---------- apparition au scroll (motivée : hiérarchie de lecture) ---------- */
   @media (scripting: none){ .rv{ opacity:1 !important; transform:none !important; } }
+  @media (prefers-reduced-motion: reduce){ .phone, .phone:hover{ transform:none; transition:none; } .btn, .metier, .presta{ transition:none; } .btn:hover, .metier:hover, .presta:hover{ transform:none; } html{ scroll-behavior:auto; } }
   @media (prefers-reduced-motion: no-preference){
     .rv{ opacity:0; transform:translateY(26px); transition:opacity .9s var(--ease), transform .9s var(--ease); transition-delay:var(--d,0ms); }
     .rv.in{ opacity:1; transform:none; }
@@ -156,6 +169,7 @@
 </style>
 </head>
 <body>
+<a class="evitement" href="#contenu">Aller au contenu</a>
 
 <header>
   <nav class="nav" aria-label="Navigation principale">
@@ -171,14 +185,14 @@
   </nav>
 </header>
 
-<main>
+<main id="contenu">
   <section class="hero" style="padding-top:56px;">
     <div class="wrap">
       <div>
         <h1 class="rv">Réservations en ligne, <em>zéro commission.</em></h1>
         <p class="rv" style="--d:90ms">Réservation en ligne, équipe en colonnes, avis vérifiés et paiement direct. À partir de 15 € par mois.</p>
         <div class="actions rv" style="--d:180ms">
-          <a class="btn" href="signup.html">Créer mon salon <i class="ph ph-arrow-right"></i></a>
+          <a class="btn" href="signup.html">Créer mon salon <i class="ph ph-arrow-right" aria-hidden="true"></i></a>
           <a class="btn discret" href="explorer.html">Voir l'annuaire</a>
         </div>
       </div>
@@ -196,7 +210,7 @@
       <h2 class="rv">Tout le salon dans un seul outil.</h2>
       <div class="bento">
         <article class="cell c1 rv">
-          <i class="ph ph-calendar-check"></i>
+          <i class="ph ph-calendar-check" aria-hidden="true"></i>
           <h3>Réservation en ligne, ouverte la nuit.</h3>
           <p>Vos clients choisissent une ou plusieurs prestations, un créneau libre, et réservent depuis votre lien ou votre site.</p>
         </article>
@@ -206,17 +220,17 @@
           <p>Un abonnement fixe, nouveaux clients compris.</p>
         </article>
         <article class="cell c3 rv">
-          <i class="ph ph-users-three"></i>
+          <i class="ph ph-users-three" aria-hidden="true"></i>
           <h3>Équipe en colonnes</h3>
           <p>Une colonne par coiffeur ou praticien, vue du jour, clic sur un créneau vide pour réserver.</p>
         </article>
         <article class="cell c4 rv" style="--d:80ms">
-          <i class="ph ph-star"></i>
+          <i class="ph ph-star" aria-hidden="true"></i>
           <h3>Avis vérifiés</h3>
           <p>Seuls les clients ayant eu un rendez-vous peuvent noter. Personne ne peut les supprimer.</p>
         </article>
         <article class="cell c5 rv" style="--d:160ms">
-          <i class="ph ph-credit-card"></i>
+          <i class="ph ph-credit-card" aria-hidden="true"></i>
           <h3>Paiement direct</h3>
           <p>Carte ou PayPal à la réservation, sur votre compte, avec facture acquittée.</p>
         </article>
@@ -228,14 +242,15 @@
     <div class="wrap">
       <h2 class="rv">Un outil pour chaque métier de la beauté.</h2>
       <p class="lead rv">Choisissez votre métier : le vocabulaire s'adapte et un catalogue type vous attend.</p>
+      <div class="rail-outils"><button type="button" id="rail-prec" aria-label="Métier précédent"><i class="ph ph-arrow-left" aria-hidden="true"></i></button><button type="button" id="rail-suiv" aria-label="Métier suivant"><i class="ph ph-arrow-right" aria-hidden="true"></i></button></div>
     </div>
-    <div class="rail" tabindex="0" aria-label="Métiers">
+    <div class="rail" id="rail" role="region" tabindex="0" aria-label="Liste des métiers, défilement horizontal">
       <!-- TODO photo : une image réelle par métier (format 3:4) remplacerait les halos -->
-      <article class="metier"><i class="ph ph-scissors"></i><div><h3>Coiffure</h3><p>Coupe, couleur, balayage, brushing, cérémonie.</p></div></article>
-      <article class="metier"><i class="ph ph-razor"></i><div><h3>Barbier</h3><p>Dégradé, barbe, rasage traditionnel. Des créneaux courts et fréquents.</p></div></article>
-      <article class="metier"><i class="ph ph-flower-lotus"></i><div><h3>Institut</h3><p>Soins du visage, épilations, regard, mains et pieds.</p></div></article>
-      <article class="metier"><i class="ph ph-hand-heart"></i><div><h3>Onglerie</h3><p>Semi-permanent, gel, remplissage, nail art.</p></div></article>
-      <article class="metier"><i class="ph ph-leaf"></i><div><h3>Massage et spa</h3><p>Relaxant, californien, pierres chaudes, rituels duo.</p></div></article>
+      <article class="metier"><i class="ph ph-scissors" aria-hidden="true"></i><div><h3>Coiffure</h3><p>Coupe, couleur, balayage, brushing, cérémonie.</p></div></article>
+      <article class="metier"><i class="ph ph-razor" aria-hidden="true"></i><div><h3>Barbier</h3><p>Dégradé, barbe, rasage traditionnel. Des créneaux courts et fréquents.</p></div></article>
+      <article class="metier"><i class="ph ph-flower-lotus" aria-hidden="true"></i><div><h3>Institut</h3><p>Soins du visage, épilations, regard, mains et pieds.</p></div></article>
+      <article class="metier"><i class="ph ph-hand-heart" aria-hidden="true"></i><div><h3>Onglerie</h3><p>Semi-permanent, gel, remplissage, nail art.</p></div></article>
+      <article class="metier"><i class="ph ph-leaf" aria-hidden="true"></i><div><h3>Massage et spa</h3><p>Relaxant, californien, pierres chaudes, rituels duo.</p></div></article>
     </div>
   </section>
 
@@ -244,11 +259,11 @@
       <div class="tete">
         <h2 class="rv">Un catalogue prêt pour elle comme pour lui.</h2>
         <div class="onglets rv" role="tablist" aria-label="Public">
-          <button role="tab" aria-selected="true" data-p="femme">Femme</button>
-          <button role="tab" aria-selected="false" data-p="homme">Homme</button>
+          <button role="tab" id="onglet-femme" aria-selected="true" aria-controls="grille-presta" tabindex="0" data-p="femme">Femme</button>
+          <button role="tab" id="onglet-homme" aria-selected="false" aria-controls="grille-presta" tabindex="-1" data-p="homme">Homme</button>
         </div>
       </div>
-      <div class="grille-presta" id="grille-presta" role="tabpanel"></div>
+      <div class="grille-presta" id="grille-presta" role="tabpanel" aria-labelledby="onglet-femme" tabindex="0"></div>
       <p class="note">Prix indicatifs. Importez le catalogue de votre métier en un clic, puis ajustez prix et durées.</p>
     </div>
   </section>
@@ -262,10 +277,10 @@
           <div class="prix">29 €<small> /mois</small></div>
           <p>Pour une équipe.</p>
           <ul>
-            <li><i class="ph ph-check-circle"></i>Clients illimités</li>
-            <li><i class="ph ph-check-circle"></i>Agenda en colonnes pour toute l'équipe</li>
-            <li><i class="ph ph-check-circle"></i>Page salon personnalisable avec vos photos</li>
-            <li><i class="ph ph-check-circle"></i>Relances et tableau de bord</li>
+            <li><i class="ph ph-check-circle" aria-hidden="true"></i>Clients illimités</li>
+            <li><i class="ph ph-check-circle" aria-hidden="true"></i>Agenda en colonnes pour toute l'équipe</li>
+            <li><i class="ph ph-check-circle" aria-hidden="true"></i>Page salon personnalisable avec vos photos</li>
+            <li><i class="ph ph-check-circle" aria-hidden="true"></i>Relances et tableau de bord</li>
           </ul>
           <a class="btn" href="signup.html?plan=studio">Créer mon salon</a>
         </article>
@@ -274,9 +289,9 @@
           <div class="prix">15 €<small> /mois</small></div>
           <p>Pour travailler seul·e.</p>
           <ul>
-            <li><i class="ph ph-check-circle"></i>Jusqu'à 25 clients actifs</li>
-            <li><i class="ph ph-check-circle"></i>Réservation en ligne et annuaire</li>
-            <li><i class="ph ph-check-circle"></i>Devis et factures</li>
+            <li><i class="ph ph-check-circle" aria-hidden="true"></i>Jusqu'à 25 clients actifs</li>
+            <li><i class="ph ph-check-circle" aria-hidden="true"></i>Réservation en ligne et annuaire</li>
+            <li><i class="ph ph-check-circle" aria-hidden="true"></i>Devis et factures</li>
           </ul>
           <a class="btn discret" href="signup.html?plan=solo">Créer mon salon</a>
         </article>
@@ -294,7 +309,7 @@
   <section class="final">
     <div class="wrap">
       <h2 class="rv">Ouvrez les réservations de votre salon aujourd'hui.</h2>
-      <a class="btn rv" style="--d:100ms" href="signup.html">Créer mon salon <i class="ph ph-arrow-right"></i></a>
+      <a class="btn rv" style="--d:100ms" href="signup.html">Créer mon salon <i class="ph ph-arrow-right" aria-hidden="true"></i></a>
     </div>
   </section>
 </main>
@@ -312,10 +327,29 @@
     grille.innerHTML = CAT[p].map(([n,d,pr]) => `<div class="presta"><b>${n}</b><div class="bas"><span>${d}</span><strong>${pr} €</strong></div></div>`).join('');
   }
   dessiner('femme');
-  document.querySelectorAll('.onglets button').forEach(b => b.addEventListener('click', () => {
-    document.querySelectorAll('.onglets button').forEach(o => o.setAttribute('aria-selected', o === b));
+  const onglets = [...document.querySelectorAll('.onglets button')];
+  function choisir(b){
+    onglets.forEach(o => { o.setAttribute('aria-selected', o === b); o.tabIndex = o === b ? 0 : -1; });
+    grille.setAttribute('aria-labelledby', b.id);
     dessiner(b.dataset.p);
-  }));
+  }
+  onglets.forEach((b, i) => {
+    b.addEventListener('click', () => choisir(b));
+    b.addEventListener('keydown', e => {
+      const suivant = { ArrowRight:1, ArrowLeft:-1 }[e.key];
+      if(!suivant) return;
+      e.preventDefault();
+      const cible = onglets[(i + suivant + onglets.length) % onglets.length];
+      cible.focus(); choisir(cible);
+    });
+  });
+
+  // ---- Rail des métiers : boutons précédent / suivant (alternative au glissement)
+  const rail = document.getElementById('rail');
+  const pas = () => Math.min(320, rail.clientWidth * .8);
+  const reduit = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  document.getElementById('rail-prec').addEventListener('click', () => rail.scrollBy({ left:-pas(), behavior: reduit ? 'auto' : 'smooth' }));
+  document.getElementById('rail-suiv').addEventListener('click', () => rail.scrollBy({ left:pas(), behavior: reduit ? 'auto' : 'smooth' }));
 
   // ---- Apparition au scroll : IntersectionObserver, sans écouteur de scroll
   const io = new IntersectionObserver(es => es.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold:.15 });

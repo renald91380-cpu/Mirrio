@@ -9,13 +9,16 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=DM+Sans:wght@400;500;700&family=Geist:wght@400;500;600&family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600;700&family=Manrope:wght@500;700;800&family=Nunito:wght@400;600;800&family=Playfair+Display:wght@500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#1C2333">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <style>
   *{box-sizing:border-box; margin:0; padding:0;}
-  html{ scroll-behavior:smooth; }
+  html{ scroll-behavior:smooth; scroll-padding-top:84px; scroll-padding-bottom:96px; }
+  @media (prefers-reduced-motion: reduce){ html{ scroll-behavior:auto; } }
+  :focus-visible{ outline:3px solid var(--c); outline-offset:3px; }
+  .evitement{ position:absolute; left:16px; top:-80px; z-index:100; background:var(--ink); color:var(--bg); padding:12px 20px; border-radius:999px; font-weight:600; text-decoration:none; transition:top .2s; }
+  .evitement:focus{ top:12px; }
   body{ background:var(--bg, #fff); color:var(--ink, #1C2333); font-family:var(--corps, Inter, sans-serif); line-height:1.6; -webkit-font-smoothing:antialiased; }
   h1,h2,h3{ font-family:var(--titre); line-height:1.05; letter-spacing:-.025em; }
   a{ color:inherit; }
@@ -59,7 +62,7 @@
   .texte p{ margin-bottom:12px; opacity:.88; }
   .carte-s{ background:var(--surface); border-radius:24px; padding:8px 24px; border:1px solid var(--trait); }
   .onglets{ display:inline-flex; background:var(--surface); border-radius:var(--rayon); padding:3px; margin-bottom:14px; }
-  .onglets button{ border:none; background:none; padding:7px 18px; border-radius:var(--rayon); font:600 14px var(--corps); color:var(--muted); cursor:pointer; }
+  .onglets button{ border:none; background:none; min-height:44px; padding:8px 22px; border-radius:var(--rayon); font:600 14px var(--corps); color:var(--muted); cursor:pointer; }
   .onglets button.on{ background:var(--c); color:var(--c-texte); }
   .cat{ font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:16px 0 0; font-weight:700; }
   .presta{ display:flex; justify-content:space-between; align-items:center; gap:14px; padding:18px 0; border-top:1px solid var(--trait); }
@@ -91,8 +94,12 @@
   .haut .btn{ padding:10px 20px; box-shadow:none; }
   @media (prefers-reduced-motion: reduce){ .haut, .btn{ transition:none; } }
   .barre-resa .btn{ width:100%; max-width:420px; box-shadow:none; }
-  .lightbox{ position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:50; display:flex; align-items:center; justify-content:center; padding:20px; cursor:zoom-out; }
-  .lightbox img{ max-height:92vh; max-width:96vw; border-radius:8px; }
+  .lightbox{ position:fixed; inset:0; background:rgba(8,9,12,.94); z-index:50; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .lightbox img{ max-height:86vh; max-width:94vw; border-radius:14px; }
+  .lb-btn{ position:absolute; width:48px; height:48px; border-radius:999px; border:1.5px solid rgba(255,255,255,.35); background:rgba(255,255,255,.08); color:#fff; font:600 22px/1 var(--corps); cursor:pointer; display:grid; place-items:center; }
+  .lb-btn:hover{ background:rgba(255,255,255,.2); } .lb-btn:focus-visible{ outline:3px solid #fff; }
+  .lb-fermer{ top:16px; right:16px; } .lb-prec{ left:16px; top:50%; margin-top:-24px; } .lb-suiv{ right:16px; top:50%; margin-top:-24px; }
+  .lb-pos{ position:absolute; bottom:18px; left:0; right:0; text-align:center; color:rgba(255,255,255,.75); font-size:14px; }
   @media (min-width:900px){ .barre-resa{ display:none; } .pied{ padding-bottom:50px; } }
 </style>
 </head>
@@ -205,7 +212,7 @@
       galerie: () => {
         const imgs = (v.galerie || []).map(https).filter(Boolean);
         return imgs.length ? `<section id="galerie"><h2>Galerie</h2><div class="galerie">${imgs.map(u =>
-          `<button type="button" data-src="${esc(u)}" aria-label="Agrandir"><img src="${esc(u)}" alt="" loading="lazy"></button>`).join('')}</div></section>` : '';
+          `<button type="button" data-src="${esc(u)}" aria-label="Agrandir la photo ${imgs.indexOf(u) + 1} sur ${imgs.length}"><img src="${esc(u)}" alt="" loading="lazy" decoding="async"></button>`).join('')}</div></section>` : '';
       },
       equipe: () => (d.equipe || []).length ? `<section id="equipe"><h2>L'équipe</h2><div class="equipe">${d.equipe.map(m => `
           <div class="membre"><div class="ph">${https(m.photo_url) ? `<img src="${esc(https(m.photo_url))}" alt="">` : esc((m.nom || '?').charAt(0).toUpperCase())}</div>
@@ -227,7 +234,7 @@
 
     const corps = ordre.filter(k => sections[k] !== false && rendus[k]).map(k => rendus[k]()).join('');
 
-    document.getElementById('app').innerHTML = `${bandeau}${entete}<main class="wrap">${corps}</main>
+    document.getElementById('app').innerHTML = `<a class="evitement" href="#prestations">Aller aux prestations</a>${bandeau}${entete}<main class="wrap">${corps}</main>
       <footer class="pied">Page propulsée par <a href="beaute.html">Cadence</a> · <a href="cgu.html">CGU</a> · <a href="confidentialite.html">Confidentialité</a></footer>
       <div class="barre-resa"><a class="btn" href="${ctaHref}">${cta}</a></div>
       <div class="haut" id="haut" aria-hidden="true"><b>${esc(d.nom)}</b><a class="btn" href="${ctaHref}" tabindex="-1">${cta}</a></div>`;
@@ -254,22 +261,50 @@
       dessiner('');
       const zone = document.getElementById('zone-onglets');
       if(d.prestations.some(p => (p.public_cible || 'mixte') !== 'mixte')){
-        zone.innerHTML = `<div class="onglets"><button data-p="" class="on">Tous</button><button data-p="femme">Femme</button><button data-p="homme">Homme</button></div>`;
-        zone.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
-          zone.querySelectorAll('button').forEach(o => o.classList.toggle('on', o === b)); dessiner(b.dataset.p);
-        }));
+        zone.innerHTML = `<div class="onglets" role="tablist" aria-label="Public"><button role="tab" aria-selected="true" tabindex="0" data-p="" class="on">Tous</button><button role="tab" aria-selected="false" tabindex="-1" data-p="femme">Femme</button><button role="tab" aria-selected="false" tabindex="-1" data-p="homme">Homme</button></div>`;
+        const tabs = [...zone.querySelectorAll('button')];
+        const choisir = b => { tabs.forEach(o => { o.classList.toggle('on', o === b); o.setAttribute('aria-selected', o === b); o.tabIndex = o === b ? 0 : -1; }); dessiner(b.dataset.p); };
+        tabs.forEach((b, i) => {
+          b.addEventListener('click', () => choisir(b));
+          b.addEventListener('keydown', e => {
+            const d = { ArrowRight:1, ArrowLeft:-1 }[e.key]; if(!d) return; e.preventDefault();
+            const c = tabs[(i + d + tabs.length) % tabs.length]; c.focus(); choisir(c);
+          });
+        });
       }
     }
 
-    // Galerie : visionneuse
-    document.querySelectorAll('.galerie button').forEach(b => b.addEventListener('click', () => {
+    // Galerie : visionneuse accessible (dialogue modal, Échap, flèches, focus rendu à la fermeture)
+    const vignettes = [...document.querySelectorAll('.galerie button')];
+    vignettes.forEach((b, idx) => b.addEventListener('click', () => ouvrirVisionneuse(vignettes, idx)));
+    function ouvrirVisionneuse(liste, depart){
+      let i = depart;
       const l = document.createElement('div'); l.className = 'lightbox';
-      l.innerHTML = `<img src="${esc(b.dataset.src)}" alt="">`;
-      const fermer = () => { l.remove(); document.removeEventListener('keydown', onKey); };
-      const onKey = e => { if(e.key === 'Escape') fermer(); };
-      l.addEventListener('click', fermer); document.addEventListener('keydown', onKey);
-      document.body.appendChild(l);
-    }));
+      l.setAttribute('role', 'dialog'); l.setAttribute('aria-modal', 'true'); l.setAttribute('aria-label', 'Galerie photos');
+      l.innerHTML = `<img alt=""><button class="lb-btn lb-fermer" type="button" aria-label="Fermer">&times;</button>
+        ${liste.length > 1 ? '<button class="lb-btn lb-prec" type="button" aria-label="Photo précédente">&#8249;</button><button class="lb-btn lb-suiv" type="button" aria-label="Photo suivante">&#8250;</button>' : ''}
+        <div class="lb-pos" aria-live="polite"></div>`;
+      const img = l.querySelector('img'), pos = l.querySelector('.lb-pos');
+      const afficher = () => { img.src = liste[i].dataset.src; pos.textContent = `${i + 1} sur ${liste.length}`; };
+      const aller = d => { i = (i + d + liste.length) % liste.length; afficher(); };
+      const fermer = () => { l.remove(); document.removeEventListener('keydown', onKey); document.body.style.overflow = ''; liste[i].focus(); };
+      const onKey = e => {
+        if(e.key === 'Escape') return fermer();
+        if(e.key === 'ArrowRight' && liste.length > 1) return aller(1);
+        if(e.key === 'ArrowLeft' && liste.length > 1) return aller(-1);
+        if(e.key === 'Tab'){   // le focus reste dans le dialogue
+          const f = [...l.querySelectorAll('button')]; const a = document.activeElement;
+          if(e.shiftKey && a === f[0]){ e.preventDefault(); f[f.length - 1].focus(); }
+          else if(!e.shiftKey && a === f[f.length - 1]){ e.preventDefault(); f[0].focus(); }
+        }
+      };
+      l.addEventListener('click', e => { if(e.target === l) fermer(); });
+      l.querySelector('.lb-fermer').addEventListener('click', fermer);
+      if(liste.length > 1){ l.querySelector('.lb-prec').addEventListener('click', () => aller(-1)); l.querySelector('.lb-suiv').addEventListener('click', () => aller(1)); }
+      document.addEventListener('keydown', onKey);
+      document.body.style.overflow = 'hidden'; document.body.appendChild(l); afficher();
+      l.querySelector('.lb-fermer').focus();
+    }
 
     // Carte
     if(carteL){ carteL.remove(); carteL = null; }
