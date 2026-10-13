@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Se connecter — Cadence</title>
+<title>Se connecter | Cadence</title>
 <meta name="description" content="Connectez-vous à votre compte Cadence.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -198,6 +198,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <script src="/pwa.js" defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
 </head>
 <body>
 
@@ -207,24 +209,14 @@
       <a href="index.html" class="logo">Cadence<span class="dot">.</span></a>
     </div>
     <div class="auth-aside-mid">
-      <div class="eyebrow">Content de vous revoir</div>
-      <h1>Votre cadence vous attend.</h1>
-      <div class="meter">
-        <div class="meter-head">
-          <span>REVENU RÉCURRENT</span>
-          <span class="meter-value">1 540 €<span style="color:rgba(245,241,231,.4); font-size:11px;"> /mois</span></span>
-        </div>
-        <div class="meter-bars">
-          <div class="bar" style="height:38%"></div>
-          <div class="bar" style="height:52%"></div>
-          <div class="bar" style="height:48%"></div>
-          <div class="bar" style="height:66%"></div>
-          <div class="bar" style="height:74%"></div>
-          <div class="bar current" style="height:100%"></div>
-        </div>
-      </div>
+      <h1>Vos rendez-vous vous attendent.</h1>
+      <ul class="auth-points">
+        <li>Agenda, clients et factures au même endroit</li>
+        <li>Réservations confirmées sans que vous leviez le petit doigt</li>
+        <li>Aucune commission sur vos rendez-vous</li>
+      </ul>
     </div>
-    <div class="auth-aside-bottom">© Cadence — Le rythme administratif, réglé.</div>
+    <div class="auth-aside-bottom">© Cadence</div>
   </aside>
 
   <main class="auth-main">
@@ -436,7 +428,7 @@
       return "Email ou mot de passe incorrect.";
     }
     if(/email not confirmed/i.test(msg)){
-      return "Confirmez votre email avant de vous connecter — vérifiez votre boîte de réception.";
+      return "Confirmez votre email avant de vous connecter : vérifiez votre boîte de réception.";
     }
     return "Impossible de vous connecter pour le moment. Réessayez dans un instant.";
   }

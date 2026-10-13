@@ -297,6 +297,22 @@ Pour vendre Cadence : `site/demo.html` (non indexée) donne accès à **trois sa
 - **Photos** : Wikimedia Commons, hotlinkées (`upload.wikimedia.org`, tailles standard 960/1280). La série « Beauty salons in iran » et « SPA SKIN CARE » sont en CC0 ; les autres exigent une attribution, affichée en bas de `demo.html` (régénérer cette liste si une photo change). Ce sont des photos d'illustration : pour un prospect précis, remplacer par ses propres photos via « Ma page ».
 - `paiement-merci.html` a été refaite dans le style public (acompte non confondu avec une facture acquittée) et propose « Retour à la démo / Réserver à nouveau » en mode démo.
 
+### 3.24 Design de l'application connectée et de l'authentification
+
+Le back-office et l'inscription reprennent le langage des pages publiques (§3.20), appliqué par **une feuille partagée** : `site/app.css`, chargée **après** le `<style>` propre à chaque écran (dashboard, clients, agenda, devis-factures, parametres, admin, ma-page, login, signup, nouveau-mot-de-passe). Tous les écrans lisent déjà les mêmes variables (`--ink`, `--parchment`, `--display`, `--body`…) : on les redéfinit une fois (Bricolage Grotesque + Geist, neutres froids `#F5F5F3`/`#101216`, amber inchangé et toujours piloté par `theme.js`), puis on ajuste les formes communes (boutons en pilule, champs 12 px, cartes 22 px, modales 26 px, focus 3 px ambre).
+
+- **En-tête** : pilule flottante en verre dépoli (styles Atelier et Clair). **Sur mobile**, la navigation passe en **barre du bas** défilante (avant, elle disparaissait sous 640 px) ; elle exclut `backdrop-filter` de l'en-tête, car celui-ci rendrait la barre `fixed` relative à l'en-tête.
+- **Les styles d'interface « Nocturne », « Clair » et « Repère » (chrome.css) sont conservés** : leurs règles `html[data-style=…]` sont plus spécifiques que `:root` et passent par-dessus. « Atelier » est le style par défaut et porte le nouveau look.
+- **Authentification** : panneau latéral sombre avec halo ambre et trois arguments (plus de faux graphique « revenu récurrent »), champs 52 px, choix de formule Indépendant/Salon avec état sélectionné net.
+- **Thème clair uniquement** pour l'application (le CSS de chaque écran contient beaucoup de fonds et textes en dur) : pas de mode sombre automatique ici, contrairement aux pages publiques.
+- **Le point animé du logo** (animation « battement ») est désactivé : il se déformait en barre ambre.
+- `sw.js` : cache passé en `cadence-v2` pour que les anciens visiteurs reçoivent `app.css`.
+- **Limite** : seuls les écrans « coquille » ont été vérifiés visuellement (connexion, inscription, tableau de bord, Paramètres, mobile) ; Clients, Agenda, Devis et Admin héritent des mêmes variables et formes mais n'ont pas été relus un par un. Les libellés internes contiennent encore des tirets longs (règle réservée aux pages publiques).
+
+### Deux projets Vercel : un seul est public
+
+Le dépôt est déployé par **deux projets Vercel** (`cadence` et `cadence-site`). **`cadence` est protégé par l'authentification Vercel** : tout visiteur est redirigé vers `vercel.com/sso-api` (réponse 302), donc `demo.html`, la réservation et les pages salons « ne fonctionnent pas » depuis ce projet. **`cadence-site` est public** : `https://cadence-site-cadence-65cc.vercel.app/demo.html` répond 200. À partager : uniquement l'adresse de `cadence-site` (ou un domaine propre pointé dessus). Pour régler définitivement : désactiver la protection de `cadence` (Vercel → Settings → Deployment Protection) **ou** supprimer ce projet en double. Un réglage de sécurité Vercel n'est pas modifiable depuis ce dépôt. Le message à copier de `demo.html` utilise l'adresse d'où la page est ouverte : l'ouvrir depuis l'adresse publique avant de le copier.
+
 ---
 
 ## 4. État actuel
