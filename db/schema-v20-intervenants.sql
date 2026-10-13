@@ -119,3 +119,9 @@ begin
     v_rdv.paiement_montant, v_rdv.paiement_reference;
 end;
 $$ language plpgsql security definer set search_path = public;
+
+-- Les slugs « demo-* » sont réservés aux salons fictifs de démonstration (site/demo-mode.js
+-- simule leur API côté navigateur) : un vrai salon ne peut pas en choisir un.
+alter table public.parametres_reservation drop constraint if exists parametres_reservation_slug_demo_check;
+alter table public.parametres_reservation add constraint parametres_reservation_slug_demo_check
+  check (slug is null or slug !~ '^demo-');

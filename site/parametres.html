@@ -1480,7 +1480,8 @@
     e.target.value = v;
     reservation.slug = v || null;
     setFieldError('resa-slug', v && !/^[a-z0-9-]{3,40}$/.test(v)
-      ? 'Utilisez seulement des lettres minuscules, des chiffres et des tirets (3 à 40 caractères).' : '');
+      ? 'Utilisez seulement des lettres minuscules, des chiffres et des tirets (3 à 40 caractères).'
+      : (v.startsWith('demo-') ? 'Les identifiants commençant par « demo- » sont réservés aux salons de démonstration.' : ''));
     majApercuReservation();
     majBarre();
   });

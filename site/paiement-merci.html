@@ -4,85 +4,68 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<title>Paiement — Cadence</title>
+<meta name="color-scheme" content="light dark">
+<title>Paiement | Cadence</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root{ --ink:#1C2333; --parchment:#F5F1E7; --teal:#3E7C74; --brick:#B5533F; --amber:#E2A63D; }
+  :root{ --bg:#F5F5F3; --surface:#FBFBFA; --ink:#101216; --muted:#5B606B; --line:rgba(16,18,22,.1); --accent:#E2A63D; --ok:#1F7A5A; --ko:#B5381F; }
+  @media (prefers-color-scheme: dark){ :root{ --bg:#0D0F13; --surface:#15181E; --ink:#F1F1EE; --muted:#9CA2AE; --line:rgba(255,255,255,.12); --ok:#4CC49A; --ko:#FF8A6B; } }
   *{box-sizing:border-box; margin:0; padding:0;}
-  body{
-    font-family:'Inter', Arial, sans-serif; background:var(--parchment); color:var(--ink);
-    line-height:1.5; -webkit-font-smoothing:antialiased;
-    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
-  }
-  .carte{
-    max-width:440px; width:100%; background:#fff; border-radius:14px; padding:44px 36px;
-    text-align:center; box-shadow:0 1px 3px rgba(28,35,51,0.08), 0 16px 40px rgba(28,35,51,0.1);
-  }
-  .icone{
-    width:56px; height:56px; margin:0 auto 20px; border-radius:50%;
-    display:flex; align-items:center; justify-content:center;
-  }
-  .icone.succes{ background:rgba(62,124,116,0.14); }
-  .icone.annule{ background:rgba(181,83,63,0.12); }
-  .icone svg{ width:26px; height:26px; }
-  h1{ font-family:'Fraunces', Georgia, serif; font-weight:700; font-size:22px; margin-bottom:12px; }
-  p{ font-size:14.5px; color:rgba(28,35,51,0.68); }
-  .marque{
-    position:fixed; top:20px; left:24px; font-family:'Fraunces', Georgia, serif;
-    font-weight:700; font-size:16px; color:rgba(28,35,51,0.55);
-  }
+  body{ font-family:'Geist', system-ui, sans-serif; background:var(--bg); color:var(--ink); line-height:1.55; -webkit-font-smoothing:antialiased; min-height:100vh; display:grid; place-items:center; padding:24px; }
+  .carte{ max-width:460px; width:100%; background:var(--surface); border:1px solid var(--line); border-radius:24px; padding:44px 32px; text-align:center; box-shadow:0 1px 2px rgba(16,18,22,.05), 0 24px 50px -26px rgba(16,18,22,.35); }
+  .icone{ width:72px; height:72px; margin:0 auto 22px; border-radius:50%; display:grid; place-items:center; animation:pop .6s cubic-bezier(.16,1,.3,1); }
+  .icone.succes{ background:color-mix(in srgb, var(--ok) 16%, transparent); color:var(--ok); }
+  .icone.annule{ background:color-mix(in srgb, var(--ko) 14%, transparent); color:var(--ko); }
+  .icone svg{ width:34px; height:34px; }
+  @keyframes pop{ from{ transform:scale(.4); opacity:0; } }
+  h1{ font-family:'Bricolage Grotesque', system-ui, sans-serif; font-weight:800; font-size:30px; letter-spacing:-.03em; line-height:1.1; margin-bottom:12px; }
+  p{ color:var(--muted); font-size:15.5px; }
+  .demo{ margin:18px 0 0; padding:12px 14px; border-radius:12px; background:color-mix(in srgb, var(--accent) 18%, var(--surface)); color:var(--ink); font-size:14px; font-weight:500; }
+  .actions{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:26px; }
+  .btn{ display:inline-flex; align-items:center; justify-content:center; min-height:48px; padding:12px 24px; border-radius:999px; font:600 15px 'Geist', system-ui, sans-serif; text-decoration:none; background:var(--accent); color:#101216; }
+  .btn.discret{ background:transparent; color:var(--ink); box-shadow:inset 0 0 0 1.5px var(--line); }
+  :focus-visible{ outline:3px solid var(--accent); outline-offset:3px; }
+  .marque{ position:fixed; top:20px; left:24px; font-family:'Bricolage Grotesque', system-ui, sans-serif; font-weight:800; font-size:20px; letter-spacing:-.04em; }
+  @media (prefers-reduced-motion: reduce){ .icone{ animation:none; } }
 </style>
 <link rel="manifest" href="/manifest.webmanifest">
-<meta name="theme-color" content="#1C2333">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Cadence">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#101216">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <script src="/pwa.js" defer></script>
 </head>
 <body>
 <div class="marque">Cadence</div>
-<div class="carte" id="carte">
-  <div class="etat-chargement">
-    <p>Chargement…</p>
-  </div>
-</div>
+<main class="carte" id="carte"><p>Chargement…</p></main>
 
 <script>
 (function(){
   var params = new URLSearchParams(window.location.search);
   var statut = params.get('statut');
+  var demo = params.get('demo') === '1';
   var carte = document.getElementById('carte');
 
+  var OK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+  var KO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+
   var contenus = {
-    succes: {
-      classe: 'succes',
-      icone: '<svg viewBox="0 0 24 24" fill="none" stroke="#3E7C74" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>',
-      titre: 'Paiement reçu',
-      texte: 'Merci ! Votre paiement a bien été transmis. Une confirmation et votre facture acquittée vous arriveront par email dans un instant.'
-    },
-    annule: {
-      classe: 'annule',
-      icone: '<svg viewBox="0 0 24 24" fill="none" stroke="#B5533F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>',
-      titre: 'Paiement annulé',
-      texte: "Vous avez annulé le paiement — rien n'a été débité. Vous pouvez revenir en arrière et réessayer si besoin."
-    }
+    succes: { classe: 'succes', icone: OK, titre: 'Paiement reçu',
+      texte: 'Merci ! Votre paiement a bien été transmis et votre rendez-vous est confirmé. Un email de confirmation, avec le détail et le solde éventuel à régler sur place, vous arrive dans un instant.' },
+    annule: { classe: 'annule', icone: KO, titre: 'Paiement annulé',
+      texte: "Vous avez annulé le paiement : rien n'a été débité. Vous pouvez revenir en arrière et réessayer si besoin." }
   };
+  var c = contenus[statut] || { classe: 'annule', icone: KO, titre: 'Statut inconnu',
+    texte: "Nous n'avons pas pu déterminer le statut de ce paiement. Contactez directement votre salon si vous avez un doute." };
 
-  var c = contenus[statut] || {
-    classe: 'annule',
-    icone: '<svg viewBox="0 0 24 24" fill="none" stroke="#B5533F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>',
-    titre: 'Statut inconnu',
-    texte: "Nous n'avons pas pu déterminer le statut de ce paiement. Contactez directement votre praticien si vous avez un doute."
-  };
-
-  carte.innerHTML =
-    '<div class="icone ' + c.classe + '">' + c.icone + '</div>' +
-    '<h1>' + c.titre + '</h1>' +
-    '<p>' + c.texte + '</p>';
+  carte.innerHTML = '<div class="icone ' + c.classe + '">' + c.icone + '</div><h1></h1><p></p>' +
+    (demo ? '<div class="demo">Démo : ce paiement est simulé, aucune carte n\'est débitée et aucune donnée n\'est enregistrée.</div>' : '') +
+    (demo ? '<div class="actions"><a class="btn" href="demo.html">Retour à la démo</a><a class="btn discret" id="rejouer" href="demo.html">Réserver à nouveau</a></div>' : '');
+  var salon = (params.get('p') || '').replace(/[^a-z0-9-]/g, '');
+  var rej = document.getElementById('rejouer'); if(rej && salon) rej.href = 'reservation.html?p=' + salon;
+  carte.querySelector('h1').textContent = c.titre;
+  carte.querySelector('p').textContent = c.texte;
+  carte.querySelector('h1').setAttribute('tabindex', '-1');
 })();
 </script>
 </body>

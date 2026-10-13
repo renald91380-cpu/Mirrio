@@ -179,6 +179,7 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#101216">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<script src="demo-mode.js"></script>
 </head>
 <body>
 <a class="evitement" href="#principal">Aller à la réservation</a>
@@ -376,7 +377,7 @@
     const i = infosPaiement();
     $('btn-envoyer').textContent = i.maintenant > 0
       ? (i.mode === 'sur_place' ? `Payer l'acompte de ${formaterEuros(i.maintenant)} et réserver` : `Payer ${formaterEuros(i.maintenant)} et réserver`)
-      : 'Envoyer la demande';
+      : (bootstrap.validation_auto === false ? 'Envoyer la demande' : 'Confirmer ma réservation');
     const note = $('note-paiement');
     if(i.maintenant > 0){
       note.textContent = i.mode === 'sur_place'
@@ -384,7 +385,9 @@
         : 'Le paiement par carte est sécurisé : vous serez redirigé vers la page de paiement, et le rendez-vous est confirmé dès réception.';
       note.hidden = false;
     }else{
-      note.textContent = `Règlement en espèces au salon : ${formaterEuros(i.total)}. Le salon confirmera votre demande par email.`;
+      note.textContent = bootstrap.validation_auto === false
+        ? `Règlement en espèces au salon : ${formaterEuros(i.total)}. Le salon confirmera votre demande par email.`
+        : `Règlement en espèces au salon : ${formaterEuros(i.total)}. Votre rendez-vous est confirmé immédiatement, sans attendre de validation.`;
       note.hidden = false;
     }
   }

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Démo : essayez Cadence comme un client | Cadence</title>
+<meta name="description" content="Trois salons fictifs entièrement fonctionnels pour tester la réservation en ligne, le choix du coiffeur, l'acompte et la confirmation immédiate.">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1" defer></script>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#101216">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<style>
+  :root{
+    --bg:#F5F5F3; --surface:#FBFBFA; --ink:#101216; --muted:#5B606B; --line:rgba(16,18,22,.1);
+    --accent:#E2A63D; --accent-ink:#101216; --icone:#A1700A; --sombre:#101216; --sombre-ink:#F1F1EE; --sombre-muted:#A3A8B3;
+    --ombre:0 1px 2px rgba(16,18,22,.05), 0 12px 30px -14px rgba(16,18,22,.18);
+    --r:22px; --pill:999px; --display:'Bricolage Grotesque', system-ui, sans-serif; --body:'Geist', system-ui, sans-serif; --ease:cubic-bezier(.16,1,.3,1);
+  }
+  @media (prefers-color-scheme: dark){ :root{ --bg:#0D0F13; --surface:#15181E; --ink:#F1F1EE; --muted:#9CA2AE; --line:rgba(255,255,255,.1); --icone:#E2A63D; --sombre:#15181E; --ombre:0 1px 2px rgba(0,0,0,.3), 0 14px 34px -14px rgba(0,0,0,.6); } }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{ scroll-behavior:smooth; scroll-padding-top:96px; }
+  body{ background:var(--bg); color:var(--ink); font-family:var(--body); line-height:1.6; -webkit-font-smoothing:antialiased; }
+  a{ color:inherit; text-decoration:none; }
+  i.ph{ font-size:1.2em; line-height:1; }
+  .wrap{ max-width:1180px; margin:0 auto; padding:0 24px; }
+  h1,h2,h3{ font-family:var(--display); letter-spacing:-.03em; line-height:1.05; }
+  h2{ font-size:clamp(30px, 4.2vw, 48px); font-weight:800; max-width:18ch; }
+  :focus-visible{ outline:3px solid var(--accent); outline-offset:3px; border-radius:6px; }
+  .evitement{ position:absolute; left:16px; top:-80px; z-index:100; background:var(--ink); color:var(--bg); padding:12px 20px; border-radius:var(--pill); font-weight:600; }
+  .evitement:focus{ top:12px; }
+  .btn{ display:inline-flex; align-items:center; justify-content:center; gap:10px; min-height:48px; background:var(--accent); color:var(--accent-ink); font:600 15px var(--body); padding:12px 24px; border-radius:var(--pill); border:none; cursor:pointer; white-space:nowrap; transition:transform .35s var(--ease); }
+  .btn:hover{ transform:translateY(-2px); } .btn:active{ transform:scale(.98); }
+  .btn.discret{ background:transparent; color:inherit; box-shadow:inset 0 0 0 1.5px var(--line); }
+  .btn.petit{ min-height:44px; padding:10px 20px; font-size:14.5px; }
+
+  header{ position:sticky; top:14px; z-index:40; padding:0 14px; }
+  .nav{ max-width:1100px; height:64px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:0 12px 0 24px; border-radius:var(--pill); background:color-mix(in srgb, var(--bg) 72%, transparent); backdrop-filter:blur(18px) saturate(160%); -webkit-backdrop-filter:blur(18px) saturate(160%); border:1px solid var(--line); box-shadow:0 10px 30px -14px rgba(16,18,22,.25); }
+  @media (prefers-reduced-transparency: reduce){ .nav{ background:var(--bg); backdrop-filter:none; } }
+  .logo{ font-family:var(--display); font-weight:800; font-size:21px; letter-spacing:-.04em; } .logo b{ color:var(--accent); }
+  .nav ul{ display:flex; gap:24px; list-style:none; font-size:14.5px; color:var(--muted); font-weight:500; } .nav ul a:hover{ color:var(--ink); }
+  @media(max-width:860px){ .nav ul{ display:none; } }
+
+  .hero{ padding:60px 0 70px; }
+  .hero h1{ font-size:clamp(40px, 6vw, 76px); font-weight:800; max-width:14ch; margin-bottom:20px; }
+  .hero h1 em{ font-style:normal; background:linear-gradient(var(--accent), var(--accent)) 0 92%/100% .2em no-repeat; padding-bottom:.04em; }
+  .hero p{ font-size:19px; color:var(--muted); max-width:48ch; margin-bottom:30px; }
+  .actions{ display:flex; gap:12px; flex-wrap:wrap; }
+
+  section{ padding:80px 0; }
+  .salons{ display:grid; grid-template-columns:1.25fr 1fr; grid-template-rows:auto auto; gap:18px; margin-top:40px; }
+  .salon{ position:relative; overflow:hidden; border-radius:var(--r); background:var(--surface); border:1px solid var(--line); box-shadow:var(--ombre); display:flex; flex-direction:column; }
+  .salon .photo{ background:var(--img) var(--pos, center)/cover no-repeat, #1b1f27; min-height:210px; flex:1; }
+  .salon.grand{ grid-row:span 2; } .salon.grand .photo{ min-height:340px; }
+  .salon .corps{ padding:22px 24px 24px; }
+  .salon h3{ font-size:26px; font-weight:800; margin-bottom:2px; }
+  .salon .meta{ color:var(--muted); font-size:14.5px; margin-bottom:12px; }
+  .tags{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px; }
+  .tags span{ font-size:12.5px; font-weight:600; padding:4px 11px; border-radius:var(--pill); border:1px solid var(--line); color:var(--muted); }
+  .salon .actions{ gap:8px; }
+  @media(max-width:860px){ .salons{ grid-template-columns:1fr; } .salon.grand{ grid-row:auto; } }
+
+  .sombre{ background:var(--sombre); color:var(--sombre-ink); border-radius:44px; margin:0 14px; padding:80px 0; }
+  .sombre .lead{ color:var(--sombre-muted); max-width:56ch; font-size:18px; margin:12px 0 34px; }
+  .etapes{ list-style:none; display:grid; gap:12px; counter-reset:e; }
+  .etapes li{ counter-increment:e; display:grid; grid-template-columns:auto 1fr auto; gap:18px; align-items:center; padding:18px 22px; border-radius:var(--r); background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); }
+  .etapes li::before{ content:counter(e); width:38px; height:38px; border-radius:50%; background:var(--accent); color:#101216; display:grid; place-items:center; font:800 17px var(--display); }
+  .etapes b{ display:block; font-size:17px; } .etapes small{ color:var(--sombre-muted); font-size:14px; }
+  .etapes .btn.discret{ color:var(--sombre-ink); box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.28); }
+  @media(max-width:640px){ .etapes li{ grid-template-columns:auto 1fr; } .etapes li .btn{ grid-column:1 / -1; } }
+
+  .args{ display:grid; grid-template-columns:repeat(auto-fit, minmax(270px, 1fr)); gap:16px; margin-top:36px; }
+  .arg{ padding:26px; border-radius:var(--r); background:var(--surface); border:1px solid var(--line); box-shadow:var(--ombre); }
+  .arg i.ph{ font-size:28px; color:var(--icone); margin-bottom:14px; display:block; }
+  .arg h3{ font-size:21px; font-weight:700; margin-bottom:6px; } .arg p{ color:var(--muted); font-size:15px; }
+  .arg.fort{ background:var(--accent); color:var(--accent-ink); border:none; } .arg.fort p{ color:rgba(16,18,22,.75); } .arg.fort i.ph{ color:var(--accent-ink); }
+
+  .simu{ display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:36px; align-items:stretch; }
+  @media(max-width:860px){ .simu{ grid-template-columns:1fr; } }
+  .simu .champs, .simu .resultat{ border-radius:var(--r); padding:30px; border:1px solid var(--line); background:var(--surface); box-shadow:var(--ombre); }
+  .simu label{ display:flex; justify-content:space-between; font-weight:600; margin-bottom:8px; } .simu label output{ font-family:var(--display); font-weight:800; }
+  .simu input[type=range]{ width:100%; accent-color:#C98A12; min-height:32px; margin-bottom:22px; }
+  .resultat{ background:var(--sombre) !important; color:var(--sombre-ink); border:none !important; display:flex; flex-direction:column; justify-content:center; gap:6px; }
+  .resultat .gros{ font-family:var(--display); font-weight:800; font-size:clamp(44px, 6vw, 68px); letter-spacing:-.05em; line-height:1; color:var(--accent); }
+  .resultat p{ color:var(--sombre-muted); font-size:15px; } .resultat .ligne{ display:flex; justify-content:space-between; gap:14px; padding:9px 0; border-top:1px solid rgba(255,255,255,.12); font-size:15px; }
+  .note{ font-size:13px; color:var(--muted); margin-top:14px; }
+
+  .msg{ position:relative; margin-top:30px; padding:28px; border-radius:var(--r); background:var(--surface); border:1px solid var(--line); box-shadow:var(--ombre); }
+  .msg pre{ white-space:pre-wrap; font:15px/1.65 var(--body); color:var(--ink); }
+  .msg .btn{ margin-top:18px; }
+  details{ border-top:1px solid var(--line); padding:18px 0; } details:last-of-type{ border-bottom:1px solid var(--line); }
+  summary{ cursor:pointer; font-weight:600; font-size:17px; min-height:32px; display:flex; align-items:center; justify-content:space-between; list-style:none; gap:12px; }
+  summary::-webkit-details-marker{ display:none; } summary::after{ content:"+"; font:600 24px var(--display); color:var(--icone); } details[open] summary::after{ content:"\2212"; }
+  details p{ color:var(--muted); margin-top:10px; max-width:70ch; }
+  .credits{ font-size:13px; color:var(--muted); } .credits ul{ margin:10px 0 0 18px; } .credits a{ text-decoration:underline; }
+  footer{ padding:30px 0 50px; text-align:center; color:var(--muted); font-size:14px; }
+  @media (prefers-reduced-motion: reduce){ .btn{ transition:none; } .btn:hover{ transform:none; } html{ scroll-behavior:auto; } }
+</style>
+</head>
+<body>
+<a class="evitement" href="#contenu">Aller au contenu</a>
+<header>
+  <nav class="nav" aria-label="Navigation principale">
+    <a class="logo" href="index.html">Cadence<b>.</b></a>
+    <ul>
+      <li><a href="#salons">Salons de démo</a></li>
+      <li><a href="#parcours">Parcours</a></li>
+      <li><a href="#arguments">Arguments</a></li>
+      <li><a href="#simulateur">Simulateur</a></li>
+    </ul>
+    <a class="btn petit" href="signup.html">Créer mon salon</a>
+  </nav>
+</header>
+
+<main id="contenu">
+  <section class="hero" style="padding-top:56px;">
+    <div class="wrap">
+      <h1>Essayez Cadence <em>comme un client.</em></h1>
+      <p>Trois salons fictifs, entièrement fonctionnels. Réservez, payez un acompte, ajoutez au calendrier. Rien n'est enregistré.</p>
+      <div class="actions">
+        <a class="btn" href="reservation.html?p=demo-barber">Réserver chez le barbier <i class="ph ph-arrow-right" aria-hidden="true"></i></a>
+        <a class="btn discret" href="explorer.html?demo=1">Voir l'annuaire</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="salons" style="padding-top:20px;">
+    <div class="wrap">
+      <h2>Trois salons, trois façons de vendre.</h2>
+      <div class="salons">
+        <article class="salon grand">
+          <div class="photo" style="--pos:60% 38%; --img:url('https://thumb.wikimedia.org/wikipedia/commons/thumb/8/82/Beauty_salons_in_iran_07.jpg/1280px-Beauty_salons_in_iran_07.jpg')" role="img" aria-label="Intérieur d'un barber shop, un barbier coupe les cheveux d'un client"></div>
+          <div class="corps">
+            <h3>The Barber Club</h3>
+            <div class="meta">Barbier, Lyon 1er</div>
+            <div class="tags"><span>3 barbiers au choix</span><span>Acompte 5 € + espèces</span><span>Page sombre immersive</span></div>
+            <div class="actions"><a class="btn petit" href="reservation.html?p=demo-barber">Réserver</a><a class="btn petit discret" href="pro.html?p=demo-barber">Voir la page du salon</a></div>
+          </div>
+        </article>
+        <article class="salon">
+          <div class="photo" style="--img:url('https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6b/Ricky_Reyes_salon_interiorB.jpg/1280px-Ricky_Reyes_salon_interiorB.jpg')" role="img" aria-label="Salon de coiffure moderne aux murs rayés noir et blanc"></div>
+          <div class="corps">
+            <h3>Maison Éloïse</h3>
+            <div class="meta">Coiffure femme et homme, Paris 11e</div>
+            <div class="tags"><span>Confirmation immédiate</span><span>Femme / Homme</span><span>Sans paiement en ligne</span></div>
+            <div class="actions"><a class="btn petit" href="reservation.html?p=demo-coiffure">Réserver</a><a class="btn petit discret" href="pro.html?p=demo-coiffure">Voir la page du salon</a></div>
+          </div>
+        </article>
+        <article class="salon">
+          <div class="photo" style="--img:url('https://upload.wikimedia.org/wikipedia/commons/9/98/Routine_Facial_Treatment_And_Care.jpg')" role="img" aria-label="Soin du visage dans un institut de beauté"></div>
+          <div class="corps">
+            <h3>Institut Lotus</h3>
+            <div class="meta">Institut et massages, Bordeaux</div>
+            <div class="tags"><span>Carte obligatoire</span><span>Soins et massages</span><span>Page claire minimale</span></div>
+            <div class="actions"><a class="btn petit" href="reservation.html?p=demo-institut">Réserver</a><a class="btn petit discret" href="pro.html?p=demo-institut">Voir la page du salon</a></div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="parcours" class="sombre">
+    <div class="wrap">
+      <h2>Une démo qui convainc en cinq minutes.</h2>
+      <p class="lead">Suivez ce fil pendant un rendez-vous. Chaque étape ouvre le vrai produit, avec des données fictives.</p>
+      <ol class="etapes">
+        <li><div><b>Chercher un salon</b><small>L'annuaire public, avec filtre Femme / Homme et carte.</small></div><a class="btn discret petit" href="explorer.html?demo=1">Ouvrir</a></li>
+        <li><div><b>Montrer la page du barbier</b><small>Photos, équipe, avis, horaires, carte : tout vient de « Ma page ».</small></div><a class="btn discret petit" href="pro.html?p=demo-barber">Ouvrir</a></li>
+        <li><div><b>Composer une combinaison impossible</b><small>Coupe enfant + coloration : personne ne les assure ensemble, la page l'explique.</small></div><a class="btn discret petit" href="reservation.html?p=demo-barber">Ouvrir</a></li>
+        <li><div><b>Choisir son barbier</b><small>Rasage + dégradé : seul Karim les assure. Coupe seule : Karim ou Léo.</small></div><a class="btn discret petit" href="reservation.html?p=demo-barber">Ouvrir</a></li>
+        <li><div><b>Payer un acompte, solde en espèces</b><small>L'acompte de 5 € est déduit du prix et conservé en cas d'absence.</small></div><a class="btn discret petit" href="reservation.html?p=demo-barber">Ouvrir</a></li>
+        <li><div><b>Confirmer sans attendre</b><small>Chez Maison Éloïse, le rendez-vous est confirmé tout de suite, avec le fichier calendrier.</small></div><a class="btn discret petit" href="reservation.html?p=demo-coiffure">Ouvrir</a></li>
+        <li><div><b>Reprendre le même créneau</b><small>Réservez deux fois : le créneau déjà pris disparaît. Le bouton « Réinitialiser » remet tout à zéro.</small></div><a class="btn discret petit" href="reservation.html?p=demo-coiffure">Ouvrir</a></li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="arguments">
+    <div class="wrap">
+      <h2>Ce que vous pouvez promettre.</h2>
+      <div class="args">
+        <article class="arg fort"><i class="ph ph-percent" aria-hidden="true"></i><h3>Zéro commission</h3><p>Un abonnement fixe de 15 ou 29 € par mois. Treatwell prélève environ 25 % du premier rendez-vous d'un nouveau client (relevé FrenchWeb, juillet 2026).</p></article>
+        <article class="arg"><i class="ph ph-lightning" aria-hidden="true"></i><h3>Confirmation immédiate</h3><p>Si le créneau est libre, le rendez-vous est confirmé et dans l'agenda. Plus de demande à valider à la main.</p></article>
+        <article class="arg"><i class="ph ph-shield-check" aria-hidden="true"></i><h3>Fini les lapins</h3><p>Un acompte par carte, déduit du prix final et conservé en cas d'absence. Le solde se règle en espèces au salon.</p></article>
+        <article class="arg"><i class="ph ph-users-three" aria-hidden="true"></i><h3>Le bon coiffeur, la bonne durée</h3><p>Chacun a ses prestations et ses horaires. Un client choisit sa personne, ou prend le premier disponible.</p></article>
+        <article class="arg"><i class="ph ph-paint-brush-broad" aria-hidden="true"></i><h3>Une page à son image</h3><p>Photos, couleurs, typographie, équipe, avis vérifiés. Le salon personnalise tout sans développeur.</p></article>
+        <article class="arg"><i class="ph ph-device-mobile" aria-hidden="true"></i><h3>Dans la poche</h3><p>Installable sur l'écran d'accueil comme une application, sans passer par un store. L'agenda en colonnes suit toute l'équipe.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section id="simulateur" style="padding-top:20px;">
+    <div class="wrap">
+      <h2>Combien coûte une commission ?</h2>
+      <div class="simu">
+        <div class="champs">
+          <label for="nb">Nouveaux clients par mois <output id="nb-val">30</output></label>
+          <input type="range" id="nb" min="5" max="150" step="5" value="30">
+          <label for="panier">Panier moyen en euros <output id="panier-val">35 €</output></label>
+          <input type="range" id="panier" min="15" max="150" step="5" value="35">
+          <p class="note">Estimation indicative : 25 % du premier rendez-vous de chaque nouveau client, taux relevé chez Treatwell (FrenchWeb, juillet 2026). À ajuster selon la plateforme du prospect.</p>
+        </div>
+        <div class="resultat" aria-live="polite">
+          <p>Commission payée en un an</p>
+          <div class="gros" id="res-comm">3 150 €</div>
+          <div class="ligne"><span>Abonnement Cadence Salon (29 € par mois)</span><strong id="res-cad">348 €</strong></div>
+          <div class="ligne"><span>Économie estimée par an</span><strong id="res-eco">2 802 €</strong></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sombre" id="message">
+    <div class="wrap">
+      <h2>Un message prêt à envoyer.</h2>
+      <p class="lead">À personnaliser avec le prénom et le nom du salon.</p>
+      <div class="msg" style="background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.12); color:var(--sombre-ink);">
+        <pre id="texte-msg">Bonjour [Prénom],
+
+J'ai préparé une démo pour [Nom du salon] : vous pouvez réserver comme un client, choisir le coiffeur, payer un acompte et voir le rendez-vous confirmé tout de suite.
+
+__LIEN__
+
+Cadence coûte un abonnement fixe (15 ou 29 € par mois) et ne prend aucune commission sur vos rendez-vous. Je peux vous créer votre page en 10 minutes, avec vos photos et vos prestations.
+
+Quand pouvons-nous en parler ?</pre>
+        <button class="btn" id="copier" type="button" style="color:#101216;"><i class="ph ph-copy" aria-hidden="true"></i><span>Copier le message</span></button>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>Les objections fréquentes.</h2>
+      <div style="margin-top:30px;">
+        <details><summary>« Mes clients n'aiment pas payer en ligne. »</summary><p>Le client choisit : carte pour tout, ou espèces avec un petit acompte. Ce dernier protège le salon des absences et se déduit du prix, il n'est jamais en plus.</p></details>
+        <details><summary>« J'ai déjà un agenda papier ou un autre logiciel. »</summary><p>Cadence se connecte à Google Agenda, Apple et Outlook par abonnement, et chaque réservation envoie un fichier calendrier au client et au salon.</p></details>
+        <details><summary>« Je ne veux pas de réservation à une heure où je ne suis pas là. »</summary><p>Chaque personne a ses jours et ses horaires, et un délai minimum avant rendez-vous est réglable. Un créneau n'est proposé que si une personne éligible est libre.</p></details>
+        <details><summary>« Treatwell et Planity m'apportent des clients. »</summary><p>Cadence propose aussi un annuaire public avec avis vérifiés, sans commission. Et la page du salon sert de lien de réservation sur Instagram et Google.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:0;">
+    <div class="wrap credits">
+      <h3 style="font-size:18px; color:var(--ink); margin-bottom:6px;">Crédits photos</h3>
+      <p>Photos d'illustration libres de droits (Wikimedia Commons). Les photos de la série « Beauty salons in iran » et « SPA SKIN CARE » sont en CC0. Les autres sont soumises à attribution :</p>
+      <ul>
+<li><a href="https://commons.wikimedia.org/wiki/File:Drying_hair_in_salon.jpg" target="_blank" rel="noopener">Drying hair in salon</a>, bradleypjohnson (CC BY 2.0)</li>
+<li><a href="https://commons.wikimedia.org/wiki/File:Emotions_spa_and_Lounge_2.jpg" target="_blank" rel="noopener">Emotions spa and Lounge 2</a>, Kyakwera (CC BY-SA 4.0)</li>
+<li><a href="https://commons.wikimedia.org/wiki/File:Ricky_Reyes_salon_interiorB.jpg" target="_blank" rel="noopener">Ricky Reyes salon interiorB</a>, auteur indiqué sur la page (CC BY-SA 4.0)</li>
+<li><a href="https://commons.wikimedia.org/wiki/File:Routine_Facial_Treatment_And_Care.jpg" target="_blank" rel="noopener">Routine Facial Treatment And Care</a>, Davidbrenna.artist (CC BY-SA 4.0)</li>
+<li><a href="https://commons.wikimedia.org/wiki/File:Salon_interior.jpg" target="_blank" rel="noopener">Salon interior</a>, The original uploader was Wikidenizen at English Wikipedia. (CC BY 2.0)</li>
+<li><a href="https://commons.wikimedia.org/wiki/File:Spa_interiors_-_1.jpg" target="_blank" rel="noopener">Spa interiors - 1</a>, Avilash behera (CC BY-SA 3.0)</li>
+<li><a href="https://commons.wikimedia.org/wiki/File:Woman_Weaves_Hair_in_Salon_03.jpg" target="_blank" rel="noopener">Woman Weaves Hair in Salon 03</a>, Michael Kalimukwa (CC BY-SA 4.0)</li>
+<li><a href="https://commons.wikimedia.org/wiki/File:Young_men_with_trendy_haircut_at_barber_shop.jpg" target="_blank" rel="noopener">Young men with trendy haircut at barber shop</a>, Nenad Stojkovic (CC BY 2.0)</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap"><a class="btn" href="signup.html">Créer mon salon</a><p style="margin-top:16px;">© Cadence</p></div></footer>
+
+<script>
+  var fmt = function(n){ return new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR', maximumFractionDigits:0 }).format(n); };
+  var nb = document.getElementById('nb'), panier = document.getElementById('panier');
+  function calc(){
+    var n = +nb.value, p = +panier.value, comm = n * p * 0.25 * 12, cad = 29 * 12, eco = Math.max(0, comm - cad);
+    document.getElementById('nb-val').textContent = n; document.getElementById('panier-val').textContent = fmt(p);
+    document.getElementById('res-comm').textContent = fmt(comm); document.getElementById('res-cad').textContent = fmt(cad); document.getElementById('res-eco').textContent = fmt(eco);
+  }
+  nb.addEventListener('input', calc); panier.addEventListener('input', calc); calc();
+
+  var lien = location.origin + '/demo.html';
+  var pre = document.getElementById('texte-msg'); pre.textContent = pre.textContent.replace('__LIEN__', lien);
+  document.getElementById('copier').addEventListener('click', function(){
+    var b = this, s = b.querySelector('span');
+    (navigator.clipboard ? navigator.clipboard.writeText(pre.textContent) : Promise.reject()).then(function(){ s.textContent = 'Message copié'; }, function(){ window.prompt('Copiez ce message :', pre.textContent); });
+    setTimeout(function(){ s.textContent = 'Copier le message'; }, 2200);
+  });
+</script>
+<script src="/pwa.js" defer></script>
+</body>
+</html>
