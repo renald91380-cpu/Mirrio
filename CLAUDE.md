@@ -195,6 +195,16 @@ Deux pages statiques autonomes, `site/cgu.html` et `site/confidentialite.html` �
 - Même charte typographique que le reste du site (Fraunces/Inter/IBM Plex Mono), mais chaque concept a sa propre palette figée pour la comparaison — ce fichier ne s'adapte pas au thème choisi par l'utilisateur dans Paramètres, contrairement au reste de l'app (voir §3.1).
 - **À supprimer une fois la décision prise** : que le choix retenu soit implémenté dans `clients.html` ou non, cette page de comparaison n'a plus de raison d'exister ensuite — ne pas la laisser traîner indéfiniment dans `site/`.
 
+### 3.15 Annuaire public (explorer.html) et modèle de commission
+
+`site/explorer.html` + `api/annuaire.js` (GET public) : recherche par nom, ville et catégorie, fiches avec prix d'appel et bouton « Réserver » vers `reservation.html?p=<slug>`. Migration `db/schema-v14-annuaire.sql` : `parametres_reservation.visible_annuaire` (faux par défaut) et `description_annuaire` (≤ 300 car.), réglables dans Paramètres → Réservation.
+
+- **Opt-in strict** : une fiche n'est listée que si `activee` ET `visible_annuaire` ET `slug` ET au moins une prestation active. L'API ne renvoie jamais email, téléphone ni adresse précise — la ville vient de `parametres_facturation.emetteur_ville`.
+- **Commission : aucune, volontairement.** Planity fonctionne par abonnement fixe sans commission sur les rendez-vous (source : comparatif FrenchWeb, juillet 2026) ; Treatwell prélève ~25 % sur le premier rendez-vous des nouveaux clients apportés (35 % au Royaume-Uni). Cadence reste sur l'abonnement Solo/Studio (§1). Les paiements Stripe/PayPal vont directement sur le compte du praticien (clés propres, pas de Stripe Connect), donc prélever une commission exigerait Stripe Connect avec `application_fee_amount` — non construit.
+
+- **Photos, localisation, avis (`schema-v15-annuaire-avis-photos-carte.sql`).** `parametres_reservation` gagne `photos` (≤ 6 URL https, saisies à la main — pas d'upload de fichiers), `adresse_annuaire` et `latitude`/`longitude` (géocodées à la demande depuis Paramètres via Nominatim/OpenStreetMap, bouton « Localiser »). Carte Leaflet + tuiles OSM dans `explorer.html` (vue Carte) et `pro.html` (fiche détaillée : galerie, prestations, avis, bouton Réserver). Le paiement en ligne n'est pas dupliqué : « Réserver » mène à `reservation.html`, qui gère déjà Stripe/PayPal.
+- **Avis vérifiés uniquement.** `rendez_vous.avis_token` (jeton-capacité, même générateur que `partage_token`) → `avis.html?t=…` → `api/avis.js`. Un avis = un rendez-vous terminé, ni annulé ni en attente, une seule fois. Le praticien copie le lien depuis la fiche du rendez-vous dans l'agenda ; il peut passer `avis.masque` à vrai (trigger `avis_lock_colonnes` : seule cette colonne est modifiable, aucune policy de delete). **Limite connue :** l'agenda ne charge que les rendez-vous à partir d'aujourd'hui, donc le lien n'est proposé que pour ceux terminés aujourd'hui ; pas d'envoi automatique par email, pas encore d'écran pour masquer un avis.
+
 ---
 
 ## 4. État actuel

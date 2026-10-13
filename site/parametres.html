@@ -945,6 +945,27 @@
             </div>
           </div>
 
+          <div class="field" style="display:flex; align-items:center; gap:10px; margin:6px 0 4px;">
+            <input type="checkbox" id="resa-annuaire" data-bind="reservation.visible_annuaire" style="width:20px; height:20px;">
+            <label for="resa-annuaire" style="margin:0;">Apparaître dans l'annuaire public Cadence</label>
+          </div>
+          <div class="hint" style="margin-bottom:12px;">Votre fiche sera visible sur <a href="explorer.html" target="_blank" rel="noopener">explorer.html</a> (nom, métier, ville, prix d'appel). Gratuit, aucune commission sur vos réservations.</div>
+          <div class="field">
+            <label for="resa-desc-annuaire">Présentation courte (300 caractères max)</label>
+            <textarea id="resa-desc-annuaire" data-bind="reservation.description_annuaire" maxlength="300" rows="3" placeholder="Salon de coiffure mixte, spécialiste coloration…"></textarea>
+          </div>
+
+          <div class="field">
+            <label for="resa-photos">Photos (liens https, un par ligne, 6 maximum)</label>
+            <textarea id="resa-photos" rows="3" placeholder="https://…/salon-1.jpg"></textarea>
+          </div>
+          <div class="field">
+            <label for="resa-adresse">Adresse affichée sur votre fiche</label>
+            <input type="text" id="resa-adresse" data-bind="reservation.adresse_annuaire" placeholder="12 rue de la Paix, 75002 Paris">
+            <div class="hint" id="resa-geo-etat">Localisation sur la carte : <span id="resa-geo-val">non définie</span>
+              <button type="button" class="btn btn-outline btn-sm" id="resa-geo-btn" style="margin-left:8px;">Localiser cette adresse</button></div>
+          </div>
+
           <h3 style="margin:22px 0 10px; font-size:15px;">Horaires ouverts à la réservation</h3>
           <div id="resa-jours" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;"></div>
 
@@ -1284,6 +1305,8 @@
     majVocabDemo();
     majExemplesNumero();
     monterJoursReservation();
+    photosEl.value = (reservation.photos || []).join('\n');
+    majGeoAffichage();
     majApercuReservation();
     majApercuPaiement();
   }
@@ -1302,6 +1325,29 @@
   document.getElementById('paiement-stripe-secret').addEventListener('input', majBarre);
   document.getElementById('paiement-stripe-webhook-secret').addEventListener('input', majBarre);
   document.getElementById('paiement-paypal-secret').addEventListener('input', majBarre);
+
+  // Photos : un champ texte, stocké en tableau (6 URL https max).
+  const photosEl = document.getElementById('resa-photos');
+  photosEl.addEventListener('input', ()=>{
+    reservation.photos = photosEl.value.split('\n').map(l=>l.trim()).filter(l=>/^https:\/\//i.test(l)).slice(0,6);
+    majBarre();
+  });
+  // Géocodage via Nominatim (OpenStreetMap), déclenché à la demande depuis le navigateur.
+  function majGeoAffichage(){
+    document.getElementById('resa-geo-val').textContent = reservation.latitude != null
+      ? `${reservation.latitude.toFixed(4)}, ${reservation.longitude.toFixed(4)}` : 'non définie';
+  }
+  document.getElementById('resa-geo-btn').addEventListener('click', async ()=>{
+    const adresse = (reservation.adresse_annuaire || '').trim();
+    if(!adresse){ document.getElementById('resa-geo-val').textContent = 'saisissez d\'abord une adresse'; return; }
+    try{
+      const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(adresse));
+      const [h] = await r.json();
+      if(!h){ document.getElementById('resa-geo-val').textContent = 'adresse introuvable'; return; }
+      reservation.latitude = parseFloat(h.lat); reservation.longitude = parseFloat(h.lon);
+      majGeoAffichage(); majBarre();
+    }catch(e){ document.getElementById('resa-geo-val').textContent = 'service indisponible, réessayez'; }
+  });
 
   document.querySelectorAll('[data-bind]').forEach(el=>{
     const evt = (el.tagName === 'SELECT' || el.type === 'checkbox' || el.type === 'radio') ? 'change' : 'input';

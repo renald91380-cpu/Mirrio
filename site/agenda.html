@@ -352,6 +352,7 @@
 
       <div class="modal-actions">
         <a href="#" class="link-danger" id="delete-series-link" style="display:none;">Supprimer toute la série</a>
+        <a href="#" id="avis-link" style="display:none; font-size:13px;">Copier le lien d'avis</a>
         <div class="modal-actions-right">
           <button type="button" class="btn btn-secondary" id="cancel-btn">Annuler</button>
           <button type="submit" class="btn btn-primary" id="save-btn">Enregistrer</button>
@@ -396,6 +397,14 @@
   const recurrenceCountField = document.getElementById('recurrence-count-field');
   const recurrenceSelect = document.getElementById('recurrence');
   const deleteSeriesLink = document.getElementById('delete-series-link');
+  const avisLink = document.getElementById('avis-link');
+  avisLink.addEventListener('click', async (e)=>{
+    e.preventDefault();
+    const lien = `${location.origin}/avis.html?t=${avisLink.dataset.t}`;
+    try{ await navigator.clipboard.writeText(lien); avisLink.textContent = 'Lien copié ✓'; }
+    catch(_){ window.prompt('Copiez ce lien et envoyez-le à votre client :', lien); }
+    setTimeout(()=>{ avisLink.textContent = "Copier le lien d'avis"; }, 2500);
+  });
 
   let brand = null;
   let vocab = null;
@@ -525,6 +534,7 @@
     ['titre','date','heures'].forEach(id => setFieldError(id, ''));
     recurrenceCountField.classList.remove('show');
     deleteSeriesLink.style.display = 'none';
+    avisLink.style.display = 'none'; avisLink.dataset.t = '';
     prestationHint.style.display = 'none';
 
     if(appt){
@@ -542,6 +552,7 @@
       document.getElementById('heure_fin').value = toTimeInput(end);
       document.getElementById('notes').value = appt.notes || '';
       recurrenceField.style.display = 'none';
+      if(appt.avis_token && end < new Date()){ avisLink.dataset.t = appt.avis_token; avisLink.style.display = 'inline'; }
       if(appt.recurring_group_id){
         deleteSeriesLink.style.display = 'inline';
       }

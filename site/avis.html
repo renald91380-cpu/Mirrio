@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Donner votre avis — Cadence</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#1C2333; --parchment:#F5F1E7; --teal:#3E7C74; --amber:#E2A63D; --brick:#B5533F; }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{ font-family:'Inter', Arial, sans-serif; background:var(--parchment); color:var(--ink); min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .carte{ background:#fff; border-radius:14px; padding:28px; max-width:460px; width:100%; box-shadow:0 12px 32px rgba(28,35,51,0.1); }
+  h1{ font-family:'Fraunces', Georgia, serif; font-size:23px; margin-bottom:6px; }
+  p.sub{ color:rgba(28,35,51,0.6); font-size:14px; margin-bottom:20px; }
+  .etoiles{ display:flex; gap:6px; margin-bottom:18px; }
+  .etoiles button{ font-size:34px; line-height:1; background:none; border:none; cursor:pointer; color:rgba(28,35,51,0.2); }
+  .etoiles button.on{ color:var(--amber); }
+  label{ display:block; font-size:13px; font-weight:600; margin-bottom:5px; }
+  input, textarea{ width:100%; padding:11px; border:1px solid rgba(28,35,51,0.18); border-radius:8px; font:inherit; margin-bottom:14px; }
+  textarea{ min-height:100px; resize:vertical; }
+  button.envoi{ width:100%; padding:13px; border:none; border-radius:10px; background:var(--ink); color:var(--parchment); font:inherit; font-weight:700; cursor:pointer; }
+  button.envoi:disabled{ opacity:.5; cursor:not-allowed; }
+  .msg{ text-align:center; padding:10px 0; }
+  .err{ color:var(--brick); font-size:13.5px; margin-bottom:10px; }
+</style>
+</head>
+<body>
+<div class="carte" id="carte"><div class="msg">Chargement…</div></div>
+<script>
+  const jeton = new URLSearchParams(location.search).get('t') || '';
+  const carte = document.getElementById('carte');
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const fin = html => { carte.innerHTML = `<div class="msg">${html}</div>`; };
+  let note = 0;
+
+  (async () => {
+    try{
+      const r = await fetch('/api/avis?t=' + encodeURIComponent(jeton));
+      if(!r.ok) return fin('Ce lien n\'est pas valide.');
+      const d = await r.json();
+      if(d.deja_note) return fin('<h1>Merci !</h1><p class="sub">Vous avez déjà donné votre avis pour ce rendez-vous.</p>');
+      if(d.pas_encore) return fin('<h1>Un peu de patience</h1><p class="sub">Vous pourrez donner votre avis une fois le rendez-vous passé.</p>');
+      carte.innerHTML = `
+        <h1>Comment s'est passé votre rendez-vous ?</h1>
+        <p class="sub">${esc(d.praticien)} · ${esc(d.titre)}</p>
+        <div class="etoiles" id="etoiles" role="radiogroup" aria-label="Note sur 5">
+          ${[1,2,3,4,5].map(n => `<button type="button" data-n="${n}" aria-label="${n} sur 5">★</button>`).join('')}</div>
+        <label for="auteur">Votre prénom (facultatif)</label><input id="auteur" maxlength="60">
+        <label for="com">Votre commentaire (facultatif)</label><textarea id="com" maxlength="800"></textarea>
+        <div class="err" id="err"></div>
+        <button class="envoi" id="envoi" disabled>Publier mon avis</button>`;
+      const btns = [...document.querySelectorAll('#etoiles button')];
+      btns.forEach(b => b.addEventListener('click', () => {
+        note = +b.dataset.n; btns.forEach(x => x.classList.toggle('on', +x.dataset.n <= note));
+        document.getElementById('envoi').disabled = false;
+      }));
+      document.getElementById('envoi').addEventListener('click', async e => {
+        e.target.disabled = true;
+        const r2 = await fetch('/api/avis', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ t: jeton, note, auteur: document.getElementById('auteur').value, commentaire: document.getElementById('com').value }) });
+        if(r2.ok) return fin('<h1>Merci pour votre avis !</h1><p class="sub">Il sera visible sur la fiche du professionnel.</p>');
+        const j = await r2.json().catch(() => ({}));
+        document.getElementById('err').textContent = j.error || 'Une erreur est survenue.';
+        e.target.disabled = false;
+      });
+    }catch(e){ fin('Impossible de charger cette page.'); }
+  })();
+</script>
+</body>
+</html>
