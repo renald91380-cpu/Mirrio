@@ -21,7 +21,7 @@
   .hero p{ color:rgba(245,241,231,0.7); margin-bottom:24px; }
   .recherche{
     max-width:760px; margin:0 auto; background:#fff; border-radius:12px; padding:10px;
-    display:grid; grid-template-columns:1.3fr 1fr 1fr auto; gap:8px; box-shadow:0 12px 32px rgba(0,0,0,0.25);
+    display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr auto; gap:8px; box-shadow:0 12px 32px rgba(0,0,0,0.25);
   }
   .recherche input, .recherche select{
     padding:12px; font-size:15px; border:1px solid rgba(28,35,51,0.15); border-radius:8px; font-family:inherit; color:var(--ink); background:#fff; min-width:0;
@@ -90,6 +90,8 @@
     <select id="metier" aria-label="Catégorie">
       <option value="">Toutes catégories</option>
       <option value="coiffure">Coiffure</option>
+      <option value="barbier">Barbier</option>
+      <option value="massage">Massage &amp; spa</option>
       <option value="esthetique">Esthétique &amp; institut</option>
       <option value="onglerie">Onglerie</option>
       <option value="therapeute">Bien-être</option>
@@ -99,6 +101,11 @@
       <option value="professeur">Cours particuliers</option>
       <option value="consultant">Conseil</option>
       <option value="autre">Autre</option>
+    </select>
+    <select id="public" aria-label="Pour qui">
+      <option value="">Femme &amp; Homme</option>
+      <option value="femme">Femme</option>
+      <option value="homme">Homme</option>
     </select>
     <button type="submit">Rechercher</button>
   </form>
@@ -112,21 +119,21 @@
   <div class="pro">
     <h2>Vous êtes professionnel ?</h2>
     <p>Apparaissez ici et recevez des réservations 24h/24, avec l'agenda, les devis et les factures au même endroit.</p>
-    <a class="btn" href="signup.html">Créer mon espace</a>
+    <a class="btn" href="beaute.html">Découvrir Cadence pour les salons</a>
   </div>
 </main>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
   const grille = document.getElementById('grille'), compte = document.getElementById('compte');
-  const LIBELLES = { coiffure:'Coiffure', esthetique:'Esthétique', onglerie:'Onglerie', therapeute:'Bien-être',
+  const LIBELLES = { coiffure:'Coiffure', barbier:'Barbier', massage:'Massage & spa', esthetique:'Esthétique', onglerie:'Onglerie', therapeute:'Bien-être',
     coach:'Coaching', photographe:'Photographie', formateur:'Formation', professeur:'Cours particuliers',
     consultant:'Conseil', autre:'Autre' };
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
   async function chercher(){
     const p = new URLSearchParams();
-    ['q','ville','metier'].forEach(id => { const v = document.getElementById(id).value.trim(); if(v) p.set(id, v); });
+    ['q','ville','metier','public'].forEach(id => { const v = document.getElementById(id).value.trim(); if(v) p.set(id, v); });
     history.replaceState(null, '', p.toString() ? `?${p}` : location.pathname);
     grille.innerHTML = ''; compte.textContent = 'Recherche…';
     try{
@@ -144,7 +151,7 @@
           <div class="tete">
             <div class="avatar">${x.logo_url ? `<img src="${esc(x.logo_url)}" alt="">` : esc(x.nom.charAt(0).toUpperCase())}</div>
             <div><div class="nom"><a class="nom-lien" href="pro.html?p=${encodeURIComponent(x.slug)}">${esc(x.nom)}</a></div>
-              <div class="meta">${esc(LIBELLES[x.metier] || 'Autre')}${x.ville ? ' · ' + esc(x.ville) : ''}</div></div>
+              <div class="meta">${esc(LIBELLES[x.metier] || 'Autre')}${x.ville ? ' · ' + esc(x.ville) : ''}${(x.publics || []).length === 1 ? ' · ' + (x.publics[0] === 'femme' ? 'Femmes' : 'Hommes') : ''}</div></div>
           </div>
           <div class="note">${x.nb_avis ? `<b>★</b> ${x.note_moyenne} (${x.nb_avis} avis)` : 'Nouveau'}</div>
           ${x.description ? `<p class="desc">${esc(x.description)}</p>` : '<p class="desc"></p>'}
@@ -185,7 +192,7 @@
   document.getElementById('b-carte').onclick = () => vue(true);
 
   const init = new URLSearchParams(location.search);
-  ['q','ville','metier'].forEach(id => { if(init.get(id)) document.getElementById(id).value = init.get(id); });
+  ['q','ville','metier','public'].forEach(id => { if(init.get(id)) document.getElementById(id).value = init.get(id); });
   document.getElementById('form').addEventListener('submit', e => { e.preventDefault(); chercher(); });
   chercher();
 </script>

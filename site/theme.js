@@ -65,6 +65,8 @@ export const METIERS = {
   therapeute:  { nom:'Praticien bien-être',    singulier:'séance',   pluriel:'séances'   },
   esthetique:  { nom:'Esthéticienne / institut', singulier:'soin',   pluriel:'soins'     },
   coiffure:    { nom:'Coiffeur·euse',          singulier:'rendez-vous', pluriel:'rendez-vous' },
+  barbier:     { nom:'Barbier',               singulier:'rendez-vous', pluriel:'rendez-vous' },
+  massage:     { nom:'Masseur·euse / spa',     singulier:'massage',  pluriel:'massages'  },
   onglerie:    { nom:'Prothésiste ongulaire',  singulier:'prestation', pluriel:'prestations' },
   autre:       { nom:'Autre métier',           singulier:'rendez-vous', pluriel:'rendez-vous' }
 };

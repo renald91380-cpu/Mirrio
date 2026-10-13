@@ -488,6 +488,8 @@
                 <option value="therapeute">Praticien bien-être</option>
                 <option value="esthetique">Esthéticienne / institut</option>
                 <option value="coiffure">Coiffeur·euse</option>
+                <option value="barbier">Barbier</option>
+                <option value="massage">Masseur·euse / spa</option>
                 <option value="onglerie">Prothésiste ongulaire</option>
                 <option value="autre">Autre métier</option>
               </select>
@@ -841,6 +843,11 @@
           <h2>Vos prestations</h2>
           <p class="card-sub">Saisissez une fois « Séance individuelle 60 min — 60 € », et retrouvez-la en un clic à la création d'un rendez-vous comme d'une ligne de devis. C'est ici que se gagne le plus de temps au quotidien.</p>
 
+          <div class="note-box" id="catalogue-type" style="display:none; margin-bottom:16px; display:none; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;">
+            <span id="catalogue-type-texte"></span>
+            <button class="btn btn-outline btn-sm" type="button" id="catalogue-type-btn" style="flex-shrink:0;">Importer le catalogue type</button>
+          </div>
+
           <div class="prest-list" id="prest-list"></div>
           <div id="prest-empty" class="note-box" style="display:none;">
             Aucune prestation pour l'instant — ajoutez celle que vous vendez le plus souvent.
@@ -857,6 +864,21 @@
               <div class="field">
                 <label for="prest-description">Description</label>
                 <input type="text" id="prest-description" placeholder="Apparaît sous le libellé sur le devis">
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="field">
+                <label for="prest-categorie">Catégorie</label>
+                <input type="text" id="prest-categorie" maxlength="40" list="prest-categories" placeholder="Coupe, Couleur, Soin visage…">
+                <datalist id="prest-categories"></datalist>
+              </div>
+              <div class="field">
+                <label for="prest-public">Pour</label>
+                <select id="prest-public">
+                  <option value="mixte">Femme &amp; Homme</option>
+                  <option value="femme">Femme</option>
+                  <option value="homme">Homme</option>
+                </select>
               </div>
             </div>
             <div class="grid-3">
@@ -1380,6 +1402,7 @@
       }
       if(col === 'metier' || col === 'terme_singulier' || col === 'terme_pluriel'){
         majVocabDemo();
+        if(col === 'metier' && typeof majCatalogueType === 'function') majCatalogueType();
       }
       if(col === 'prefixe_devis' || col === 'prefixe_facture') majExemplesNumero();
       if(col === 'slug' || col === 'activee') majApercuReservation();
@@ -1701,10 +1724,16 @@
       liste.innerHTML = ''; vide.style.display = 'block'; return;
     }
     vide.style.display = 'none';
-    liste.innerHTML = prestations.map(p => `
+    const BADGE = { femme: 'Femme', homme: 'Homme' };
+    let catAff = null;
+    liste.innerHTML = prestations.map(p => {
+      const c = p.categorie || '';
+      const entete = (c !== catAff && (catAff = c, c))
+        ? `<div style="font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:rgba(28,35,51,0.5); font-weight:700; margin:14px 0 4px;">${echapper(c)}</div>` : '';
+      return entete + `
       <div class="prest-row" data-id="${p.id}">
         <div class="pr-main">
-          <div class="pr-lib">${echapper(p.libelle)}</div>
+          <div class="pr-lib">${echapper(p.libelle)}${BADGE[p.public_cible] ? ` <span style="font-size:11px; font-weight:600; padding:2px 7px; border-radius:20px; background:rgba(28,35,51,0.08); margin-left:6px;">${BADGE[p.public_cible]}</span>` : ''}</div>
           <div class="pr-meta">${p.duree_minutes} min${p.description ? ' · ' + echapper(p.description) : ''}</div>
         </div>
         <div class="pr-prix">${new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(p.prix_unitaire || 0)}</div>
@@ -1714,7 +1743,10 @@
         <button class="icon-btn danger del" type="button" aria-label="Supprimer ${echapper(p.libelle)}">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
         </button>
-      </div>`).join('');
+      </div>`;
+    }).join('');
+    document.getElementById('prest-categories').innerHTML =
+      [...new Set(prestations.map(p => p.categorie).filter(Boolean))].map(c => `<option value="${echapper(c)}">`).join('');
 
     liste.querySelectorAll('.prest-row').forEach(row=>{
       const p = prestations.find(x => x.id === row.dataset.id);
@@ -1730,6 +1762,8 @@
     document.getElementById('prest-prix').value = p.prix_unitaire;
     document.getElementById('prest-duree').value = p.duree_minutes;
     document.getElementById('prest-tva').value = p.tva_taux;
+    document.getElementById('prest-categorie').value = p.categorie || '';
+    document.getElementById('prest-public').value = p.public_cible || 'mixte';
     document.getElementById('prest-save').textContent = 'Mettre à jour';
     document.getElementById('prest-cancel').style.display = '';
     document.getElementById('prest-libelle').focus();
@@ -1759,6 +1793,8 @@
       prix_unitaire: Number(document.getElementById('prest-prix').value) || 0,
       duree_minutes: Number(document.getElementById('prest-duree').value) || 60,
       tva_taux: Number(document.getElementById('prest-tva').value) || 0,
+      categorie: document.getElementById('prest-categorie').value.trim() || null,
+      public_cible: document.getElementById('prest-public').value,
       position: id ? undefined : prestations.length
     };
     if(payload.position === undefined) delete payload.position;
@@ -1785,10 +1821,73 @@
     await chargerPrestations();
   }
 
+  // ---- Catalogues types (prix indicatifs en France, TTC — à ajuster par le praticien).
+  // Format : [catégorie, libellé, public, prix, durée en minutes]
+  const CATALOGUES = {
+    coiffure: [
+      ['Coupe','Coupe femme','femme',38,45], ['Coupe','Shampoing, coupe, brushing','femme',55,70], ['Coupe','Coupe homme','homme',26,30],
+      ['Coupe','Coupe + barbe','homme',38,45], ['Coupe','Coupe enfant (-12 ans)','mixte',16,25], ['Coiffage','Brushing','femme',28,30],
+      ['Coiffage','Coiffure de cérémonie / chignon','femme',65,60], ['Couleur','Coloration racines','femme',58,90], ['Couleur','Coloration complète + coupe','femme',95,120],
+      ['Couleur','Balayage / mèches','femme',120,150], ['Couleur','Coloration homme','homme',35,40], ['Soins','Soin profond / masque','mixte',20,20],
+      ['Soins','Lissage kératine','femme',180,180]
+    ],
+    barbier: [
+      ['Coupe','Coupe homme','homme',26,30], ['Coupe','Dégradé / coupe tendance','homme',30,35], ['Coupe','Coupe enfant (-12 ans)','homme',16,25],
+      ['Barbe','Taille de barbe et contours','homme',18,20], ['Barbe','Rasage traditionnel serviette chaude','homme',28,30], ['Formules','Coupe + barbe','homme',40,50],
+      ['Formules','Coupe + barbe + soin visage','homme',58,70], ['Soins','Soin visage homme','homme',35,30], ['Soins','Coloration barbe / cheveux','homme',25,30]
+    ],
+    esthetique: [
+      ['Soins du visage','Nettoyage de peau','mixte',55,60], ['Soins du visage','Soin hydratant éclat','femme',65,60], ['Soins du visage','Soin visage homme','homme',55,60],
+      ['Épilation','Sourcils','femme',12,15], ['Épilation','Lèvre / menton','femme',9,10], ['Épilation','Aisselles','femme',12,15], ['Épilation','Maillot','femme',20,20],
+      ['Épilation','Demi-jambes','femme',20,25], ['Épilation','Jambes complètes','femme',30,35], ['Épilation','Dos / torse','homme',30,30],
+      ['Regard','Teinture cils / sourcils','femme',22,25], ['Regard','Rehaussement de cils','femme',60,60], ['Mains & pieds','Beauté des mains','femme',35,40],
+      ['Mains & pieds','Beauté des pieds','femme',42,45], ['Maquillage','Maquillage jour / soirée','femme',45,45]
+    ],
+    onglerie: [
+      ['Vernis','Pose vernis semi-permanent','femme',35,45], ['Vernis','Dépose semi-permanent','femme',15,20], ['Gel','Pose gel (chablon / capsules)','femme',60,90],
+      ['Gel','Remplissage gel','femme',45,75], ['Gel','Dépose gel','femme',25,30], ['Déco','Nail art (par ongle)','femme',3,10], ['Mains & pieds','Manucure express','mixte',25,30],
+      ['Mains & pieds','Pose vernis pieds semi-permanent','femme',38,45]
+    ],
+    massage: [
+      ['Massages','Massage relaxant 30 min','mixte',45,30], ['Massages','Massage relaxant 60 min','mixte',75,60], ['Massages','Massage relaxant 90 min','mixte',105,90],
+      ['Massages','Massage dos & nuque','mixte',40,30], ['Massages','Massage californien','mixte',80,60], ['Massages','Massage aux pierres chaudes','mixte',90,75],
+      ['Massages','Massage sportif / décontracturant','homme',75,60], ['Massages','Massage prénatal','femme',75,60], ['Rituels','Rituel duo (2 personnes)','mixte',150,60]
+    ]
+  };
+  CATALOGUES.therapeute = CATALOGUES.massage;
+  const NOM_CATALOGUE = { coiffure:'coiffure', barbier:'barbier', esthetique:'esthétique', onglerie:'onglerie', massage:'massage', therapeute:'massage / bien-être' };
+
+  function majCatalogueType(){
+    const cat = CATALOGUES[profil.metier];
+    const boite = document.getElementById('catalogue-type');
+    if(!cat){ boite.style.display = 'none'; return; }
+    boite.style.display = 'flex';
+    document.getElementById('catalogue-type-texte').textContent =
+      `Gagnez du temps : importez ${cat.length} prestations types (${NOM_CATALOGUE[profil.metier]}, pour femmes et hommes), avec prix et durées à ajuster ensuite. Celles que vous avez déjà ne sont pas dupliquées.`;
+  }
+  document.getElementById('catalogue-type-btn').addEventListener('click', async ()=>{
+    const cat = CATALOGUES[profil.metier];
+    if(!cat) return;
+    const existants = new Set(prestations.map(p => p.libelle.toLowerCase()));
+    const aAjouter = cat.filter(c => !existants.has(c[1].toLowerCase()));
+    if(!aAjouter.length){ showToast('Toutes ces prestations existent déjà.'); return; }
+    if(!window.confirm(`Ajouter ${aAjouter.length} prestations à votre catalogue ?`)) return;
+    const tva = facturation.assujetti_tva ? (facturation.tva_taux_defaut || 20) : 0;
+    const base = prestations.length;
+    const { error } = await supabase.from('prestations').insert(aAjouter.map((c, i) => ({
+      owner_id: espaceId, categorie: c[0], libelle: c[1], public_cible: c[2],
+      prix_unitaire: c[3], duree_minutes: c[4], tva_taux: tva, position: base + i
+    })));
+    if(error){ showToast("L'import a échoué.", true); return; }
+    showToast(`${aAjouter.length} prestations ajoutées.`);
+    await chargerPrestations();
+  });
+
   async function chargerPrestations(){
     const { data } = await supabase.from('prestations').select('*').order('position');
     prestations = data || [];
     rendrePrestations();
+    majCatalogueType();
   }
 
   // ------------------------------------------------------------------- agenda

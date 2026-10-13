@@ -207,6 +207,7 @@
   let prestationsChoisies = [];
   let dateChoisie = null;
   let creneauChoisi = null;
+  let publicFiltre = '';
 
   function afficherErreur(){
     etatChargement.style.display = 'none';
@@ -234,7 +235,34 @@
       return;
     }
     vide.style.display = 'none';
-    liste.innerHTML = bootstrap.prestations.map(p => cartePrestation(p, prestationsChoisies.some(c => c.id === p.id))).join('');
+    // Onglets Femme / Homme : seulement si le catalogue sert les deux publics.
+    const publics = new Set(bootstrap.prestations.map(p => p.public_cible || 'mixte'));
+    const deuxPublics = publics.has('mixte') ? true : (publics.has('femme') && publics.has('homme'));
+    let barre = document.getElementById('onglets-public');
+    if(deuxPublics && !barre){
+      barre = document.createElement('div'); barre.id = 'onglets-public';
+      barre.style.cssText = 'display:inline-flex; background:rgba(28,35,51,0.06); border-radius:9px; padding:3px; margin-bottom:14px;';
+      barre.innerHTML = ['', 'femme', 'homme'].map((v, i) =>
+        `<button type="button" data-p="${v}" style="border:none; background:${i ? 'none' : '#fff'}; padding:7px 16px; border-radius:7px; font:600 13.5px Inter, sans-serif; cursor:pointer;">${['Tous', 'Femme', 'Homme'][i]}</button>`).join('');
+      liste.parentNode.insertBefore(barre, liste);
+      barre.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+        publicFiltre = b.dataset.p;
+        barre.querySelectorAll('button').forEach(o => o.style.background = (o === b) ? '#fff' : 'none');
+        rendrePrestations();
+      }));
+    }
+    const visibles = bootstrap.prestations.filter(p =>
+      !publicFiltre || (p.public_cible || 'mixte') === 'mixte' || p.public_cible === publicFiltre);
+    let catCourante = null, html = '';
+    visibles.forEach(p => {
+      const c = p.categorie || '';
+      if(c !== catCourante){
+        catCourante = c;
+        if(c) html += `<div style="font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:rgba(28,35,51,0.5); font-weight:700; margin:10px 0 0;">${echapperHtml(c)}</div>`;
+      }
+      html += cartePrestation(p, prestationsChoisies.some(x => x.id === p.id));
+    });
+    liste.innerHTML = html || '<p class="sub">Aucune prestation pour ce public.</p>';
     liste.querySelectorAll('.carte-prestation').forEach(el=>{
       el.addEventListener('click', ()=> basculerPrestation(el));
     });

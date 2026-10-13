@@ -220,7 +220,9 @@ export default async function handler(req, res){
   try{
     [profils, prestations, paiements] = await Promise.all([
       supabase(`profiles?id=eq.${ownerId}&select=business_name,full_name,logo_url,accent,metier,terme_singulier,terme_pluriel`),
-      supabase(`prestations?owner_id=eq.${ownerId}&actif=eq.true&select=id,libelle,description,prix_unitaire,tva_taux,duree_minutes&order=position`),
+      // `public_cible`/`categorie` : schema-v17. Repli sans ces colonnes tant que la migration n'est pas passée.
+      supabase(`prestations?owner_id=eq.${ownerId}&actif=eq.true&select=id,libelle,description,prix_unitaire,tva_taux,duree_minutes,public_cible,categorie&order=position`)
+        .catch(() => supabase(`prestations?owner_id=eq.${ownerId}&actif=eq.true&select=id,libelle,description,prix_unitaire,tva_taux,duree_minutes&order=position`)),
       // Phase 3 : le widget doit savoir AVANT de soumettre le formulaire si un
       // paiement immédiat va être exigé (prix plein) pour confirmer le
       // créneau — voir api/reservation-publique.js et CLAUDE.md.

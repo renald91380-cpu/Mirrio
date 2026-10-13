@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Logiciel de réservation pour salons de beauté — Cadence</title>
+<meta name="description" content="Agenda en ligne, réservation 24h/24, catalogue femme & homme, équipe en colonnes, avis clients. Pour coiffeurs, barbiers, instituts, onglerie et massage. Sans commission sur vos réservations.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#1C2333; --parchment:#F5F1E7; --teal:#3E7C74; --amber:#E2A63D; --brick:#B5533F; }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{ scroll-behavior:smooth; }
+  body{ font-family:'Inter', Arial, sans-serif; background:var(--parchment); color:var(--ink); line-height:1.55; -webkit-font-smoothing:antialiased; }
+  a{ color:inherit; }
+  .wrap{ max-width:1080px; margin:0 auto; padding:0 20px; }
+  header{ background:var(--ink); color:var(--parchment); }
+  header .wrap{ display:flex; align-items:center; justify-content:space-between; gap:16px; height:62px; }
+  .logo{ font-family:'Fraunces', Georgia, serif; font-weight:700; font-size:21px; text-decoration:none; }
+  header nav{ display:flex; gap:22px; align-items:center; font-size:14px; }
+  header nav a{ text-decoration:none; opacity:.85; } header nav a:hover{ opacity:1; }
+  @media(max-width:720px){ header nav a:not(.cta){ display:none; } }
+  .cta, .btn{ display:inline-block; background:var(--amber); color:var(--ink); font-weight:700; text-decoration:none; padding:11px 20px; border-radius:9px; font-size:15px; opacity:1 !important; }
+  .btn.sombre{ background:var(--ink); color:var(--parchment); }
+  .btn.lg{ padding:15px 28px; font-size:16px; }
+  .hero{ background:var(--ink); color:var(--parchment); padding:64px 0 80px; }
+  .hero .wrap{ display:grid; grid-template-columns:1.1fr .9fr; gap:40px; align-items:center; }
+  @media(max-width:860px){ .hero .wrap{ grid-template-columns:1fr; } }
+  .hero h1{ font-family:'Fraunces', Georgia, serif; font-size:clamp(32px, 5.4vw, 52px); line-height:1.1; margin-bottom:16px; }
+  .hero h1 em{ color:var(--amber); font-style:normal; }
+  .hero p{ color:rgba(245,241,231,.75); font-size:17px; margin-bottom:26px; max-width:520px; }
+  .hero .note{ font-size:13px; color:rgba(245,241,231,.55); margin-top:12px; }
+  .maquette{ background:#fff; color:var(--ink); border-radius:14px; padding:14px; box-shadow:0 24px 60px rgba(0,0,0,.35); }
+  .maquette .cols{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; font-size:11.5px; }
+  .maquette .tete{ display:flex; align-items:center; gap:6px; font-weight:600; padding:6px; background:#F3F1EC; border-radius:8px; }
+  .maquette .tete i{ width:20px; height:20px; border-radius:50%; background:var(--ink); color:#fff; font-style:normal; display:flex; align-items:center; justify-content:center; font-size:10px; }
+  .maquette .bloc{ background:#F3F1EC; border-left:3px solid var(--amber); border-radius:6px; padding:5px 7px; margin-top:6px; line-height:1.3; }
+  .maquette .bloc b{ display:block; }
+  .maquette .bloc.long{ min-height:64px; } .maquette .bloc.att{ border-left-color:var(--brick); background:#FBF1EE; }
+  section{ padding:70px 0; }
+  h2{ font-family:'Fraunces', Georgia, serif; font-size:clamp(26px, 4vw, 36px); line-height:1.15; margin-bottom:12px; }
+  .sous{ color:rgba(28,35,51,.65); font-size:17px; max-width:640px; margin-bottom:34px; }
+  .grille{ display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; }
+  .carte{ background:#fff; border-radius:12px; padding:22px; box-shadow:0 1px 3px rgba(28,35,51,.08); }
+  .carte h3{ font-size:17px; margin-bottom:6px; } .carte p{ font-size:14.5px; color:rgba(28,35,51,.7); }
+  .carte .ico{ font-size:26px; margin-bottom:10px; }
+  .bande{ background:#fff; }
+  .duo{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media(max-width:700px){ .duo{ grid-template-columns:1fr; } }
+  .liste{ list-style:none; margin-top:10px; font-size:14.5px; } .liste li{ padding:5px 0; border-top:1px solid rgba(28,35,51,.08); display:flex; justify-content:space-between; gap:10px; }
+  .liste li:first-child{ border-top:none; } .liste span{ color:rgba(28,35,51,.55); white-space:nowrap; }
+  table{ width:100%; border-collapse:collapse; background:#fff; border-radius:12px; overflow:hidden; font-size:14.5px; box-shadow:0 1px 3px rgba(28,35,51,.08); }
+  th, td{ padding:14px 16px; text-align:left; border-bottom:1px solid rgba(28,35,51,.08); vertical-align:top; }
+  th{ background:var(--ink); color:var(--parchment); font-size:13px; } tr.nous td{ background:#FFF8E8; font-weight:600; }
+  .petit{ font-size:12.5px; color:rgba(28,35,51,.55); margin-top:12px; }
+  .prix{ display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px; max-width:640px; }
+  .prix .carte strong{ font-family:'Fraunces', Georgia, serif; font-size:34px; display:block; margin:6px 0; } .prix .carte strong small{ font-size:15px; font-family:Inter; }
+  .final{ background:var(--ink); color:var(--parchment); text-align:center; }
+  .final p{ color:rgba(245,241,231,.7); margin:0 auto 24px; max-width:520px; }
+  footer{ padding:28px 0; font-size:13px; color:rgba(28,35,51,.6); text-align:center; }
+</style>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#1C2333">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+</head>
+<body>
+<header><div class="wrap">
+  <a class="logo" href="index.html">Cadence</a>
+  <nav><a href="#metiers">Métiers</a><a href="#fonctions">Fonctions</a><a href="#tarifs">Tarifs</a><a href="explorer.html">Trouver un salon</a><a href="login.html">Se connecter</a><a class="cta" href="signup.html">Essayer gratuitement</a></nav>
+</div></header>
+
+<div class="hero"><div class="wrap">
+  <div>
+    <h1>Le logiciel des salons de beauté qui remplit l'agenda <em>sans prendre de commission.</em></h1>
+    <p>Réservation en ligne 24h/24, agenda de toute l'équipe en colonnes, catalogue femme et homme prêt à l'emploi, avis clients vérifiés. Pour coiffeurs, barbiers, instituts, onglerie et massage.</p>
+    <a class="btn lg" href="signup.html">Créer mon salon gratuitement</a>
+    <div class="note">Sans carte bancaire · Sans engagement · Installable comme une application</div>
+  </div>
+  <div class="maquette" aria-hidden="true">
+    <div style="font-weight:700; margin:2px 4px 10px;">vendredi 16 octobre</div>
+    <div class="cols">
+      <div><div class="tete"><i>J</i>Jean</div><div class="bloc"><b>10:00 - 11:00</b>Coupe + Barbe</div><div class="bloc"><b>11:00 - 12:00</b>Coupe + Barbe + Soin</div></div>
+      <div><div class="tete"><i>J</i>Julie</div><div class="bloc"><b>10:00 - 10:45</b>Coupe homme</div><div class="bloc long"><b>11:00 - 13:00</b>Couleur + Brushing</div><div class="bloc att"><b>15:00 - 16:00</b>Demande en attente</div></div>
+      <div><div class="tete"><i>M</i>Marc</div><div class="bloc"><b>10:00 - 11:00</b>Taille de barbe</div><div class="bloc long"><b>11:00 - 13:00</b>Rasage traditionnel</div></div>
+    </div>
+  </div>
+</div></div>
+
+<section id="metiers"><div class="wrap">
+  <h2>Pensé pour tous les métiers de la beauté</h2>
+  <p class="sous">Choisissez votre métier : Cadence adapte le vocabulaire et vous propose un catalogue de prestations types, pour elle comme pour lui.</p>
+  <div class="grille">
+    <div class="carte"><div class="ico">✂️</div><h3>Coiffure</h3><p>Coupe, couleur, balayage, brushing, cérémonie. Durées longues et enchaînement de prestations.</p></div>
+    <div class="carte"><div class="ico">🪒</div><h3>Barbier</h3><p>Coupe, dégradé, taille de barbe, rasage traditionnel. Des créneaux courts, très fréquents.</p></div>
+    <div class="carte"><div class="ico">🌿</div><h3>Institut & esthétique</h3><p>Soins du visage, épilations, regard, mains et pieds, maquillage.</p></div>
+    <div class="carte"><div class="ico">💅</div><h3>Onglerie</h3><p>Semi-permanent, gel, remplissage, dépose, nail art.</p></div>
+    <div class="carte"><div class="ico">💆</div><h3>Massage & spa</h3><p>Relaxant, californien, pierres chaudes, sportif, rituels duo.</p></div>
+  </div>
+</div></section>
+
+<section class="bande"><div class="wrap">
+  <h2>Un catalogue Femme & Homme, prêt en un clic</h2>
+  <p class="sous">Importez les prestations types de votre métier depuis les Paramètres, ajustez prix et durées, c'est publié. Vos clients filtrent par « Femme » ou « Homme » sur votre page de réservation.</p>
+  <div class="duo">
+    <div class="carte"><h3>Femme</h3><ul class="liste"><li>Shampoing, coupe, brushing<span>70 min · 55 €</span></li><li>Coloration racines<span>90 min · 58 €</span></li><li>Balayage / mèches<span>150 min · 120 €</span></li><li>Nettoyage de peau<span>60 min · 55 €</span></li></ul></div>
+    <div class="carte"><h3>Homme</h3><ul class="liste"><li>Coupe homme<span>30 min · 26 €</span></li><li>Coupe + barbe<span>45 min · 38 €</span></li><li>Rasage traditionnel<span>30 min · 28 €</span></li><li>Soin visage homme<span>60 min · 55 €</span></li></ul></div>
+  </div>
+  <p class="petit">Exemples de prix indicatifs, modifiables prestation par prestation.</p>
+</div></section>
+
+<section id="fonctions"><div class="wrap">
+  <h2>Tout ce qu'il faut pour faire tourner un salon</h2>
+  <p class="sous">Un seul outil pour l'agenda, la prise de rendez-vous, l'équipe et la facturation.</p>
+  <div class="grille">
+    <div class="carte"><h3>Réservation en ligne 24h/24</h3><p>Vos clients choisissent une ou plusieurs prestations, un créneau libre, et réservent. Lien partageable ou à intégrer sur votre site.</p></div>
+    <div class="carte"><h3>Agenda d'équipe en colonnes</h3><p>Une colonne par coiffeur ou praticien, vue du jour, clic sur un créneau vide pour créer un rendez-vous.</p></div>
+    <div class="carte"><h3>Annuaire & avis vérifiés</h3><p>Apparaissez dans l'annuaire Cadence avec photos, adresse sur la carte et avis laissés uniquement par de vrais clients.</p></div>
+    <div class="carte"><h3>Paiement en ligne</h3><p>Encaissez à la réservation par carte (Stripe) ou PayPal, directement sur votre compte, avec facture acquittée.</p></div>
+    <div class="carte"><h3>Ajout à l'agenda du client</h3><p>Chaque réservation envoie une invitation .ics au client et à vous : Google, Apple, Outlook.</p></div>
+    <div class="carte"><h3>Devis & factures</h3><p>Numérotation automatique, TVA, export comptable, relances des impayés. Tout est déjà dedans.</p></div>
+    <div class="carte"><h3>Sur mobile, comme une app</h3><p>Installez Cadence sur l'écran d'accueil de votre téléphone, sans passer par un store.</p></div>
+    <div class="carte"><h3>Fiches clients</h3><p>Historique, coordonnées, notes. Les nouvelles réservations créent la fiche à la confirmation.</p></div>
+  </div>
+</div></section>
+
+<section class="bande" id="tarifs"><div class="wrap">
+  <h2>Un abonnement. Zéro commission sur vos rendez-vous.</h2>
+  <p class="sous">Ce que vous encaissez est à vous. Cadence ne prélève rien sur vos réservations, nouveaux clients compris.</p>
+  <div class="prix">
+    <div class="carte"><h3>Solo</h3><strong>15 €<small> / mois</small></strong><p>Jusqu'à 25 clients actifs. Pour un indépendant.</p></div>
+    <div class="carte"><h3>Studio</h3><strong>29 €<small> / mois</small></strong><p>Clients illimités et équipe multi-collaborateurs.</p></div>
+  </div>
+  <p class="petit" style="margin-bottom:26px;">Paiements en ligne : seuls les frais de votre prestataire de paiement (Stripe ou PayPal) s'appliquent, versés à ce prestataire et pas à Cadence.</p>
+
+  <h3 style="margin:30px 0 12px; font-family:'Fraunces', Georgia, serif; font-size:21px;">Comment ça se compare ?</h3>
+  <div style="overflow-x:auto;"><table>
+    <tr><th>Plateforme</th><th>Modèle</th><th>Commission sur les rendez-vous</th></tr>
+    <tr class="nous"><td>Cadence</td><td>Abonnement fixe, 15 ou 29 €/mois</td><td>Aucune</td></tr>
+    <tr><td>Planity</td><td>Abonnement fixe, tarif non publié</td><td>Aucune</td></tr>
+    <tr><td>Treatwell</td><td>Commission sur les nouveaux clients</td><td>Environ 25 % du premier rendez-vous d'un nouveau client apporté par la plateforme</td></tr>
+  </table></div>
+  <p class="petit">Informations publiques relevées dans un comparatif FrenchWeb de juillet 2026, à titre indicatif : vérifiez les conditions en vigueur auprès de chaque plateforme.</p>
+</div></section>
+
+<section class="final"><div class="wrap">
+  <h2>Ouvrez les réservations de votre salon aujourd'hui</h2>
+  <p>Créez votre espace, importez votre catalogue type, partagez votre lien. C'est en ligne en quelques minutes.</p>
+  <a class="btn lg" href="signup.html">Créer mon salon gratuitement</a>
+</div></section>
+
+<footer><div class="wrap">© Cadence · <a href="cgu.html">CGU</a> · <a href="confidentialite.html">Confidentialité</a> · <a href="explorer.html">Trouver un salon</a></div></footer>
+<script src="/pwa.js" defer></script>
+</body>
+</html>

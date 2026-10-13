@@ -31,6 +31,13 @@ async function supabase(chemin){
 const normaliser = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
 const FICHE_COLS = 'owner_id,slug,description_annuaire,photos,adresse_annuaire,latitude,longitude';
 
+// Publics servis par un salon : « mixte » ouvre aux deux.
+function publicsDe(prestations){
+  const s = new Set();
+  prestations.forEach(p => { const c = p.public_cible || 'mixte'; if(c === 'mixte'){ s.add('femme'); s.add('homme'); } else s.add(c); });
+  return [...s];
+}
+
 function statsAvis(avis){
   const n = avis.length;
   return { note_moyenne: n ? Math.round(avis.reduce((s, a) => s + a.note, 0) / n * 10) / 10 : null, nb_avis: n };
@@ -43,7 +50,8 @@ async function fiche(slug){
   const [[profil], [fact], prestations, avis] = await Promise.all([
     supabase(`profiles?id=eq.${f.owner_id}&select=business_name,full_name,logo_url,metier`),
     supabase(`parametres_facturation?owner_id=eq.${f.owner_id}&select=emetteur_ville`),
-    supabase(`prestations?owner_id=eq.${f.owner_id}&actif=eq.true&select=libelle,description,prix_unitaire,duree_minutes&order=position`),
+    supabase(`prestations?owner_id=eq.${f.owner_id}&actif=eq.true&select=libelle,description,prix_unitaire,duree_minutes,public_cible,categorie&order=position`)
+      .catch(() => supabase(`prestations?owner_id=eq.${f.owner_id}&actif=eq.true&select=libelle,description,prix_unitaire,duree_minutes&order=position`)),
     supabase(`avis?owner_id=eq.${f.owner_id}&masque=eq.false&select=note,commentaire,auteur,created_at&order=created_at.desc&limit=50`)
   ]);
   if(!prestations.length) return null;
@@ -55,7 +63,7 @@ async function fiche(slug){
     ville: fact?.emetteur_ville || null,
     description: f.description_annuaire, photos: f.photos || [],
     adresse: f.adresse_annuaire, latitude: f.latitude, longitude: f.longitude,
-    prestations, avis, ...statsAvis(avis)
+    prestations, publics: publicsDe(prestations), avis, ...statsAvis(avis)
   };
 }
 
@@ -75,6 +83,7 @@ export default async function handler(req, res){
     const q = normaliser(params.get('q'));
     const ville = normaliser(params.get('ville'));
     const metier = (params.get('metier') || '').replace(/[^a-z_-]/g, '');
+    const publicCible = ['femme', 'homme'].includes(params.get('public')) ? params.get('public') : '';
 
     const fiches = await supabase(
       `parametres_reservation?activee=eq.true&visible_annuaire=eq.true&slug=not.is.null&select=${FICHE_COLS}&limit=500`);
@@ -84,7 +93,8 @@ export default async function handler(req, res){
     const [profils, villes, prestations, avis] = await Promise.all([
       supabase(`profiles?id=in.(${ids})&select=id,business_name,full_name,logo_url,metier`),
       supabase(`parametres_facturation?owner_id=in.(${ids})&select=owner_id,emetteur_ville`),
-      supabase(`prestations?owner_id=in.(${ids})&actif=eq.true&select=owner_id,prix_unitaire`),
+      supabase(`prestations?owner_id=in.(${ids})&actif=eq.true&select=owner_id,prix_unitaire,public_cible`)
+        .catch(() => supabase(`prestations?owner_id=in.(${ids})&actif=eq.true&select=owner_id,prix_unitaire`)),
       supabase(`avis?owner_id=in.(${ids})&masque=eq.false&select=owner_id,note`)
     ]);
     const profilParId = Object.fromEntries(profils.map(p => [p.id, p]));
@@ -93,6 +103,7 @@ export default async function handler(req, res){
     prestations.forEach(p => {
       const e = prixParId[p.owner_id] || (prixParId[p.owner_id] = { min: Infinity, n: 0 });
       e.min = Math.min(e.min, Number(p.prix_unitaire) || 0); e.n++;
+      (e.liste || (e.liste = [])).push(p);
     });
     avis.forEach(a => (avisParId[a.owner_id] || (avisParId[a.owner_id] = [])).push(a));
 
@@ -110,10 +121,12 @@ export default async function handler(req, res){
         latitude: f.latitude, longitude: f.longitude,
         prix_a_partir_de: px && isFinite(px.min) ? px.min : null,
         nb_prestations: px ? px.n : 0,
+        publics: publicsDe(px?.liste || []),
         ...statsAvis(avisParId[f.owner_id] || [])
       };
     }).filter(x => x.nb_prestations > 0)
       .filter(x => !metier || x.metier === metier)
+      .filter(x => !publicCible || x.publics.includes(publicCible))
       .filter(x => !ville || normaliser(x.ville).includes(ville))
       .filter(x => !q || normaliser(`${x.nom} ${x.description || ''} ${x.metier}`).includes(q))
       .sort((a, b) => (b.note_moyenne ?? 0) - (a.note_moyenne ?? 0) || a.nom.localeCompare(b.nom, 'fr'));

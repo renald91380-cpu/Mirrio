@@ -221,6 +221,16 @@ Deux pages statiques autonomes, `site/cgu.html` et `site/confidentialite.html` �
 - Le champ « Assuré par » de la fiche n'apparaît que s'il y a au moins un collaborateur. Le nom d'une colonne vient de `profiles.full_name` si la RLS le permet, sinon du préfixe de l'email d'invitation.
 - **Limite connue :** la réservation en ligne publique ne choisit pas de collaborateur et ne tient pas compte des disponibilités individuelles — un seul horaire hebdomadaire par espace (§3.10).
 
+### 3.18 Vertical beauté (coiffure, barbier, esthétique, onglerie, massage)
+
+Cadence se positionne aussi comme logiciel de salon, façon Planity — **sans commission** (voir §3.15). Vitrine : `site/beaute.html` (liée depuis `index.html` et l'annuaire ; le comparatif Planity/Treatwell y est sourcé « FrenchWeb, juillet 2026 » et daté — à revérifier avant de le republier).
+
+- **Migration `db/schema-v17-beaute.sql`** : (1) corrige `profiles_metier_check`, qui refusait `coiffure`/`esthetique`/`onglerie` pourtant proposés dans l'interface, et ajoute `barbier` et `massage` ; (2) `prestations.public_cible` (`mixte`/`femme`/`homme`) ; (3) `prestations.categorie` (texte libre ≤ 40 car.). **À exécuter avant d'utiliser l'éditeur de prestations** : il envoie désormais ces deux colonnes. Les lectures publiques (`reservation-disponibilites`, `_annuaire`) retombent sur l'ancien `select` si la migration manque, pour ne jamais casser la réservation.
+- **Catalogues types** (`CATALOGUES` dans `parametres.html`, onglet Prestations) : importés en un clic selon `profiles.metier` (coiffure, barbier, esthétique, onglerie, massage ; `therapeute` réutilise massage). Prix TTC indicatifs France, TVA posée au taux par défaut si l'émetteur est assujetti. L'import ne duplique pas un libellé déjà présent.
+- **Femme / Homme** : onglets sur `reservation.html` et `pro.html` (affichés seulement si le catalogue sert les deux publics ; `mixte` apparaît dans les deux), regroupement par catégorie, filtre « Pour qui » dans `explorer.html` (`/api/annuaire?public=femme|homme`, calculé depuis les prestations — `publics`).
+- Vocabulaire : `barbier` → « rendez-vous », `massage` → « massage(s) » dans `theme.js` ; `admin.html` connaît les deux nouveaux métiers.
+- **Pas construit** : liste d'attente, rappels SMS, fiches client beauté (allergies, couleur…), horaires par collaborateur, choix du coiffeur à la réservation, produits/vente en boutique.
+
 ---
 
 ## 4. État actuel

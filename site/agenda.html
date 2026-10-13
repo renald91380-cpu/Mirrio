@@ -214,6 +214,29 @@
   }
   .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
   .toast svg{ stroke:var(--teal); flex-shrink:0; }
+
+  /* ---- Vue Équipe (jour, une colonne par membre) ---- */
+  .vue-bascule{ display:inline-flex; background:rgba(28,35,51,0.06); border-radius:9px; padding:3px; margin-bottom:16px; }
+  .vue-bascule button{ border:none; background:none; padding:7px 16px; border-radius:7px; font:600 13.5px Inter, sans-serif; color:rgba(28,35,51,0.6); cursor:pointer; }
+  .vue-bascule button.on{ background:#fff; color:var(--ink); box-shadow:0 1px 3px rgba(28,35,51,0.15); }
+  .equipe-nav{ display:flex; align-items:center; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+  .equipe-nav .date-titre{ font-weight:700; font-size:16px; text-transform:capitalize; flex:1; min-width:160px; }
+  .equipe-nav button{ border:1px solid rgba(28,35,51,0.18); background:#fff; border-radius:8px; padding:7px 12px; font:600 13.5px Inter, sans-serif; cursor:pointer; }
+  .equipe-scroll{ overflow-x:auto; background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(28,35,51,0.08); }
+  .equipe-grille{ display:grid; min-width:560px; }
+  .eq-tete{ position:sticky; top:0; z-index:2; background:#fff; padding:12px 8px; border-bottom:1px solid rgba(28,35,51,0.1);
+            display:flex; align-items:center; gap:8px; font-weight:600; font-size:14px; justify-content:center; }
+  .eq-avatar{ width:30px; height:30px; border-radius:50%; background:var(--ink); color:#F5F1E7; display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0; }
+  .eq-heures{ position:relative; border-right:1px solid rgba(28,35,51,0.08); }
+  .eq-heures span{ position:absolute; right:8px; font-size:11.5px; color:rgba(28,35,51,0.5); transform:translateY(-50%); }
+  .eq-col{ position:relative; border-left:1px solid rgba(28,35,51,0.06); cursor:pointer;
+           background-image:repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--h) - 1px), rgba(28,35,51,0.07) calc(var(--h) - 1px), rgba(28,35,51,0.07) var(--h)); }
+  .eq-bloc{ position:absolute; left:4px; right:4px; background:#F3F1EC; border-left:3px solid var(--amber); border-radius:6px; padding:5px 8px;
+            font-size:12.5px; line-height:1.35; overflow:hidden; cursor:pointer; box-shadow:0 1px 2px rgba(28,35,51,0.08); }
+  .eq-bloc:hover{ background:#ECE9E1; }
+  .eq-bloc b{ display:block; font-size:12.5px; }
+  .eq-bloc.attente{ border-left-color:#B5533F; background:#FBF1EE; }
+  .eq-maintenant{ position:absolute; left:0; right:0; height:2px; background:#B5533F; z-index:1; pointer-events:none; }
 </style>
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#1C2333">
@@ -275,6 +298,21 @@
       </button>
     </div>
 
+    <div class="vue-bascule" role="tablist" aria-label="Affichage">
+      <button type="button" id="vue-liste" class="on" role="tab">Liste</button>
+      <button type="button" id="vue-equipe" role="tab">Jour · Équipe</button>
+    </div>
+
+    <div id="equipe-view" style="display:none;">
+      <div class="equipe-nav">
+        <button type="button" id="eq-prec" aria-label="Jour précédent">‹</button>
+        <button type="button" id="eq-auj">Aujourd'hui</button>
+        <button type="button" id="eq-suiv" aria-label="Jour suivant">›</button>
+        <span class="date-titre" id="eq-date"></span>
+      </div>
+      <div class="equipe-scroll"><div class="equipe-grille" id="eq-grille"></div></div>
+    </div>
+
     <div id="loading-state" class="loading-state">Chargement…</div>
 
     <div id="empty-state" class="empty-state" style="display:none;">
@@ -309,6 +347,11 @@
         <select id="client_id" name="client_id">
           <option value="">Aucun client</option>
         </select>
+      </div>
+
+      <div class="field" id="collab-field" style="display:none;">
+        <label for="collaborateur_id">Assuré par</label>
+        <select id="collaborateur_id" name="collaborateur_id"></select>
       </div>
 
       <div class="field">
@@ -537,7 +580,7 @@
     recurrenceCountField.classList.toggle('show', recurrenceSelect.value !== 'none');
   });
 
-  function openModal(appt){
+  function openModal(appt, preset){
     form.reset();
     ['titre','date','heures'].forEach(id => setFieldError(id, ''));
     recurrenceCountField.classList.remove('show');
@@ -552,6 +595,7 @@
       document.getElementById('titre').value = appt.titre;
       document.getElementById('client_id').value = appt.client_id || '';
       document.getElementById('prestation_id').value = appt.prestation_id || '';
+      document.getElementById('collaborateur_id').value = appt.collaborateur_id || espaceId;
       majHintPrestation();
       const start = new Date(appt.date_debut);
       const end = new Date(appt.date_fin);
@@ -571,7 +615,9 @@
       recurrenceField.style.display = 'block';
       recurrenceSelect.value = 'none';
       const now = new Date();
-      document.getElementById('date').value = toDateInput(now);
+      document.getElementById('date').value = toDateInput(preset?.date || now);
+      if(preset?.heure){ document.getElementById('heure_debut').value = preset.heure; document.getElementById('heure_fin').value = ajouterMinutesHeure(preset.heure, 60); }
+      document.getElementById('collaborateur_id').value = preset?.collab || espaceId;
     }
     overlay.classList.add('show');
     document.getElementById('titre').focus();
@@ -784,6 +830,8 @@
   }
 
   async function loadAppointments(){
+    // En vue Équipe, toute mise à jour (enregistrer, confirmer, refuser…) rafraîchit la grille du jour.
+    if(document.getElementById('equipe-view').style.display !== 'none'){ rendreEquipe(); return; }
     loadingEl.style.display = 'block';
     emptyEl.style.display = 'none';
     const startOfToday = new Date();
@@ -876,6 +924,8 @@
     const id = document.getElementById('appt-id').value;
     const clientId = document.getElementById('client_id').value || null;
     const prestationId = document.getElementById('prestation_id').value || null;
+    const collabVal = document.getElementById('collaborateur_id').value;
+    const collabId = (collabVal && collabVal !== espaceId) ? collabVal : null;   // propriétaire = non attribué
     const notes = document.getElementById('notes').value.trim() || null;
     const startDate = combineDateTime(dateStr, heureDebut);
     const endDate = combineDateTime(dateStr, heureFin);
@@ -888,7 +938,7 @@
     if(id){
       let d;
       ({ data: d, error } = await supabase.from('rendez_vous').update({
-        titre, client_id: clientId, prestation_id: prestationId, date_debut: startDate.toISOString(),
+        titre, client_id: clientId, prestation_id: prestationId, collaborateur_id: collabId, date_debut: startDate.toISOString(),
         date_fin: endDate.toISOString(), notes
       }).eq('id', id).select());
       lignesEnregistrees = d || [];
@@ -900,7 +950,7 @@
         const occStart = addInterval(startDate, recurrence, i);
         const occEnd = addInterval(endDate, recurrence, i);
         return {
-          titre, client_id: clientId, prestation_id: prestationId, notes,
+          titre, client_id: clientId, prestation_id: prestationId, collaborateur_id: collabId, notes,
           date_debut: occStart.toISOString(),
           date_fin: occEnd.toISOString(),
           recurring_group_id: groupId,
@@ -945,6 +995,98 @@
   document.getElementById('logout-btn').addEventListener('click', seDeconnecter);
   document.getElementById('sidebar-logout-btn').addEventListener('click', seDeconnecter);
 
+  // ------------------------------------------------------------ Vue Équipe
+  const PX_MIN = 1;                 // 1 px par minute → 60 px par heure
+  const H_DEBUT = 7, H_FIN = 21;    // plage affichée
+  let equipe = [];                  // [{ id, nom }] — propriétaire en premier
+  let jourEquipe = new Date(); jourEquipe.setHours(0,0,0,0);
+
+  async function chargerEquipe(){
+    const proprio = { id: espaceId, nom: 'Moi' };
+    equipe = [proprio];
+    try{
+      const { data: membres } = await supabase.from('workspace_members')
+        .select('user_id, email').eq('workspace_id', espaceId).eq('statut', 'actif');
+      const ids = [espaceId, ...(membres || []).map(m => m.user_id).filter(Boolean)];
+      const noms = {};
+      try{
+        const { data: profs } = await supabase.from('profiles').select('id, full_name, business_name').in('id', ids);
+        (profs || []).forEach(p => { noms[p.id] = p.full_name || p.business_name; });
+      }catch(e){ /* RLS : repli sur l'email */ }
+      proprio.nom = noms[espaceId] || 'Moi';
+      (membres || []).filter(m => m.user_id).forEach(m =>
+        equipe.push({ id: m.user_id, nom: noms[m.user_id] || m.email.split('@')[0] }));
+    }catch(e){ /* équipe réduite au propriétaire */ }
+    const sel = document.getElementById('collaborateur_id');
+    sel.innerHTML = equipe.map(m => `<option value="${m.id}">${escapeHtml(m.nom)}</option>`).join('');
+    document.getElementById('collab-field').style.display = equipe.length > 1 ? '' : 'none';
+  }
+
+  async function rendreEquipe(){
+    const debut = new Date(jourEquipe), fin = new Date(jourEquipe); fin.setDate(fin.getDate() + 1);
+    document.getElementById('eq-date').textContent =
+      jourEquipe.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' });
+    const { data, error } = await supabase.from('rendez_vous').select('*')
+      .gte('date_debut', debut.toISOString()).lt('date_debut', fin.toISOString())
+      .order('date_debut', { ascending: true });
+    const grille = document.getElementById('eq-grille');
+    if(error){ grille.innerHTML = '<div style="padding:30px;">Impossible de charger la journée.</div>'; return; }
+    const rdvs = (data || []).filter(a => a.statut !== 'annule');
+
+    const hauteur = (H_FIN - H_DEBUT) * 60 * PX_MIN;
+    grille.style.gridTemplateColumns = `56px repeat(${equipe.length}, minmax(150px, 1fr))`;
+    grille.style.setProperty('--h', (60 * PX_MIN) + 'px');
+    let html = '<div class="eq-tete"></div>' + equipe.map(m =>
+      `<div class="eq-tete"><span class="eq-avatar">${escapeHtml((m.nom || '?').charAt(0).toUpperCase())}</span>${escapeHtml(m.nom)}</div>`).join('');
+    html += `<div class="eq-heures" style="height:${hauteur}px;">` +
+      Array.from({ length: H_FIN - H_DEBUT }, (_, i) =>
+        `<span style="top:${i * 60 * PX_MIN}px;">${String(H_DEBUT + i).padStart(2,'0')}:00</span>`).join('') + '</div>';
+    equipe.forEach(m => {
+      const siens = rdvs.filter(a => (a.collaborateur_id || espaceId) === m.id);
+      html += `<div class="eq-col" data-collab="${m.id}" style="height:${hauteur}px;">` + siens.map(a => {
+        const d = new Date(a.date_debut), f = new Date(a.date_fin);
+        const top = Math.max(0, (d.getHours() * 60 + d.getMinutes() - H_DEBUT * 60) * PX_MIN);
+        const h = Math.max(24, ((f - d) / 60000) * PX_MIN - 2);
+        return `<div class="eq-bloc${a.statut === 'en_attente' ? ' attente' : ''}" data-id="${a.id}" style="top:${top}px; height:${h}px;">
+          <b>${toTimeInput(d)} - ${toTimeInput(f)}</b>${escapeHtml(a.titre)}</div>`;
+      }).join('') + '</div>';
+    });
+    grille.innerHTML = html;
+
+    const auj = new Date();
+    if(toDateInput(auj) === toDateInput(jourEquipe)){
+      const y = (auj.getHours() * 60 + auj.getMinutes() - H_DEBUT * 60) * PX_MIN;
+      if(y > 0 && y < hauteur) grille.querySelectorAll('.eq-col').forEach(c =>
+        c.insertAdjacentHTML('beforeend', `<div class="eq-maintenant" style="top:${y}px;"></div>`));
+    }
+
+    grille.querySelectorAll('.eq-bloc').forEach(b => b.addEventListener('click', e => {
+      e.stopPropagation(); openModal(rdvs.find(a => a.id === b.dataset.id));
+    }));
+    // Clic sur un créneau vide : nouveau rendez-vous pré-rempli (heure arrondie au quart d'heure).
+    grille.querySelectorAll('.eq-col').forEach(c => c.addEventListener('click', e => {
+      const y = e.target === c ? e.offsetY : 0;
+      const min = Math.round((y / PX_MIN + H_DEBUT * 60) / 15) * 15;
+      openModal(null, { date: jourEquipe, collab: c.dataset.collab,
+        heure: `${String(Math.floor(min / 60)).padStart(2,'0')}:${String(min % 60).padStart(2,'0')}` });
+    }));
+  }
+
+  function basculerVue(equipeActive){
+    document.getElementById('vue-liste').classList.toggle('on', !equipeActive);
+    document.getElementById('vue-equipe').classList.toggle('on', equipeActive);
+    document.getElementById('equipe-view').style.display = equipeActive ? '' : 'none';
+    groupsEl.style.display = equipeActive ? 'none' : '';
+    if(equipeActive){ loadingEl.style.display = 'none'; emptyEl.style.display = 'none'; rendreEquipe(); }
+    else loadAppointments();
+    try{ localStorage.setItem('cadence-agenda-vue', equipeActive ? 'equipe' : 'liste'); }catch(e){}
+  }
+  document.getElementById('vue-liste').addEventListener('click', () => basculerVue(false));
+  document.getElementById('vue-equipe').addEventListener('click', () => basculerVue(true));
+  document.getElementById('eq-prec').addEventListener('click', () => { jourEquipe.setDate(jourEquipe.getDate() - 1); rendreEquipe(); });
+  document.getElementById('eq-suiv').addEventListener('click', () => { jourEquipe.setDate(jourEquipe.getDate() + 1); rendreEquipe(); });
+  document.getElementById('eq-auj').addEventListener('click', () => { jourEquipe = new Date(); jourEquipe.setHours(0,0,0,0); rendreEquipe(); });
+
   (async function init(){
     const { data } = await supabase.auth.getSession();
     if(!data.session){
@@ -965,7 +1107,10 @@
     await loadClientsIntoSelect();
     await loadPrestationsIntoSelect();
     await loadPaiementConfig();
-    loadAppointments();
+    await chargerEquipe();
+    let vueEquipe = false;
+    try{ vueEquipe = localStorage.getItem('cadence-agenda-vue') === 'equipe'; }catch(e){}
+    if(vueEquipe) basculerVue(true); else loadAppointments();
   })();
   }
 </script>

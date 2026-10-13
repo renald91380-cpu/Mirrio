@@ -25,6 +25,10 @@
   .etoiles{ color:var(--amber); letter-spacing:1px; }
   .bloc{ background:#fff; border-radius:12px; padding:20px; margin-bottom:16px; box-shadow:0 1px 3px rgba(28,35,51,0.08); }
   .bloc h2{ font-family:'Fraunces', Georgia, serif; font-size:19px; margin-bottom:12px; }
+  .onglets{ display:inline-flex; background:rgba(28,35,51,0.06); border-radius:9px; padding:3px; margin-bottom:12px; }
+  .onglets button{ border:none; background:none; padding:7px 16px; border-radius:7px; font:600 13.5px Inter, sans-serif; color:rgba(28,35,51,0.6); cursor:pointer; }
+  .onglets button.on{ background:#fff; color:var(--ink); box-shadow:0 1px 3px rgba(28,35,51,0.15); }
+  .cat{ font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:rgba(28,35,51,0.5); margin:14px 0 2px; font-weight:700; }
   .presta{ display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-top:1px solid rgba(28,35,51,0.08); }
   .presta:first-of-type{ border-top:none; }
   .presta small{ color:rgba(28,35,51,0.55); display:block; }
@@ -57,7 +61,7 @@
   const urlSure = u => /^https:\/\//i.test(u) ? u : '';
   const etoiles = n => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n));
   const prix = n => Number(n).toFixed(2).replace('.', ',') + ' €';
-  const LIB = { coiffure:'Coiffure', esthetique:'Esthétique', onglerie:'Onglerie', therapeute:'Bien-être', coach:'Coaching',
+  const LIB = { coiffure:'Coiffure', barbier:'Barbier', massage:'Massage & spa', esthetique:'Esthétique', onglerie:'Onglerie', therapeute:'Bien-être', coach:'Coaching',
     photographe:'Photographie', formateur:'Formation', professeur:'Cours particuliers', consultant:'Conseil', autre:'Autre' };
 
   (async () => {
@@ -75,9 +79,8 @@
           ${x.nb_avis ? ` · <span class="etoiles">${etoiles(x.note_moyenne)}</span> ${x.note_moyenne} (${x.nb_avis} avis)` : ' · Pas encore d\'avis'}</div>
         ${x.description ? `<div class="bloc"><p>${esc(x.description)}</p></div>` : ''}
         <div class="bloc"><h2>Prestations</h2>
-          ${x.prestations.map(p => `<div class="presta"><div><strong>${esc(p.libelle)}</strong>
-            <small>${p.duree_minutes} min${p.description ? ' · ' + esc(p.description) : ''}</small></div>
-            <strong>${prix(p.prix_unitaire)}</strong></div>`).join('')}</div>
+          ${(x.publics || []).length > 1 ? `<div class="onglets" id="onglets"><button data-p="" class="on">Tous</button><button data-p="femme">Femme</button><button data-p="homme">Homme</button></div>` : ''}
+          <div id="liste-presta"></div></div>
         ${x.latitude != null ? `<div class="bloc"><h2>Où nous trouver</h2>${x.adresse ? `<p>${esc(x.adresse)}</p>` : ''}<div id="carte"></div></div>` : ''}
         <div class="bloc"><h2>Avis clients</h2>
           ${x.avis.length ? x.avis.map(a => `<div class="avis"><span class="etoiles">${etoiles(a.note)}</span>
@@ -85,6 +88,23 @@
             ${a.commentaire ? `<p>${esc(a.commentaire)}</p>` : ''}</div>`).join('')
             : '<p class="meta">Les avis sont déposés uniquement par des clients ayant eu un rendez-vous.</p>'}</div>
         <div class="cta"><a class="btn" href="reservation.html?p=${encodeURIComponent(x.slug)}">Réserver un rendez-vous</a></div>`;
+      const dessinerPrestations = pub => {
+        const liste = x.prestations.filter(p => !pub || (p.public_cible || 'mixte') === 'mixte' || p.public_cible === pub);
+        let cat = null, out = '';
+        liste.forEach(p => {
+          const c = p.categorie || '';
+          if(c !== cat){ cat = c; if(c) out += `<div class="cat">${esc(c)}</div>`; }
+          out += `<div class="presta"><div><strong>${esc(p.libelle)}</strong>
+            <small>${p.duree_minutes} min${p.description ? ' · ' + esc(p.description) : ''}</small></div>
+            <strong>${prix(p.prix_unitaire)}</strong></div>`;
+        });
+        document.getElementById('liste-presta').innerHTML = out || '<p class="meta">Aucune prestation pour ce public.</p>';
+      };
+      dessinerPrestations('');
+      document.querySelectorAll('#onglets button').forEach(b => b.addEventListener('click', () => {
+        document.querySelectorAll('#onglets button').forEach(o => o.classList.toggle('on', o === b));
+        dessinerPrestations(b.dataset.p);
+      }));
       if(x.latitude != null && window.L){
         const m = L.map('carte').setView([x.latitude, x.longitude], 15);
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(m);
