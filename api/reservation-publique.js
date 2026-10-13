@@ -25,6 +25,8 @@
 // Variables d'environnement attendues :
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, RESEND_API_KEY, RESEND_FROM
 
+import { icsParId, pieceJointe } from './_ics.js';
+
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -161,11 +163,11 @@ function echapperHtml(str){
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-async function envoyerEmail({ to, replyTo, subject, html }){
+async function envoyerEmail({ to, replyTo, subject, html, attachments }){
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: RESEND_FROM, to: [to], reply_to: replyTo || undefined, subject, html })
+    body: JSON.stringify({ from: RESEND_FROM, to: [to], reply_to: replyTo || undefined, subject, html, attachments })
   });
   if(!r.ok){
     const corps = await r.text().catch(() => '');
@@ -462,6 +464,9 @@ export default async function handler(req, res){
     })));
   }catch(e){ /* pas bloquant, voir la même note plus haut sur le chemin payant */ }
 
+  // .ics du rendez-vous : joint aux deux emails ET renvoyé au navigateur du client.
+  const ical = await icsParId(rdvGratuit.id, `https://${req.headers.host}`);
+
   // ---- emails best-effort : jamais bloquants ----
   if(RESEND_API_KEY){
     let profil = {}, facturation = {};
@@ -479,12 +484,14 @@ export default async function handler(req, res){
     try{
       await envoyerEmail({
         to: email,
+        attachments: pieceJointe(ical?.ics),
         subject: `Votre demande de rendez-vous — ${nomPraticien}`,
         html: gabaritSimple({
           titre: 'Votre demande a bien été reçue',
           paragraphes: [
             `Vous avez demandé un rendez-vous pour <strong>${echapperHtml(libelleCombine)}</strong> le ${echapperHtml(quand)}, auprès de ${echapperHtml(nomPraticien)}.`,
-            `Cette demande est <strong>en attente de confirmation</strong> — vous recevrez un message dès qu’elle sera validée.`
+            `Cette demande est <strong>en attente de confirmation</strong> — vous recevrez un message dès qu’elle sera validée.`,
+            ...(ical?.lien ? [`<a href="${echapperHtml(ical.lien)}">Ajouter à mon agenda</a> (fichier .ics également joint à cet email).`] : [])
           ]
         })
       });
@@ -495,6 +502,7 @@ export default async function handler(req, res){
         await envoyerEmail({
           to: facturation.emetteur_email,
           replyTo: email,
+          attachments: pieceJointe(ical?.ics),
           subject: `Nouvelle demande de rendez-vous — ${nom}`,
           html: gabaritSimple({
             titre: 'Nouvelle demande de réservation',
@@ -509,5 +517,5 @@ export default async function handler(req, res){
     }
   }
 
-  return json(res, 200, { ok: true });
+  return json(res, 200, { ok: true, ics_url: ical?.lien || null });
 }

@@ -31,6 +31,8 @@ export const config = { api: { bodyParser: false } };
 
 import crypto from 'crypto';
 
+import { icsParId, pieceJointe } from './_ics.js';
+
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -246,11 +248,11 @@ ${logoUrl
 </body></html>`;
 }
 
-async function envoyerEmail({ to, replyTo, subject, html }){
+async function envoyerEmail({ to, replyTo, subject, html, attachments }){
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: RESEND_FROM, to: [to], reply_to: replyTo || undefined, subject, html })
+    body: JSON.stringify({ from: RESEND_FROM, to: [to], reply_to: replyTo || undefined, subject, html, attachments })
   });
   if(!r.ok){
     const corps = await r.text().catch(() => '');
@@ -443,6 +445,7 @@ async function traiterConfirmationReservation({ rdv, session, ownerId, stripeSec
     }
 
     const origine = `https://${req.headers.host}`;
+    const ical = await icsParId(rdv.id, origine);
 
     if(resultat.prospect_email && RESEND_API_KEY){
       const jetonPartage = await nouveauJetonPartage();
@@ -450,6 +453,7 @@ async function traiterConfirmationReservation({ rdv, session, ownerId, stripeSec
       await envoyerEmail({
         to: resultat.prospect_email,
         replyTo: params.emetteur_email || undefined,
+        attachments: pieceJointe(ical?.ics),
         subject: `Facture ${doc.numero || ''} — ${nomEmetteur}`,
         html: gabaritEmailFacturePayee({
           nomEmetteur, logoUrl: profil.logo_url, nomClient: resultat.prospect_nom,
@@ -467,6 +471,7 @@ async function traiterConfirmationReservation({ rdv, session, ownerId, stripeSec
       await envoyerEmail({
         to: params.emetteur_email,
         replyTo: resultat.prospect_email || undefined,
+        attachments: pieceJointe(ical?.ics),
         subject: `Nouveau rendez-vous payé et confirmé — ${resultat.prospect_nom || ''}`,
         html: gabaritSimple({
           titre: 'Nouveau rendez-vous confirmé automatiquement',

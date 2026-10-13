@@ -111,6 +111,14 @@
 
   .note-vide{ font-size:14px; color:rgba(28,35,51,0.6); text-align:center; padding:20px 0; }
 </style>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#1C2333">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cadence">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<script src="/pwa.js" defer></script>
 </head>
 <body>
 
@@ -175,6 +183,7 @@
           </div>
           <h2>Votre demande a été envoyée</h2>
           <p id="confirmation-texte"></p>
+          <p style="margin-top:16px;"><a id="lien-ics" href="#" style="display:none; padding:11px 20px; border-radius:9px; background:var(--ink); color:var(--parchment); text-decoration:none; font-weight:600; font-size:14px;">Ajouter à mon agenda</a></p>
         </div>
       </div>
 
@@ -426,6 +435,10 @@
 
     document.getElementById('confirmation-texte').textContent =
       `Vous recevrez une confirmation par email dès que ${bootstrap.praticien.business_name} l'aura validée.`;
+    if(resultat.ics_url){
+      const l = document.getElementById('lien-ics');
+      l.href = resultat.ics_url; l.style.display = 'inline-block';
+    }
     afficherEtape('etape-confirmation');
   });
 
