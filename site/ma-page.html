@@ -156,6 +156,12 @@
   .membre-ligne .ph img{ width:100%; height:100%; object-fit:cover; }
   .membre-ligne .txt{ flex:1; min-width:0; } .membre-ligne .txt small{ display:block; color:rgba(28,35,51,0.55); }
   .membre-ligne button{ border:1px solid rgba(28,35,51,0.15); background:#fff; border-radius:6px; padding:6px 10px; cursor:pointer; font-size:13px; }
+  .reserv-bloc{ margin:4px 0 16px; padding:14px 16px; border:1px solid rgba(28,35,51,0.14); border-radius:10px; background:#FBFAF6; }
+  .reserv-bloc .opts{ display:flex; flex-wrap:wrap; gap:8px 18px; margin:8px 0 4px; }
+  .reserv-bloc label.cb{ display:flex; align-items:center; gap:8px; font-size:14px; font-weight:500; cursor:pointer; }
+  .reserv-bloc input[type=checkbox], .reserv-bloc input[type=radio]{ width:18px; height:18px; }
+  .reserv-bloc .sous-titre{ font-size:13px; font-weight:700; margin:14px 0 2px; }
+  .badge-res{ display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px; background:rgba(62,124,116,0.14); color:var(--teal); margin-left:6px; }
   .form-membre{ margin-top:14px; padding-top:14px; border-top:1px dashed rgba(28,35,51,0.2); }
   .alerte-pub{ background:#FFF4E0; border:1px solid #F0C98A; border-radius:10px; padding:14px 16px; font-size:14px; margin-bottom:20px; }
   .lien-pub{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
@@ -309,6 +315,25 @@
                 <div class="field"><label for="m-role">Rôle</label><input type="text" id="m-role" maxlength="60" placeholder="Coloriste"></div>
               </div>
               <div class="field"><label for="m-bio">Mot de présentation (facultatif)</label><input type="text" id="m-bio" maxlength="200" placeholder="10 ans d'expérience, spécialiste du balayage."></div>
+              <div class="reserv-bloc">
+                <label class="cb"><input type="checkbox" id="m-reservable"> <strong>Réservable en ligne</strong></label>
+                <div class="hint" style="margin-top:2px;">Vos clients pourront choisir cette personne, ou « Sans préférence ». Son agenda est celui qui compte pour les disponibilités.</div>
+                <div id="m-reserv-detail" hidden>
+                  <div class="sous-titre">Prestations assurées</div>
+                  <label class="cb"><input type="radio" name="m-presta-mode" value="toutes" checked> Toutes les prestations</label>
+                  <label class="cb" style="margin-top:6px;"><input type="radio" name="m-presta-mode" value="choix"> Seulement certaines</label>
+                  <div class="opts" id="m-prestas" hidden></div>
+                  <div class="sous-titre">Jours et horaires</div>
+                  <label class="cb"><input type="checkbox" id="m-horaires-propres"> Différents de ceux du salon</label>
+                  <div id="m-horaires-detail" hidden>
+                    <div class="opts" id="m-jours"></div>
+                    <div class="grid-2" style="margin-top:8px;">
+                      <div class="field" style="margin:0;"><label for="m-h-debut">De</label><input type="time" id="m-h-debut" value="09:00"></div>
+                      <div class="field" style="margin:0;"><label for="m-h-fin">À</label><input type="time" id="m-h-fin" value="18:00"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <div class="field"><label>Photo</label>
                 <div style="display:flex; gap:10px; align-items:center;">
                   <div class="membre-ligne" style="border:none; padding:0;"><span class="ph" id="m-photo-apercu">?</span></div>
@@ -373,7 +398,7 @@
   const SECTIONS = { a_propos:'À propos', prestations:'Prestations', galerie:'Galerie photos', equipe:"L'équipe", horaires:'Horaires', carte:'Carte & contact', avis:'Avis clients' };
   const COULEURS = ['#E2A63D','#C0392B','#D96C8A','#8E44AD','#244990','#1F7A8C','#3E7C74','#2E7D32','#6D4C41','#1C2333','#B5533F','#C9A227'];
 
-  let espaceId = null, vit = structuredClone(DEFAUT), equipe = [], prestations = [], reglage = {}, profil = {}, ville = null, avis = [];
+  let espaceId = null, affectations = [], vit = structuredClone(DEFAUT), equipe = [], prestations = [], reglage = {}, profil = {}, ville = null, avis = [];
   let sale = false, enregistre = null, membrePhoto = null;
 
   function toast(msg, err){ const t = $('toast'); t.textContent = msg; t.className = 'toast show' + (err ? ' err' : ''); clearTimeout(toast.h); toast.h = setTimeout(() => t.className = 'toast', 3200); }
@@ -468,7 +493,7 @@
   }
   function rendreEquipe(){
     $('equipe-liste').innerHTML = equipe.length ? equipe.map((m, i) => `<div class="membre-ligne"><span class="ph">${m.photo_url ? `<img src="${esc(m.photo_url)}" alt="">` : esc(m.nom.charAt(0).toUpperCase())}</span>
-      <div class="txt"><b>${esc(m.nom)}</b><small>${esc(m.role || '')}</small></div>
+      <div class="txt"><b>${esc(m.nom)}${m.reservable ? '<span class="badge-res">Réservable</span>' : ''}</b><small>${esc(m.role || '')}</small></div>
       <button data-a="h" data-i="${i}" ${i === 0 ? 'disabled' : ''}>▲</button><button data-a="b" data-i="${i}" ${i === equipe.length - 1 ? 'disabled' : ''}>▼</button>
       <button data-a="e" data-i="${i}">Modifier</button><button data-a="x" data-i="${i}">Retirer</button></div>`).join('')
       : '<p class="hint">Aucun membre pour l\'instant.</p>';
@@ -477,7 +502,7 @@
   async function actionMembre(a, i){
     const m = equipe[i];
     if(a === 'e'){ $('m-id').value = m.id; $('m-nom').value = m.nom; $('m-role').value = m.role || ''; $('m-bio').value = m.bio || ''; membrePhoto = m.photo_url || null;
-      majPhotoMembre(); $('m-enregistrer').textContent = 'Mettre à jour'; $('m-annuler').style.display = ''; $('m-nom').focus(); return; }
+      majPhotoMembre(); remplirReservation(m); $('m-enregistrer').textContent = 'Mettre à jour'; $('m-annuler').style.display = ''; $('m-nom').focus(); return; }
     if(a === 'x'){
       if(!confirm(`Retirer ${m.nom} de la page ?`)) return;
       const { error } = await supabase.from('vitrine_equipe').delete().eq('id', m.id);
@@ -489,7 +514,49 @@
     rendreEquipe(); envoyerApercu();
   }
   function majPhotoMembre(){ const p = $('m-photo-apercu'); p.innerHTML = membrePhoto ? `<img src="${esc(membrePhoto)}" alt="" style="width:100%;height:100%;object-fit:cover;">` : '?'; }
-  function reinitMembre(){ ['m-id','m-nom','m-role','m-bio'].forEach(i => $(i).value = ''); membrePhoto = null; majPhotoMembre(); $('m-enregistrer').textContent = "Ajouter à l'équipe"; $('m-annuler').style.display = 'none'; }
+  // ---- Réservation en ligne d'un membre : prestations assurées, jours et horaires propres
+  const JOURS = [[1,'Lun'],[2,'Mar'],[3,'Mer'],[4,'Jeu'],[5,'Ven'],[6,'Sam'],[0,'Dim']];
+  function dessinerOptionsReservation(){
+    $('m-prestas').innerHTML = prestations.length
+      ? prestations.map(p => `<label class="cb"><input type="checkbox" class="m-presta" value="${p.id}"> ${esc(p.libelle)}</label>`).join('')
+      : '<span class="hint">Ajoutez d\'abord des prestations dans Paramètres.</span>';
+    $('m-jours').innerHTML = JOURS.map(([n, l]) => `<label class="cb"><input type="checkbox" class="m-jour" value="${n}" ${n >= 1 && n <= 5 ? 'checked' : ''}> ${l}</label>`).join('');
+  }
+  function majVisibiliteReservation(){
+    $('m-reserv-detail').hidden = !$('m-reservable').checked;
+    $('m-prestas').hidden = document.querySelector('input[name=m-presta-mode]:checked').value !== 'choix';
+    $('m-horaires-detail').hidden = !$('m-horaires-propres').checked;
+  }
+  ['m-reservable', 'm-horaires-propres'].forEach(id => $(id).addEventListener('change', majVisibiliteReservation));
+  document.querySelectorAll('input[name=m-presta-mode]').forEach(r => r.addEventListener('change', majVisibiliteReservation));
+
+  function remplirReservation(m){
+    dessinerOptionsReservation();
+    $('m-reservable').checked = !!(m && m.reservable);
+    const siennes = m ? affectations.filter(a => a.intervenant_id === m.id).map(a => a.prestation_id) : [];
+    document.querySelector(`input[name=m-presta-mode][value=${siennes.length ? 'choix' : 'toutes'}]`).checked = true;
+    document.querySelectorAll('.m-presta').forEach(c => { c.checked = siennes.includes(c.value); });
+    const propres = !!(m && m.jours_ouvres);
+    $('m-horaires-propres').checked = propres;
+    if(propres){
+      document.querySelectorAll('.m-jour').forEach(c => { c.checked = m.jours_ouvres.includes(Number(c.value)); });
+      $('m-h-debut').value = String(m.heure_debut || '09:00').slice(0, 5); $('m-h-fin').value = String(m.heure_fin || '18:00').slice(0, 5);
+    }
+    majVisibiliteReservation();
+  }
+  function lireReservation(){
+    const reservable = $('m-reservable').checked;
+    const propres = reservable && $('m-horaires-propres').checked;
+    return {
+      reservable,
+      jours_ouvres: propres ? [...document.querySelectorAll('.m-jour:checked')].map(c => Number(c.value)) : null,
+      heure_debut: propres ? $('m-h-debut').value || null : null,
+      heure_fin: propres ? $('m-h-fin').value || null : null,
+      prestationsAssurees: reservable && document.querySelector('input[name=m-presta-mode]:checked').value === 'choix' ? [...document.querySelectorAll('.m-presta:checked')].map(c => c.value) : []
+    };
+  }
+
+  function reinitMembre(){ ['m-id','m-nom','m-role','m-bio'].forEach(i => $(i).value = ''); membrePhoto = null; majPhotoMembre(); remplirReservation(null); $('m-enregistrer').textContent = "Ajouter à l'équipe"; $('m-annuler').style.display = 'none'; }
 
   function rendrePublication(){
     const pret = !!(reglage.activee && reglage.slug);
@@ -543,16 +610,42 @@
   $('m-enregistrer').onclick = async () => {
     const nom = $('m-nom').value.trim();
     if(!nom){ toast('Indiquez un nom.', true); $('m-nom').focus(); return; }
-    const ligne = { nom, role: $('m-role').value.trim() || null, bio: $('m-bio').value.trim() || null, photo_url: membrePhoto };
+    const res = lireReservation();
+    if(res.reservable && $('m-horaires-propres').checked && (!res.jours_ouvres.length || !res.heure_debut || !res.heure_fin || res.heure_fin <= res.heure_debut)){
+      toast('Choisissez au moins un jour et des horaires valides (la fin après le début).', true); return;
+    }
+    if(res.reservable && document.querySelector('input[name=m-presta-mode]:checked').value === 'choix' && !res.prestationsAssurees.length){
+      toast('Cochez au moins une prestation, ou choisissez « Toutes les prestations ».', true); return;
+    }
+    const { prestationsAssurees, ...champsReservation } = res;
+    const ligne = { nom, role: $('m-role').value.trim() || null, bio: $('m-bio').value.trim() || null, photo_url: membrePhoto, ...champsReservation };
     const id = $('m-id').value;
+    let membreId = id;
+    // Sans la migration v20, les colonnes de réservation n'existent pas : un simple membre
+    // d'affichage s'enregistre quand même (réessai sans elles) ; un membre réservable, non.
+    const sansReservation = { nom: ligne.nom, role: ligne.role, bio: ligne.bio, photo_url: ligne.photo_url };
+    const MSG_V20 = "L'enregistrement a échoué. La migration schema-v20 a-t-elle été exécutée ?";
     if(id){
-      const { error } = await supabase.from('vitrine_equipe').update(ligne).eq('id', id);
-      if(error){ toast("L'enregistrement a échoué.", true); return; }
+      let { error } = await supabase.from('vitrine_equipe').update(ligne).eq('id', id);
+      if(error && !res.reservable) ({ error } = await supabase.from('vitrine_equipe').update(sansReservation).eq('id', id));
+      if(error){ toast(MSG_V20, true); return; }
       Object.assign(equipe.find(m => m.id === id), ligne);
     }else{
-      const { data, error } = await supabase.from('vitrine_equipe').insert({ ...ligne, owner_id: espaceId, position: equipe.length }).select().single();
-      if(error){ toast("L'enregistrement a échoué.", true); return; }
-      equipe.push(data);
+      const base = { owner_id: espaceId, position: equipe.length };
+      let { data, error } = await supabase.from('vitrine_equipe').insert({ ...ligne, ...base }).select().single();
+      if(error && !res.reservable) ({ data, error } = await supabase.from('vitrine_equipe').insert({ ...sansReservation, ...base }).select().single());
+      if(error){ toast(MSG_V20, true); return; }
+      equipe.push(data); membreId = data.id;
+    }
+    // Prestations assurées : on remplace l'ensemble des affectations de cette personne.
+    if(res.reservable || affectations.some(a => a.intervenant_id === membreId)){
+      await supabase.from('prestation_intervenants').delete().eq('intervenant_id', membreId);
+      affectations = affectations.filter(a => a.intervenant_id !== membreId);
+    }
+    if(prestationsAssurees.length){
+      const lignes = prestationsAssurees.map(pid => ({ prestation_id: pid, intervenant_id: membreId, owner_id: espaceId }));
+      const { error } = await supabase.from('prestation_intervenants').insert(lignes);
+      if(error){ toast("Les prestations assurées n'ont pas pu être enregistrées.", true); } else affectations.push(...lignes);
     }
     reinitMembre(); rendreEquipe(); envoyerApercu(); toast('Équipe mise à jour.');
   };
@@ -583,9 +676,10 @@
     $('sidebar-name').textContent = nomAffiche; $('sidebar-avatar').textContent = initiales(nomAffiche);
     espaceId = await idEspaceActif(supabase);
 
-    const [v, eq, pr, rg, pf, fa, av] = await Promise.all([
+    const [v, eq, aff, pr, rg, pf, fa, av] = await Promise.all([
       supabase.from('vitrine').select('*').eq('owner_id', espaceId).maybeSingle(),
       supabase.from('vitrine_equipe').select('*').eq('owner_id', espaceId).order('position'),
+      supabase.from('prestation_intervenants').select('prestation_id, intervenant_id').eq('owner_id', espaceId),
       supabase.from('prestations').select('id,libelle,description,prix_unitaire,duree_minutes,public_cible,categorie').eq('owner_id', espaceId).eq('actif', true).order('position'),
       supabase.from('parametres_reservation').select('*').eq('owner_id', espaceId).maybeSingle(),
       supabase.from('profiles').select('business_name,full_name,logo_url,accent,metier').eq('id', espaceId).maybeSingle(),
@@ -597,12 +691,13 @@
       $('loading-state').style.display = ''; $('loading-state').textContent = "La migration schema-v18-vitrine.sql n'a pas encore été exécutée dans Supabase."; return;
     }
     if(v.data){ const { owner_id, created_at, updated_at, ...reste } = v.data; vit = { ...structuredClone(DEFAUT), ...reste, sections:{ ...DEFAUT.sections, ...(reste.sections || {}) } }; }
-    equipe = eq.data || []; prestations = pr.data || []; reglage = rg.data || {}; profil = pf.data || {}; ville = fa.data?.emetteur_ville || null; avis = av.data || [];
+    equipe = eq.data || []; affectations = aff.data || []; prestations = pr.data || []; reglage = rg.data || {}; profil = pf.data || {}; ville = fa.data?.emetteur_ville || null; avis = av.data || [];
     // Une section ajoutée plus tard doit toujours apparaître dans l'ordre.
     DEFAUT.ordre.forEach(k => { if(!vit.ordre.includes(k)) vit.ordre.push(k); });
 
     $('contenu').style.display = 'block';
     lierChamps();
+    remplirReservation(null);
     $('cadre').src = `pro.html?p=${encodeURIComponent(reglage.slug || 'apercu')}&preview=1`;
   })();
 </script>

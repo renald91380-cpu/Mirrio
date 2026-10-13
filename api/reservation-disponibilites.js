@@ -27,6 +27,7 @@ import annuaire from './_annuaire.js';
 import avis from './_avis.js';
 import rdvIcs from './_rdv-ics.js';
 import vitrine from './_vitrine.js';
+import { contexte, occupes, creneauxDuJour, composantsParis, parisVersUtc, get as getDispo } from './_dispo.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -44,31 +45,6 @@ async function supabase(chemin){
   });
   if(!r.ok) throw new Error(`Supabase ${r.status}`);
   return r.json();
-}
-
-// ------------------------------------------------------------ fuseau horaire
-// Convertit une heure murale Europe/Paris (année, mois 1-12, jour, heure,
-// minute) en instant UTC réel, en tenant compte du changement d'heure
-// CET/CEST — sans librairie. On lit le décalage réellement en vigueur à cet
-// instant via Intl.DateTimeFormat, puis on corrige. Suffisant ici : les
-// horaires d'ouverture d'un praticien ne chevauchent jamais 2h-3h du matin,
-// le seul moment où un changement d'heure pourrait fausser la correction.
-function decalageMinutes(date){
-  const parts = Object.fromEntries(
-    new Intl.DateTimeFormat('en-US', {
-      timeZone: 'Europe/Paris', hourCycle: 'h23',
-      year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', second: '2-digit'
-    }).formatToParts(date).map(p => [p.type, p.value])
-  );
-  const commeUtc = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute, +parts.second);
-  return Math.round((commeUtc - date.getTime()) / 60000);
-}
-
-function parisVersUtc(annee, mois, jour, heure, minute){
-  const approx = new Date(Date.UTC(annee, mois - 1, jour, heure, minute));
-  const decalage = decalageMinutes(approx);
-  return new Date(approx.getTime() - decalage * 60000);
 }
 
 // ------------------------------------------------------------------ requête
@@ -123,96 +99,70 @@ export default async function handler(req, res){
   }
   const ownerId = reglage.owner_id;
 
-  // -------------------------------------------------- appel « par jour »
-  if(prestationIds.length || dateStr){
+  // -------------------------------------------------- appel « créneaux » / « jours »
+  // - `date=YYYY-MM-DD` : les créneaux libres de ce jour.
+  // - `jours=1`         : les jours de tout l'horizon qui ont AU MOINS un créneau
+  //                       (la page n'affiche le calendrier que s'il en reste).
+  // `intervenant` = id d'un membre de l'équipe, ou `any` (premier disponible).
+  const modeJours = url.searchParams.get('jours') === '1';
+  if(prestationIds.length || dateStr || modeJours){
     const idValide = id => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     if(!prestationIds.length || !prestationIds.every(idValide)){
       return json(res, 400, { error: 'Prestation invalide.' });
     }
+    const intervenantId = url.searchParams.get('intervenant') || 'any';
+    if(intervenantId !== 'any' && !idValide(intervenantId)){
+      return json(res, 400, { error: 'Intervenant invalide.' });
+    }
+
+    let ctx;
+    try{
+      ctx = await contexte(ownerId, reglage, prestationIds);
+    }catch(e){
+      return json(res, 503, { error: 'Page de réservation temporairement indisponible.' });
+    }
+    if(ctx.prestations.length !== prestationIds.length){
+      return json(res, 404, { error: 'Prestation introuvable.' });
+    }
+    // Personne n'assure TOUTES ces prestations ensemble, ou la personne choisie ne le peut pas :
+    // inutile d'afficher un calendrier.
+    if(!ctx.solo && !ctx.eligibles.length){
+      return json(res, 200, { date: dateStr || null, creneaux: [], jours: [], raison: 'aucun_intervenant' });
+    }
+    if(!ctx.solo && intervenantId !== 'any' && !ctx.eligibles.some(i => i.id === intervenantId)){
+      return json(res, 200, { date: dateStr || null, creneaux: [], jours: [], raison: 'intervenant_indisponible' });
+    }
+
+    if(modeJours){
+      const { annee: a0, mois: m0, jour: j0 } = composantsParis(new Date());
+      const horizon = reglage.horizon_jours || 30;
+      const debutReq = new Date(parisVersUtc(a0, m0, j0, 0, 0).getTime() - 12 * 3600000).toISOString();
+      const finReq = new Date(parisVersUtc(a0, m0, j0 + horizon + 1, 24, 0).getTime() + 12 * 3600000).toISOString();
+      let busy;
+      try{ busy = await occupes(ownerId, debutReq, finReq); }
+      catch(e){ return json(res, 503, { error: 'Page de réservation temporairement indisponible.' }); }
+      const jours = [];
+      for(let i = 0; i <= horizon; i++){
+        const d = new Date(Date.UTC(a0, m0 - 1, j0 + i));
+        const c = { annee: d.getUTCFullYear(), mois: d.getUTCMonth() + 1, jour: d.getUTCDate() };
+        if(creneauxDuJour(ctx, busy, c, intervenantId).length) jours.push(d.toISOString().slice(0, 10));
+      }
+      return json(res, 200, { jours, raison: jours.length ? null : 'complet' });
+    }
+
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
     if(!m){
       return json(res, 400, { error: 'Date invalide.' });
     }
-    const [, aStr, mStr, jStr] = m;
-    const annee = Number(aStr), mois = Number(mStr), jour = Number(jStr);
+    const annee = Number(m[1]), mois = Number(m[2]), jour = Number(m[3]);
+    // Fenêtre large (±12h) pour attraper tout rendez-vous qui chevauche la journée civile.
+    const debutRequete = new Date(parisVersUtc(annee, mois, jour, 0, 0).getTime() - 12 * 3600000).toISOString();
+    const finRequete = new Date(parisVersUtc(annee, mois, jour, 24, 0).getTime() + 12 * 3600000).toISOString();
+    let busy;
+    try{ busy = await occupes(ownerId, debutRequete, finRequete); }
+    catch(e){ return json(res, 503, { error: 'Page de réservation temporairement indisponible.' }); }
 
-    let prestations;
-    try{
-      prestations = await supabase(
-        `prestations?id=in.(${prestationIds.join(',')})&owner_id=eq.${ownerId}&actif=eq.true&select=id,duree_minutes`
-      );
-    }catch(e){
-      return json(res, 503, { error: 'Page de réservation temporairement indisponible.' });
-    }
-    if(prestations.length !== prestationIds.length){
-      return json(res, 404, { error: 'Prestation introuvable.' });
-    }
-    // Durée totale = somme des prestations choisies — c'est elle qui
-    // détermine la longueur du créneau proposé, pas chaque prestation prise
-    // isolément.
-    const dureeMinutesTotale = prestations.reduce((s, p) => s + (Number(p.duree_minutes) || 0), 0);
-    const prestation = { duree_minutes: dureeMinutesTotale };
-
-    // Jour de la semaine au format Date.getDay() (0=dimanche…6=samedi) — un
-    // jour civil n'a pas d'ambiguïté de fuseau, contrairement à une heure.
-    const jourSemaine = new Date(Date.UTC(annee, mois - 1, jour)).getUTCDay();
-    if(!(reglage.jours_ouvres || []).includes(jourSemaine)){
-      return json(res, 200, { date: dateStr, creneaux: [] });
-    }
-
-    const maintenant = Date.now();
-    const auPlusTot = maintenant + (reglage.delai_min_heures || 0) * 3600000;
-    const auPlusTard = maintenant + (reglage.horizon_jours || 0) * 86400000;
-
-    const [hDebutH, hDebutM] = String(reglage.heure_debut).split(':').map(Number);
-    const [hFinH, hFinM] = String(reglage.heure_fin).split(':').map(Number);
-    const minDebut = hDebutH * 60 + hDebutM;
-    const minFin = hFinH * 60 + hFinM;
-    const intervalle = reglage.intervalle_minutes || 30;
-    const dureeMs = prestation.duree_minutes * 60000;
-
-    // Fenêtre large (±12h) pour attraper tout rendez-vous qui chevauche cette
-    // journée civile même s'il déborde sur la veille ou le lendemain, quel
-    // que soit le fuseau dans lequel il a été enregistré.
-    const debutFenetre = parisVersUtc(annee, mois, jour, 0, 0);
-    const finFenetre = parisVersUtc(annee, mois, jour, 24, 0);
-    const debutRequete = new Date(debutFenetre.getTime() - 12 * 3600000).toISOString();
-    const finRequete = new Date(finFenetre.getTime() + 12 * 3600000).toISOString();
-
-    let occupes;
-    try{
-      occupes = await supabase(
-        `rendez_vous?owner_id=eq.${ownerId}` +
-        `&date_debut=lt.${finRequete}&date_fin=gt.${debutRequete}` +
-        `&select=date_debut,date_fin,statut,paiement_statut,expire_le`
-      );
-    }catch(e){
-      return json(res, 503, { error: 'Page de réservation temporairement indisponible.' });
-    }
-    const maintenantMs = Date.now();
-    // Un rendez-vous 'en_attente' compte comme occupé : deux prospects ne
-    // doivent pas pouvoir demander le même créneau en même temps. Exception :
-    // un « hold » de paiement (phase 3) dont `expire_le` est dépassé libère le
-    // créneau immédiatement, sans attendre le cron de nettoyage
-    // (api/paiement-nettoyer.js) qui ne fait que ranger la ligne en `annule`
-    // plus tard — voir schema-v8-paiements.sql.
-    const busy = occupes
-      .filter(r => r.statut !== 'annule')
-      .filter(r => !(r.paiement_statut === 'en_attente' && r.expire_le && new Date(r.expire_le).getTime() < maintenantMs))
-      .map(r => ({ debut: new Date(r.date_debut).getTime(), fin: new Date(r.date_fin).getTime() }));
-
-    const creneaux = [];
-    for(let t = minDebut; t + prestation.duree_minutes <= minFin; t += intervalle){
-      const h = Math.floor(t / 60), mn = t % 60;
-      const debut = parisVersUtc(annee, mois, jour, h, mn);
-      const debutMs = debut.getTime();
-      const finMs = debutMs + dureeMs;
-      if(debutMs < auPlusTot || debutMs > auPlusTard) continue;
-      const chevauche = busy.some(b => debutMs < b.fin && finMs > b.debut);
-      if(chevauche) continue;
-      creneaux.push(debut.toISOString());
-    }
-
+    const creneaux = creneauxDuJour(ctx, busy, { annee, mois, jour }, intervenantId).map(c => c.iso);
     return json(res, 200, { date: dateStr, creneaux });
   }
 
@@ -227,13 +177,28 @@ export default async function handler(req, res){
       // Phase 3 : le widget doit savoir AVANT de soumettre le formulaire si un
       // paiement immédiat va être exigé (prix plein) pour confirmer le
       // créneau — voir api/reservation-publique.js et CLAUDE.md.
-      supabase(`parametres_paiement?owner_id=eq.${ownerId}&select=stripe_actif,stripe_secret_key`),
+      // `especes_actif`/`acompte_*` : schema-v19, repli sur l'ancien select tant que la migration manque.
+      supabase(`parametres_paiement?owner_id=eq.${ownerId}&select=stripe_actif,stripe_secret_key,especes_actif,acompte_minimum,acompte_pourcentage`)
+        .catch(() => supabase(`parametres_paiement?owner_id=eq.${ownerId}&select=stripe_actif,stripe_secret_key`)),
       // Style choisi dans « Ma page » (schema-v18) : la réservation prolonge la vitrine. Vide si absent.
       supabase(`vitrine?owner_id=eq.${ownerId}&select=couleur,fond,police,boutons`).catch(() => [])
     ]);
   }catch(e){
     return json(res, 503, { error: 'Page de réservation temporairement indisponible.' });
   }
+  // Équipe réservable et affectations (schema-v20) : absentes = salon seul.
+  let intervenants = [], affectations = [], validationAuto = true;
+  try{
+    intervenants = await getDispo(`vitrine_equipe?owner_id=eq.${ownerId}&reservable=eq.true&select=id,nom,role,photo_url&order=position`);
+    if(intervenants.length) affectations = await getDispo(`prestation_intervenants?owner_id=eq.${ownerId}&select=prestation_id,intervenant_id`);
+    const v = await getDispo(`parametres_reservation?owner_id=eq.${ownerId}&select=validation_auto`);
+    if(v[0] && v[0].validation_auto === false) validationAuto = false;
+  }catch(e){ /* migration v20 pas encore passée */ }
+  // Pour chaque prestation : les personnes qui l'assurent (une personne sans affectation assure tout).
+  const parIntervenant = {};
+  affectations.forEach(a => { (parIntervenant[a.intervenant_id] = parIntervenant[a.intervenant_id] || new Set()).add(a.prestation_id); });
+  prestations = prestations.map(p => ({ ...p, intervenants: intervenants.filter(i => !parIntervenant[i.id] || parIntervenant[i.id].has(p.id)).map(i => i.id) }));
+
   const profil = profils[0] || {};
   const paiement = paiements[0];
   const paiementRequis = !!(paiement?.stripe_actif && paiement?.stripe_secret_key);
@@ -248,8 +213,17 @@ export default async function handler(req, res){
       terme_pluriel: profil.terme_pluriel || null
     },
     style: vitrines[0] || {},
+    intervenants,
+    validation_auto: validationAuto,
     prestations,
     paiement_requis: paiementRequis,
+    // Choix proposé au client : CB (total en ligne) ou espèces (acompte en ligne, solde au salon).
+    paiement: {
+      en_ligne: paiementRequis,
+      especes: paiement?.especes_actif !== false,
+      acompte_minimum: Number(paiement?.acompte_minimum ?? 5),
+      acompte_pourcentage: Number(paiement?.acompte_pourcentage ?? 0)
+    },
     reglages: {
       jours_ouvres: reglage.jours_ouvres,
       heure_debut: reglage.heure_debut,

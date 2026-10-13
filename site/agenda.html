@@ -131,6 +131,7 @@
   .badge-annule{ background:rgba(181,83,63,0.12); color:var(--brick); }
   .badge-en-attente{ background:rgba(226,166,61,0.18); color:#8a5f11; }
   .badge-paye{ background:rgba(62,124,116,0.14); color:var(--teal); }
+  .badge-especes{ background:rgba(226,166,61,0.18); color:#7A5200; }
   .badge-paiement-attente{ background:rgba(28,35,51,0.08); color:rgba(28,35,51,0.6); }
   .appt-row-actions{ display:flex; gap:4px; flex-shrink:0; }
   .hint-paiement-attente{ font-size:12px; color:rgba(28,35,51,0.5); font-style:italic; white-space:nowrap; }
@@ -595,7 +596,7 @@
       document.getElementById('titre').value = appt.titre;
       document.getElementById('client_id').value = appt.client_id || '';
       document.getElementById('prestation_id').value = appt.prestation_id || '';
-      document.getElementById('collaborateur_id').value = appt.collaborateur_id || espaceId;
+      document.getElementById('collaborateur_id').value = appt.intervenant_id || '';
       majHintPrestation();
       const start = new Date(appt.date_debut);
       const end = new Date(appt.date_fin);
@@ -617,7 +618,7 @@
       const now = new Date();
       document.getElementById('date').value = toDateInput(preset?.date || now);
       if(preset?.heure){ document.getElementById('heure_debut').value = preset.heure; document.getElementById('heure_fin').value = ajouterMinutesHeure(preset.heure, 60); }
-      document.getElementById('collaborateur_id').value = preset?.collab || espaceId;
+      document.getElementById('collaborateur_id').value = (preset?.collab && preset.collab !== espaceId) ? preset.collab : '';
     }
     overlay.classList.add('show');
     document.getElementById('titre').focus();
@@ -676,6 +677,10 @@
               const clientName = a.client_id ? clientsById[a.client_id] : (a.prospect_nom || null);
               const paiementPaye = a.paiement_statut === 'paye';
               const paiementEnAttente = a.paiement_statut === 'en_attente';
+              // Règlement en espèces (schema-v19) : solde encore dû au salon, ou déjà encaissé.
+              const resteEspeces = a.paiement_mode === 'sur_place' && !a.reste_encaisse_le && Number(a.reste_sur_place) > 0 ? Number(a.reste_sur_place) : 0;
+              const especesEncaissees = a.paiement_mode === 'sur_place' && !!a.reste_encaisse_le;
+              const eur = n => new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR' }).format(n);
               // Demander un paiement suppose un rendez-vous déjà confirmé
               // (pas une demande en ligne en attente), avec une fiche client
               // et une prestation choisie — cf. api/paiement-creer-checkout.js
@@ -699,6 +704,8 @@
                       ${enAttente ? `<span class="badge badge-en-attente">Demande en ligne — en attente</span>` : ''}
                       ${paiementPaye ? `<span class="badge badge-paye">Payé</span>` : ''}
                       ${paiementEnAttente ? `<span class="badge badge-paiement-attente">Paiement en attente</span>` : ''}
+                      ${resteEspeces ? `<span class="badge badge-especes">${paiementPaye ? `Acompte payé (déduit), reste ${eur(resteEspeces)} en espèces` : `À encaisser en espèces : ${eur(resteEspeces)}`}</span>` : ''}
+                      ${especesEncaissees ? `<span class="badge badge-paye">Espèces encaissées</span>` : ''}
                     </div>
                   </div>
                   <div class="appt-row-actions">
@@ -708,6 +715,7 @@
                       <button class="btn btn-primary btn-sm confirm-btn" type="button" style="min-height:34px; padding:6px 12px; font-size:12.5px;">Confirmer</button>
                       <button class="btn btn-secondary btn-sm refuse-btn" type="button" style="min-height:34px; padding:6px 12px; font-size:12.5px;">Refuser</button>
                     `) : `
+                      ${resteEspeces ? `<button class="btn btn-primary btn-sm especes-btn" type="button" style="min-height:34px; padding:6px 12px; font-size:12.5px;" aria-label="Marquer ${eur(resteEspeces)} reçus en espèces pour ${escapeHtml(a.titre)}">Espèces reçues</button>` : ''}
                       ${peutDemanderStripe ? `
                         <button class="icon-btn payer-btn" data-provider="stripe" type="button" aria-label="Demander un paiement par carte (Stripe) pour ${escapeHtml(a.titre)}" title="Demander un paiement par carte (Stripe)">
                           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2.5"/><path d="M2 10h20"/></svg>
@@ -742,15 +750,30 @@
       const confirmBtn = row.querySelector('.confirm-btn');
       const refuseBtn = row.querySelector('.refuse-btn');
       const payerBtns = row.querySelectorAll('.payer-btn');
+      const especesBtn = row.querySelector('.especes-btn');
       if(editBtn) editBtn.addEventListener('click', (e)=>{ e.stopPropagation(); openModal(appt); });
       if(deleteBtn) deleteBtn.addEventListener('click', (e)=>{ e.stopPropagation(); deleteAppointment(id, appt.titre); });
       if(confirmBtn) confirmBtn.addEventListener('click', (e)=>{ e.stopPropagation(); confirmerReservation(appt); });
+      if(especesBtn) especesBtn.addEventListener('click', (e)=>{ e.stopPropagation(); encaisserEspeces(appt); });
       if(refuseBtn) refuseBtn.addEventListener('click', (e)=>{ e.stopPropagation(); refuserReservation(appt); });
       payerBtns.forEach(payerBtn=>{
         payerBtn.addEventListener('click', (e)=>{ e.stopPropagation(); demanderPaiement(appt, payerBtn, payerBtn.dataset.provider); });
       });
       row.addEventListener('click', ()=> openModal(appt));
     });
+  }
+
+  // Le client a réglé le solde en espèces au salon : on le note sur le rendez-vous et,
+  // s'il existe, on passe la facture liée en « payé » (voir api/paiement-webhook-stripe.js).
+  async function encaisserEspeces(appt){
+    const montant = new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR' }).format(Number(appt.reste_sur_place) || 0);
+    if(!window.confirm(`Confirmer la réception de ${montant} en espèces ?`)) return;
+    const { error } = await supabase.from('rendez_vous')
+      .update({ reste_sur_place: 0, reste_encaisse_le: new Date().toISOString() }).eq('id', appt.id);
+    if(error){ showToast("L'enregistrement a échoué. Réessayez."); return; }
+    if(appt.document_id) await supabase.from('documents').update({ statut: 'paye' }).eq('id', appt.document_id);
+    showToast('Espèces enregistrées, facture marquée payée.');
+    loadAppointments();
   }
 
   // Crée une session de paiement (Stripe ou PayPal, selon `provider`) pour ce
@@ -924,8 +947,7 @@
     const id = document.getElementById('appt-id').value;
     const clientId = document.getElementById('client_id').value || null;
     const prestationId = document.getElementById('prestation_id').value || null;
-    const collabVal = document.getElementById('collaborateur_id').value;
-    const collabId = (collabVal && collabVal !== espaceId) ? collabVal : null;   // propriétaire = non attribué
+    const collabId = document.getElementById('collaborateur_id').value || null;   // vide = non attribué
     const notes = document.getElementById('notes').value.trim() || null;
     const startDate = combineDateTime(dateStr, heureDebut);
     const endDate = combineDateTime(dateStr, heureFin);
@@ -938,7 +960,7 @@
     if(id){
       let d;
       ({ data: d, error } = await supabase.from('rendez_vous').update({
-        titre, client_id: clientId, prestation_id: prestationId, collaborateur_id: collabId, date_debut: startDate.toISOString(),
+        titre, client_id: clientId, prestation_id: prestationId, ...(membres.length ? { intervenant_id: collabId } : {}), date_debut: startDate.toISOString(),
         date_fin: endDate.toISOString(), notes
       }).eq('id', id).select());
       lignesEnregistrees = d || [];
@@ -950,7 +972,7 @@
         const occStart = addInterval(startDate, recurrence, i);
         const occEnd = addInterval(endDate, recurrence, i);
         return {
-          titre, client_id: clientId, prestation_id: prestationId, collaborateur_id: collabId, notes,
+          titre, client_id: clientId, prestation_id: prestationId, ...(membres.length ? { intervenant_id: collabId } : {}), notes,
           date_debut: occStart.toISOString(),
           date_fin: occEnd.toISOString(),
           recurring_group_id: groupId,
@@ -1001,25 +1023,19 @@
   let equipe = [];                  // [{ id, nom }] — propriétaire en premier
   let jourEquipe = new Date(); jourEquipe.setHours(0,0,0,0);
 
+  // Les colonnes sont les membres de l'équipe saisis dans « Ma page » : les mêmes personnes que
+  // celles proposées à la réservation en ligne. Sans équipe : une seule colonne, « Moi ».
+  // L'identifiant `espaceId` désigne la colonne « sans intervenant » (rendez-vous non attribués).
+  let membres = [];
   async function chargerEquipe(){
-    const proprio = { id: espaceId, nom: 'Moi' };
-    equipe = [proprio];
     try{
-      const { data: membres } = await supabase.from('workspace_members')
-        .select('user_id, email').eq('workspace_id', espaceId).eq('statut', 'actif');
-      const ids = [espaceId, ...(membres || []).map(m => m.user_id).filter(Boolean)];
-      const noms = {};
-      try{
-        const { data: profs } = await supabase.from('profiles').select('id, full_name, business_name').in('id', ids);
-        (profs || []).forEach(p => { noms[p.id] = p.full_name || p.business_name; });
-      }catch(e){ /* RLS : repli sur l'email */ }
-      proprio.nom = noms[espaceId] || 'Moi';
-      (membres || []).filter(m => m.user_id).forEach(m =>
-        equipe.push({ id: m.user_id, nom: noms[m.user_id] || m.email.split('@')[0] }));
-    }catch(e){ /* équipe réduite au propriétaire */ }
+      const { data } = await supabase.from('vitrine_equipe').select('id, nom, reservable').order('position');
+      membres = data || [];
+    }catch(e){ membres = []; }
+    equipe = membres.length ? membres.map(m => ({ id: m.id, nom: m.nom })) : [{ id: espaceId, nom: 'Moi' }];
     const sel = document.getElementById('collaborateur_id');
-    sel.innerHTML = equipe.map(m => `<option value="${m.id}">${escapeHtml(m.nom)}</option>`).join('');
-    document.getElementById('collab-field').style.display = equipe.length > 1 ? '' : 'none';
+    sel.innerHTML = '<option value="">Non attribué</option>' + membres.map(m => `<option value="${m.id}">${escapeHtml(m.nom)}</option>`).join('');
+    document.getElementById('collab-field').style.display = membres.length ? '' : 'none';
   }
 
   async function rendreEquipe(){
@@ -1032,17 +1048,19 @@
     const grille = document.getElementById('eq-grille');
     if(error){ grille.innerHTML = '<div style="padding:30px;">Impossible de charger la journée.</div>'; return; }
     const rdvs = (data || []).filter(a => a.statut !== 'annule');
+    // Avec une équipe, les rendez-vous sans intervenant s'affichent dans une colonne « Non attribué ».
+    const colonnes = membres.length && rdvs.some(a => !a.intervenant_id) ? [...equipe, { id: espaceId, nom: 'Non attribué' }] : equipe;
 
     const hauteur = (H_FIN - H_DEBUT) * 60 * PX_MIN;
-    grille.style.gridTemplateColumns = `56px repeat(${equipe.length}, minmax(150px, 1fr))`;
+    grille.style.gridTemplateColumns = `56px repeat(${colonnes.length}, minmax(150px, 1fr))`;
     grille.style.setProperty('--h', (60 * PX_MIN) + 'px');
-    let html = '<div class="eq-tete"></div>' + equipe.map(m =>
+    let html = '<div class="eq-tete"></div>' + colonnes.map(m =>
       `<div class="eq-tete"><span class="eq-avatar">${escapeHtml((m.nom || '?').charAt(0).toUpperCase())}</span>${escapeHtml(m.nom)}</div>`).join('');
     html += `<div class="eq-heures" style="height:${hauteur}px;">` +
       Array.from({ length: H_FIN - H_DEBUT }, (_, i) =>
         `<span style="top:${i * 60 * PX_MIN}px;">${String(H_DEBUT + i).padStart(2,'0')}:00</span>`).join('') + '</div>';
-    equipe.forEach(m => {
-      const siens = rdvs.filter(a => (a.collaborateur_id || espaceId) === m.id);
+    colonnes.forEach(m => {
+      const siens = rdvs.filter(a => (a.intervenant_id || espaceId) === m.id);
       html += `<div class="eq-col" data-collab="${m.id}" style="height:${hauteur}px;">` + siens.map(a => {
         const d = new Date(a.date_debut), f = new Date(a.date_fin);
         const top = Math.max(0, (d.getHours() * 60 + d.getMinutes() - H_DEBUT * 60) * PX_MIN);

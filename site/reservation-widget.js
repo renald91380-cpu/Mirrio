@@ -126,3 +126,12 @@ export function heureParis(iso){
     .formatToParts(new Date(iso)).find(x => x.type === 'hour');
   return Number(h.value);
 }
+
+// Acompte demandé en mode « espèces » : le plus grand de (minimum, pourcentage du
+// total), jamais plus que le total. Même règle, au centime près, que
+// api/reservation-publique.js (le serveur recalcule et fait foi).
+export function calculerAcompte(total, { acompte_minimum = 5, acompte_pourcentage = 0 } = {}){
+  const totalC = Math.round(total * 100);
+  const c = Math.min(totalC, Math.max(Math.round(Number(acompte_minimum) * 100), Math.round(totalC * Number(acompte_pourcentage) / 100)));
+  return c / 100;
+}

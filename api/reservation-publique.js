@@ -27,6 +27,7 @@
 
 import { icsParId, pieceJointe } from './_ics.js';
 
+import { contexte, occupes as chargerOccupes, choisirRessource } from './_dispo.js';
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -82,6 +83,18 @@ async function supabasePostRepresentation(chemin, corps){
     throw new Error(`Supabase POST ${r.status} sur ${chemin} : ${detail.slice(0, 200)}`);
   }
   return r.json();
+}
+
+// Insère un rendez-vous avec les colonnes de paiement de schema-v19 ; si la
+// migration n'a pas encore été exécutée (colonne inconnue), réessaie sans
+// elles plutôt que de faire échouer toute la réservation.
+async function insererRendezVous(corps, infos){
+  try{
+    return await supabasePostRepresentation('rendez_vous', { ...corps, ...infos });
+  }catch(e){
+    if(!/paiement_mode|total_ttc|reste_sur_place|intervenant_id|PGRST204|42703/.test(String(e.message))) throw e;
+    return supabasePostRepresentation('rendez_vous', corps);
+  }
 }
 
 async function supabasePatch(chemin, corps){
@@ -220,6 +233,13 @@ export default async function handler(req, res){
   const nom = String(body?.nom || '').trim();
   const email = String(body?.email || '').trim();
   const telephone = String(body?.telephone || '').trim();
+  // 'en_ligne' = CB, prix total ; 'sur_place' = acompte par carte + solde en espèces au salon.
+  const modeDemande = body?.mode_paiement === 'sur_place' ? 'sur_place' : 'en_ligne';
+  // Id d'un membre de l'équipe, ou 'any' / absent = premier disponible.
+  const intervenantDemande = String(body?.intervenant_id || 'any');
+  if(intervenantDemande !== 'any' && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(intervenantDemande)){
+    return json(res, 400, { error: 'Intervenant invalide.' });
+  }
 
   if(!/^[a-z0-9-]{3,40}$/.test(slug)){
     return json(res, 404, { error: 'Page de réservation introuvable.' });
@@ -250,7 +270,7 @@ export default async function handler(req, res){
   let reglages;
   try{
     reglages = await supabaseGet(
-      `parametres_reservation?slug=eq.${slug}&activee=eq.true&select=owner_id,jours_ouvres,heure_debut,heure_fin,delai_min_heures,horizon_jours`
+      `parametres_reservation?slug=eq.${slug}&activee=eq.true&select=owner_id,jours_ouvres,heure_debut,heure_fin,intervalle_minutes,delai_min_heures,horizon_jours`
     );
   }catch(e){
     return json(res, 503, { error: 'Page de réservation temporairement indisponible.' });
@@ -290,20 +310,10 @@ export default async function handler(req, res){
   const prestationPrincipale = prestationsOrdonnees[0];
 
   // ---- défense en profondeur : re-vérifier les règles côté serveur ----
-  const c = composantsParis(dateDebut);
-  const jourSemaine = new Date(Date.UTC(c.annee, c.mois - 1, c.jour)).getUTCDay();
-  if(!(reglage.jours_ouvres || []).includes(jourSemaine)){
-    return json(res, 409, { error: 'Ce jour n’est pas ouvert à la réservation.' });
-  }
-  const [hDebutH, hDebutM] = String(reglage.heure_debut).split(':').map(Number);
-  const [hFinH, hFinM] = String(reglage.heure_fin).split(':').map(Number);
-  const minuteDuJour = c.heure * 60 + c.minute;
-  if(minuteDuJour < hDebutH * 60 + hDebutM || minuteDuJour + dureeMinutesTotale > hFinH * 60 + hFinM){
-    return json(res, 409, { error: 'Ce créneau est hors des horaires de réservation.' });
-  }
+  // Délai minimum et horizon (la personne et ses horaires sont vérifiés plus bas).
   const maintenant = Date.now();
   if(dateDebut.getTime() < maintenant + (reglage.delai_min_heures || 0) * 3600000){
-    return json(res, 409, { error: 'Ce créneau est trop proche — choisissez-en un plus tard.' });
+    return json(res, 409, { error: 'Ce créneau est trop proche, choisissez-en un plus tard.' });
   }
   if(dateDebut.getTime() > maintenant + (reglage.horizon_jours || 0) * 86400000){
     return json(res, 409, { error: 'Ce créneau est trop lointain.' });
@@ -311,25 +321,32 @@ export default async function handler(req, res){
 
   const dateFin = new Date(dateDebut.getTime() + dureeMinutesTotale * 60000);
 
-  // ---- re-vérification anti-course juste avant l'insert ----
-  let occupes;
+  // ---- qui assure ce rendez-vous, et est-il/elle libre ? (juste avant l'insert) ----
+  // Même logique que la page des créneaux (api/_dispo.js) : une personne éligible
+  // (qui assure TOUTES les prestations choisies), ouverte à cette heure, sans
+  // chevauchement. « Premier disponible » prend la moins chargée du jour.
+  let intervenantAffecte = null;
   try{
-    occupes = await supabaseGet(
-      `rendez_vous?owner_id=eq.${ownerId}` +
-      `&date_debut=lt.${dateFin.toISOString()}&date_fin=gt.${dateDebut.toISOString()}` +
-      `&select=statut,paiement_statut,expire_le`
-    );
+    const ctx = await contexte(ownerId, reglage, prestationIds);
+    if(!ctx.solo && !ctx.eligibles.length){
+      return json(res, 409, { error: 'Aucun membre de l\'équipe n\'assure toutes ces prestations ensemble. Retirez-en une ou réservez-les séparément.' });
+    }
+    if(!ctx.solo && intervenantDemande !== 'any' && !ctx.eligibles.some(i => i.id === intervenantDemande)){
+      return json(res, 409, { error: 'Cette personne n\'assure pas toutes les prestations choisies.' });
+    }
+    const jourDebut = composantsParis(dateDebut);
+    const debutJour = new Date(Date.UTC(jourDebut.annee, jourDebut.mois - 1, jourDebut.jour) - 12 * 3600000).toISOString();
+    const finJour = new Date(Date.UTC(jourDebut.annee, jourDebut.mois - 1, jourDebut.jour + 1) + 36 * 3600000).toISOString();
+    const busy = await chargerOccupes(ownerId, debutJour, finJour);
+    const choix = choisirRessource(ctx, busy, dateDebut, intervenantDemande);
+    if(!choix.ok){
+      return json(res, 409, { error: 'Ce créneau n\'est plus disponible, choisissez-en un autre.' });
+    }
+    intervenantAffecte = choix.intervenantId;
   }catch(e){
     return json(res, 503, { error: 'Vérification impossible, réessayez.' });
   }
-  const maintenantMs = Date.now();
-  // Un hold de paiement expiré (phase 3, voir schema-v8-paiements.sql) ne
-  // bloque plus le créneau — même règle que api/reservation-disponibilites.js.
-  const occupe = occupes.some(r => r.statut !== 'annule'
-    && !(r.paiement_statut === 'en_attente' && r.expire_le && new Date(r.expire_le).getTime() < maintenantMs));
-  if(occupe){
-    return json(res, 409, { error: 'Ce créneau vient d’être pris, choisissez-en un autre.' });
-  }
+  const infosIntervenant = intervenantAffecte ? { intervenant_id: intervenantAffecte } : {};
 
   // ---- phase 3 : paiement anticipé, si le praticien l'a activé ----
   // Rétrocompatible : sans Stripe configuré, le parcours reste exactement
@@ -339,16 +356,42 @@ export default async function handler(req, res){
   let paiementConfig;
   try{
     paiementConfig = (await supabaseGet(
-      `parametres_paiement?owner_id=eq.${ownerId}&select=stripe_actif,stripe_secret_key`
+      `parametres_paiement?owner_id=eq.${ownerId}&select=stripe_actif,stripe_secret_key,especes_actif,acompte_minimum,acompte_pourcentage`
     ))[0];
   }catch(e){
-    return json(res, 503, { error: 'Vérification impossible, réessayez.' });
+    try{
+      paiementConfig = (await supabaseGet(`parametres_paiement?owner_id=eq.${ownerId}&select=stripe_actif,stripe_secret_key`))[0];
+    }catch(e2){
+      return json(res, 503, { error: 'Vérification impossible, réessayez.' });
+    }
   }
-  const paiementRequis = !!(paiementConfig?.stripe_actif && paiementConfig?.stripe_secret_key);
+  const stripeActif = !!(paiementConfig?.stripe_actif && paiementConfig?.stripe_secret_key);
+
+  // ---- mode de paiement : CB (total) ou espèces (acompte + solde sur place) ----
+  const especesAutorise = paiementConfig?.especes_actif !== false;
+  const totalCentimes = Math.round(montantTTC * 100);
+  const acompteMin = Math.round(Number(paiementConfig?.acompte_minimum ?? 5) * 100);
+  const acomptePct = Number(paiementConfig?.acompte_pourcentage ?? 0);
+  // Acompte = le plus grand de (minimum, pourcentage du total), jamais plus que le total.
+  const acompteCentimes = Math.min(totalCentimes, Math.max(acompteMin, Math.round(totalCentimes * acomptePct / 100)));
+  let mode = modeDemande;
+  if(mode === 'sur_place' && !especesAutorise){
+    return json(res, 400, { error: 'Le règlement sur place n\'est pas proposé par ce salon.' });
+  }
+  // Acompte égal au total : autant régler en ligne, rien à payer sur place.
+  if(mode === 'sur_place' && stripeActif && acompteCentimes >= totalCentimes) mode = 'en_ligne';
+  // Montant débité maintenant par carte, et solde dû en espèces.
+  const aPayerEnLigneCentimes = (mode === 'sur_place') ? acompteCentimes : totalCentimes;
+  const resteSurPlace = (totalCentimes - (stripeActif ? aPayerEnLigneCentimes : 0)) / 100;
+  // Sans Stripe, tout se règle sur place ; avec Stripe, un paiement en ligne n'a lieu que si > 0.
+  const paiementRequis = stripeActif && aPayerEnLigneCentimes > 0;
+  const modeEnregistre = stripeActif ? mode : 'sur_place';
+  // Colonnes schema-v19 : ajoutées seulement si présentes en base (voir insertSouple).
+  const infosPaiement = { paiement_mode: modeEnregistre, total_ttc: montantTTC, reste_sur_place: resteSurPlace };
 
   if(paiementRequis){
-    const montantCentimes = Math.round(montantTTC * 100);
-    if(!(montantCentimes > 0)){
+    const montantCentimes = aPayerEnLigneCentimes;
+    if(!(totalCentimes > 0)){
       return json(res, 400, { error: 'Le prix de cette prestation est invalide.' });
     }
 
@@ -360,7 +403,8 @@ export default async function handler(req, res){
     // facture générée par le webhook et l'email de confirmation.
     let rdv;
     try{
-      const rows = await supabasePostRepresentation('rendez_vous', {
+      // `paiement_montant` = ce qui est réellement débité par carte (total, ou acompte en mode espèces).
+      const rows = await insererRendezVous({
         owner_id: ownerId,
         titre: `${libelleCombine} — ${nom}`,
         prestation_id: prestationPrincipale.id,
@@ -373,9 +417,9 @@ export default async function handler(req, res){
         prospect_telephone: telephone,
         paiement_statut: 'en_attente',
         paiement_provider: 'stripe',
-        paiement_montant: montantTTC,
+        paiement_montant: montantCentimes / 100,
         expire_le: new Date(Date.now() + 15 * 60000).toISOString()
-      });
+      }, { ...infosPaiement, ...infosIntervenant });
       rdv = rows[0];
     }catch(e){
       return json(res, 502, { error: 'La réservation a échoué. Réessayez.' });
@@ -406,18 +450,23 @@ export default async function handler(req, res){
         payment_method_types: ['card'],
         // Une ligne Stripe par prestation choisie — un reçu détaillé plutôt
         // qu'un unique montant global.
-        line_items: prestationsOrdonnees.map(p => {
-          const taux = Number(p.tva_taux) || 0;
-          const montant = Number(p.prix_unitaire) * (1 + taux / 100);
-          return {
-            quantity: 1,
-            price_data: {
-              currency: 'eur',
-              unit_amount: Math.round(montant * 100),
-              product_data: { name: `${p.libelle} — ${nomPraticien}` }
-            }
-          };
-        }),
+        line_items: modeEnregistre === 'sur_place'
+          // Acompte : une seule ligne, le solde est réglé en espèces au salon.
+          ? [{ quantity: 1, price_data: { currency: 'eur', unit_amount: montantCentimes,
+              product_data: { name: `Acompte, ${libelleCombine} chez ${nomPraticien}`,
+                description: `Acompte déduit du prix final, non remboursé en cas d'absence. Reste ${(resteSurPlace).toFixed(2).replace('.', ',')} € à régler en espèces au salon.` } } }]
+          : prestationsOrdonnees.map(p => {
+              const taux = Number(p.tva_taux) || 0;
+              const montant = Number(p.prix_unitaire) * (1 + taux / 100);
+              return {
+                quantity: 1,
+                price_data: {
+                  currency: 'eur',
+                  unit_amount: Math.round(montant * 100),
+                  product_data: { name: `${p.libelle} chez ${nomPraticien}` }
+                }
+              };
+            }),
         customer_email: email,
         success_url: `${origine}/paiement-merci.html?statut=succes`,
         cancel_url: `${origine}/paiement-merci.html?statut=annule`,
@@ -438,10 +487,11 @@ export default async function handler(req, res){
     return json(res, 200, { url: session.url });
   }
 
-  // ---- comportement existant : demande en attente, confirmation manuelle ----
+  // ---- sans paiement en ligne : le créneau est libre, on confirme tout de suite ----
+  // (sauf si le praticien a désactivé « Confirmer automatiquement » : la demande reste alors à valider.)
   let rdvGratuit;
   try{
-    const rows = await supabasePostRepresentation('rendez_vous', {
+    const rows = await insererRendezVous({
       owner_id: ownerId,
       titre: `${libelleCombine} — ${nom}`,
       prestation_id: prestationPrincipale.id,
@@ -452,7 +502,7 @@ export default async function handler(req, res){
       prospect_nom: nom,
       prospect_email: email,
       prospect_telephone: telephone
-    });
+    }, { ...infosPaiement, ...infosIntervenant });
     rdvGratuit = rows[0];
   }catch(e){
     return json(res, 502, { error: 'La réservation a échoué. Réessayez.' });
@@ -464,7 +514,38 @@ export default async function handler(req, res){
     })));
   }catch(e){ /* pas bloquant, voir la même note plus haut sur le chemin payant */ }
 
-  // .ics du rendez-vous : joint aux deux emails ET renvoyé au navigateur du client.
+  // Confirmation automatique : on réutilise la fonction SQL atomique du chemin payant
+  // (verrou + conflit par intervenant + création de la fiche client). Elle seule fait
+  // foi : si un autre client a confirmé ce créneau entre-temps, on répond 409.
+  let validationAuto = true;
+  try{
+    const v = await supabaseGet(`parametres_reservation?owner_id=eq.${ownerId}&select=validation_auto`);
+    if(v[0] && v[0].validation_auto === false) validationAuto = false;
+  }catch(e){ /* schema-v20 absent : confirmation automatique par défaut */ }
+  let confirme = false;
+  if(validationAuto){
+    try{
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/confirmer_reservation_payee`, {
+        method: 'POST',
+        headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_rendez_vous_id: rdvGratuit.id, p_owner_id: ownerId })
+      });
+      const lignes = r.ok ? await r.json() : [];
+      const retour = Array.isArray(lignes) ? lignes[0] : lignes;
+      if(retour?.resultat === 'conflit'){
+        return json(res, 409, { error: 'Ce créneau vient d’être pris, choisissez-en un autre.' });
+      }
+      confirme = retour?.resultat === 'confirme';
+    }catch(e){ /* échec technique : la demande reste en attente, le praticien la validera */ }
+  }
+
+  // Nom de la personne qui assurera le rendez-vous (pour les emails et l'écran de confirmation).
+  let nomIntervenant = null;
+  if(intervenantAffecte){
+    try{ nomIntervenant = (await supabaseGet(`vitrine_equipe?id=eq.${intervenantAffecte}&select=nom`))[0]?.nom || null; }catch(e){ /* facultatif */ }
+  }
+
+  // .ics du rendez-vous (calculé APRÈS confirmation : statut CONFIRMED, pas TENTATIVE).
   const ical = await icsParId(rdvGratuit.id, `https://${req.headers.host}`);
 
   // ---- emails best-effort : jamais bloquants ----
@@ -485,12 +566,13 @@ export default async function handler(req, res){
       await envoyerEmail({
         to: email,
         attachments: pieceJointe(ical?.ics),
-        subject: `Votre demande de rendez-vous — ${nomPraticien}`,
+        subject: confirme ? `Votre rendez-vous est confirmé, ${nomPraticien}` : `Votre demande de rendez-vous, ${nomPraticien}`,
         html: gabaritSimple({
-          titre: 'Votre demande a bien été reçue',
+          titre: confirme ? 'Votre rendez-vous est confirmé' : 'Votre demande a bien été reçue',
           paragraphes: [
-            `Vous avez demandé un rendez-vous pour <strong>${echapperHtml(libelleCombine)}</strong> le ${echapperHtml(quand)}, auprès de ${echapperHtml(nomPraticien)}.`,
-            `Cette demande est <strong>en attente de confirmation</strong> — vous recevrez un message dès qu’elle sera validée.`,
+            `${confirme ? 'Votre rendez-vous' : 'Vous avez demandé un rendez-vous'} pour <strong>${echapperHtml(libelleCombine)}</strong> le ${echapperHtml(quand)}, auprès de ${echapperHtml(nomPraticien)}${nomIntervenant ? `, avec ${echapperHtml(nomIntervenant)}` : ''}${confirme ? ' est confirmé.' : '.'}`,
+            confirme ? `Un fichier calendrier est joint pour l'ajouter à votre agenda.` : `Cette demande est <strong>en attente de confirmation</strong>, vous recevrez un message dès qu’elle sera validée.`,
+            `Règlement <strong>sur place, en espèces</strong> : ${formaterEuros(montantTTC)}.`,
             ...(ical?.lien ? [`<a href="${echapperHtml(ical.lien)}">Ajouter à mon agenda</a> (fichier .ics également joint à cet email).`] : [])
           ]
         })
@@ -503,13 +585,14 @@ export default async function handler(req, res){
           to: facturation.emetteur_email,
           replyTo: email,
           attachments: pieceJointe(ical?.ics),
-          subject: `Nouvelle demande de rendez-vous — ${nom}`,
+          subject: confirme ? `Nouveau rendez-vous confirmé, ${nom}` : `Nouvelle demande de rendez-vous, ${nom}`,
           html: gabaritSimple({
-            titre: 'Nouvelle demande de réservation',
+            titre: confirme ? 'Nouveau rendez-vous confirmé automatiquement' : 'Nouvelle demande de réservation',
             paragraphes: [
-              `<strong>${echapperHtml(nom)}</strong> a demandé un rendez-vous pour ${echapperHtml(libelleCombine)} (${formaterEuros(montantTTC)}) le ${echapperHtml(quand)}.`,
+              `<strong>${echapperHtml(nom)}</strong> ${confirme ? 'a réservé' : 'a demandé'} ${echapperHtml(libelleCombine)} (${formaterEuros(montantTTC)}) le ${echapperHtml(quand)}${nomIntervenant ? `, avec ${echapperHtml(nomIntervenant)}` : ''}.`,
+              `Règlement prévu sur place, en espèces : ${formaterEuros(montantTTC)}.`,
               `Contact : ${echapperHtml(email)}${telephone ? ` — ${echapperHtml(telephone)}` : ''}.`,
-              `Ouvrez votre agenda Cadence pour la confirmer ou la refuser.`
+              confirme ? `Il est déjà dans votre agenda : aucune action n'est requise.` : `Ouvrez votre agenda Cadence pour la confirmer ou la refuser.`
             ]
           })
         });
@@ -517,5 +600,5 @@ export default async function handler(req, res){
     }
   }
 
-  return json(res, 200, { ok: true, ics_url: ical?.lien || null });
+  return json(res, 200, { ok: true, confirme, intervenant: nomIntervenant, ics_url: ical?.lien || null });
 }

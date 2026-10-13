@@ -976,6 +976,11 @@
           </div>
 
           <div class="field" style="display:flex; align-items:center; gap:10px; margin:6px 0 4px;">
+            <input type="checkbox" id="resa-validation-auto" data-bind="reservation.validation_auto" style="width:20px; height:20px;">
+            <label for="resa-validation-auto" style="margin:0;">Confirmer automatiquement les réservations</label>
+          </div>
+          <div class="hint" style="margin-bottom:12px;">Le créneau est confirmé tout de suite quand la personne choisie est libre : rien à valider à la main. Décochez pour garder chaque demande « en attente » jusqu'à votre accord.</div>
+          <div class="field" style="display:flex; align-items:center; gap:10px; margin:6px 0 4px;">
             <input type="checkbox" id="resa-annuaire" data-bind="reservation.visible_annuaire" style="width:20px; height:20px;">
             <label for="resa-annuaire" style="margin:0;">Apparaître dans l'annuaire public Cadence</label>
           </div>
@@ -1061,11 +1066,33 @@
       <!-- ============================= PAIEMENT ============================= -->
       <div class="panel" role="tabpanel" id="panel-paiement" aria-labelledby="tab-paiement" tabindex="0" hidden>
         <div class="card">
+          <h2>Règlement à la réservation</h2>
+          <p class="card-sub">Avec les paiements par carte activés ci-dessous, vos clients choisissent à la réservation : <strong>carte</strong> (prix total en ligne) ou <strong>espèces</strong> (un acompte par carte, qui les engage et vous protège des absences, puis le solde en espèces au salon). L'acompte est <strong>déduit du prix final</strong> et reste acquis au salon en cas d'absence, sans remboursement.</p>
+          <div class="field" style="display:flex; align-items:center; gap:10px; margin-bottom:18px;">
+            <input type="checkbox" id="paiement-especes-actif" data-bind="paiement.especes_actif" style="width:20px; height:20px;">
+            <label for="paiement-especes-actif" style="margin:0;">Proposer le règlement en espèces sur place</label>
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label for="paiement-acompte-min">Acompte minimum (€)</label>
+              <input type="number" id="paiement-acompte-min" data-bind="paiement.acompte_minimum" min="0" max="500" step="0.5" placeholder="5">
+              <div class="hint">Montant débité par carte pour garantir le créneau, déduit du prix final et conservé en cas d'absence. 5 € par défaut ; 0 pour ne rien demander à l'avance.</div>
+            </div>
+            <div class="field">
+              <label for="paiement-acompte-pct">Acompte en pourcentage du prix (%)</label>
+              <input type="number" id="paiement-acompte-pct" data-bind="paiement.acompte_pourcentage" min="0" max="100" step="5" placeholder="0">
+              <div class="hint">Facultatif. Le client verse le plus élevé des deux : minimum ou pourcentage.</div>
+            </div>
+          </div>
+          <div class="note-box">Sans Stripe activé, tout se règle sur place : la réservation reste une demande à confirmer, avec le montant à encaisser indiqué dans l'Agenda.</div>
+        </div>
+
+        <div class="card">
           <h2>Paiement en ligne</h2>
           <p class="card-sub">Demandez un paiement anticipé (prix plein, par carte) sur un rendez-vous déjà confirmé, directement depuis l'Agenda. L'argent arrive sur <strong>votre propre compte Stripe</strong> — Cadence ne le touche jamais.</p>
 
           <div class="note-box" style="margin-bottom:20px;">
-            Pour l'instant, disponible uniquement depuis un rendez-vous déjà confirmé dans <strong>l'Agenda</strong> — pas encore depuis un devis, ni au moment d'une réservation en ligne.
+            Le paiement par carte fonctionne à la <strong>réservation en ligne</strong>, depuis un <strong>devis</strong> et depuis un rendez-vous déjà confirmé dans <strong>l'Agenda</strong>.
           </div>
 
           <div class="field" style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
@@ -2537,7 +2564,7 @@
     delete facturation.owner_id;
 
     reservation = rr.data ? { ...rr.data } : {
-      activee: false, slug: null,
+      activee: false, slug: null, validation_auto: true,
       jours_ouvres: [1,2,3,4,5],
       heure_debut: '09:00', heure_fin: '18:00',
       intervalle_minutes: 30, delai_min_heures: 24, horizon_jours: 30
@@ -2546,7 +2573,8 @@
 
     paiement = rpay.data ? { ...rpay.data } : {
       stripe_actif: false, stripe_publishable_key: null,
-      paypal_actif: false, paypal_client_id: null, paypal_sandbox: true
+      paypal_actif: false, paypal_client_id: null, paypal_sandbox: true,
+      especes_actif: true, acompte_minimum: 5, acompte_pourcentage: 0
     };
     delete paiement.owner_id;
 

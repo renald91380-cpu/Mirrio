@@ -66,6 +66,16 @@
   .onglets{ display:inline-flex; background:var(--bg); border:1px solid var(--trait); border-radius:var(--rayon); padding:4px; margin-bottom:16px; }
   .onglets button{ border:none; background:none; min-height:44px; padding:8px 22px; border-radius:var(--rayon); font:600 14.5px var(--corps); color:var(--muted); cursor:pointer; }
   .onglets button[aria-selected=true]{ background:var(--c); color:var(--c-texte); }
+  .alerte{ border:1.5px solid var(--brick); background:color-mix(in srgb, var(--brick) 8%, var(--surface)); border-radius:var(--rayon); padding:14px 16px; margin:14px 0 0; font-size:14.5px; }
+  .alerte strong{ display:block; }
+  .intervenants{ display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:10px; }
+  .interv{ display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center; min-height:150px; padding:18px 12px; border:1.5px solid var(--trait); border-radius:var(--r); background:var(--surface); color:var(--ink); cursor:pointer; transition:border-color .25s var(--ease), background .25s var(--ease), transform .3s var(--ease); }
+  .interv:hover{ border-color:var(--c); transform:translateY(-2px); }
+  .interv:active{ transform:scale(.98); }
+  .interv[aria-pressed=true]{ border-color:var(--c); background:var(--c-doux); }
+  .interv .ph{ width:64px; height:64px; border-radius:50%; background:var(--c); color:var(--c-texte); display:grid; place-items:center; font:800 24px var(--titre); overflow:hidden; }
+  .interv .ph img{ width:100%; height:100%; object-fit:cover; }
+  .interv b{ font-size:15.5px; } .interv small{ color:var(--muted); font-size:13px; }
   .cat{ font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); font-weight:700; margin:18px 0 8px; }
   .liste-prestations{ display:flex; flex-direction:column; gap:10px; }
   .carte-prestation{ display:grid; grid-template-columns:auto 1fr auto; gap:14px; align-items:center; width:100%; min-height:72px; text-align:left; background:var(--surface); color:var(--ink);
@@ -100,6 +110,19 @@
   /* ---------- étape 3 : coordonnées ---------- */
   .recap-bloc{ background:var(--c-doux); border-radius:var(--r); padding:16px 18px; margin-bottom:18px; font-size:15px; }
   .recap-bloc b{ font-family:var(--titre); font-size:18px; display:block; }
+  fieldset.mode{ border:none; margin:0 0 20px; min-width:0; }
+  fieldset.mode legend{ font-weight:700; font-size:15px; margin-bottom:10px; padding:0; }
+  .mode-carte{ display:block; position:relative; margin-bottom:10px; cursor:pointer; }
+  .mode-carte input{ position:absolute; opacity:0; inset:0; width:100%; height:100%; cursor:pointer; margin:0; }
+  .mode-corps{ display:grid; grid-template-columns:auto 1fr; gap:4px 14px; align-items:start; padding:16px 18px; border:1.5px solid var(--trait); border-radius:var(--r); background:var(--surface); transition:border-color .25s, background .25s; }
+  .mode-carte:hover .mode-corps{ border-color:var(--c); }
+  .mode-carte input:checked + .mode-corps{ border-color:var(--c); background:var(--c-doux); }
+  .mode-carte input:focus-visible + .mode-corps{ outline:3px solid var(--c); outline-offset:3px; }
+  .mode-puce{ width:22px; height:22px; border-radius:50%; border:1.5px solid var(--muted); display:grid; place-items:center; margin-top:2px; grid-row:span 2; }
+  .mode-carte input:checked + .mode-corps .mode-puce{ border-color:var(--c); background:var(--c); box-shadow:inset 0 0 0 4px var(--c-doux); }
+  .mode-titre{ font-weight:700; font-size:16px; display:flex; justify-content:space-between; gap:10px; }
+  .mode-detail{ font-size:14px; color:var(--muted); }
+  .mode-detail b{ color:var(--ink); }
   .note-paiement{ display:flex; gap:10px; font-size:13.5px; color:var(--muted); margin-bottom:18px; padding:12px 14px; border:1px solid var(--trait); border-radius:var(--rayon); }
   .resume-erreurs{ border:1.5px solid var(--brick); background:color-mix(in srgb, var(--brick) 8%, var(--surface)); color:var(--ink); border-radius:var(--rayon); padding:14px 16px; margin-bottom:16px; font-size:14.5px; }
   .resume-erreurs strong{ display:block; margin-bottom:4px; } .resume-erreurs a{ color:inherit; font-weight:600; }
@@ -175,11 +198,7 @@
   <div class="mise">
     <main id="principal">
       <h1 class="titre-page" id="titre-page">Réserver</h1>
-      <ol class="etapes" id="etapes" aria-label="Progression de la réservation">
-        <li data-e="etape-prestation">Prestations</li>
-        <li data-e="etape-date">Créneau</li>
-        <li data-e="etape-form">Coordonnées</li>
-      </ol>
+      <ol class="etapes" id="etapes" aria-label="Progression de la réservation"></ol>
 
       <div class="carte-principale">
         <section id="etape-prestation" aria-labelledby="t-prestation">
@@ -188,20 +207,40 @@
           <div id="zone-onglets"></div>
           <div class="liste-prestations" id="liste-prestations"></div>
           <div class="creneau-vide" id="note-aucune-prestation" hidden>Aucune prestation n'est disponible à la réservation pour le moment.</div>
+          <div class="alerte" id="alerte-prestations" role="alert" hidden></div>
+        </section>
+
+        <section id="etape-intervenant" aria-labelledby="t-interv" hidden>
+          <button type="button" class="retour" data-cible="etape-prestation">&larr; Changer de prestation</button>
+          <h2 id="t-interv" tabindex="-1">Avec qui souhaitez-vous réserver ?</h2>
+          <p class="sub">Seules les personnes qui assurent toutes vos prestations sont proposées.</p>
+          <div class="intervenants" id="liste-intervenants" role="group" aria-label="Choix de la personne"></div>
         </section>
 
         <section id="etape-date" aria-labelledby="t-date" hidden>
-          <button type="button" class="retour" data-cible="etape-prestation">&larr; Changer de prestation</button>
+          <button type="button" class="retour" id="retour-date" data-cible="etape-prestation">&larr; Changer de prestation</button>
           <h2 id="t-date" tabindex="-1">Choisissez un créneau</h2>
           <p class="sub" id="date-sub"></p>
-          <div class="jours" id="jours-scroll" role="group" aria-label="Jours disponibles"></div>
-          <div id="creneaux-zone" role="status" aria-live="polite"></div>
+          <div id="calendrier">
+            <div class="jours" id="jours-scroll" role="group" aria-label="Jours disponibles"></div>
+            <div id="creneaux-zone" role="status" aria-live="polite"></div>
+          </div>
+          <div class="alerte" id="date-vide" role="status" hidden></div>
         </section>
 
         <section id="etape-form" aria-labelledby="t-form" hidden>
           <button type="button" class="retour" data-cible="etape-date">&larr; Changer de créneau</button>
           <h2 id="t-form" tabindex="-1">Vos coordonnées</h2>
           <div class="recap-bloc" id="recap"></div>
+          <fieldset class="mode" id="choix-mode" hidden>
+            <legend>Comment souhaitez-vous régler ?</legend>
+            <label class="mode-carte"><input type="radio" name="mode" value="en_ligne" checked>
+              <span class="mode-corps"><span class="mode-puce" aria-hidden="true"></span><span class="mode-titre"><span>Carte bancaire</span><span id="mode-total-ligne"></span></span>
+              <span class="mode-detail">Vous réglez tout en ligne, maintenant. Rien à payer au salon.</span></span></label>
+            <label class="mode-carte" id="carte-especes"><input type="radio" name="mode" value="sur_place">
+              <span class="mode-corps"><span class="mode-puce" aria-hidden="true"></span><span class="mode-titre"><span>Espèces sur place</span><span id="mode-acompte-ligne"></span></span>
+              <span class="mode-detail" id="mode-especes-detail"></span></span></label>
+          </fieldset>
           <div class="note-paiement" id="note-paiement" hidden></div>
           <div class="resume-erreurs" id="erreur-form" role="alert" tabindex="-1" hidden></div>
           <form id="form-contact" novalidate>
@@ -254,11 +293,14 @@
 </div>
 
 <script type="module">
-  import { stylesSalon, carteMarque, cartePrestation, boutonJour, boutonCreneau, heureParis, echapperHtml, formaterEuros, formaterDuree, prixTTC, totaux, resumeSelection } from './reservation-widget.js';
+  import { calculerAcompte, stylesSalon, carteMarque, cartePrestation, boutonJour, boutonCreneau, heureParis, echapperHtml, formaterEuros, formaterDuree, prixTTC, totaux, resumeSelection } from './reservation-widget.js';
 
   const slug = new URLSearchParams(location.search).get('p') || '';
   const $ = id => document.getElementById(id);
-  const ETAPES = ['etape-prestation', 'etape-date', 'etape-form', 'etape-confirmation'];
+  const LIBELLES = { 'etape-prestation':'Prestations', 'etape-intervenant':'Avec qui', 'etape-date':'Créneau', 'etape-form':'Coordonnées' };
+  const TOUTES = ['etape-prestation', 'etape-intervenant', 'etape-date', 'etape-form', 'etape-confirmation'];
+  // Étapes affichées dans la progression : « Avec qui » seulement si le salon a une équipe réservable.
+  const etapesActives = () => ['etape-prestation', ...(avecEquipe() ? ['etape-intervenant'] : []), 'etape-date', 'etape-form'];
 
   let bootstrap = null;
   // Une ou plusieurs prestations choisies ensemble (ex. « Coupe + Couleur »).
@@ -269,6 +311,12 @@
   let creneauChoisi = null;
   let publicFiltre = '';
   let etapeCourante = 'etape-prestation';
+  let intervenantChoisi = 'any';
+  let choixAuto = false;              // vrai si la personne a été retenue d'office (une seule éligible)      // id d'un membre de l'équipe, ou 'any' (premier disponible)
+  const avecEquipe = () => !!(bootstrap && bootstrap.intervenants && bootstrap.intervenants.length);
+  const intervenantParId = id => (bootstrap.intervenants || []).find(i => i.id === id);
+  // Personnes qui assurent TOUTES les prestations choisies (une personne fait l'ensemble, à la suite).
+  const eligibles = () => (bootstrap.intervenants || []).filter(i => prestationsChoisies.every(p => !p.intervenants || p.intervenants.includes(i.id)));
 
   const quand = iso => new Intl.DateTimeFormat('fr-FR', { timeZone:'Europe/Paris', weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' }).format(new Date(iso));
 
@@ -280,13 +328,11 @@
   // ------------------------------------------------------------- navigation
   function afficherEtape(id, { focus = true } = {}){
     etapeCourante = id;
-    ETAPES.forEach(e => { $(e).hidden = (e !== id); });
-    // Progression : étape active, étapes faites. La confirmation les valide toutes.
-    const rang = ETAPES.indexOf(id);
-    document.querySelectorAll('#etapes li').forEach((li, i) => {
-      li.classList.toggle('fait', i < rang);
-      if(i === rang) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current');
-    });
+    TOUTES.forEach(e => { $(e).hidden = (e !== id); });
+    // Progression reconstruite à chaque étape : active, faites. La confirmation les valide toutes.
+    const actives = etapesActives();
+    const rang = id === 'etape-confirmation' ? actives.length : actives.indexOf(id);
+    $('etapes').innerHTML = actives.map((e, i) => `<li class="${i < rang ? 'fait' : ''}"${i === rang ? ' aria-current="step"' : ''}>${LIBELLES[e]}</li>`).join('');
     $('etapes').hidden = (id === 'etape-confirmation');
     majResume();
     $('barre').classList.toggle('visible', id === 'etape-prestation' && prestationsChoisies.length > 0);
@@ -294,7 +340,62 @@
     if(focus){ const h = $(id).querySelector('h2'); if(h){ h.focus({ preventScroll:true }); window.scrollTo({ top:0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); } }
   }
 
-  document.querySelectorAll('.retour').forEach(btn => btn.addEventListener('click', () => afficherEtape(btn.dataset.cible)));
+  document.querySelectorAll('.retour').forEach(btn => btn.addEventListener('click', () => { $('alerte-prestations').hidden = true; afficherEtape(btn.dataset.cible); }));
+
+  // ---------------------------------------------------------- mode de paiement
+  // CB = tout en ligne ; espèces = acompte en ligne (garantie anti no-show) + solde au salon.
+  const modePaiement = () => (document.querySelector('input[name=mode]:checked') || {}).value || 'en_ligne';
+  function infosPaiement(){
+    const total = totaux(prestationsChoisies).prix;
+    const cfg = bootstrap.paiement || { en_ligne:false, especes:true };
+    if(!cfg.en_ligne) return { mode:'sur_place', maintenant:0, reste:total, total, choix:false };
+    const acompte = calculerAcompte(total, cfg);
+    const especesPossible = cfg.especes && acompte < total;
+    const mode = especesPossible ? modePaiement() : 'en_ligne';
+    return mode === 'sur_place'
+      ? { mode, maintenant:acompte, reste:total - acompte, total, choix:true, acompte }
+      : { mode, maintenant:total, reste:0, total, choix:especesPossible, acompte };
+  }
+
+  function majChoixMode(){
+    const cfg = bootstrap.paiement || { en_ligne:false };
+    const total = totaux(prestationsChoisies).prix;
+    const acompte = cfg.en_ligne ? calculerAcompte(total, cfg) : 0;
+    const especesPossible = cfg.en_ligne && cfg.especes && acompte < total;
+    $('choix-mode').hidden = !especesPossible;
+    if(!especesPossible){ const r = document.querySelector('input[name=mode][value=en_ligne]'); if(r) r.checked = true; return; }
+    $('mode-total-ligne').textContent = formaterEuros(total);
+    $('mode-acompte-ligne').textContent = acompte > 0 ? `${formaterEuros(acompte)} maintenant` : 'Rien maintenant';
+    $('mode-especes-detail').innerHTML = acompte > 0
+      ? `Un <b>acompte de ${formaterEuros(acompte)}</b> par carte garantit votre créneau. Il est <b>déduit du prix final</b> : vous réglez le solde, <b>${formaterEuros(total - acompte)}</b>, en espèces au salon. L'acompte est conservé par le salon en cas d'absence.`
+      : `Aucun paiement maintenant : vous réglez <b>${formaterEuros(total)}</b> en espèces au salon.`;
+  }
+  document.querySelectorAll('input[name=mode]').forEach(r => r.addEventListener('change', () => { majBoutonEnvoi(); majResume(); majRecapForm(); }));
+
+  function majBoutonEnvoi(){
+    const i = infosPaiement();
+    $('btn-envoyer').textContent = i.maintenant > 0
+      ? (i.mode === 'sur_place' ? `Payer l'acompte de ${formaterEuros(i.maintenant)} et réserver` : `Payer ${formaterEuros(i.maintenant)} et réserver`)
+      : 'Envoyer la demande';
+    const note = $('note-paiement');
+    if(i.maintenant > 0){
+      note.textContent = i.mode === 'sur_place'
+        ? `Le paiement par carte est sécurisé et le rendez-vous est confirmé dès réception. L'acompte de ${formaterEuros(i.maintenant)} est déduit du prix final, et n'est pas remboursé en cas d'absence.`
+        : 'Le paiement par carte est sécurisé : vous serez redirigé vers la page de paiement, et le rendez-vous est confirmé dès réception.';
+      note.hidden = false;
+    }else{
+      note.textContent = `Règlement en espèces au salon : ${formaterEuros(i.total)}. Le salon confirmera votre demande par email.`;
+      note.hidden = false;
+    }
+  }
+
+  function majRecapForm(){
+    const i = infosPaiement(), t = totaux(prestationsChoisies);
+    const avec = intervenantChoisi !== 'any' && intervenantParId(intervenantChoisi) ? ` avec ${echapperHtml(intervenantParId(intervenantChoisi).nom)}` : '';
+    $('recap').innerHTML = `<b>${echapperHtml(prestationsChoisies.map(p => p.libelle).join(' + '))}</b>${echapperHtml(quand(creneauChoisi))}${avec}, ${formaterDuree(t.duree)}<br>` +
+      (i.maintenant > 0 ? `<strong>À payer maintenant : ${formaterEuros(i.maintenant)}</strong>` : '') +
+      (i.reste > 0 ? `${i.maintenant > 0 ? '<br>' : ''}<span>${i.maintenant > 0 ? 'Reste à régler en espèces au salon (acompte déduit)' : 'À régler en espèces au salon'} : <strong>${formaterEuros(i.reste)}</strong></span>` : '');
+  }
 
   // ------------------------------------------------------------ récapitulatif
   function majResume(){
@@ -305,6 +406,8 @@
       const t = totaux(prestationsChoisies);
       corps.innerHTML = `<ul>${prestationsChoisies.map(p => `<li><span>${echapperHtml(p.libelle)}</span><span>${formaterEuros(prixTTC(p))}</span></li>`).join('')}</ul>
         <div class="total"><span>Total, ${formaterDuree(t.duree)}</span><strong>${formaterEuros(t.prix)}</strong></div>
+        ${etapeCourante === 'etape-form' ? (() => { const i = infosPaiement(); return `<ul style="margin-top:10px;">${i.maintenant > 0 ? `<li><span>À payer maintenant (carte)</span><strong>${formaterEuros(i.maintenant)}</strong></li>` : ''}${i.reste > 0 ? `<li><span>Au salon (espèces)</span><strong>${formaterEuros(i.reste)}</strong></li>` : ''}</ul>`; })() : ''}
+        ${intervenantChoisi !== 'any' && intervenantParId(intervenantChoisi) && etapeCourante !== 'etape-prestation' ? `<div class="quand" style="background:transparent; padding:12px 0 0; font-weight:500;">Avec ${echapperHtml(intervenantParId(intervenantChoisi).nom)}</div>` : ''}
         ${creneauChoisi && etapeCourante !== 'etape-prestation' && etapeCourante !== 'etape-date' ? `<div class="quand">${echapperHtml(quand(creneauChoisi))}</div>` : ''}`;
     }
     const t = totaux(prestationsChoisies);
@@ -365,9 +468,36 @@
     $('barre').classList.toggle('visible', prestationsChoisies.length > 0);
   }
 
-  const continuer = () => { if(prestationsChoisies.length) ouvrirEtapeDate(); };
+  const continuer = () => {
+    if(!prestationsChoisies.length) return;
+    const alerte = $('alerte-prestations'); alerte.hidden = true;
+    if(avecEquipe()){
+      const el = eligibles();
+      if(!el.length){
+        // Personne n'assure toutes ces prestations ensemble : inutile d'aller plus loin (pas de calendrier).
+        alerte.innerHTML = '<strong>Cette combinaison n\'est pas possible.</strong>Aucun membre de l\'équipe n\'assure toutes ces prestations à la suite. Retirez-en une, ou réservez-les séparément.';
+        alerte.hidden = false; alerte.scrollIntoView({ block:'nearest' });
+        return;
+      }
+      if(el.length === 1){ intervenantChoisi = el[0].id; choixAuto = true; return ouvrirEtapeDate(); }   // un seul choix possible : on passe
+      if(choixAuto || (intervenantChoisi !== 'any' && !el.some(i => i.id === intervenantChoisi))){ intervenantChoisi = 'any'; choixAuto = false; }
+      return ouvrirEtapeIntervenant(el);
+    }
+    ouvrirEtapeDate();
+  };
   $('btn-continuer-prestations').addEventListener('click', continuer);
   $('btn-continuer-desk').addEventListener('click', continuer);
+
+  // ------------------------------------------------------------- intervenant
+  function ouvrirEtapeIntervenant(el){
+    const carte = (id, nom, role, photo) => `<button type="button" class="interv" data-id="${id}" aria-pressed="${intervenantChoisi === id}">
+      <span class="ph">${photo && /^https:\/\//i.test(photo) ? `<img src="${echapperHtml(photo)}" alt="">` : echapperHtml((nom || '?').charAt(0).toUpperCase())}</span>
+      <b>${echapperHtml(nom)}</b>${role ? `<small>${echapperHtml(role)}</small>` : ''}</button>`;
+    $('liste-intervenants').innerHTML = carte('any', 'Sans préférence', 'Premier disponible', null).replace(/<span class="ph">[^<]*<\/span>/, '<span class="ph" aria-hidden="true">&#10022;</span>')
+      + el.map(i => carte(i.id, i.nom, i.role, i.photo_url)).join('');
+    $('liste-intervenants').querySelectorAll('.interv').forEach(b => b.addEventListener('click', () => { intervenantChoisi = b.dataset.id; choixAuto = false; ouvrirEtapeDate(); }));
+    afficherEtape('etape-intervenant');
+  }
 
   // ------------------------------------------------------------------ dates
   function parisAujourdhui(){
@@ -377,21 +507,50 @@
     return { annee:+parts.year, mois:+parts.month, jour:+parts.day };
   }
 
-  function ouvrirEtapeDate(){
-    $('date-sub').textContent = `${prestationsChoisies.map(p => p.libelle).join(' + ')}. Choisissez un jour puis une heure.`;
+  async function ouvrirEtapeDate(){
+    const qui = intervenantChoisi !== 'any' && intervenantParId(intervenantChoisi) ? ` avec ${intervenantParId(intervenantChoisi).nom}` : '';
+    $('date-sub').textContent = `${prestationsChoisies.map(p => p.libelle).join(' + ')}${qui}. Choisissez un jour puis une heure.`;
+    // « Retour » ramène à l'étape qui précède : le choix de la personne s'il y en avait un, sinon les prestations.
+    $('retour-date').dataset.cible = avecEquipe() && eligibles().length > 1 ? 'etape-intervenant' : 'etape-prestation';
+    $('retour-date').textContent = $('retour-date').dataset.cible === 'etape-intervenant' ? '\u2190 Changer de personne' : '\u2190 Changer de prestation';
+    $('calendrier').hidden = true; $('date-vide').hidden = true;
+    $('creneaux-zone').innerHTML = '';
+    afficherEtape('etape-date');
+
+    // On interroge d'abord les JOURS réellement disponibles (personne choisie, durée totale) : le
+    // calendrier n'est affiché que s'il en reste au moins un.
+    const idsParam = prestationsChoisies.map(p => p.id).join(',');
+    let dispo;
+    try{
+      const r = await fetch(`/api/reservation-disponibilites?slug=${encodeURIComponent(slug)}&prestation_ids=${encodeURIComponent(idsParam)}&jours=1&intervenant=${encodeURIComponent(intervenantChoisi)}`);
+      dispo = await r.json();
+      if(!r.ok) throw new Error('erreur');
+    }catch(e){
+      $('date-vide').innerHTML = '<strong>Impossible de charger les disponibilités.</strong>Vérifiez votre connexion puis <button type="button" class="btn-secondaire" id="reessayer-jours" style="min-height:44px; margin-top:8px;">réessayer</button>';
+      $('date-vide').hidden = false; $('reessayer-jours').addEventListener('click', ouvrirEtapeDate);
+      return;
+    }
+    const jours = new Set(dispo.jours || []);
+    if(!jours.size){
+      const nom = intervenantChoisi !== 'any' && intervenantParId(intervenantChoisi) ? intervenantParId(intervenantChoisi).nom : null;
+      $('date-vide').innerHTML = dispo.raison === 'aucun_intervenant'
+        ? '<strong>Cette combinaison n\'est pas disponible.</strong>Aucun membre de l\'équipe n\'assure toutes ces prestations à la suite. Modifiez votre sélection.'
+        : `<strong>Aucune disponibilité${nom ? ` avec ${echapperHtml(nom)}` : ''} dans les prochaines semaines.</strong>${avecEquipe() && eligibles().length > 1 ? 'Essayez avec une autre personne, ou choisissez « Sans préférence ».' : 'Revenez un peu plus tard, de nouveaux créneaux sont ouverts régulièrement.'}`;
+      $('date-vide').hidden = false;
+      return;
+    }
     const scroll = $('jours-scroll');
     const { annee, mois, jour } = parisAujourdhui();
     const horizon = bootstrap.reglages.horizon_jours || 30;
     let html = '';
     for(let i = 0; i <= horizon; i++){
       const d = new Date(Date.UTC(annee, mois - 1, jour + i));
-      html += boutonJour(d, (bootstrap.reglages.jours_ouvres || []).includes(d.getUTCDay()));
+      html += boutonJour(d, jours.has(d.toISOString().slice(0, 10)));
     }
     scroll.innerHTML = html;
     scroll.querySelectorAll('.jour-btn:not(:disabled)').forEach(btn => btn.addEventListener('click', () => selectionnerJour(btn)));
-    $('creneaux-zone').innerHTML = '';
-    afficherEtape('etape-date');
-    // Premier jour ouvert sélectionné d'office : jamais d'écran vide.
+    $('calendrier').hidden = false;
+    // Premier jour disponible sélectionné d'office : jamais d'écran vide.
     const premier = scroll.querySelector('.jour-btn:not(:disabled)');
     if(premier) selectionnerJour(premier);
   }
@@ -406,7 +565,7 @@
     const idsParam = prestationsChoisies.map(p => p.id).join(',');
     let payload;
     try{
-      const r = await fetch(`/api/reservation-disponibilites?slug=${encodeURIComponent(slug)}&prestation_ids=${encodeURIComponent(idsParam)}&date=${dateChoisie}`);
+      const r = await fetch(`/api/reservation-disponibilites?slug=${encodeURIComponent(slug)}&prestation_ids=${encodeURIComponent(idsParam)}&date=${dateChoisie}&intervenant=${encodeURIComponent(intervenantChoisi)}`);
       payload = await r.json();
     }catch(e){
       zone.setAttribute('aria-busy', 'false');
@@ -430,15 +589,9 @@
 
   // ------------------------------------------------------------------- form
   function ouvrirEtapeForm(){
-    const paiementRequis = !!bootstrap.paiement_requis;
-    const t = totaux(prestationsChoisies);
-    $('recap').innerHTML = `<b>${echapperHtml(prestationsChoisies.map(p => p.libelle).join(' + '))}</b>${echapperHtml(quand(creneauChoisi))}, ${formaterDuree(t.duree)}${paiementRequis ? `<br><strong>${formaterEuros(t.prix)}</strong>` : ''}`;
-    const note = $('note-paiement');
-    if(paiementRequis){
-      note.textContent = 'Le règlement par carte est demandé pour confirmer votre créneau. Vous serez redirigé vers une page de paiement sécurisée, et le rendez-vous est confirmé dès réception.';
-      note.hidden = false;
-    }else note.hidden = true;
-    $('btn-envoyer').textContent = paiementRequis ? 'Payer et réserver' : 'Envoyer la demande';
+    majChoixMode();
+    majRecapForm();
+    majBoutonEnvoi();
     $('erreur-form').hidden = true;
     afficherEtape('etape-form');
   }
@@ -474,9 +627,10 @@
     }
     resume.hidden = true;
 
-    const paiementRequis = !!bootstrap.paiement_requis;
+    const infos = infosPaiement();
+    const paiementRequis = infos.maintenant > 0;
     const btn = $('btn-envoyer');
-    const libelleDepart = paiementRequis ? 'Payer et réserver' : 'Envoyer la demande';
+    const libelleDepart = btn.textContent;
     btn.disabled = true;
     btn.innerHTML = `<span class="tourne" aria-hidden="true"></span>${paiementRequis ? 'Préparation du paiement' : 'Envoi en cours'}`;
 
@@ -491,7 +645,7 @@
     try{
       const r = await fetch('/api/reservation-publique', {
         method:'POST', headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify({ slug, prestation_ids: prestationsChoisies.map(p => p.id), date_debut: creneauChoisi, nom, email, telephone })
+        body: JSON.stringify({ slug, prestation_ids: prestationsChoisies.map(p => p.id), date_debut: creneauChoisi, nom, email, telephone, mode_paiement: infos.mode, intervenant_id: intervenantChoisi })
       });
       resultat = await r.json();
       if(!r.ok){
@@ -514,7 +668,13 @@
       return;
     }
 
-    $('confirmation-texte').textContent = `${bootstrap.praticien.business_name} a bien reçu votre demande et vous écrira dès qu'elle sera validée. Un email de confirmation vous a été envoyé.`;
+    // Confirmé tout de suite si le créneau était libre (confirmation automatique), sinon demande à valider.
+    const confirme = !!resultat.confirme;
+    $('t-conf').textContent = confirme ? 'Rendez-vous confirmé' : 'Demande envoyée';
+    $('confirmation-texte').textContent = (confirme
+      ? `Votre rendez-vous chez ${bootstrap.praticien.business_name}${resultat.intervenant ? ` avec ${resultat.intervenant}` : ''} est confirmé. Un email de confirmation vous a été envoyé.`
+      : `${bootstrap.praticien.business_name} a bien reçu votre demande et vous écrira dès qu'elle sera validée.`)
+      + (infos.reste > 0 ? ` Pensez à prévoir ${formaterEuros(infos.reste)} en espèces au salon.` : '');
     const t = totaux(prestationsChoisies);
     $('recap-final').innerHTML = `<b>${echapperHtml(prestationsChoisies.map(p => p.libelle).join(' + '))}</b>${echapperHtml(quand(creneauChoisi))}, ${formaterDuree(t.duree)}`;
     if(resultat.ics_url){ const l = $('lien-ics'); l.href = resultat.ics_url; l.hidden = false; }

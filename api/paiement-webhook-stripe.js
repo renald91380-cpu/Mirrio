@@ -424,14 +424,26 @@ async function traiterConfirmationReservation({ rdv, session, ownerId, stripeSec
     const params = facturation[0] || {};
     const nomEmetteur = params.emetteur_nom || profil.business_name || profil.full_name || 'Cadence';
 
+    // Mode « espèces » : seul l'acompte a été réglé par carte. La facture porte le
+    // prix total, reste « envoyée » (non payée) et mentionne le solde à encaisser au
+    // salon ; le praticien la passe en payée depuis l'Agenda (« Espèces reçues »).
+    const surPlace = rdv.paiement_mode === 'sur_place';
+    const acompte = Number(resultat.paiement_montant) || 0;
+    const reste = Number(rdv.reste_sur_place) || 0;
+    const eur = n => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n);
+    const dateJour = new Date().toLocaleDateString('fr-FR');
     const docs = await supabasePost('documents', {
       owner_id: ownerId,
       client_id: resultat.client_id,
       type: 'facture',
-      statut: 'paye',
-      notes: `Réservation en ligne réglée par carte (Stripe) le ${new Date().toLocaleDateString('fr-FR')}.`
+      statut: surPlace ? 'envoye' : 'paye',
+      notes: surPlace
+        ? `Acompte de ${eur(acompte)} réglé par carte (Stripe) le ${dateJour}, déduit du total. Reste à régler en espèces sur place : ${eur(reste)}.`
+        : `Réservation en ligne réglée par carte (Stripe) le ${dateJour}.`
     });
     const doc = docs[0];
+    // Lien rendez-vous → facture, pour que « Espèces reçues » puisse la marquer payée.
+    try{ await supabasePatchConditionnel(`rendez_vous?id=eq.${rdv.id}`, { document_id: doc.id }); }catch(e){ /* colonne schema-v19 absente : pas bloquant */ }
 
     if(prestationsOrdonnees.length){
       await Promise.all(prestationsOrdonnees.map((p, i) => supabasePost('document_lignes', {
@@ -454,12 +466,22 @@ async function traiterConfirmationReservation({ rdv, session, ownerId, stripeSec
         to: resultat.prospect_email,
         replyTo: params.emetteur_email || undefined,
         attachments: pieceJointe(ical?.ics),
-        subject: `Facture ${doc.numero || ''} — ${nomEmetteur}`,
-        html: gabaritEmailFacturePayee({
-          nomEmetteur, logoUrl: profil.logo_url, nomClient: resultat.prospect_nom,
-          numero: doc.numero, montant: resultat.paiement_montant,
-          lienDocument: `${origine}/voir-document.html?t=${jetonPartage}`
-        })
+        subject: surPlace ? `Votre rendez-vous est confirmé chez ${nomEmetteur}` : `Facture ${doc.numero || ''} — ${nomEmetteur}`,
+        html: surPlace
+          ? gabaritSimple({
+              titre: 'Rendez-vous confirmé, acompte reçu',
+              paragraphes: [
+                `Bonjour ${echapperHtml(resultat.prospect_nom || '')},`,
+                `Votre acompte de <strong>${eur(acompte)}</strong> a bien été reçu : votre rendez-vous chez ${echapperHtml(nomEmetteur)} est confirmé.`,
+                `Cet acompte est <strong>déduit du prix final</strong> : il vous restera <strong>${eur(reste)} à régler en espèces</strong> sur place. En cas d'absence, l'acompte est conservé par le salon.`,
+                `<a href="${origine}/voir-document.html?t=${jetonPartage}">Voir le détail de la facture</a>`
+              ]
+            })
+          : gabaritEmailFacturePayee({
+              nomEmetteur, logoUrl: profil.logo_url, nomClient: resultat.prospect_nom,
+              numero: doc.numero, montant: resultat.paiement_montant,
+              lienDocument: `${origine}/voir-document.html?t=${jetonPartage}`
+            })
       });
     }
 
@@ -478,6 +500,7 @@ async function traiterConfirmationReservation({ rdv, session, ownerId, stripeSec
           paragraphes: [
             `<strong>${echapperHtml(resultat.prospect_nom || 'Un client')}</strong> vient de réserver et payer un créneau en ligne — le paiement a automatiquement confirmé le rendez-vous.`,
             `${libelleCombine ? echapperHtml(libelleCombine) : 'Prestation'} — le ${echapperHtml(new Date(resultat.date_debut).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' }))}.`,
+            surPlace ? `<strong>Acompte de ${eur(acompte)} payé par carte (déduit du total). Reste ${eur(reste)} à encaisser en espèces</strong> au salon. En cas d'absence, l'acompte vous reste acquis.` : `Réglé en totalité par carte : ${eur(acompte)}.`,
             `Contact : ${echapperHtml(resultat.prospect_email || '')}${resultat.prospect_telephone ? ` — ${echapperHtml(resultat.prospect_telephone)}` : ''}.`,
             `Aucune action n’est requise : c’est déjà confirmé dans votre agenda.`
           ]
