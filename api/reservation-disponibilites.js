@@ -217,9 +217,9 @@ export default async function handler(req, res){
   }
 
   // -------------------------------------------------- appel « bootstrap »
-  let profils, prestations, paiements;
+  let profils, prestations, paiements, vitrines;
   try{
-    [profils, prestations, paiements] = await Promise.all([
+    [profils, prestations, paiements, vitrines] = await Promise.all([
       supabase(`profiles?id=eq.${ownerId}&select=business_name,full_name,logo_url,accent,metier,terme_singulier,terme_pluriel`),
       // `public_cible`/`categorie` : schema-v17. Repli sans ces colonnes tant que la migration n'est pas passée.
       supabase(`prestations?owner_id=eq.${ownerId}&actif=eq.true&select=id,libelle,description,prix_unitaire,tva_taux,duree_minutes,public_cible,categorie&order=position`)
@@ -227,7 +227,9 @@ export default async function handler(req, res){
       // Phase 3 : le widget doit savoir AVANT de soumettre le formulaire si un
       // paiement immédiat va être exigé (prix plein) pour confirmer le
       // créneau — voir api/reservation-publique.js et CLAUDE.md.
-      supabase(`parametres_paiement?owner_id=eq.${ownerId}&select=stripe_actif,stripe_secret_key`)
+      supabase(`parametres_paiement?owner_id=eq.${ownerId}&select=stripe_actif,stripe_secret_key`),
+      // Style choisi dans « Ma page » (schema-v18) : la réservation prolonge la vitrine. Vide si absent.
+      supabase(`vitrine?owner_id=eq.${ownerId}&select=couleur,fond,police,boutons`).catch(() => [])
     ]);
   }catch(e){
     return json(res, 503, { error: 'Page de réservation temporairement indisponible.' });
@@ -245,6 +247,7 @@ export default async function handler(req, res){
       terme_singulier: profil.terme_singulier || null,
       terme_pluriel: profil.terme_pluriel || null
     },
+    style: vitrines[0] || {},
     prestations,
     paiement_requis: paiementRequis,
     reglages: {
