@@ -273,6 +273,7 @@
             <div class="recap-bloc" id="recap-final" style="text-align:left;"></div>
             <div class="actions">
               <a class="btn-primaire" id="lien-ics" href="#" hidden>Ajouter à mon agenda</a>
+              <a class="btn-secondaire" href="mon-espace.html">Mes rendez-vous</a>
               <a class="btn-secondaire" id="retour-salon" href="#">Retour au salon</a>
             </div>
           </div>
@@ -704,6 +705,13 @@
     $('lien-salon').href = salon; $('retour-salon').href = salon;
 
     rendrePrestations();
+    // « Reprendre ce rendez-vous » (mon-espace.html) : prestations et personne déjà choisies, à confirmer par « Continuer ».
+    const q = new URLSearchParams(location.search);
+    (q.get('prestations') || '').split(',').filter(Boolean).forEach(id => {
+      const el = document.querySelector(`.carte-prestation[data-id="${CSS.escape(id)}"]`);
+      if(el && !prestationsChoisies.some(p => p.id === id)) basculerPrestation(el);
+    });
+    if(q.get('avec') && intervenantParId(q.get('avec'))) intervenantChoisi = q.get('avec');
     afficherEtape('etape-prestation', { focus:false });
     $('etat-chargement').hidden = true;
     $('app').hidden = false;

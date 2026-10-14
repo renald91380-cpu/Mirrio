@@ -50,6 +50,10 @@
     {
       "source": "/api/vitrine",
       "destination": "/api/reservation-disponibilites?action=vitrine"
+    },
+    {
+      "source": "/api/mon-espace",
+      "destination": "/api/reservation-disponibilites?action=client"
     }
   ]
 }

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
+<title>Mes rendez-vous | Cadence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1" defer></script>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#101216">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<style>
+  :root{ --bg:#F5F5F3; --surface:#FBFBFA; --ink:#101216; --muted:#5B606B; --line:rgba(16,18,22,.1); --accent:#E2A63D; --icone:#A1700A; --ok:#1F7A5A; --ko:#B5381F;
+    --ombre:0 1px 2px rgba(16,18,22,.05), 0 12px 30px -14px rgba(16,18,22,.18); --ease:cubic-bezier(.16,1,.3,1); }
+  @media (prefers-color-scheme: dark){ :root{ --bg:#0D0F13; --surface:#15181E; --ink:#F1F1EE; --muted:#9CA2AE; --line:rgba(255,255,255,.12); --icone:#E2A63D; --ok:#4CC49A; --ko:#FF8A6B; } }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ font-family:'Geist', system-ui, sans-serif; background:var(--bg); color:var(--ink); line-height:1.55; -webkit-font-smoothing:antialiased; min-height:100vh; }
+  a{ color:inherit; text-decoration:none; }
+  h1,h2,h3{ font-family:'Bricolage Grotesque', system-ui, sans-serif; letter-spacing:-.03em; line-height:1.08; }
+  i.ph{ font-size:1.2em; line-height:1; }
+  :focus-visible{ outline:3px solid var(--accent); outline-offset:3px; border-radius:8px; }
+  .haut{ max-width:760px; margin:0 auto; padding:22px 20px 0; display:flex; justify-content:space-between; align-items:center; }
+  .logo{ font-family:'Bricolage Grotesque', system-ui, sans-serif; font-weight:800; font-size:21px; letter-spacing:-.04em; }
+  .logo b{ color:var(--accent); }
+  main{ max-width:760px; margin:0 auto; padding:34px 20px 80px; }
+  h1{ font-size:clamp(34px, 6vw, 52px); font-weight:800; margin-bottom:10px; }
+  .intro{ color:var(--muted); font-size:17px; max-width:50ch; margin-bottom:28px; }
+  .btn{ display:inline-flex; align-items:center; justify-content:center; gap:9px; min-height:46px; padding:0 22px; border-radius:999px; border:none; cursor:pointer; font:600 15px 'Geist', system-ui, sans-serif; background:var(--accent); color:#101216; transition:transform .35s var(--ease); }
+  .btn:hover{ transform:translateY(-2px); } .btn:active{ transform:scale(.98); }
+  .btn.discret{ background:transparent; color:var(--ink); box-shadow:inset 0 0 0 1.5px var(--line); }
+  .btn.petit{ min-height:42px; padding:0 18px; font-size:14px; }
+  .btn[disabled]{ opacity:.55; cursor:default; transform:none; }
+  .connexion{ display:flex; gap:8px; padding:7px; border-radius:999px; background:var(--surface); border:1.5px solid var(--line); box-shadow:var(--ombre); max-width:520px; }
+  .connexion input{ flex:1; min-width:0; border:none; background:none; font:500 16px 'Geist', system-ui, sans-serif; color:var(--ink); padding:0 16px; outline:none; min-height:46px; }
+  .connexion:focus-within{ border-color:var(--ink); }
+  .note{ font-size:14px; color:var(--muted); margin-top:14px; max-width:52ch; }
+  .message{ margin-top:18px; padding:16px 18px; border-radius:16px; background:color-mix(in srgb, var(--accent) 16%, var(--surface)); font-size:15px; max-width:520px; }
+  .message.ko{ background:color-mix(in srgb, var(--ko) 12%, var(--surface)); }
+  .titre-liste{ font-size:22px; font-weight:800; margin:34px 0 14px; }
+  .liste{ display:grid; gap:14px; }
+  .rdv{ background:var(--surface); border:1px solid var(--line); border-radius:22px; padding:22px; box-shadow:var(--ombre); }
+  .rdv .quand{ font:800 22px 'Bricolage Grotesque', system-ui, sans-serif; letter-spacing:-.03em; }
+  .rdv .quand::first-letter{ text-transform:uppercase; }
+  .rdv .salon{ color:var(--muted); font-size:15px; margin:2px 0 12px; }
+  .rdv ul{ list-style:none; display:grid; gap:4px; font-size:15.5px; margin-bottom:14px; }
+  .rdv li i{ color:var(--icone); margin-right:8px; vertical-align:-2px; }
+  .etats{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .pastille{ display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:999px; font-size:13px; font-weight:600; background:color-mix(in srgb, var(--ink) 7%, transparent); }
+  .pastille.ok{ background:color-mix(in srgb, var(--ok) 16%, transparent); color:var(--ok); }
+  .pastille.alerte{ background:color-mix(in srgb, var(--accent) 24%, transparent); }
+  .pastille.ko{ background:color-mix(in srgb, var(--ko) 14%, transparent); color:var(--ko); }
+  .actions{ display:flex; gap:8px; flex-wrap:wrap; }
+  .rdv.passe{ box-shadow:none; }
+  .vide{ padding:36px 24px; border:1.5px dashed var(--line); border-radius:22px; text-align:center; color:var(--muted); }
+  .vide .btn{ margin-top:14px; }
+  .demo-bandeau{ margin-bottom:22px; padding:12px 16px; border-radius:14px; background:color-mix(in srgb, var(--accent) 18%, var(--surface)); font-size:14px; font-weight:500; }
+  .quitter{ background:none; border:none; cursor:pointer; color:var(--muted); font:500 14px 'Geist', system-ui, sans-serif; text-decoration:underline; text-underline-offset:3px; }
+  @media (prefers-reduced-motion: reduce){ .btn{ transition:none; } .btn:hover{ transform:none; } }
+</style>
+</head>
+<body>
+<header class="haut">
+  <a class="logo" href="index.html">Cadence<b>.</b></a>
+  <button type="button" class="quitter" id="quitter" hidden>Quitter</button>
+</header>
+<main id="contenu">
+  <h1 id="titre">Mes rendez-vous</h1>
+  <p class="intro" id="intro">Retrouvez vos rendez-vous dans tous les salons Cadence, reprenez le même en un clic ou annulez-le. Sans mot de passe.</p>
+
+  <section id="vue-connexion" hidden>
+    <form class="connexion" id="form" novalidate>
+      <label for="email" class="sr" style="position:absolute;left:-9999px">Votre adresse email</label>
+      <input type="email" id="email" name="email" autocomplete="email" inputmode="email" placeholder="vous@exemple.fr" required>
+      <button class="btn" type="submit" id="envoyer">Recevoir mon lien</button>
+    </form>
+    <p class="note">Entrez l'adresse utilisée lors de votre réservation. Vous recevrez un lien de connexion valable 14 jours.</p>
+    <div class="message" id="msg" role="status" hidden></div>
+    <p class="note">Pas encore de rendez-vous ? <a href="explorer.html" style="text-decoration:underline;text-decoration-color:var(--accent);text-underline-offset:4px;font-weight:600">Trouver un salon</a>. Et pour découvrir sans rien réserver, <a href="mon-espace.html?demo=1" style="text-decoration:underline;text-decoration-color:var(--accent);text-underline-offset:4px;font-weight:600">voir un exemple</a>.</p>
+  </section>
+
+  <section id="vue-liste" hidden>
+    <div class="demo-bandeau" id="bandeau-demo" hidden>Exemple fictif : rien n'est enregistré, les boutons ouvrent la démo de réservation.</div>
+    <div id="liste"></div>
+  </section>
+</main>
+
+<script>
+(function(){
+  var params = new URLSearchParams(location.search);
+  var demo = params.get('demo') === '1';
+  var jeton = params.get('t') || '';
+  var $ = function(id){ return document.getElementById(id); };
+  var etat = { rdv: [] };
+  var eur = function(n){ return new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR' }).format(n); };
+  var esc = function(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+  var quand = function(iso){ return new Intl.DateTimeFormat('fr-FR', { timeZone:'Europe/Paris', weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' }).format(new Date(iso)); };
+
+  function exemple(){
+    var d = function(j, h){ var x = new Date(); x.setDate(x.getDate() + j); x.setHours(h, 0, 0, 0); return x.toISOString(); };
+    var salon = { nom:'The Barber Club', slug:'demo-barber' };
+    return [
+      { id:'d1', salon:salon, etat:'avenir', debut:d(4, 10), fin:d(4, 11), prestations:[{ id:'formule', libelle:'Coupe + barbe' }], intervenant:{ id:'b-karim', nom:'Karim' }, reglement:{ type:'reste', montant:37, acompte:5 }, peut_annuler:true, ics_url:null },
+      { id:'d2', salon:{ nom:'Maison Éloïse', slug:'demo-coiffure' }, etat:'avenir', debut:d(12, 15), fin:d(12, 17), prestations:[{ id:'x', libelle:'Balayage' }], intervenant:null, reglement:{ type:'paye' }, peut_annuler:true, ics_url:null },
+      { id:'d3', salon:salon, etat:'passe', debut:d(-21, 14), fin:d(-21, 15), prestations:[{ id:'formule', libelle:'Coupe + barbe' }], intervenant:{ id:'b-karim', nom:'Karim' }, reglement:{ type:'paye' }, peut_annuler:false, ics_url:null },
+      { id:'d4', salon:salon, etat:'passe', debut:d(-60, 11), fin:d(-60, 12), prestations:[{ id:'degrade', libelle:'Dégradé / skin fade' }], intervenant:{ id:'b-leo', nom:'Léo' }, reglement:{ type:'paye' }, peut_annuler:false, ics_url:null }
+    ];
+  }
+
+  function reglement(r){
+    if(r.etat === 'annule') return '<span class="pastille ko"><i class="ph ph-x-circle" aria-hidden="true"></i>Annulé</span>';
+    if(r.etat === 'attente') return '<span class="pastille alerte"><i class="ph ph-hourglass" aria-hidden="true"></i>En attente de confirmation</span>';
+    var g = r.reglement || {}, h = '<span class="pastille ok"><i class="ph ph-check-circle" aria-hidden="true"></i>Confirmé</span>';
+    if(g.type === 'paye') h += '<span class="pastille ok"><i class="ph ph-credit-card" aria-hidden="true"></i>Payé</span>';
+    else if(g.type === 'reste') h += '<span class="pastille alerte"><i class="ph ph-coins" aria-hidden="true"></i>Acompte ' + eur(g.acompte) + ' payé, reste ' + eur(g.montant) + ' à régler au salon</span>';
+    else if(r.etat === 'avenir') h += '<span class="pastille alerte"><i class="ph ph-storefront" aria-hidden="true"></i>À régler au salon' + (g.total ? ' : ' + eur(g.total) : '') + '</span>';
+    return h;
+  }
+
+  function lienReprise(r){
+    if(!r.salon.slug) return null;
+    var q = new URLSearchParams({ p: r.salon.slug, prestations: r.prestations.map(function(p){ return p.id; }).join(',') });
+    if(r.intervenant) q.set('avec', r.intervenant.id);
+    return 'reservation.html?' + q.toString();
+  }
+
+  function carte(r){
+    var reprise = lienReprise(r);
+    var passe = r.etat === 'passe' || r.etat === 'annule';
+    return '<article class="rdv' + (passe ? ' passe' : '') + '" data-id="' + esc(r.id) + '">' +
+      '<div class="quand">' + esc(quand(r.debut)) + '</div>' +
+      '<div class="salon">' + esc(r.salon.nom) + '</div>' +
+      '<ul>' + r.prestations.map(function(p){ return '<li><i class="ph ph-scissors" aria-hidden="true"></i>' + esc(p.libelle) + '</li>'; }).join('') +
+      (r.intervenant ? '<li><i class="ph ph-user" aria-hidden="true"></i>Avec ' + esc(r.intervenant.nom) + '</li>' : '') + '</ul>' +
+      '<div class="etats">' + reglement(r) + '</div>' +
+      '<div class="actions">' +
+        (reprise ? '<a class="btn petit" href="' + esc(reprise) + '"><i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i>' + (passe ? 'Reprendre ce rendez-vous' : 'Réserver à nouveau') + '</a>' : '') +
+        (r.ics_url && r.etat === 'avenir' ? '<a class="btn petit discret" href="' + esc(r.ics_url) + '"><i class="ph ph-calendar-plus" aria-hidden="true"></i>Ajouter à mon agenda</a>' : '') +
+        (r.peut_annuler ? '<button type="button" class="btn petit discret" data-annuler="' + esc(r.id) + '">Annuler</button>' : '') +
+      '</div>' +
+      (r.etat === 'avenir' && !r.peut_annuler ? '<p class="note">Moins de 24 h avant : contactez directement le salon pour modifier ou annuler.</p>' : '') +
+    '</article>';
+  }
+
+  function dessiner(){
+    var avenir = etat.rdv.filter(function(r){ return r.etat === 'avenir' || r.etat === 'attente'; }).sort(function(a, b){ return new Date(a.debut) - new Date(b.debut); });
+    var passes = etat.rdv.filter(function(r){ return r.etat === 'passe' || r.etat === 'annule'; });
+    var h = '<h2 class="titre-liste">À venir</h2>' + (avenir.length ? '<div class="liste">' + avenir.map(carte).join('') + '</div>'
+      : '<div class="vide">Aucun rendez-vous à venir.<br><a class="btn" href="explorer.html">Trouver un salon</a></div>');
+    if(passes.length) h += '<h2 class="titre-liste">Passés</h2><div class="liste">' + passes.map(carte).join('') + '</div>';
+    $('liste').innerHTML = h;
+    $('liste').querySelectorAll('[data-annuler]').forEach(function(b){ b.addEventListener('click', function(){ annuler(b); }); });
+  }
+
+  async function annuler(btn){
+    var id = btn.dataset.annuler;
+    if(!window.confirm("Annuler ce rendez-vous ? Un acompte déjà réglé par carte n'est pas remboursé.")) return;
+    btn.disabled = true;
+    if(demo){ etat.rdv.forEach(function(r){ if(r.id === id){ r.etat = 'annule'; r.peut_annuler = false; } }); return dessiner(); }
+    try{
+      var r = await fetch('/api/mon-espace', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ t: jeton, annuler: id }) });
+      var j = await r.json().catch(function(){ return {}; });
+      if(!r.ok){ window.alert(j.error || "L'annulation a échoué. Réessayez."); btn.disabled = false; return; }
+      etat.rdv.forEach(function(x){ if(x.id === id){ x.etat = 'annule'; x.peut_annuler = false; } });
+      dessiner();
+    }catch(e){ window.alert("L'annulation a échoué. Réessayez."); btn.disabled = false; }
+  }
+
+  function montrerListe(email){
+    $('vue-connexion').hidden = true; $('vue-liste').hidden = false; $('quitter').hidden = false;
+    $('intro').textContent = email ? 'Connecté avec ' + email + '.' : 'Vos rendez-vous dans tous les salons Cadence.';
+    dessiner();
+  }
+
+  $('quitter').addEventListener('click', function(){
+    try{ sessionStorage.removeItem('cadence-espace'); }catch(e){}
+    location.href = 'mon-espace.html';
+  });
+
+  $('form').addEventListener('submit', async function(e){
+    e.preventDefault();
+    var email = $('email').value.trim(), msg = $('msg');
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){ msg.className = 'message ko'; msg.textContent = 'Entrez une adresse email valide.'; msg.hidden = false; $('email').focus(); return; }
+    var b = $('envoyer'); b.disabled = true; b.textContent = 'Envoi…';
+    try{
+      var r = await fetch('/api/mon-espace', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ email: email }) });
+      if(!r.ok) throw new Error();
+      msg.className = 'message'; msg.textContent = 'Si cette adresse a un rendez-vous, un lien vient de partir. Pensez à vérifier vos courriers indésirables.';
+    }catch(err){ msg.className = 'message ko'; msg.textContent = "L'envoi a échoué. Réessayez dans un instant."; }
+    msg.hidden = false; b.disabled = false; b.textContent = 'Recevoir mon lien';
+  });
+
+  async function init(){
+    if(demo){
+      $('bandeau-demo').hidden = false; etat.rdv = exemple(); return montrerListe('marc@exemple.fr');
+    }
+    if(!jeton){ try{ jeton = sessionStorage.getItem('cadence-espace') || ''; }catch(e){} }
+    if(jeton){
+      try{
+        var r = await fetch('/api/mon-espace?t=' + encodeURIComponent(jeton));
+        if(r.ok){
+          var j = await r.json(); etat.rdv = j.rendez_vous || [];
+          try{ sessionStorage.setItem('cadence-espace', jeton); }catch(e){}
+          if(params.get('t')) history.replaceState(null, '', 'mon-espace.html');   // le jeton ne reste pas dans la barre d'adresse
+          return montrerListe(j.email);
+        }
+        try{ sessionStorage.removeItem('cadence-espace'); }catch(e){}
+        $('msg').className = 'message ko'; $('msg').textContent = 'Ce lien a expiré. Demandez-en un nouveau ci-dessous.'; $('msg').hidden = false;
+      }catch(e){}
+    }
+    $('vue-connexion').hidden = false;
+  }
+  init();
+})();
+</script>
+<script src="/pwa.js" defer></script>
+</body>
+</html>

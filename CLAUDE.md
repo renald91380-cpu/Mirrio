@@ -314,6 +314,17 @@ Le back-office et l'inscription reprennent le langage des pages publiques (§3.2
 
 Le dépôt est déployé par **deux projets Vercel** (`cadence` et `cadence-site`). **`cadence` est protégé par l'authentification Vercel** : tout visiteur est redirigé vers `vercel.com/sso-api` (réponse 302), donc `demo.html`, la réservation et les pages salons « ne fonctionnent pas » depuis ce projet. **`cadence-site` est public** : `https://cadence-site-cadence-65cc.vercel.app/demo.html` répond 200. À partager : uniquement l'adresse de `cadence-site` (ou un domaine propre pointé dessus). Pour régler définitivement : désactiver la protection de `cadence` (Vercel → Settings → Deployment Protection) **ou** supprimer ce projet en double. Un réglage de sécurité Vercel n'est pas modifiable depuis ce dépôt. Le message à copier de `demo.html` utilise l'adresse d'où la page est ouverte : l'ouvrir depuis l'adresse publique avant de le copier.
 
+### 3.25 Espace client « Mes rendez-vous »
+
+`site/mon-espace.html` + `api/_client.js` (servi via `/api/mon-espace`, action `client` du dispatcher) : le client d'un salon retrouve ses rendez-vous **sans compte ni mot de passe**, façon Planity.
+
+- **Connexion par lien email** : le client saisit son adresse, le serveur envoie (Resend) un lien contenant un **jeton signé HMAC** (adresse + expiration 14 jours, clé = `SUPABASE_SERVICE_ROLE_KEY`). La réponse est toujours identique, adresse connue ou non. Sans `RESEND_API_KEY`, rien n'est envoyé. Le jeton est gardé en `sessionStorage` puis retiré de l'URL.
+- **Contenu** : rendez-vous à venir et passés **tous salons confondus**, retrouvés par l'adresse (fiche client du salon ou coordonnées de la demande en ligne), avec prestations, personne, état de règlement (payé, acompte payé et reste à régler au salon, à régler au salon).
+- **Reprendre un rendez-vous** : lien `reservation.html?p=<slug>&prestations=<ids>&avec=<id>` ; la page de réservation pré-sélectionne les prestations et la personne, le client n'a plus qu'à choisir un créneau.
+- **Annuler** : à plus de 24 h du rendez-vous seulement ; `statut = 'annule'`. L'acompte n'est jamais remboursé (règle §3.21). Moins de 24 h : message invitant à contacter le salon.
+- **Démo** : `mon-espace.html?demo=1` (données fictives, aucune requête), liée depuis la page de connexion.
+- **Pas construit** : modifier la date d'un rendez-vous existant, favoris, notification email au salon lors d'une annulation (il la voit dans son agenda).
+
 ---
 
 ## 4. État actuel
