@@ -179,6 +179,29 @@
 <script src="/pwa.js" defer></script>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="app.css">
+<style>
+/* ---------- éditeur « Ma page » : cartes aérées, champs compacts et lisibles ---------- */
+.app-main{ padding:28px 24px 70px; }
+.app-container{ max-width:1320px; }
+.editeur{ grid-template-columns:minmax(0,1fr) 380px; gap:28px; }
+.card{ padding:24px 28px 26px; margin-bottom:16px; }
+.card h2{ margin:0 0 4px; font-size:19px; }
+.card .card-sub{ margin:0 0 20px; font-size:14px; line-height:1.5; color:var(--slate); max-width:62ch; }
+.card .field{ margin-bottom:16px; }
+.card .field:last-child{ margin-bottom:0; }
+.card .field label{ font-size:13px; font-weight:600; margin-bottom:6px; color:var(--ink); }
+.card .field input[type=text], .card .field input[type=url], .card .field input[type=time], .card .field select{
+  min-height:44px; padding:10px 14px; border-radius:12px; border:1.5px solid rgba(16,18,22,.16); font-size:15px; }
+.card .field textarea{ padding:12px 14px; border-radius:12px; border:1.5px solid rgba(16,18,22,.16); font-size:15px; }
+.card .field input::placeholder, .card .field textarea::placeholder{ color:rgba(16,18,22,.42); }
+.card .field input:focus, .card .field textarea:focus, .card .field select:focus{ outline:3px solid var(--accent, var(--amber)); outline-offset:1px; border-color:transparent; }
+.grid-2{ gap:0 16px; }
+.grid-2 > .field{ margin-bottom:16px; }
+.grid-3{ display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:0 16px; }
+.grid-3 > .field{ margin-bottom:16px; }
+.hint{ font-size:13px; color:var(--slate); }
+</style>
+
 </head>
 <body>
 
@@ -349,7 +372,7 @@
           <div class="card">
             <h2>Contact & réseaux</h2>
             <p class="card-sub">Affichés sur votre page. Laissez vide ce que vous ne voulez pas montrer.</p>
-            <div class="grid-2">
+            <div class="grid-3">
               <div class="field"><label for="instagram">Instagram</label><input type="text" id="instagram" maxlength="200" placeholder="@monsalon"></div>
               <div class="field"><label for="facebook">Facebook</label><input type="text" id="facebook" maxlength="200" placeholder="monsalon"></div>
               <div class="field"><label for="tiktok">TikTok</label><input type="text" id="tiktok" maxlength="200" placeholder="@monsalon"></div>
