@@ -394,7 +394,7 @@
     <nav class="app-nav">
       <a href="clients.html">Clients</a>
       <a href="agenda.html">Agenda</a>
-      <a href="devis-factures.html">Devis &amp; factures</a>
+      <a href="devis-factures.html">Comptabilité</a>
       <a href="parametres.html" class="active">Paramètres</a>
     </nav>
   </div>
@@ -436,7 +436,7 @@
         <button class="tab" role="tab" id="tab-entreprise" aria-controls="panel-entreprise" aria-selected="true" data-tab="entreprise" type="button">Entreprise</button>
         <button class="tab" role="tab" id="tab-securite" aria-controls="panel-securite" aria-selected="false" data-tab="securite" type="button">Sécurité</button>
         <button class="tab" role="tab" id="tab-apparence" aria-controls="panel-apparence" aria-selected="false" data-tab="apparence" type="button">Apparence</button>
-        <button class="tab" role="tab" id="tab-documents" aria-controls="panel-documents" aria-selected="false" data-tab="documents" type="button">Devis &amp; factures</button>
+        <button class="tab" role="tab" id="tab-documents" aria-controls="panel-documents" aria-selected="false" data-tab="documents" type="button">Comptabilité</button>
         <button class="tab" role="tab" id="tab-prestations" aria-controls="panel-prestations" aria-selected="false" data-tab="prestations" type="button">Prestations</button>
         <button class="tab" role="tab" id="tab-agenda" aria-controls="panel-agenda" aria-selected="false" data-tab="agenda" type="button">Agenda</button>
         <button class="tab" role="tab" id="tab-reservation" aria-controls="panel-reservation" aria-selected="false" data-tab="reservation" type="button">Réservation</button>
@@ -476,24 +476,18 @@
 
         <div class="card">
           <h2>Votre métier</h2>
-          <p class="card-sub">Cadence emploie vos mots. Un photographe fait des shootings, un professeur donne des cours — le vocabulaire change dans tout l'écran Agenda et dans les lignes de vos documents.</p>
+          <p class="card-sub">Cadence emploie vos mots : le vocabulaire s'adapte à votre métier dans tout l'Agenda.</p>
 
           <div class="grid-2">
             <div class="field">
               <label for="metier">Métier</label>
               <select id="metier" data-bind="profil.metier">
-                <option value="photographe">Photographe</option>
-                <option value="coach">Coach sportif</option>
-                <option value="formateur">Formateur</option>
-                <option value="professeur">Professeur particulier</option>
-                <option value="consultant">Consultant</option>
                 <option value="therapeute">Praticien bien-être</option>
                 <option value="esthetique">Esthéticienne / institut</option>
                 <option value="coiffure">Coiffeur·euse</option>
                 <option value="barbier">Barbier</option>
                 <option value="massage">Masseur·euse / spa</option>
                 <option value="onglerie">Prothésiste ongulaire</option>
-                <option value="autre">Autre métier</option>
               </select>
             </div>
             <div class="field">

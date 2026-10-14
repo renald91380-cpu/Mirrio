@@ -189,7 +189,7 @@
       <a href="dashboard.html" class="active">Tableau de bord</a>
       <a href="clients.html">Clients</a>
       <a href="agenda.html">Agenda</a>
-      <a href="devis-factures.html">Devis &amp; factures</a>
+      <a href="devis-factures.html">Comptabilité</a>
       <a href="parametres.html">Paramètres</a>
     </nav>
   </div>
@@ -308,7 +308,7 @@
 
           <div class="card">
             <h2>Équipe</h2>
-            <p class="card-sub">Présentez ceux qui vous accueillent, avec leur photo.</p>
+            <p class="card-sub">Créez votre équipe et indiquez les spécialités de chacun : quand un client choisit ses prestations, il ne voit que les personnes qui peuvent les réaliser.</p>
             <div id="equipe-liste"></div>
             <div class="form-membre" id="form-membre">
               <input type="hidden" id="m-id">
@@ -318,12 +318,12 @@
               </div>
               <div class="field"><label for="m-bio">Mot de présentation (facultatif)</label><input type="text" id="m-bio" maxlength="200" placeholder="10 ans d'expérience, spécialiste du balayage."></div>
               <div class="reserv-bloc">
-                <label class="cb"><input type="checkbox" id="m-reservable"> <strong>Réservable en ligne</strong></label>
+                <label class="cb"><input type="checkbox" id="m-reservable"> <strong>Réservable en ligne</strong> (recommandé)</label>
                 <div class="hint" style="margin-top:2px;">Vos clients pourront choisir cette personne, ou « Sans préférence ». Son agenda est celui qui compte pour les disponibilités.</div>
                 <div id="m-reserv-detail" hidden>
-                  <div class="sous-titre">Prestations assurées</div>
+                  <div class="sous-titre">Spécialités (prestations réalisées)</div>
                   <label class="cb"><input type="radio" name="m-presta-mode" value="toutes" checked> Toutes les prestations</label>
-                  <label class="cb" style="margin-top:6px;"><input type="radio" name="m-presta-mode" value="choix"> Seulement certaines</label>
+                  <label class="cb" style="margin-top:6px;"><input type="radio" name="m-presta-mode" value="choix"> Seulement ses spécialités, à cocher ci-dessous</label>
                   <div class="opts" id="m-prestas" hidden></div>
                   <div class="sous-titre">Jours et horaires</div>
                   <label class="cb"><input type="checkbox" id="m-horaires-propres"> Différents de ceux du salon</label>
@@ -534,7 +534,7 @@
 
   function remplirReservation(m){
     dessinerOptionsReservation();
-    $('m-reservable').checked = !!(m && m.reservable);
+    $('m-reservable').checked = m ? !!m.reservable : true;
     const siennes = m ? affectations.filter(a => a.intervenant_id === m.id).map(a => a.prestation_id) : [];
     document.querySelector(`input[name=m-presta-mode][value=${siennes.length ? 'choix' : 'toutes'}]`).checked = true;
     document.querySelectorAll('.m-presta').forEach(c => { c.checked = siennes.includes(c.value); });

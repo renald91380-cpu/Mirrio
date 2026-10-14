@@ -17,7 +17,7 @@
     }catch(e){}
   })();
 </script>
-<title>Devis &amp; factures | Cadence</title>
+<title>Comptabilité | Cadence</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -295,6 +295,8 @@
     #print-area{ display:block !important; padding:0; }
     @page{ margin:14mm; }
   }
+  /* Salon : paiement direct, pas de devis ni d'envoi au client. Comptabilité interne uniquement. */
+  .filter-tab[data-filter="devis"], [data-action="envoyer"], label:has(input[name="type"][value="devis"]){ display:none !important; }
 </style>
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#1C2333">
@@ -315,7 +317,7 @@
     <nav class="app-nav">
       <a href="clients.html">Clients</a>
       <a href="agenda.html">Agenda</a>
-      <a href="devis-factures.html" class="active">Devis &amp; factures</a>
+      <a href="devis-factures.html" class="active">Comptabilité</a>
       <a href="parametres.html">Paramètres</a>
     </nav>
   </div>
@@ -347,8 +349,8 @@
   <div class="app-container">
     <div class="page-head">
       <div>
-        <h1>Devis &amp; factures</h1>
-        <p>Générés depuis une fiche client, numérotés automatiquement.</p>
+        <h1>Comptabilité</h1>
+        <p>Les encaissements du salon, numérotés automatiquement, avec export pour votre comptable.</p>
       </div>
       <div style="display:flex; gap:10px;">
         <button class="btn btn-secondary" id="export-csv-btn" type="button">
@@ -394,11 +396,11 @@
         <label id="type-picker-label">Type de document</label>
         <div class="type-picker" role="radiogroup" aria-labelledby="type-picker-label">
           <label class="type-option">
-            <input type="radio" name="type" value="devis" checked>
+            <input type="radio" name="type" value="devis">
             Devis
           </label>
           <label class="type-option">
-            <input type="radio" name="type" value="facture">
+            <input type="radio" name="type" value="facture" checked>
             Facture
           </label>
         </div>
@@ -805,7 +807,7 @@
       statutSelect.value = 'brouillon';
       statutAvantAcquitte = 'envoye';
       acquitteInput.checked = false;
-      document.querySelector('input[name="type"][value="devis"]').checked = true;
+      document.querySelector('input[name="type"][value="facture"]').checked = true;
       document.getElementById('date_emission').value = todayISO();
       addLineRow(null);
       appliquerLimiteEcheance();

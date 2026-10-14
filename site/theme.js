@@ -178,7 +178,7 @@ const ONGLETS = [
   { cle:'dashboard',href:'dashboard.html',      libelle:'Tableau de bord' },
   { cle:'clients',  href:'clients.html',        libelle:'Clients' },
   { cle:'agenda',   href:'agenda.html',         libelle:'Agenda' },
-  { cle:'documents',href:'devis-factures.html', libelle:'Devis & factures' },
+  { cle:'documents',href:'devis-factures.html', libelle:'Comptabilité' },
   { cle:'vitrine',  href:'ma-page.html',        libelle:'Ma page' },
   { cle:'reglages', href:'parametres.html',     libelle:'Paramètres' }
 ];

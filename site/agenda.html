@@ -131,6 +131,7 @@
   .badge-annule{ background:rgba(181,83,63,0.12); color:var(--brick); }
   .badge-en-attente{ background:rgba(226,166,61,0.18); color:#8a5f11; }
   .badge-paye{ background:rgba(62,124,116,0.14); color:var(--teal); }
+  .badge-impaye{ background:rgba(181,56,31,0.12); color:#8C2A14; }
   .badge-especes{ background:rgba(226,166,61,0.18); color:#7A5200; }
   .badge-paiement-attente{ background:rgba(28,35,51,0.08); color:rgba(28,35,51,0.6); }
   .appt-row-actions{ display:flex; gap:4px; flex-shrink:0; }
@@ -258,7 +259,7 @@
     <nav class="app-nav">
       <a href="clients.html">Clients</a>
       <a href="agenda.html" class="active">Agenda</a>
-      <a href="devis-factures.html">Devis &amp; factures</a>
+      <a href="devis-factures.html">Comptabilité</a>
       <a href="parametres.html">Paramètres</a>
     </nav>
   </div>
@@ -683,6 +684,8 @@
               const resteEspeces = a.paiement_mode === 'sur_place' && !a.reste_encaisse_le && Number(a.reste_sur_place) > 0 ? Number(a.reste_sur_place) : 0;
               const especesEncaissees = a.paiement_mode === 'sur_place' && !!a.reste_encaisse_le;
               const eur = n => new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR' }).format(n);
+              // Rien de réglé : ni carte, ni acompte, ni espèces encaissées (rendez-vous saisi à la main, ou payé sur place plus tard).
+              const nonRegle = !enAttente && a.statut !== 'annule' && !paiementPaye && !paiementEnAttente && !resteEspeces && !especesEncaissees;
               // Demander un paiement suppose un rendez-vous déjà confirmé
               // (pas une demande en ligne en attente), avec une fiche client
               // et une prestation choisie — cf. api/paiement-creer-checkout.js
@@ -708,6 +711,7 @@
                       ${paiementEnAttente ? `<span class="badge badge-paiement-attente">Paiement en attente</span>` : ''}
                       ${resteEspeces ? `<span class="badge badge-especes">${paiementPaye ? `Acompte payé (déduit), reste ${eur(resteEspeces)} en espèces` : `À encaisser en espèces : ${eur(resteEspeces)}`}</span>` : ''}
                       ${especesEncaissees ? `<span class="badge badge-paye">Espèces encaissées</span>` : ''}
+                      ${nonRegle ? `<span class="badge badge-impaye">Non réglé${a.total_ttc ? ` : ${eur(Number(a.total_ttc))} à encaisser` : ''}</span>` : ''}
                     </div>
                   </div>
                   <div class="appt-row-actions">
@@ -717,6 +721,7 @@
                       <button class="btn btn-primary btn-sm confirm-btn" type="button" style="min-height:34px; padding:6px 12px; font-size:12.5px;">Confirmer</button>
                       <button class="btn btn-secondary btn-sm refuse-btn" type="button" style="min-height:34px; padding:6px 12px; font-size:12.5px;">Refuser</button>
                     `) : `
+                      ${nonRegle ? `<button class="btn btn-primary btn-sm encaisser-btn" type="button" style="min-height:34px; padding:6px 12px; font-size:12.5px;" aria-label="Marquer ${escapeHtml(a.titre)} comme réglé sur place">Encaisser</button>` : ''}
                       ${resteEspeces ? `<button class="btn btn-primary btn-sm especes-btn" type="button" style="min-height:34px; padding:6px 12px; font-size:12.5px;" aria-label="Marquer ${eur(resteEspeces)} reçus en espèces pour ${escapeHtml(a.titre)}">Espèces reçues</button>` : ''}
                       ${peutDemanderStripe ? `
                         <button class="icon-btn payer-btn" data-provider="stripe" type="button" aria-label="Demander un paiement par carte (Stripe) pour ${escapeHtml(a.titre)}" title="Demander un paiement par carte (Stripe)">
@@ -753,10 +758,12 @@
       const refuseBtn = row.querySelector('.refuse-btn');
       const payerBtns = row.querySelectorAll('.payer-btn');
       const especesBtn = row.querySelector('.especes-btn');
+      const encaisserBtn = row.querySelector('.encaisser-btn');
       if(editBtn) editBtn.addEventListener('click', (e)=>{ e.stopPropagation(); openModal(appt); });
       if(deleteBtn) deleteBtn.addEventListener('click', (e)=>{ e.stopPropagation(); deleteAppointment(id, appt.titre); });
       if(confirmBtn) confirmBtn.addEventListener('click', (e)=>{ e.stopPropagation(); confirmerReservation(appt); });
       if(especesBtn) especesBtn.addEventListener('click', (e)=>{ e.stopPropagation(); encaisserEspeces(appt); });
+      if(encaisserBtn) encaisserBtn.addEventListener('click', (e)=>{ e.stopPropagation(); encaisserSurPlace(appt); });
       if(refuseBtn) refuseBtn.addEventListener('click', (e)=>{ e.stopPropagation(); refuserReservation(appt); });
       payerBtns.forEach(payerBtn=>{
         payerBtn.addEventListener('click', (e)=>{ e.stopPropagation(); demanderPaiement(appt, payerBtn, payerBtn.dataset.provider); });
@@ -775,6 +782,16 @@
     if(error){ showToast("L'enregistrement a échoué. Réessayez."); return; }
     if(appt.document_id) await supabase.from('documents').update({ statut: 'paye' }).eq('id', appt.document_id);
     showToast('Espèces enregistrées, facture marquée payée.');
+    loadAppointments();
+  }
+
+  // Rendez-vous réglé sur place (espèces, carte au comptoir) sans rien avoir payé en ligne.
+  async function encaisserSurPlace(appt){
+    if(!window.confirm(`Marquer « ${appt.titre} » comme réglé sur place ?`)) return;
+    const { error } = await supabase.from('rendez_vous')
+      .update({ paiement_mode: 'sur_place', reste_sur_place: 0, reste_encaisse_le: new Date().toISOString() }).eq('id', appt.id);
+    if(error){ showToast("L'enregistrement a échoué. Réessayez."); return; }
+    showToast('Règlement enregistré.');
     loadAppointments();
   }
 
