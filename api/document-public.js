@@ -1,4 +1,4 @@
-// Cadence — lecture publique d'un devis/facture, pour le client qui le reçoit.
+// Mirrio — lecture publique d'un devis/facture, pour le client qui le reçoit.
 //
 //   GET /api/document-public?t=<jeton>
 //

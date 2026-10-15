@@ -1,4 +1,4 @@
--- Cadence — migration v15 : annuaire enrichi (photos, localisation, avis vérifiés).
+-- Mirrio — migration v15 : annuaire enrichi (photos, localisation, avis vérifiés).
 -- À exécuter après schema-v14-annuaire.sql. Idempotent.
 --
 --   1. `parametres_reservation` : photos (≤ 6 URL), adresse publique, latitude/longitude.

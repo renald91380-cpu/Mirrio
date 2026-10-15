@@ -1,4 +1,4 @@
-// Cadence — création d'un rendez-vous « en attente » depuis le widget public
+// Mirrio — création d'un rendez-vous « en attente » depuis le widget public
 // de réservation en ligne (site/reservation.html).
 //
 //   POST /api/reservation-publique
@@ -31,7 +31,7 @@ import { contexte, occupes as chargerOccupes, choisirRessource } from './_dispo.
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const RESEND_FROM = process.env.RESEND_FROM || 'Cadence <onboarding@resend.dev>';
+const RESEND_FROM = process.env.RESEND_FROM || 'Mirrio <onboarding@resend.dev>';
 
 const INK = '#1C2333', PARCH = '#F5F1E7', PARCHDIM = '#EAE4D4', AMBER = '#E2A63D';
 const SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
@@ -197,7 +197,7 @@ function gabaritSimple({ titre, paragraphes, accent }){
 <tr><td align="center" style="padding:32px 16px;">
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px; width:100%; background:${PARCH}; border-radius:10px; overflow:hidden;">
 <tr><td style="background:${INK}; padding:22px 32px;">
-<span style="font-weight:700; font-size:17px; color:${PARCH};">Cadence</span>
+<span style="font-weight:700; font-size:17px; color:${PARCH};">Mirrio</span>
 </td></tr>
 <tr><td style="padding:32px;">
 <h1 style="margin:0 0 16px; font-size:20px; color:${INK};">${echapperHtml(titre)}</h1>
@@ -436,11 +436,11 @@ export default async function handler(req, res){
       // la réservation pour ça.
     }
 
-    let nomPraticien = 'Cadence';
+    let nomPraticien = 'Mirrio';
     try{
       const profils = await supabaseGet(`profiles?id=eq.${ownerId}&select=business_name,full_name`);
-      nomPraticien = profils[0]?.business_name || profils[0]?.full_name || 'Cadence';
-    }catch(e){ /* pas bloquant : "Cadence" par défaut sur la page Stripe */ }
+      nomPraticien = profils[0]?.business_name || profils[0]?.full_name || 'Mirrio';
+    }catch(e){ /* pas bloquant : "Mirrio" par défaut sur la page Stripe */ }
 
     const origine = `https://${req.headers.host}`;
     let session;
@@ -559,7 +559,7 @@ export default async function handler(req, res){
       profil = profils[0] || {};
       facturation = facs[0] || {};
     }catch(e){ /* pas bloquant */ }
-    const nomPraticien = profil.business_name || profil.full_name || 'Cadence';
+    const nomPraticien = profil.business_name || profil.full_name || 'Mirrio';
     const quand = formaterDateHeure(dateDebut);
 
     try{
@@ -592,7 +592,7 @@ export default async function handler(req, res){
               `<strong>${echapperHtml(nom)}</strong> ${confirme ? 'a réservé' : 'a demandé'} ${echapperHtml(libelleCombine)} (${formaterEuros(montantTTC)}) le ${echapperHtml(quand)}${nomIntervenant ? `, avec ${echapperHtml(nomIntervenant)}` : ''}.`,
               `Règlement prévu sur place, en espèces : ${formaterEuros(montantTTC)}.`,
               `Contact : ${echapperHtml(email)}${telephone ? ` — ${echapperHtml(telephone)}` : ''}.`,
-              confirme ? `Il est déjà dans votre agenda : aucune action n'est requise.` : `Ouvrez votre agenda Cadence pour la confirmer ou la refuser.`
+              confirme ? `Il est déjà dans votre agenda : aucune action n'est requise.` : `Ouvrez votre agenda Mirrio pour la confirmer ou la refuser.`
             ]
           })
         });

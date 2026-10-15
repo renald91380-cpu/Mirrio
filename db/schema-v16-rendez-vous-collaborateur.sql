@@ -1,4 +1,4 @@
--- Cadence — migration v16 : attribuer un rendez-vous à un membre de l'équipe.
+-- Mirrio — migration v16 : attribuer un rendez-vous à un membre de l'équipe.
 -- À exécuter une fois dans Supabase (SQL Editor). Idempotent.
 --
 -- `rendez_vous.collaborateur_id` : le membre qui assure le rendez-vous.

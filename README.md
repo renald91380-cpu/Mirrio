@@ -1,8 +1,8 @@
-# Cadence
+# Mirrio
 
 **Le rythme administratif de votre activité, réglé une fois pour toutes.**
 
-Logiciel de gestion pour indépendants à clientèle récurrente (photographes, coachs sportifs, formateurs, consultants, professeurs particuliers...). Cadence remplace le tableur, les relances manuelles et les devis épars par un seul outil : fiches clients, agenda, devis & factures, suivi de la récurrence.
+Logiciel de gestion pour indépendants à clientèle récurrente (photographes, coachs sportifs, formateurs, consultants, professeurs particuliers...). Mirrio remplace le tableur, les relances manuelles et les devis épars par un seul outil : fiches clients, agenda, devis & factures, suivi de la récurrence.
 
 Positionnement : France / Belgique / Suisse en priorité. Voir `Asset/cadence-brand-guidelines.md` pour la charte complète (couleurs, typographies, voix).
 
@@ -63,7 +63,7 @@ Le fichier `vercel.json` pointe déjà `outputDirectory` vers `site/` : aucune c
 
 - Tableau de bord (CA du mois, taux de renouvellement)
 - Relances automatiques par email (nécessite un service transactionnel type Resend/Postmark)
-- Encaissement Stripe des abonnements Cadence elle-même
+- Encaissement Stripe des abonnements Mirrio elle-même
 
 **Tarifs actuellement affichés** (pas encore facturés réellement, pas de Stripe branché) :
 - Solo — 15€/mois — jusqu'à 25 clients actifs

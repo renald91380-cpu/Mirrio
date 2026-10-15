@@ -18,7 +18,7 @@
   })();
 </script>
 <meta name="robots" content="noindex, nofollow">
-<title>Back-office | Cadence</title>
+<title>Back-office | Mirrio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -196,7 +196,7 @@
 <meta name="theme-color" content="#1C2333">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Cadence">
+<meta name="apple-mobile-web-app-title" content="Mirrio">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <script src="/pwa.js" defer></script>
@@ -207,7 +207,7 @@
 
 <header class="app-header">
   <div class="app-header-left">
-    <span class="logo">Cadence<span class="dot">.</span></span>
+    <span class="logo">Mirrio<span class="dot">.</span></span>
     <span class="badge-admin">Admin</span>
   </div>
   <div class="app-header-right">
@@ -219,7 +219,7 @@
 
 <div class="app-shell">
   <aside class="app-sidebar">
-    <div class="logo">Cadence<span class="dot">.</span></div>
+    <div class="logo">Mirrio<span class="dot">.</span></div>
     <div class="logo-badge" aria-hidden="true"></div>
     <nav class="sidebar-nav"></nav>
     <div class="sidebar-spacer"></div>
@@ -239,7 +239,7 @@
   <div class="app-container">
     <div class="page-head">
       <div>
-        <h1>Back-office Cadence</h1>
+        <h1>Back-office Mirrio</h1>
         <p>Vue exploitant : combien de clients, quels métiers, et la capacité restante avant de devoir upscaler.</p>
       </div>
     </div>
@@ -251,7 +251,7 @@
 
       <div class="stat-row">
         <div class="stat-card">
-          <div class="stat-label">Clients Cadence</div>
+          <div class="stat-label">Clients Mirrio</div>
           <div class="stat-value" id="stat-total">—</div>
           <div class="stat-sub">Un espace de travail = un client</div>
         </div>
@@ -285,7 +285,7 @@
       <div class="grid-2col">
         <div class="card">
           <h2>Répartition par métier</h2>
-          <p class="card-sub">Type d'activité des clients Cadence, déclaré dans leurs Paramètres.</p>
+          <p class="card-sub">Type d'activité des clients Mirrio, déclaré dans leurs Paramètres.</p>
           <div class="donut-wrap">
             <div class="donut" id="donut">
               <div class="donut-total"><b id="donut-total-n">—</b><span>clients</span></div>
@@ -360,7 +360,7 @@
       </div>
 
       <div class="card">
-        <h2>Clients Cadence</h2>
+        <h2>Clients Mirrio</h2>
         <p class="card-sub">Infos de compte et indicateurs d'activité — pas le détail des devis/factures de leurs propres clients.</p>
 
         <div class="inactivite-row">
@@ -407,7 +407,7 @@
         </div>
         <div id="clients-empty" class="table-empty" style="display:none;">Aucun résultat pour ce filtre.</div>
         <div class="table-foot" id="clients-foot"></div>
-        <p class="assumption-note">Cadence n'a pas d'intégration de paiement (pas de Stripe) : « Formule » reflète le choix solo/studio déclaré, pas un abonnement facturé en direct. « Statut » est déduit de la dernière connexion, pas d'une résiliation explicite.</p>
+        <p class="assumption-note">Mirrio n'a pas d'intégration de paiement (pas de Stripe) : « Formule » reflète le choix solo/studio déclaré, pas un abonnement facturé en direct. « Statut » est déduit de la dernière connexion, pas d'une résiliation explicite.</p>
       </div>
 
     </div>
@@ -631,7 +631,7 @@
     document.getElementById('user-name').textContent = await prenomConnecte(supabase, session);
     document.getElementById('sidebar-email').textContent = session.user.email;
     const brand = await initTheme(supabase, 'admin');
-    const nomAffiche = brand.business_name && brand.business_name !== 'Cadence'
+    const nomAffiche = brand.business_name && brand.business_name !== 'Mirrio'
       ? brand.business_name
       : (brand.full_name ? formaterNomAffichage(brand.full_name) : session.user.email);
     document.getElementById('sidebar-name').textContent = nomAffiche;

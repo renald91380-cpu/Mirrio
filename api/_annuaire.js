@@ -1,4 +1,4 @@
-// Cadence — annuaire public des praticiens (site/explorer.html, site/pro.html).
+// Mirrio — annuaire public des praticiens (site/explorer.html, site/pro.html).
 //
 //   GET /api/annuaire?q=<texte>&ville=<ville>&metier=<metier>   → liste
 //   GET /api/annuaire?slug=<slug>                                → fiche détaillée

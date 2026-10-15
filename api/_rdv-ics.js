@@ -1,4 +1,4 @@
-// Cadence — téléchargement du .ics d'un rendez-vous réservé.
+// Mirrio — téléchargement du .ics d'un rendez-vous réservé.
 //
 //   GET /api/rendez-vous-ics?t=<rendez_vous.avis_token>
 //

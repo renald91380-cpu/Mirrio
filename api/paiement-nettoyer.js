@@ -1,4 +1,4 @@
-// Cadence — nettoyage quotidien des holds de réservation payante expirés et
+// Mirrio — nettoyage quotidien des holds de réservation payante expirés et
 // jamais payés (phase 3 : réservation en ligne avec paiement anticipé).
 //
 //   GET /api/paiement-nettoyer     (appelé quotidiennement par Vercel Cron, voir vercel.json)

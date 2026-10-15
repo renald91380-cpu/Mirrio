@@ -1,10 +1,10 @@
-// Cadence — service worker (PWA).
+// Mirrio — service worker (PWA).
 // Stratégie volontairement prudente : les données (Supabase, /api/*) ne sont
 // JAMAIS mises en cache — un agenda ou une facture périmés seraient pires
 // qu'un message « hors connexion ». On ne met en cache que la coquille
 // statique (pages, styles, scripts, icônes) pour que l'app s'ouvre vite et
 // affiche une page claire sans réseau.
-const VERSION = 'cadence-v2';
+const VERSION = 'cadence-v3';
 const COQUILLE = ['/offline.html', '/chrome.css', '/theme.js', '/pwa.js', '/icons/icon-192.png'];
 
 self.addEventListener('install', e => {

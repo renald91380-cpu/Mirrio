@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <meta name="color-scheme" content="light dark">
-<title>Réserver en ligne | Cadence</title>
+<title>Réserver en ligne | Mirrio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=DM+Sans:wght@400;500;700&family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Geist:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Nunito:wght@400;600;800&family=Playfair+Display:wght@500;700&display=swap" rel="stylesheet">
@@ -610,7 +610,7 @@
   const VALIDATEURS = {
     nom: v => v.trim().length < 2 ? 'Indiquez votre nom.' : '',
     email: v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()) ? '' : 'Adresse email invalide, par exemple prenom@exemple.fr.',
-    // Téléphone obligatoire : Cadence doit pouvoir joindre le client en cas d'imprévu.
+    // Téléphone obligatoire : Mirrio doit pouvoir joindre le client en cas d'imprévu.
     telephone: v => /^(?:\+33[1-9]\d{8}|0[1-9]\d{8})$/.test(v.replace(/[\s.-]/g, '')) ? '' : 'Numéro invalide, par exemple 06 12 34 56 78.'
   };
   Object.keys(VALIDATEURS).forEach(id => $(id).addEventListener('blur', () => poserErreur(id, VALIDATEURS[id]($(id).value))));

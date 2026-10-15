@@ -1,4 +1,4 @@
--- Cadence — migration v14 : annuaire public (façon Planity).
+-- Mirrio — migration v14 : annuaire public (façon Planity).
 -- À exécuter une fois dans Supabase : SQL Editor → New query → coller → Run.
 -- Idempotent : peut être rejouée sans casser l'existant.
 --

@@ -1,4 +1,4 @@
-// Cadence — génération d'un fichier .ics pour UN rendez-vous (module partagé,
+// Mirrio — génération d'un fichier .ics pour UN rendez-vous (module partagé,
 // pas une route : le préfixe `_` empêche Vercel de l'exposer).
 //
 // Sert à api/rendez-vous-ics.js (téléchargement par le client) et aux emails
@@ -32,7 +32,7 @@ const horodatage = d => new Date(d).toISOString().replace(/[-:]/g, '').replace(/
 
 export function construireIcs({ rdv, praticien, lieu, lien }){
   const lignes = [
-    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Cadence//Rendez-vous//FR',
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Mirrio//Rendez-vous//FR',
     'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
     'BEGIN:VEVENT',
     `UID:${rdv.id}@cadence`,

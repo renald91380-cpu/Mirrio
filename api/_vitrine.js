@@ -1,4 +1,4 @@
-// Cadence — données publiques de la page vitrine d'un praticien/salon.
+// Mirrio — données publiques de la page vitrine d'un praticien/salon.
 //
 //   GET /api/vitrine?slug=<slug>
 //

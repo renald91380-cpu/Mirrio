@@ -1,4 +1,4 @@
-// Cadence — retour PayPal après annulation côté client (bouton "Annuler et
+// Mirrio — retour PayPal après annulation côté client (bouton "Annuler et
 // retourner" sur paypal.com) : libère la demande de paiement pour qu'elle
 // puisse être redemandée, puis affiche la page générique d'annulation.
 //

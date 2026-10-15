@@ -1,8 +1,8 @@
--- Cadence — migration v20 : réservation par intervenant (coiffeur, praticien) et confirmation automatique.
+-- Mirrio — migration v20 : réservation par intervenant (coiffeur, praticien) et confirmation automatique.
 -- À exécuter une fois dans Supabase (SQL Editor). Idempotent.
 --
 -- Un « intervenant » est une ligne de `vitrine_equipe` (la même équipe que celle
--- présentée sur la vitrine, pas forcément un compte Cadence). Il n'est proposé à
+-- présentée sur la vitrine, pas forcément un compte Mirrio). Il n'est proposé à
 -- la réservation en ligne que si `reservable` est vrai (faux par défaut : une équipe
 -- simplement affichée ne multiplie pas la capacité d'accueil sans que le praticien
 -- l'ait décidé).
@@ -120,8 +120,8 @@ begin
 end;
 $$ language plpgsql security definer set search_path = public;
 
--- Les trois slugs demo-barber, demo-coiffure et demo-institut sont réservés aux salons fictifs de démonstration (site/demo-mode.js
+-- Les slugs demo-barber, demo-coiffure, demo-institut et demo-nouveau sont réservés aux salons fictifs de démonstration (site/demo-mode.js
 -- simule leur API côté navigateur) : un vrai salon ne peut pas en choisir un.
 alter table public.parametres_reservation drop constraint if exists parametres_reservation_slug_demo_check;
 alter table public.parametres_reservation add constraint parametres_reservation_slug_demo_check
-  check (slug is null or slug not in ('demo-barber','demo-coiffure','demo-institut'));
+  check (slug is null or slug not in ('demo-barber','demo-coiffure','demo-institut','demo-nouveau'));

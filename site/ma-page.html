@@ -17,7 +17,7 @@
     }catch(e){}
   })();
 </script>
-<title>Ma page | Cadence</title>
+<title>Ma page | Mirrio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -173,7 +173,7 @@
 <meta name="theme-color" content="#1C2333">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Cadence">
+<meta name="apple-mobile-web-app-title" content="Mirrio">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <script src="/pwa.js" defer></script>
@@ -207,7 +207,7 @@
 
 <header class="app-header">
   <div class="app-header-left">
-    <span class="logo">Cadence<span class="dot">.</span></span>
+    <span class="logo">Mirrio<span class="dot">.</span></span>
     <nav class="app-nav">
       <a href="dashboard.html" class="active">Tableau de bord</a>
       <a href="clients.html">Clients</a>
@@ -226,7 +226,7 @@
 
 <div class="app-shell">
   <aside class="app-sidebar">
-    <div class="logo">Cadence<span class="dot">.</span></div>
+    <div class="logo">Mirrio<span class="dot">.</span></div>
     <div class="logo-badge" aria-hidden="true"></div>
     <nav class="sidebar-nav"></nav>
     <div class="sidebar-spacer"></div>
@@ -697,7 +697,7 @@
     $('user-name').textContent = await prenomConnecte(supabase, data.session);
     $('sidebar-email').textContent = data.session.user.email;
     const brand = await initTheme(supabase, 'vitrine');
-    const nomAffiche = brand.business_name && brand.business_name !== 'Cadence' ? brand.business_name : (brand.full_name ? formaterNomAffichage(brand.full_name) : data.session.user.email);
+    const nomAffiche = brand.business_name && brand.business_name !== 'Mirrio' ? brand.business_name : (brand.full_name ? formaterNomAffichage(brand.full_name) : data.session.user.email);
     $('sidebar-name').textContent = nomAffiche; $('sidebar-avatar').textContent = initiales(nomAffiche);
     espaceId = await idEspaceActif(supabase);
 

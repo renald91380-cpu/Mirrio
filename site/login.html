@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Se connecter | Cadence</title>
-<meta name="description" content="Connectez-vous à votre compte Cadence.">
+<title>Se connecter | Mirrio</title>
+<meta name="description" content="Connectez-vous à votre compte Mirrio.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -194,7 +194,7 @@
 <meta name="theme-color" content="#1C2333">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Cadence">
+<meta name="apple-mobile-web-app-title" content="Mirrio">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <script src="/pwa.js" defer></script>
@@ -206,7 +206,7 @@
 <div class="auth-shell">
   <aside class="auth-aside">
     <div class="auth-aside-top">
-      <a href="index.html" class="logo">Cadence<span class="dot">.</span></a>
+      <a href="index.html" class="logo">Mirrio<span class="dot">.</span></a>
     </div>
     <div class="auth-aside-mid">
       <h1>Vos rendez-vous vous attendent.</h1>
@@ -216,12 +216,12 @@
         <li>Aucune commission sur vos rendez-vous</li>
       </ul>
     </div>
-    <div class="auth-aside-bottom">© Cadence</div>
+    <div class="auth-aside-bottom">© Mirrio</div>
   </aside>
 
   <main class="auth-main">
     <div class="auth-card">
-      <a href="index.html" class="logo top-logo">Cadence<span class="dot">.</span></a>
+      <a href="index.html" class="logo top-logo">Mirrio<span class="dot">.</span></a>
 
       <div id="form-view">
         <h2>Connexion</h2>
@@ -272,7 +272,7 @@
       <!-- ============================ MOT DE PASSE OUBLIÉ ============================ -->
       <div id="recover-view" style="display:none;">
         <h2>Mot de passe oublié</h2>
-        <p class="sub">Indiquez votre adresse : si un compte Cadence lui correspond, un lien de réinitialisation vous sera envoyé.</p>
+        <p class="sub">Indiquez votre adresse : si un compte Mirrio lui correspond, un lien de réinitialisation vous sera envoyé.</p>
 
         <div class="form-errors" id="recover-errors" role="alert" tabindex="-1">
           <h3>Corrigez les champs suivants avant de continuer :</h3>
@@ -396,7 +396,7 @@
   const googleBtn = document.getElementById('google-btn');
   googleBtn.addEventListener('click', async function(){
     if(!configured){
-      showServerError("Cadence n'est pas encore connecté à Supabase (configurez supabase-config.js).");
+      showServerError("Mirrio n'est pas encore connecté à Supabase (configurez supabase-config.js).");
       return;
     }
     googleBtn.disabled = true;
@@ -459,7 +459,7 @@
     errorsBox.classList.remove('show');
 
     if(!configured){
-      showServerError("Cadence n'est pas encore connecté à Supabase (configurez supabase-config.js).");
+      showServerError("Mirrio n'est pas encore connecté à Supabase (configurez supabase-config.js).");
       return;
     }
 
@@ -559,7 +559,7 @@
 
     if(!configured){
       recoverErrorsList.innerHTML = '';
-      recoverErrorsBox.querySelector('h3').textContent = "Cadence n'est pas encore connecté à Supabase.";
+      recoverErrorsBox.querySelector('h3').textContent = "Mirrio n'est pas encore connecté à Supabase.";
       recoverErrorsBox.classList.add('show');
       return;
     }

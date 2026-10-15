@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<title>Votre document | Cadence</title>
+<title>Votre document | Mirrio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -48,7 +48,7 @@
 <meta name="theme-color" content="#1C2333">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Cadence">
+<meta name="apple-mobile-web-app-title" content="Mirrio">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <script src="/pwa.js" defer></script>
@@ -95,8 +95,8 @@
 
     const { doc, lignes, client, params, brand } = payload;
 
-    document.title = `${doc.type === 'devis' ? 'Devis' : 'Facture'} ${doc.numero || ''} — Cadence`;
-    document.getElementById('marque').textContent = brand.business_name || brand.full_name || 'Cadence';
+    document.title = `${doc.type === 'devis' ? 'Devis' : 'Facture'} ${doc.numero || ''} — Mirrio`;
+    document.getElementById('marque').textContent = brand.business_name || brand.full_name || 'Mirrio';
 
     const style = document.createElement('style');
     style.textContent = stylesDocument(couleurDocument(params, brand), params.modele || 'moderne');

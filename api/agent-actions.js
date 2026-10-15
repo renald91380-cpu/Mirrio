@@ -1,10 +1,10 @@
-// Cadence — API du dashboard de supervision des agents.
+// Mirrio — API du dashboard de supervision des agents.
 //
 //   GET  /api/agent-actions?key=<secret>            -> liste des actions en attente
 //   POST /api/agent-actions?key=<secret>&id=<id>&action=approve|reject
 //
 // Sert de relais entre site/agent-dashboard.html (servi par Vercel, sur le
-// domaine Cadence habituel) et la table `agent_actions` de Supabase, avec la
+// domaine Mirrio habituel) et la table `agent_actions` de Supabase, avec la
 // clé service_role — même parti pris que api/document-public.js et
 // api/envoyer-document.js : le contrôle d'accès se fait dans le code, pas par
 // une policy RLS, et `key` est comparée au secret `DASHBOARD_SECRET`.
@@ -13,7 +13,7 @@
 // Supabase `agent-dashboard` depuis le téléphone : certains réseaux mobiles
 // (contrôle parental opérateur type Orange/SFR) filtrent le domaine
 // supabase.co et renvoient le HTML en clair au lieu de le laisser s'afficher.
-// Le domaine Cadence (déjà utilisé pour login/agenda/etc. sans souci sur le
+// Le domaine Mirrio (déjà utilisé pour login/agenda/etc. sans souci sur le
 // même téléphone) n'a pas ce problème. L'Edge Function `agent-relance` reste
 // le seul endroit qui écrit une action ; celle-ci ne fait que lire/valider/
 // rejeter, jamais générer de brouillon.

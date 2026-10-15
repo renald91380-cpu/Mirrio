@@ -1,4 +1,4 @@
--- Cadence — migration v8 : paiements anticipés (Stripe / PayPal), phase 1.
+-- Mirrio — migration v8 : paiements anticipés (Stripe / PayPal), phase 1.
 -- À exécuter une fois dans Supabase : Project → SQL Editor → New query → coller → Run.
 -- Idempotent : peut être rejouée sans casser l'existant.
 --

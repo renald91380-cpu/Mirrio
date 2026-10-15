@@ -1,4 +1,4 @@
-// Cadence — enregistrement du service worker et invitation à installer l'app.
+// Mirrio — enregistrement du service worker et invitation à installer l'app.
 (function(){
   if('serviceWorker' in navigator){
     window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
@@ -35,7 +35,7 @@
   // Android / Chrome / Edge : invite native différée.
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault(); invite = e;
-    bandeau('Installer Cadence sur votre écran d’accueil', () => { invite.prompt(); });
+    bandeau('Installer Mirrio sur votre écran d’accueil', () => { invite.prompt(); });
   });
 
   // iOS Safari n'a pas d'invite : on explique le geste, une fois.

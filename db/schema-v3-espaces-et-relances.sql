@@ -1,4 +1,4 @@
--- Cadence — migration v3 : espaces partagés (collaborateurs), relances automatiques.
+-- Mirrio — migration v3 : espaces partagés (collaborateurs), relances automatiques.
 -- À exécuter une fois dans Supabase : Project → SQL Editor → New query → coller → Run.
 -- Idempotent : peut être rejouée sans casser l'existant.
 --

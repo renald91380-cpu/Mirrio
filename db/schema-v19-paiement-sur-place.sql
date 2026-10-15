@@ -1,4 +1,4 @@
--- Cadence — migration v19 : choix CB ou espèces à la réservation, avec acompte.
+-- Mirrio — migration v19 : choix CB ou espèces à la réservation, avec acompte.
 -- À exécuter une fois dans Supabase (SQL Editor). Idempotent.
 --
 -- Principe : à la réservation en ligne, le client choisit

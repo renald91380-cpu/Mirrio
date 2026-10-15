@@ -1,4 +1,4 @@
-// Cadence — lecture publique des disponibilités d'un praticien, pour le
+// Mirrio — lecture publique des disponibilités d'un praticien, pour le
 // widget de réservation en ligne (site/reservation.html).
 //
 //   GET /api/reservation-disponibilites?slug=<slug>
@@ -206,7 +206,7 @@ export default async function handler(req, res){
 
   return json(res, 200, {
     praticien: {
-      business_name: profil.business_name || profil.full_name || 'Cadence',
+      business_name: profil.business_name || profil.full_name || 'Mirrio',
       logo_url: profil.logo_url || null,
       accent: profil.accent || 'ambre',
       metier: profil.metier || 'autre',

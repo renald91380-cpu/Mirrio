@@ -1,4 +1,4 @@
--- Cadence — migration v7 : statut d'activité (« a arrêté ») et localisation
+-- Mirrio — migration v7 : statut d'activité (« a arrêté ») et localisation
 -- dans le back-office admin.
 -- À exécuter une fois dans Supabase : Project → SQL Editor → New query → coller → Run.
 -- Idempotent : peut être rejouée sans casser l'existant.
@@ -15,7 +15,7 @@
 --   4. `admin_definir_seuil_inactivite()` — même patron que
 --      `admin_definir_seuil()` (schema-v4), pour le seuil d'inactivité.
 --
--- Note assumée sur les « abonnements » : Cadence n'a aucune intégration de
+-- Note assumée sur les « abonnements » : Mirrio n'a aucune intégration de
 -- paiement (pas de Stripe) — `plan` (solo/studio) est la seule notion de
 -- formule qui existe, déjà affichée dans le back-office (pastille + tarif
 -- indicatif). Il n'existe donc pas de statut d'abonnement « résilié » au sens

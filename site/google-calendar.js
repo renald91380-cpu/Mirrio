@@ -1,4 +1,4 @@
-// Cadence — poussée des rendez-vous vers Google Calendar.
+// Mirrio — poussée des rendez-vous vers Google Calendar.
 //
 // Le jeton d'accès Google arrive avec la session Supabase (`provider_token`)
 // quand l'utilisateur s'est connecté via Google en accordant l'autorisation
@@ -7,7 +7,7 @@
 // le canal de secours, lui toujours disponible.
 //
 // Rien n'est bloquant ici : un échec de synchronisation ne doit jamais empêcher
-// d'enregistrer un rendez-vous dans Cadence. La base de Cadence fait foi ;
+// d'enregistrer un rendez-vous dans Mirrio. La base de Mirrio fait foi ;
 // Google n'en est qu'un reflet.
 
 const API = 'https://www.googleapis.com/calendar/v3';
@@ -36,7 +36,7 @@ function versEvenement(rdv, nomClient){
   const description = [
     nomClient ? `Client : ${nomClient}` : null,
     rdv.notes || null,
-    'Créé depuis Cadence.'
+    'Créé depuis Mirrio.'
   ].filter(Boolean).join('\n');
 
   return {
@@ -45,7 +45,7 @@ function versEvenement(rdv, nomClient){
     start: { dateTime: new Date(rdv.date_debut).toISOString(), timeZone: 'Europe/Paris' },
     end:   { dateTime: new Date(rdv.date_fin).toISOString(),   timeZone: 'Europe/Paris' },
     status: rdv.statut === 'annule' ? 'cancelled' : 'confirmed',
-    source: { title: 'Cadence', url: window.location.origin + '/agenda.html' }
+    source: { title: 'Mirrio', url: window.location.origin + '/agenda.html' }
   };
 }
 

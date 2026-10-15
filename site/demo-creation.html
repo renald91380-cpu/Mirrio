@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
+<title>Simulation : créer mon salon | Mirrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1" defer></script>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#101216">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<style>
+  :root{ --bg:#F5F5F3; --surface:#FBFBFA; --ink:#101216; --muted:#5B606B; --line:rgba(16,18,22,.12); --accent:#E2A63D; --icone:#A1700A; --ok:#1F7A5A; --ko:#B5381F;
+    --ombre:0 1px 2px rgba(16,18,22,.05), 0 12px 30px -14px rgba(16,18,22,.18); --ease:cubic-bezier(.16,1,.3,1); }
+  @media (prefers-color-scheme: dark){ :root{ --bg:#0D0F13; --surface:#15181E; --ink:#F1F1EE; --muted:#9CA2AE; --line:rgba(255,255,255,.14); --icone:#E2A63D; --ok:#4CC49A; --ko:#FF8A6B; } }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ font-family:'Geist', system-ui, sans-serif; background:var(--bg); color:var(--ink); line-height:1.55; -webkit-font-smoothing:antialiased; }
+  a{ color:inherit; text-decoration:none; }
+  h1,h2,h3{ font-family:'Bricolage Grotesque', system-ui, sans-serif; letter-spacing:-.03em; line-height:1.08; }
+  i.ph{ font-size:1.2em; line-height:1; }
+  :focus-visible{ outline:3px solid var(--accent); outline-offset:3px; border-radius:8px; }
+  .haut{ max-width:1180px; margin:0 auto; padding:22px 24px 0; display:flex; justify-content:space-between; align-items:center; gap:16px; }
+  .logo{ font:800 21px 'Bricolage Grotesque', system-ui, sans-serif; letter-spacing:-.04em; } .logo b{ color:var(--accent); }
+  .simu{ font-size:13px; font-weight:600; padding:6px 14px; border-radius:999px; background:color-mix(in srgb, var(--accent) 22%, transparent); }
+  .cadre{ max-width:1180px; margin:0 auto; padding:28px 24px 80px; display:grid; grid-template-columns:minmax(0,1fr) 380px; gap:44px; align-items:start; }
+  @media(max-width:980px){ .cadre{ grid-template-columns:1fr; } .apercu{ display:none; } }
+  .progression{ display:flex; gap:8px; list-style:none; margin-bottom:26px; flex-wrap:wrap; }
+  .progression li{ font-size:13px; font-weight:600; color:var(--muted); padding:6px 12px; border-radius:999px; border:1.5px solid var(--line); }
+  .progression li[aria-current="step"]{ background:var(--ink); color:var(--bg); border-color:var(--ink); }
+  .progression li.fait{ color:var(--ok); border-color:color-mix(in srgb, var(--ok) 50%, transparent); }
+  h1{ font-size:clamp(30px, 4.4vw, 46px); font-weight:800; margin-bottom:8px; }
+  .intro{ color:var(--muted); font-size:17px; max-width:52ch; margin-bottom:26px; }
+  .carte{ background:var(--surface); border:1px solid var(--line); border-radius:22px; padding:26px; box-shadow:var(--ombre); }
+  .champ{ margin-bottom:18px; } .champ:last-child{ margin-bottom:0; }
+  label.t, .champ > .t{ display:block; font-size:13.5px; font-weight:600; margin-bottom:7px; }
+  input[type=text], input[type=number], select{ width:100%; min-height:48px; padding:10px 16px; border-radius:14px; border:1.5px solid var(--line); background:var(--bg); color:var(--ink); font:500 16px 'Geist', system-ui, sans-serif; }
+  input:focus, select:focus{ outline:3px solid var(--accent); outline-offset:1px; border-color:transparent; }
+  .duo{ display:grid; grid-template-columns:1fr 1fr; gap:14px; } @media(max-width:560px){ .duo{ grid-template-columns:1fr; } }
+  .choix{ display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:10px; }
+  .choix label{ display:flex; align-items:center; gap:10px; min-height:52px; padding:10px 14px; border-radius:14px; border:1.5px solid var(--line); cursor:pointer; font-weight:500; font-size:15px; background:var(--bg); }
+  .choix label:has(input:checked){ border-color:var(--ink); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 55%, transparent); }
+  .choix input{ accent-color:var(--ink); width:18px; height:18px; }
+  .lignes{ display:grid; gap:8px; }
+  .ligne{ display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:14px; border:1.5px solid var(--line); background:var(--bg); }
+  .ligne input[type=checkbox]{ accent-color:var(--ink); width:20px; height:20px; flex:none; }
+  .ligne .nom{ flex:1; font-weight:500; font-size:15px; } .ligne .meta{ color:var(--muted); font-size:13.5px; white-space:nowrap; }
+  .ligne .prix{ font:800 17px 'Bricolage Grotesque', system-ui, sans-serif; width:64px; text-align:right; }
+  .pers{ border:1.5px solid var(--line); border-radius:18px; padding:16px; margin-bottom:12px; background:var(--bg); }
+  .pers .en-tete{ display:grid; grid-template-columns:1fr 1fr auto; gap:10px; margin-bottom:12px; align-items:end; }
+  @media(max-width:560px){ .pers .en-tete{ grid-template-columns:1fr; } }
+  .pers .puces{ display:flex; flex-wrap:wrap; gap:8px; }
+  .pers .puces label{ display:inline-flex; align-items:center; gap:8px; padding:8px 14px; min-height:40px; border-radius:999px; border:1.5px solid var(--line); cursor:pointer; font-size:14px; background:var(--surface); }
+  .pers .puces label:has(input:checked){ background:var(--ink); color:var(--bg); border-color:var(--ink); }
+  .pers .puces input{ position:absolute; opacity:0; pointer-events:none; }
+  .pers .puces label:has(input:focus-visible){ outline:3px solid var(--accent); outline-offset:2px; }
+  .couleurs{ display:flex; gap:12px; flex-wrap:wrap; }
+  .couleurs label{ cursor:pointer; } .couleurs input{ position:absolute; opacity:0; }
+  .couleurs span{ display:block; width:46px; height:46px; border-radius:50%; border:3px solid transparent; box-shadow:inset 0 0 0 2px rgba(255,255,255,.35); }
+  .couleurs input:checked + span{ border-color:var(--ink); outline:3px solid var(--accent); outline-offset:2px; }
+  .couleurs input:focus-visible + span{ outline:3px solid var(--accent); outline-offset:2px; }
+  .actions[hidden]{ display:none; }
+  .actions{ display:flex; gap:10px; justify-content:space-between; margin-top:26px; flex-wrap:wrap; }
+  .btn{ display:inline-flex; align-items:center; justify-content:center; gap:9px; min-height:48px; padding:0 24px; border-radius:999px; border:none; cursor:pointer; font:600 15.5px 'Geist', system-ui, sans-serif; background:var(--accent); color:#101216; transition:transform .35s var(--ease); }
+  .btn:hover{ transform:translateY(-2px); } .btn:active{ transform:scale(.98); }
+  .btn.discret{ background:transparent; color:var(--ink); box-shadow:inset 0 0 0 1.5px var(--line); }
+  .btn.petit{ min-height:42px; padding:0 18px; font-size:14px; }
+  .erreur{ color:var(--ko); font-size:14px; margin-top:6px; }
+  .note{ font-size:13.5px; color:var(--muted); margin-top:8px; }
+  .apercu{ position:sticky; top:20px; }
+  .telephone{ width:min(100%, 360px); margin:0 auto; aspect-ratio:9/18.5; border-radius:44px; padding:10px; background:linear-gradient(160deg, #2a2e37, #0b0c0f); box-shadow:0 40px 80px -30px rgba(16,18,22,.55); position:relative; }
+  .telephone::before{ content:""; position:absolute; top:20px; left:50%; width:88px; height:24px; margin-left:-44px; border-radius:999px; background:#000; z-index:3; }
+  .telephone iframe{ width:100%; height:100%; border:0; border-radius:34px; background:#14171F; }
+  .legende{ text-align:center; font-size:13px; color:var(--muted); margin-top:14px; }
+  .fin h2{ font-size:clamp(28px, 4vw, 40px); font-weight:800; margin-bottom:8px; }
+  .liens{ display:grid; gap:12px; margin-top:22px; }
+  .lien{ display:flex; align-items:center; gap:14px; padding:16px 18px; border-radius:18px; border:1.5px solid var(--line); background:var(--bg); transition:transform .35s var(--ease), border-color .2s; }
+  .lien:hover{ transform:translateY(-2px); border-color:var(--ink); }
+  .lien i{ font-size:26px; color:var(--icone); } .lien b{ display:block; font-size:16px; } .lien small{ color:var(--muted); font-size:14px; }
+  .lien.fort{ background:var(--accent); color:#101216; border-color:transparent; } .lien.fort i, .lien.fort small{ color:#101216; }
+  @media (prefers-reduced-motion: reduce){ .btn, .lien{ transition:none; } .btn:hover, .lien:hover{ transform:none; } }
+</style>
+</head>
+<body>
+<header class="haut">
+  <a class="logo" href="index.html">Mirrio<b>.</b></a>
+  <span class="simu">Simulation : rien n'est enregistré</span>
+</header>
+
+<main class="cadre" id="contenu">
+  <div>
+    <ol class="progression" id="progression" aria-label="Étapes"></ol>
+    <h1 id="titre" tabindex="-1"></h1>
+    <p class="intro" id="intro"></p>
+    <form id="form" novalidate>
+      <div class="carte" id="etape"></div>
+      <div class="erreur" id="erreur" role="alert" hidden></div>
+      <div class="actions">
+        <button type="button" class="btn discret" id="prec">Retour</button>
+        <button type="submit" class="btn" id="suiv">Continuer</button>
+      </div>
+    </form>
+  </div>
+  <aside class="apercu" aria-label="Aperçu de la page de votre salon">
+    <div class="telephone"><iframe id="cadre-apercu" src="pro.html?p=demo&preview=1" title="Aperçu de la page de votre salon" loading="lazy"></iframe></div>
+    <p class="legende">La page de vos clients, en direct</p>
+  </aside>
+</main>
+
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var esc = function(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+
+  var METIERS = [['coiffure','Coiffeur·euse'],['barbier','Barbier'],['esthetique','Esthéticienne / institut'],['onglerie','Prothésiste ongulaire'],['massage','Masseur·euse / spa'],['therapeute','Praticien bien-être']];
+  // Catalogues types (prix TTC indicatifs) : libellé, catégorie, prix, durée en minutes, public.
+  var CATALOGUES = {
+    coiffure: [['Coupe femme','Coupe',38,45,'femme'],['Coupe homme','Coupe',26,30,'homme'],['Brushing','Coiffage',25,30,'femme'],['Coloration racines','Couleur',58,90,'femme'],['Balayage','Couleur',120,150,'femme'],['Soin profond','Soins',20,20,'mixte']],
+    barbier: [['Coupe homme','Coupe',26,30,'homme'],['Dégradé','Coupe',30,40,'homme'],['Taille de barbe','Barbe',18,20,'homme'],['Rasage traditionnel','Barbe',28,30,'homme'],['Coupe et barbe','Formules',38,45,'homme'],['Coupe enfant','Coupe',18,25,'homme']],
+    esthetique: [['Soin visage éclat','Visage',65,60,'mixte'],['Épilation sourcils','Épilation',14,15,'femme'],['Épilation jambes','Épilation',32,35,'femme'],['Beauté des mains','Mains et pieds',36,40,'mixte'],['Soin corps','Corps',60,60,'mixte']],
+    onglerie: [['Pose semi-permanent','Mains',35,45,'femme'],['Dépose','Mains',15,20,'mixte'],['Pose gel','Mains',55,75,'femme'],['Remplissage gel','Mains',45,60,'femme'],['Nail art','Options',10,20,'femme']],
+    massage: [['Massage relaxant, 30 min','Massages',45,30,'mixte'],['Massage relaxant, 60 min','Massages',75,60,'mixte'],['Massage relaxant, 90 min','Massages',105,90,'mixte'],['Massage californien','Massages',80,60,'mixte'],['Pierres chaudes','Massages',90,75,'mixte']],
+    therapeute: [['Séance découverte','Séances',50,45,'mixte'],['Séance, 60 min','Séances',70,60,'mixte'],['Séance, 90 min','Séances',95,90,'mixte']]
+  };
+  var COULEURS = [['#E2A63D','Ambre'],['#C25B7E','Rose'],['#2F7D6B','Vert'],['#3B6FD4','Bleu'],['#FF6B35','Orange'],['#101216','Noir']];
+  var ETAPES = [
+    ['Votre salon', 'Quelques mots pour commencer', 'Le nom et le métier suffisent. Le reste se règle plus tard.'],
+    ['Prestations', 'Votre catalogue', 'Un catalogue type est prêt pour votre métier. Décochez ce que vous ne proposez pas.'],
+    ['Équipe', 'Votre équipe et ses spécialités', 'Chaque personne ne réalise que ses prestations : vos clients ne verront qu\'elle pour les soins qu\'elle assure.'],
+    ['Style', 'Votre page à vos couleurs', 'Couleur et fond. Photos, textes et horaires se règlent ensuite dans « Ma page ».'],
+    ['Paiement', 'Comment vos clients règlent', 'Toujours en direct : l\'argent va sur votre compte, sans commission.']
+  ];
+
+  var etat = { i: 0, nom: 'Studio Aurore', ville: 'Nantes', metier: 'coiffure', prestations: [], equipe: [], couleur: '#E2A63D', fond: 'clair', mode: 'acompte', acompte: 5 };
+  var idRef = 0;
+  function chargerCatalogue(){
+    etat.prestations = (CATALOGUES[etat.metier] || []).map(function(p, k){ return { id: 'p' + (++idRef), libelle: p[0], categorie: p[1], prix: p[2], duree: p[3], public: p[4], actif: true }; });
+    etat.equipe = [];
+  }
+  chargerCatalogue();
+  var actives = function(){ return etat.prestations.filter(function(p){ return p.actif; }); };
+
+  // ---------------------------------------------------------- aperçu en direct
+  var cadre = $('cadre-apercu'), pret = false;
+  function donnees(){
+    var presta = actives().map(function(p){ return { id: p.id, libelle: p.libelle, duree_minutes: p.duree, prix_unitaire: p.prix, public_cible: p.public, categorie: p.categorie }; });
+    return { slug:'demo', nom: etat.nom || 'Votre salon', metier: etat.metier === 'therapeute' ? 'massage' : etat.metier, logo_url:null, accent:'ambre', ville: etat.ville || '',
+      horaires:{ jours:[2,3,4,5,6], debut:'09:30:00', fin:'19:00:00' }, adresse:null, latitude:null, longitude:null,
+      vitrine:{ accroche:'', a_propos:null, cover_url:null, galerie:[], mise_en_page:'classique', police:'moderne', couleur: etat.couleur, fond: etat.fond, boutons:'pilule', texte_bouton:'Prendre rendez-vous', bandeau_actif:false, bandeau_texte:null,
+        sections:{ a_propos:false, galerie:false, equipe:true, horaires:false, carte:false, avis:false, prestations:true }, ordre:['prestations','equipe'] },
+      equipe: etat.equipe.filter(function(m){ return m.nom; }).map(function(m){ return { nom:m.nom, role:m.role }; }), prestations: presta, avis: [] };
+  }
+  function envoyerApercu(){ if(pret && cadre.contentWindow) cadre.contentWindow.postMessage({ type:'cadence-vitrine', data: donnees() }, location.origin); }
+  window.addEventListener('message', function(e){ if(e.origin === location.origin && e.data && e.data.type === 'cadence-vitrine-ready'){ pret = true; envoyerApercu(); } });
+
+  // ------------------------------------------------------------------- étapes
+  function rendreProgression(){
+    $('progression').innerHTML = ETAPES.map(function(e, k){ return '<li class="' + (k < etat.i ? 'fait' : '') + '"' + (k === etat.i ? ' aria-current="step"' : '') + '>' + (k + 1) + '. ' + e[0] + '</li>'; }).join('');
+  }
+  function vueSalon(){
+    return '<div class="duo"><div class="champ"><label class="t" for="f-nom">Nom du salon</label><input type="text" id="f-nom" value="' + esc(etat.nom) + '" maxlength="60" autocomplete="off"></div>' +
+      '<div class="champ"><label class="t" for="f-ville">Ville</label><input type="text" id="f-ville" value="' + esc(etat.ville) + '" maxlength="60" autocomplete="off"></div></div>' +
+      '<div class="champ"><span class="t" id="l-metier">Votre métier</span><div class="choix" role="radiogroup" aria-labelledby="l-metier">' +
+      METIERS.map(function(m){ return '<label><input type="radio" name="metier" value="' + m[0] + '"' + (etat.metier === m[0] ? ' checked' : '') + '>' + m[1] + '</label>'; }).join('') + '</div>' +
+      '<p class="note">Changer de métier recharge le catalogue type.</p></div>';
+  }
+  function vuePrestations(){
+    return '<div class="lignes">' + etat.prestations.map(function(p){
+      return '<div class="ligne"><input type="checkbox" id="c-' + p.id + '" data-id="' + p.id + '"' + (p.actif ? ' checked' : '') + ' aria-label="Proposer ' + esc(p.libelle) + '">' +
+        '<label class="nom" for="c-' + p.id + '">' + esc(p.libelle) + '</label><span class="meta">' + p.duree + ' min · ' + (p.public === 'mixte' ? 'Mixte' : p.public === 'femme' ? 'Femme' : 'Homme') + '</span>' +
+        '<input type="number" class="prix" min="0" max="999" value="' + p.prix + '" data-prix="' + p.id + '" aria-label="Prix de ' + esc(p.libelle) + ' en euros" style="min-height:40px;padding:6px 8px"></div>';
+    }).join('') + '</div><p class="note">Prix TTC en euros, modifiables à tout moment.</p>';
+  }
+  function proposerEquipe(){
+    var ids = actives().map(function(p){ return p.id; }), moitie = ids.slice(0, Math.max(1, Math.ceil(ids.length / 2)));
+    etat.equipe = [{ id:'m1', nom:'Aurore', role:'Fondatrice', presta: ids.slice() }, { id:'m2', nom:'Malik', role:'', presta: moitie }];
+  }
+  function vueEquipe(){
+    if(!etat.equipe.length) proposerEquipe();
+    var a = actives();
+    return etat.equipe.map(function(m, k){
+      return '<div class="pers" data-m="' + m.id + '"><div class="en-tete">' +
+        '<div><label class="t" for="n-' + m.id + '">Prénom</label><input type="text" id="n-' + m.id + '" value="' + esc(m.nom) + '" maxlength="40" data-champ="nom"></div>' +
+        '<div><label class="t" for="r-' + m.id + '">Rôle</label><input type="text" id="r-' + m.id + '" value="' + esc(m.role) + '" maxlength="40" placeholder="Coloriste" data-champ="role"></div>' +
+        (etat.equipe.length > 1 ? '<button type="button" class="btn discret petit" data-retirer="' + m.id + '" aria-label="Retirer ' + esc(m.nom || 'cette personne') + '">Retirer</button>' : '') + '</div>' +
+        '<div class="t" style="font-size:13px;font-weight:600;margin-bottom:8px">Spécialités (ce qu\'elle réalise)</div><div class="puces">' +
+        a.map(function(p){ return '<label><input type="checkbox" data-spec="' + m.id + '" value="' + p.id + '"' + (m.presta.indexOf(p.id) >= 0 ? ' checked' : '') + '>' + esc(p.libelle) + '</label>'; }).join('') + '</div></div>';
+    }).join('') + (etat.equipe.length < 5 ? '<button type="button" class="btn discret petit" id="ajout">+ Ajouter une personne</button>' : '');
+  }
+  function vueStyle(){
+    return '<div class="champ"><span class="t" id="l-coul">Couleur</span><div class="couleurs" role="radiogroup" aria-labelledby="l-coul">' +
+      COULEURS.map(function(c){ return '<label><input type="radio" name="couleur" value="' + c[0] + '"' + (etat.couleur === c[0] ? ' checked' : '') + ' aria-label="' + c[1] + '"><span style="background:' + c[0] + '"></span></label>'; }).join('') + '</div></div>' +
+      '<div class="champ"><span class="t" id="l-fond">Fond de la page</span><div class="choix" role="radiogroup" aria-labelledby="l-fond">' +
+      [['clair','Clair'],['creme','Crème'],['sombre','Sombre']].map(function(f){ return '<label><input type="radio" name="fond" value="' + f[0] + '"' + (etat.fond === f[0] ? ' checked' : '') + '>' + f[1] + '</label>'; }).join('') + '</div></div>';
+  }
+  function vuePaiement(){
+    var opts = [['carte','Carte à la réservation','Le client règle la totalité en ligne.'],['acompte','Acompte puis espèces sur place','Un acompte par carte garantit le rendez-vous, le solde se règle au salon. Il n\'est pas remboursé en cas d\'absence.'],['place','Tout sur place','Aucun paiement en ligne. La réservation est confirmée tout de suite.']];
+    return '<div class="champ" role="radiogroup" aria-label="Mode de règlement"><div class="lignes">' + opts.map(function(o){
+      return '<label class="ligne" style="cursor:pointer;align-items:flex-start"><input type="radio" name="mode" value="' + o[0] + '"' + (etat.mode === o[0] ? ' checked' : '') + ' style="margin-top:3px"><span><b>' + o[1] + '</b><br><span class="meta" style="white-space:normal">' + o[2] + '</span></span></label>';
+    }).join('') + '</div></div>' +
+    '<div class="champ" id="bloc-acompte"' + (etat.mode === 'acompte' ? '' : ' hidden') + '><label class="t" for="f-acompte">Acompte minimum (€)</label><input type="number" id="f-acompte" min="0" max="100" value="' + etat.acompte + '" style="max-width:160px"></div>';
+  }
+  var VUES = [vueSalon, vuePrestations, vueEquipe, vueStyle, vuePaiement];
+
+  function afficher(focus){
+    rendreProgression();
+    $('titre').textContent = ETAPES[etat.i][1]; $('intro').textContent = ETAPES[etat.i][2];
+    $('etape').innerHTML = VUES[etat.i]();
+    $('prec').style.visibility = etat.i === 0 ? 'hidden' : 'visible';
+    $('suiv').textContent = etat.i === ETAPES.length - 1 ? 'Créer mon salon' : 'Continuer';
+    $('erreur').hidden = true;
+    brancher(); envoyerApercu();
+    if(focus){ $('titre').focus({ preventScroll:true }); window.scrollTo({ top:0 }); }
+  }
+
+  function brancher(){
+    var e = $('etape');
+    var nom = $('f-nom'); if(nom) nom.addEventListener('input', function(){ etat.nom = nom.value; envoyerApercu(); });
+    var ville = $('f-ville'); if(ville) ville.addEventListener('input', function(){ etat.ville = ville.value; envoyerApercu(); });
+    e.querySelectorAll('input[name=metier]').forEach(function(r){ r.addEventListener('change', function(){ etat.metier = r.value; chargerCatalogue(); envoyerApercu(); }); });
+    e.querySelectorAll('[data-id]').forEach(function(c){ c.addEventListener('change', function(){ etat.prestations.forEach(function(p){ if(p.id === c.dataset.id) p.actif = c.checked; }); etat.equipe = []; envoyerApercu(); }); });
+    e.querySelectorAll('[data-prix]').forEach(function(c){ c.addEventListener('input', function(){ etat.prestations.forEach(function(p){ if(p.id === c.dataset.prix) p.prix = Math.max(0, Number(c.value) || 0); }); envoyerApercu(); }); });
+    e.querySelectorAll('.pers').forEach(function(bloc){
+      var m = etat.equipe.filter(function(x){ return x.id === bloc.dataset.m; })[0];
+      bloc.querySelectorAll('[data-champ]').forEach(function(i){ i.addEventListener('input', function(){ m[i.dataset.champ] = i.value; envoyerApercu(); }); });
+      bloc.querySelectorAll('[data-spec]').forEach(function(i){ i.addEventListener('change', function(){ m.presta = i.checked ? m.presta.concat(i.value) : m.presta.filter(function(v){ return v !== i.value; }); }); });
+    });
+    e.querySelectorAll('[data-retirer]').forEach(function(b){ b.addEventListener('click', function(){ etat.equipe = etat.equipe.filter(function(x){ return x.id !== b.dataset.retirer; }); afficher(false); }); });
+    var aj = $('ajout'); if(aj) aj.addEventListener('click', function(){ etat.equipe.push({ id:'m' + (++idRef + 10), nom:'', role:'', presta: actives().map(function(p){ return p.id; }) }); afficher(false); var n = e.querySelectorAll('[data-champ=nom]'); n[n.length - 1].focus(); });
+    e.querySelectorAll('input[name=couleur]').forEach(function(r){ r.addEventListener('change', function(){ etat.couleur = r.value; envoyerApercu(); }); });
+    e.querySelectorAll('input[name=fond]').forEach(function(r){ r.addEventListener('change', function(){ etat.fond = r.value; envoyerApercu(); }); });
+    e.querySelectorAll('input[name=mode]').forEach(function(r){ r.addEventListener('change', function(){ etat.mode = r.value; $('bloc-acompte').hidden = r.value !== 'acompte'; }); });
+    var ac = $('f-acompte'); if(ac) ac.addEventListener('input', function(){ etat.acompte = Math.max(0, Number(ac.value) || 0); });
+  }
+
+  function valider(){
+    if(etat.i === 0){ if(!etat.nom.trim()){ return ['Donnez un nom à votre salon.', 'f-nom']; } }
+    if(etat.i === 1 && !actives().length) return ['Gardez au moins une prestation.', null];
+    if(etat.i === 2){
+      if(etat.equipe.some(function(m){ return !m.nom.trim(); })) return ['Chaque personne a besoin d\'un prénom.', null];
+      var sans = etat.equipe.filter(function(m){ return !m.presta.length; })[0];
+      if(sans) return [sans.nom + ' n\'a aucune spécialité : cochez au moins une prestation.', null];
+      var orphelines = actives().filter(function(p){ return !etat.equipe.some(function(m){ return m.presta.indexOf(p.id) >= 0; }); });
+      if(orphelines.length) return ['Personne ne réalise « ' + orphelines[0].libelle + ' ». Cochez-la chez quelqu\'un ou retirez-la du catalogue.', null];
+    }
+    return null;
+  }
+
+  function terminer(){
+    var cfg = {
+      nom: etat.nom.trim(), ville: etat.ville.trim() || 'Votre ville', metier: etat.metier === 'therapeute' ? 'massage' : etat.metier, couleur: etat.couleur, fond: etat.fond,
+      accroche: 'Réservez en ligne, 24h/24.',
+      paiement: { en_ligne: etat.mode !== 'place', especes: etat.mode !== 'carte', acompte_minimum: etat.mode === 'acompte' ? etat.acompte : 0, acompte_pourcentage: 0 },
+      equipe: etat.equipe.map(function(m, k){ return { id: 'n-' + k, nom: m.nom.trim(), role: m.role.trim() || 'Praticien·ne', bio: '', presta: m.presta.map(function(id){ return id; }) }; }),
+      prestations: actives().map(function(p){ return { id: p.id, categorie: p.categorie, libelle: p.libelle, prix: p.prix, duree: p.duree, public: p.public }; })
+    };
+    try{ sessionStorage.setItem('mirrio-demo-salon', JSON.stringify(cfg)); }catch(e){}
+    $('progression').innerHTML = ETAPES.map(function(e){ return '<li class="fait">' + e[0] + '</li>'; }).join('');
+    $('titre').textContent = ''; $('intro').textContent = '';
+    document.querySelector('.actions').hidden = true;
+    var ou = { carte: 'carte à la réservation', acompte: 'acompte puis espèces', place: 'paiement sur place' }[etat.mode];
+    $('etape').innerHTML = '<div class="fin"><h2 id="fin-titre" tabindex="-1">' + esc(cfg.nom) + ' est en ligne.</h2>' +
+      '<p class="intro" style="margin:0">' + cfg.prestations.length + ' prestations, ' + cfg.equipe.length + ' personnes, règlement : ' + ou + '. Voyez maintenant ce que vivent vos clients.</p>' +
+      '<div class="liens"><a class="lien fort" href="reservation.html?p=demo-nouveau"><i class="ph ph-calendar-check" aria-hidden="true"></i><span><b>Prendre un rendez-vous comme un client</b><small>Choisissez prestations, personne et créneau sur votre salon</small></span></a>' +
+      '<a class="lien" href="pro.html?p=demo-nouveau"><i class="ph ph-storefront" aria-hidden="true"></i><span><b>Voir la page de mon salon</b><small>Ce que vos clients découvrent en premier</small></span></a>' +
+      '<a class="lien" href="explorer.html?demo=1"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><span><b>Me retrouver dans l\'annuaire</b><small>Votre salon apparaît à côté des autres</small></span></a>' +
+      '<a class="lien" href="mon-espace.html?demo=1"><i class="ph ph-user-circle" aria-hidden="true"></i><span><b>Voir l\'espace client</b><small>Retrouver, annuler ou reprendre un rendez-vous</small></span></a></div>' +
+      '<p class="note"><a href="demo-creation.html" style="text-decoration:underline">Recommencer la simulation</a> · <a href="signup.html" style="text-decoration:underline">Créer mon vrai salon</a></p></div>';
+    $('fin-titre').focus({ preventScroll:true }); window.scrollTo({ top:0 });
+  }
+
+  $('prec').addEventListener('click', function(){ if(etat.i > 0){ etat.i--; afficher(true); } });
+  $('form').addEventListener('submit', function(ev){
+    ev.preventDefault();
+    var v = valider(), er = $('erreur');
+    if(v){ er.textContent = v[0]; er.hidden = false; if(v[1]) $(v[1]).focus(); return; }
+    if(etat.i === ETAPES.length - 1) return terminer();
+    etat.i++; afficher(true);
+  });
+  afficher(false);
+})();
+</script>
+<script src="/pwa.js" defer></script>
+</body>
+</html>

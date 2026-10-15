@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <meta name="color-scheme" content="light dark">
-<title>Mes rendez-vous | Cadence</title>
+<title>Mes rendez-vous | Mirrio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
@@ -64,12 +64,12 @@
 </head>
 <body>
 <header class="haut">
-  <a class="logo" href="index.html">Cadence<b>.</b></a>
+  <a class="logo" href="index.html">Mirrio<b>.</b></a>
   <button type="button" class="quitter" id="quitter" hidden>Quitter</button>
 </header>
 <main id="contenu">
   <h1 id="titre">Mes rendez-vous</h1>
-  <p class="intro" id="intro">Retrouvez vos rendez-vous dans tous les salons Cadence, reprenez le même en un clic ou annulez-le. Sans mot de passe.</p>
+  <p class="intro" id="intro">Retrouvez vos rendez-vous dans tous les salons Mirrio, reprenez le même en un clic ou annulez-le. Sans mot de passe.</p>
 
   <section id="vue-connexion" hidden>
     <form class="connexion" id="form" novalidate>
@@ -171,7 +171,7 @@
 
   function montrerListe(email){
     $('vue-connexion').hidden = true; $('vue-liste').hidden = false; $('quitter').hidden = false;
-    $('intro').textContent = email ? 'Connecté avec ' + email + '.' : 'Vos rendez-vous dans tous les salons Cadence.';
+    $('intro').textContent = email ? 'Connecté avec ' + email + '.' : 'Vos rendez-vous dans tous les salons Mirrio.';
     dessiner();
   }
 

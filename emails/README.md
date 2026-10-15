@@ -1,6 +1,6 @@
-# Emails d'authentification Cadence
+# Emails d'authentification Mirrio
 
-Gabarits HTML pour les emails envoyés par Supabase Auth, en français et à la charte Cadence.
+Gabarits HTML pour les emails envoyés par Supabase Auth, en français et à la charte Mirrio.
 
 ---
 
@@ -10,8 +10,8 @@ Supabase → **Authentication** → **Emails** → **Templates**. Pour chaque mo
 
 | Modèle Supabase | Fichier | Objet à saisir |
 |---|---|---|
-| Confirm signup | `confirmation-inscription.html` | `Plus qu'un clic pour lancer Cadence` |
-| Magic Link | `lien-magique.html` | `Votre lien de connexion Cadence` |
+| Confirm signup | `confirmation-inscription.html` | `Plus qu'un clic pour lancer Mirrio` |
+| Magic Link | `lien-magique.html` | `Votre lien de connexion Mirrio` |
 | Reset Password | `reinitialisation-mot-de-passe.html` | `Choisissez un nouveau mot de passe` |
 | Change Email Address | `changement-email.html` | `Confirmez votre nouvelle adresse` |
 
@@ -27,7 +27,7 @@ Il faut donc brancher un SMTP personnalisé : **Authentication** → **Emails** 
 
 Deux raisons de le faire, pas une :
 
-1. **La crédibilité.** L'expéditeur devient `Cadence <bonjour@votre-domaine.fr>`.
+1. **La crédibilité.** L'expéditeur devient `Mirrio <bonjour@votre-domaine.fr>`.
 2. **Le volume.** Le service d'envoi intégré de Supabase est bridé à quelques emails par heure et explicitement réservé aux tests. En production, les inscriptions passeraient à la trappe sans prévenir.
 
 Fournisseurs qui conviennent, tous avec une offre gratuite suffisante au démarrage : **Resend**, **Brevo**, **Postmark**, **Mailgun**.
@@ -37,7 +37,7 @@ La marche à suivre est la même partout :
 1. Créer un compte, y ajouter votre domaine.
 2. Publier les enregistrements DNS demandés — **SPF**, **DKIM**, et idéalement **DMARC**. Sans eux, Gmail classe en spam ou refuse.
 3. Récupérer l'hôte SMTP, le port (587), l'utilisateur et le mot de passe.
-4. Les saisir dans Supabase, avec *Sender name* = `Cadence` et *Sender email* = une adresse de votre domaine.
+4. Les saisir dans Supabase, avec *Sender name* = `Mirrio` et *Sender email* = une adresse de votre domaine.
 
 Tant que le domaine n'est pas authentifié, mieux vaut rester sur l'envoi Supabase : un domaine mal configuré abîme durablement la réputation d'expédition.
 
@@ -50,7 +50,7 @@ Le HTML est volontairement daté — tableaux, styles inline, largeur fixe de 60
 - **Bouton « bulletproof »** : un bloc VML sous condition `[if mso]` dessine le fond que Word refuse de peindre. Sans lui, le bouton apparaît en simple lien bleu sur Outlook.
 - **Pas de police web.** Fraunces et Inter ne se chargent pas dans un client mail. Georgia tient le rôle du titre, la pile système celui du texte.
 - **`color-scheme: light`** pour éviter que le mode sombre de Gmail ou d'Apple Mail n'inverse les couleurs et ne fasse disparaître l'ambre.
-- **Texte d'aperçu masqué** en tête de chaque gabarit : c'est la ligne que la boîte de réception affiche à côté de l'objet. Sans elle, Gmail y met les premiers mots trouvés, souvent « Cadence Cadence ».
+- **Texte d'aperçu masqué** en tête de chaque gabarit : c'est la ligne que la boîte de réception affiche à côté de l'objet. Sans elle, Gmail y met les premiers mots trouvés, souvent « Mirrio Mirrio ».
 - **Lien de secours en clair** sous le bouton, pour les clients qui neutralisent les liens.
 - **Ton** conforme à la charte (§7) : verbes actifs, phrases courtes, et le cas « ce n'est pas vous » traité sans dramatiser.
 

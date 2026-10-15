@@ -1,4 +1,4 @@
-// Cadence — rendu d'un devis / d'une facture.
+// Mirrio — rendu d'un devis / d'une facture.
 //
 // Un seul rendu, deux usages : l'aperçu live de l'écran Paramètres et la vue
 // imprimée de l'écran Devis & factures. C'est volontaire — si l'aperçu et
@@ -294,7 +294,7 @@ export function rendreDocument({ doc, lignes, client, params, brand }){
         ${mentionsLegales ? `<div>${echapper(mentionsLegales)}</div>` : ''}
         ${(!estDevis && !estAcquitte && p.penalites_retard !== '') ? `<div>${echapper(p.penalites_retard || PENALITES_DEFAUT)}</div>` : ''}
         ${p.mentions_pied ? `<div>${echapper(p.mentions_pied)}</div>` : ''}
-        ${p.afficher_mention_cadence ? '<div style="opacity:.7;">Édité avec Cadence</div>' : ''}
+        ${p.afficher_mention_cadence ? '<div style="opacity:.7;">Édité avec Mirrio</div>' : ''}
       </div>
     </div>
   </div>`;

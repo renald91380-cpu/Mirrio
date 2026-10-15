@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <meta name="color-scheme" content="light dark">
-<title>Paiement | Cadence</title>
+<title>Paiement | Mirrio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
@@ -36,7 +36,7 @@
 <script src="/pwa.js" defer></script>
 </head>
 <body>
-<div class="marque">Cadence</div>
+<div class="marque">Mirrio</div>
 <main class="carte" id="carte"><p>Chargement…</p></main>
 
 <script>
@@ -63,6 +63,7 @@
     (demo ? '<div class="actions"><a class="btn" href="demo.html">Retour à la démo</a><a class="btn discret" id="rejouer" href="demo.html">Réserver à nouveau</a></div>' : '');
   var salon = (params.get('p') || '').replace(/[^a-z0-9-]/g, '');
   var rej = document.getElementById('rejouer'); if(rej && salon) rej.href = 'reservation.html?p=' + salon;
+  if(salon === 'demo-nouveau'){ var ret = carte.querySelector('a.btn[href="demo.html"]'); if(ret){ ret.href = 'demo-creation.html'; ret.textContent = 'Retour à la simulation'; } }
   carte.querySelector('h1').textContent = c.titre;
   carte.querySelector('p').textContent = c.texte;
   carte.querySelector('h1').setAttribute('tabindex', '-1');

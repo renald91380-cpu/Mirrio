@@ -1,4 +1,4 @@
-// Cadence — envoi par email d'un devis/facture à son client.
+// Mirrio — envoi par email d'un devis/facture à son client.
 //
 //   POST /api/envoyer-document     { document_id }
 //   Authorization: Bearer <jeton d'accès Supabase du praticien connecté>
@@ -16,7 +16,7 @@
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const RESEND_FROM = process.env.RESEND_FROM || 'Cadence <onboarding@resend.dev>';
+const RESEND_FROM = process.env.RESEND_FROM || 'Mirrio <onboarding@resend.dev>';
 
 // Clé publishable — déjà exposée côté client dans site/supabase-config.js,
 // sans risque à relire ici pour authentifier l'appelant auprès de /auth/v1/user.
@@ -238,7 +238,7 @@ export default async function handler(req, res){
   let profil = {};
   try{
     profil = (await supabaseGet(`profiles?id=eq.${espaceId}&select=business_name,full_name,logo_url`))[0] || {};
-  }catch(e){ /* pas bloquant : on retombe sur "Cadence" plus bas */ }
+  }catch(e){ /* pas bloquant : on retombe sur "Mirrio" plus bas */ }
 
   let jetonPartage = doc.partage_token;
   if(!jetonPartage){
@@ -254,7 +254,7 @@ export default async function handler(req, res){
   const origine = `https://${req.headers.host}`;
   const lienDocument = `${origine}/voir-document.html?t=${jetonPartage}`;
   const montant = totalTTC(doc.document_lignes, params.assujetti_tva, params.tva_taux_defaut);
-  const nomEmetteur = params.emetteur_nom || profil.business_name || profil.full_name || 'Cadence';
+  const nomEmetteur = params.emetteur_nom || profil.business_name || profil.full_name || 'Mirrio';
   const estDevis = doc.type === 'devis';
 
   try{

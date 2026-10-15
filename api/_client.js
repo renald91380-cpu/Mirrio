@@ -1,4 +1,4 @@
-// Cadence - espace client sans mot de passe (« Mes rendez-vous »), module `_` servi
+// Mirrio - espace client sans mot de passe (« Mes rendez-vous »), module `_` servi
 // par api/reservation-disponibilites.js (limite de 12 fonctions Vercel).
 //
 //   POST /api/mon-espace  { email }                 -> envoie un lien de connexion par email (réponse toujours identique)
@@ -17,7 +17,7 @@ import crypto from 'node:crypto';
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const RESEND_FROM = process.env.RESEND_FROM || 'Cadence <onboarding@resend.dev>';
+const RESEND_FROM = process.env.RESEND_FROM || 'Mirrio <onboarding@resend.dev>';
 const VALIDITE_JOURS = 14;
 const DELAI_ANNULATION_H = 24;
 

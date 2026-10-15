@@ -1,4 +1,4 @@
--- Cadence — migration v5 : envoi d'un devis/facture par email au client.
+-- Mirrio — migration v5 : envoi d'un devis/facture par email au client.
 -- À exécuter une fois dans Supabase : Project → SQL Editor → New query → coller → Run.
 -- Idempotent : peut être rejouée sans casser l'existant.
 --

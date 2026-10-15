@@ -1,4 +1,4 @@
--- Cadence — migration v18 : vitrine publique personnalisable ("Ma page") + photos.
+-- Mirrio — migration v18 : vitrine publique personnalisable ("Ma page") + photos.
 -- À exécuter une fois dans Supabase (SQL Editor). Idempotent.
 --
 --   1. `vitrine`        — réglages de la page publique de chaque praticien/salon

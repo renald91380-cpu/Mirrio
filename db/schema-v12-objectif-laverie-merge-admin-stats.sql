@@ -1,4 +1,4 @@
--- Cadence — migration v12 : objectif personnel de capitalisation (« laverie »).
+-- Mirrio — migration v12 : objectif personnel de capitalisation (« laverie »).
 -- Reprend le contenu de db/schema-v5-objectif-laverie.sql (jamais appliqué,
 -- collision de numérotation avec schema-v5-envoi-document.sql) MAIS fusionne
 -- son admin_stats() avec la version actuellement en base (posée par

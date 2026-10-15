@@ -1,4 +1,4 @@
-// Cadence - fonctions de présentation pures pour le widget de réservation en
+// Mirrio - fonctions de présentation pures pour le widget de réservation en
 // ligne (site/reservation.html). Même découpage que document-render.js /
 // voir-document.html : ce module ne fait ni fetch ni gestion d'état, il
 // construit seulement du HTML/CSS à partir de données déjà chargées.

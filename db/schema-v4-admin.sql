@@ -1,9 +1,9 @@
--- Cadence — migration v4 : back-office administrateur.
+-- Mirrio — migration v4 : back-office administrateur.
 -- À exécuter une fois dans Supabase : Project → SQL Editor → New query → coller → Run.
 -- Idempotent : peut être rejouée sans casser l'existant.
 --
 -- Ce que cette migration ajoute :
---   1. `profiles.is_admin` — réservé à l'exploitant de Cadence (toi), jamais
+--   1. `profiles.is_admin` — réservé à l'exploitant de Mirrio (toi), jamais
 --      modifiable par un utilisateur via l'application (verrouillé par trigger).
 --   2. `admin_config` — seuil d'alerte de capacité, réglable depuis l'écran admin.
 --   3. Fonctions `admin_*()` : agrégats cross-espaces (comptages, répartition

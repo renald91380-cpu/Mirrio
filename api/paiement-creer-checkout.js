@@ -1,4 +1,4 @@
-// Cadence — création d'une session de paiement (Stripe ou PayPal), soit pour
+// Mirrio — création d'une session de paiement (Stripe ou PayPal), soit pour
 // un rendez-vous déjà confirmé (phase 1, depuis site/agenda.html), soit pour
 // un devis déjà émis (phase 2, depuis site/devis-factures.html — payer un
 // devis le convertit automatiquement en facture acquittée, voir le webhook).
@@ -226,7 +226,7 @@ async function creerCheckoutDevis({ documentId, espaceId, req, res }){
   if(!paiement?.stripe_actif || !paiement?.stripe_secret_key){
     return json(res, 400, { error: "Le paiement en ligne n'est pas configuré (Paramètres → Paiement)." });
   }
-  const nomPraticien = profils[0]?.business_name || profils[0]?.full_name || 'Cadence';
+  const nomPraticien = profils[0]?.business_name || profils[0]?.full_name || 'Mirrio';
   const params = facturations[0] || {};
 
   const montantTTC = totalTTC(doc.document_lignes, params.assujetti_tva, params.tva_taux_defaut);
@@ -377,7 +377,7 @@ export default async function handler(req, res){
   if(provider === 'paypal' && (!paiement?.paypal_actif || !paiement?.paypal_client_id || !paiement?.paypal_client_secret)){
     return json(res, 400, { error: "Le paiement PayPal n'est pas configuré (Paramètres → Paiement)." });
   }
-  const nomPraticien = profils[0]?.business_name || profils[0]?.full_name || 'Cadence';
+  const nomPraticien = profils[0]?.business_name || profils[0]?.full_name || 'Mirrio';
   const libelleCombine = prestationsOrdonnees.map(p => p.libelle).join(' + ');
 
   // `prestations.prix_unitaire` est HT, exactement comme `document_lignes` —

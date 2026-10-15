@@ -1,4 +1,4 @@
--- Cadence — migration v11 : paiement PayPal, surface « agenda » (rendez-vous
+-- Mirrio — migration v11 : paiement PayPal, surface « agenda » (rendez-vous
 -- déjà confirmé) — miroir de la phase 1 Stripe, mais pour PayPal.
 -- À exécuter une fois dans Supabase : Project → SQL Editor → New query → coller → Run.
 -- Idempotent : peut être rejouée sans casser l'existant.

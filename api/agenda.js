@@ -1,4 +1,4 @@
-// Cadence — flux iCalendar des rendez-vous d'un utilisateur.
+// Mirrio — flux iCalendar des rendez-vous d'un utilisateur.
 //
 //   GET /api/agenda?t=<jeton>
 //
@@ -93,7 +93,7 @@ export default async function handler(req, res){
     return texte(res, 404, 'Flux introuvable.', { 'Content-Type':'text/plain; charset=utf-8' });
   }
 
-  let proprietaire, nomAffiche = 'Cadence';
+  let proprietaire, nomAffiche = 'Mirrio';
   try{
     const flux = await supabase(`calendar_feeds?token=eq.${jeton}&select=owner_id&limit=1`);
     if(!flux.length){
@@ -104,7 +104,7 @@ export default async function handler(req, res){
     const profils = await supabase(
       `profiles?id=eq.${proprietaire}&select=business_name,full_name&limit=1`);
     if(profils.length){
-      nomAffiche = profils[0].business_name || profils[0].full_name || 'Cadence';
+      nomAffiche = profils[0].business_name || profils[0].full_name || 'Mirrio';
     }
   }catch(e){
     return texte(res, 503, 'Flux temporairement indisponible.',
@@ -137,7 +137,7 @@ export default async function handler(req, res){
   const lignes = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Cadence//Agenda//FR',
+    'PRODID:-//Mirrio//Agenda//FR',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     `X-WR-CALNAME:${esc(nomAffiche)}`,

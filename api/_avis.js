@@ -1,4 +1,4 @@
-// Cadence — dépôt d'un avis client, lié à un rendez-vous réel.
+// Mirrio — dépôt d'un avis client, lié à un rendez-vous réel.
 //
 //   GET  /api/avis?t=<avis_token>   → { praticien, titre, date, deja_note }
 //   POST /api/avis  { t, note, commentaire?, auteur? }

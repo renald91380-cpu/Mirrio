@@ -1,6 +1,6 @@
 {
-  "name": "Cadence",
-  "short_name": "Cadence",
+  "name": "Mirrio",
+  "short_name": "Mirrio",
   "description": "Clients, agenda, devis et factures pour indépendants.",
   "lang": "fr",
   "id": "/",
@@ -19,6 +19,6 @@
   "shortcuts": [
     { "name": "Agenda", "url": "/agenda.html?source=pwa", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
     { "name": "Clients", "url": "/clients.html?source=pwa", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
-    { "name": "Devis & factures", "url": "/devis-factures.html?source=pwa", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+    { "name": "Comptabilité", "url": "/devis-factures.html?source=pwa", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
   ]
 }

@@ -1,4 +1,4 @@
--- Cadence — migration v5 : objectif personnel de capitalisation (« laverie »).
+-- Mirrio — migration v5 : objectif personnel de capitalisation (« laverie »).
 -- À exécuter une fois dans Supabase : Project → SQL Editor → New query → coller → Run.
 -- Idempotent : peut être rejouée sans casser l'existant.
 --
@@ -10,7 +10,7 @@
 --   3. `admin_stats()` étendue pour renvoyer l'objectif courant + le MRR
 --      actuel calculé à partir des formules Solo (15€) et Studio (29€).
 --
--- Ceci n'a rien à voir avec le produit vu par les clients de Cadence : c'est
+-- Ceci n'a rien à voir avec le produit vu par les clients de Mirrio : c'est
 -- un suivi purement personnel de l'exploitant, visible uniquement sur
 -- site/admin.html (jamais sur dashboard.html).
 

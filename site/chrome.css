@@ -1,5 +1,5 @@
 /* =============================================================================
-   chrome.css — coquille applicative partagée par tous les écrans (Cadence)
+   chrome.css — coquille applicative partagée par tous les écrans (Mirrio)
    =============================================================================
    Quatre identités visuelles au choix (Paramètres → Apparence → Style
    d'interface), pilotées par l'attribut [data-style] posé sur <html> par
@@ -67,7 +67,7 @@ html[data-style="repere"] .app-sidebar{
    ============================================================================= */
 
 /* =============================================================================
-   REPÈRE — identité Cadence exacte, réorganisée en menu latéral clair et
+   REPÈRE — identité Mirrio exacte, réorganisée en menu latéral clair et
    libellé (déjà en production sur l'écran Clients).
    ============================================================================= */
 html[data-style="repere"] .app-sidebar{

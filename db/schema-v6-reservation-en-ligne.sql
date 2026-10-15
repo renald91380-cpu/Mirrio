@@ -1,4 +1,4 @@
--- Cadence — migration v6 : réservation en ligne (widget public).
+-- Mirrio — migration v6 : réservation en ligne (widget public).
 -- À exécuter une fois dans Supabase : Project → SQL Editor → New query → coller → Run.
 -- Idempotent : peut être rejouée sans casser l'existant.
 --

@@ -1,4 +1,4 @@
-// Cadence — retour PayPal : capture la commande et génère la facture
+// Mirrio — retour PayPal : capture la commande et génère la facture
 // acquittée (surface « agenda », rendez-vous déjà confirmé — miroir de la
 // confirmation phase 1 Stripe, mais pour PayPal).
 //
@@ -25,7 +25,7 @@
 // Idempotence : si ce point de retour est atteint deux fois (rechargement de
 // page, double redirection), la capture PayPal elle-même renvoie
 // ORDER_ALREADY_CAPTURED la seconde fois — traité comme un succès, pas une
-// erreur. La confirmation côté Cadence (paiement_statut, facture, email) est
+// erreur. La confirmation côté Mirrio (paiement_statut, facture, email) est
 // elle aussi protégée par un PATCH conditionné (compare-and-swap), comme le
 // webhook Stripe.
 //
@@ -40,7 +40,7 @@ import { icsParId, pieceJointe } from './_ics.js';
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const RESEND_FROM = process.env.RESEND_FROM || 'Cadence <onboarding@resend.dev>';
+const RESEND_FROM = process.env.RESEND_FROM || 'Mirrio <onboarding@resend.dev>';
 
 const INK = '#1C2333', PARCH = '#F5F1E7', PARCHDIM = '#EAE4D4', AMBER = '#E2A63D';
 const SERIF = "Georgia,'Times New Roman',serif";
@@ -250,7 +250,7 @@ export default async function handler(req, res){
   }
 
   // À partir d'ici, l'argent est capturé (ou l'a déjà été lors d'un retour
-  // précédent) quoi qu'il arrive côté Cadence — la confirmation ci-dessous
+  // précédent) quoi qu'il arrive côté Mirrio — la confirmation ci-dessous
   // est best-effort, jamais un motif d'afficher une erreur au client, qui a
   // bel et bien payé.
   let rdvsConfirmes;
@@ -311,7 +311,7 @@ export default async function handler(req, res){
       const jetonPartage = await nouveauJetonPartage();
       await supabasePatchConditionnel(`documents?id=eq.${doc.id}`, { partage_token: jetonPartage });
 
-      const nomEmetteur = params.emetteur_nom || profil.business_name || profil.full_name || 'Cadence';
+      const nomEmetteur = params.emetteur_nom || profil.business_name || profil.full_name || 'Mirrio';
       const ical = await icsParId(rdv.id, origine);
       await envoyerEmail({
         to: client.email,

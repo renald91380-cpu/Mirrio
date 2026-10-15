@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Réserver en ligne | Cadence</title>
+<title>Réserver en ligne | Mirrio</title>
 <meta name="description" content="Découvrez les prestations et réservez en ligne.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -236,7 +236,7 @@
     const corps = ordre.filter(k => sections[k] !== false && rendus[k]).map(k => rendus[k]()).join('');
 
     document.getElementById('app').innerHTML = `<a class="evitement" href="#prestations">Aller aux prestations</a>${bandeau}${entete}<main class="wrap">${corps}</main>
-      <footer class="pied">Page propulsée par <a href="beaute.html">Cadence</a> · <a href="cgu.html">CGU</a> · <a href="confidentialite.html">Confidentialité</a></footer>
+      <footer class="pied">Page propulsée par <a href="beaute.html">Mirrio</a> · <a href="cgu.html">CGU</a> · <a href="confidentialite.html">Confidentialité</a></footer>
       <div class="barre-resa"><a class="btn" href="${ctaHref}">${cta}</a></div>
       <div class="haut" id="haut" aria-hidden="true"><b>${esc(d.nom)}</b><a class="btn" href="${ctaHref}" tabindex="-1">${cta}</a></div>`;
     const premierBouton = document.querySelector('.actions .btn');

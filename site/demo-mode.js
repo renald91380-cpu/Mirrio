@@ -1,4 +1,4 @@
-/* Cadence - mode démo (script classique, chargé AVANT les scripts des pages).
+/* Mirrio - mode démo (script classique, chargé AVANT les scripts des pages).
  *
  * Il ne s'active que pour trois salons fictifs (demo-barber, demo-coiffure, demo-institut)
  * et pour l'annuaire appelé avec ?demo=1. Il simule l'API (/api/vitrine, /api/annuaire,
@@ -132,6 +132,19 @@
     }
   };
 
+  // Salon créé dans la simulation (demo-creation.html) : configuration gardée dans cette session uniquement.
+  function construire(cfg){
+    var couv = { coiffure: 'Ricky Reyes salon interiorB.jpg', institut: 'Routine Facial Treatment And Care.jpg' };
+    var photo = c(couv[cfg.metier === 'coiffure' ? 'coiffure' : (cfg.metier === 'barbier' ? 'x' : 'institut')] || (B + ' 07.jpg'));
+    return {
+      nom: cfg.nom, metier: cfg.metier, ville: cfg.ville, accent: 'ambre', adresse: cfg.ville, latitude: null, longitude: null,
+      jours: [2,3,4,5,6], debut: '09:30', fin: '19:00', pas: 30,
+      style: { accroche: cfg.accroche || '', mise_en_page: 'classique', police: 'moderne', couleur: cfg.couleur, fond: cfg.fond, boutons: 'pilule', texte_bouton: 'Prendre rendez-vous', cover_url: photo, galerie: [], a_propos: null },
+      paiement: cfg.paiement, equipe: cfg.equipe, prestations: cfg.prestations, avis: []
+    };
+  }
+  try{ var cfgNouveau = JSON.parse(sessionStorage.getItem('mirrio-demo-salon') || 'null'); if(cfgNouveau && cfgNouveau.nom) DEMOS['demo-nouveau'] = construire(cfgNouveau); }catch(e){}
+
   var salon = DEMOS[slug];
   if(!salon && !estAnnuaire) return;
 
@@ -213,8 +226,8 @@
 
   function ics(s, debutIso, finIso, titre, qui){
     var f = function(d){ return new Date(d).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, ''); };
-    return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Cadence//Demo//FR', 'BEGIN:VEVENT', 'UID:demo-' + Date.now() + '@cadence', 'DTSTAMP:' + f(new Date()), 'DTSTART:' + f(debutIso), 'DTEND:' + f(finIso),
-      'SUMMARY:' + titre + ' chez ' + s.nom, 'LOCATION:' + s.adresse, 'DESCRIPTION:Rendez-vous de démonstration Cadence' + (qui ? ' avec ' + qui : ''), 'STATUS:CONFIRMED', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+    return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Mirrio//Demo//FR', 'BEGIN:VEVENT', 'UID:demo-' + Date.now() + '@cadence', 'DTSTAMP:' + f(new Date()), 'DTSTART:' + f(debutIso), 'DTEND:' + f(finIso),
+      'SUMMARY:' + titre + ' chez ' + s.nom, 'LOCATION:' + s.adresse, 'DESCRIPTION:Rendez-vous de démonstration Mirrio' + (qui ? ' avec ' + qui : ''), 'STATUS:CONFIRMED', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
   }
 
   // ----------------------------------------------------------------- routeur
@@ -231,7 +244,7 @@
         s.prestations.forEach(function(p){ if(p.public === 'mixte'){ pub.femme = pub.homme = 1; } else pub[p.public] = 1; });
         return { slug: k, nom: s.nom, metier: s.metier, ville: s.ville, logo_url: null, photo: s.style.cover_url, description: s.style.accroche, latitude: s.latitude, longitude: s.longitude,
           prix_a_partir_de: Math.min.apply(null, s.prestations.map(function(p){ return p.prix; })), nb_prestations: s.prestations.length, publics: Object.keys(pub),
-          note_moyenne: Math.round(notes.reduce(function(a, b){ return a + b; }, 0) / notes.length * 10) / 10, nb_avis: notes.length };
+          note_moyenne: notes.length ? Math.round(notes.reduce(function(a, b){ return a + b; }, 0) / notes.length * 10) / 10 : null, nb_avis: notes.length };
       });
       var norm = function(x){ return String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); };
       var qt = norm(q.get('q')), vi = norm(q.get('ville')), me = q.get('metier') || '', pu = q.get('public') || '';

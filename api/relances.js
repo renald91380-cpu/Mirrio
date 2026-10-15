@@ -1,4 +1,4 @@
-// Cadence — relances automatiques par email des factures en retard de paiement.
+// Mirrio — relances automatiques par email des factures en retard de paiement.
 //
 //   GET /api/relances     (appelé quotidiennement par Vercel Cron, voir vercel.json)
 //
@@ -15,14 +15,14 @@
 //   RESEND_API_KEY               — clé API Resend ; en son absence, la tâche se
 //                                   contente de ne rien envoyer (pas une erreur —
 //                                   voir la note plus bas)
-//   RESEND_FROM                  — ex. "Cadence <relances@votre-domaine.fr>" ;
+//   RESEND_FROM                  — ex. "Mirrio <relances@votre-domaine.fr>" ;
 //                                   à défaut, un envoi de test Resend
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const RESEND_FROM = process.env.RESEND_FROM || 'Cadence <onboarding@resend.dev>';
+const RESEND_FROM = process.env.RESEND_FROM || 'Mirrio <onboarding@resend.dev>';
 
 // Au-delà, on arrête de relancer : ça devient un désaccord commercial à traiter
 // à la main, pas quelque chose qu'un cron doit continuer de marteler.
@@ -108,7 +108,7 @@ function gabaritEmail({ nomClient, nomEmetteur, numero, montant, echeance, jours
 <p style="margin:0 0 16px; font-size:15px; line-height:1.6; color:${INK};">Si le règlement est déjà parti de votre côté, ce message aura simplement croisé son passage — inutile d'y répondre. Sinon, vous pouvez répondre directement à cet email pour toute question.</p>
 <p style="margin:24px 0 0; font-size:15px; line-height:1.6; color:${INK};">Merci,<br>${echapperHtml(nomEmetteur)}</p>
 </td></tr>
-<tr><td style="padding:22px 32px 30px; font-size:12px; color:rgba(28,35,51,0.42); line-height:1.6;">Envoyé automatiquement via <a href="https://cadence.app" style="color:rgba(28,35,51,0.42);">Cadence</a> pour le compte de ${echapperHtml(nomEmetteur)}.</td></tr>
+<tr><td style="padding:22px 32px 30px; font-size:12px; color:rgba(28,35,51,0.42); line-height:1.6;">Envoyé automatiquement via <a href="https://cadence-site-cadence-65cc.vercel.app" style="color:rgba(28,35,51,0.42);">Mirrio</a> pour le compte de ${echapperHtml(nomEmetteur)}.</td></tr>
 </table>
 </td></tr>
 </table>
@@ -212,7 +212,7 @@ export default async function handler(req, res){
 
     const montant = totalTTC(f.document_lignes, params.assujetti_tva);
     const joursRetard = Math.max(0, Math.round((new Date() - new Date(f.date_echeance + 'T00:00:00')) / 86400000));
-    const nomEmetteur = params.emetteur_nom || 'Cadence';
+    const nomEmetteur = params.emetteur_nom || 'Mirrio';
 
     try{
       await envoyerEmail({

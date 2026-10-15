@@ -1,4 +1,4 @@
-// Cadence — thème et vocabulaire de l'utilisateur, partagés par tous les écrans applicatifs.
+// Mirrio — thème et vocabulaire de l'utilisateur, partagés par tous les écrans applicatifs.
 //
 // Pourquoi un module partagé alors que la règle du projet est « un fichier autonome
 // par écran » : la personnalisation est par définition transversale. La dupliquer
@@ -20,7 +20,7 @@
 // ses pastilles « Payé » illisibles — la contrainte est ici un service rendu.
 
 export const ACCENTS = {
-  ambre:  { hex:'#E2A63D', texte:'#1C2333', doux:'#F0C98A', nom:'Ambre',      note:'Le réglage d’origine de Cadence' },
+  ambre:  { hex:'#E2A63D', texte:'#1C2333', doux:'#F0C98A', nom:'Ambre',      note:'Le réglage d’origine de Mirrio' },
   marine: { hex:'#244990', texte:'#F5F1E7', doux:'#8FA6D4', nom:'Marine',     note:'Sobre, orienté conseil' },
   ciel:   { hex:'#58A1E5', texte:'#1C2333', doux:'#B7D6F5', nom:'Ciel',       note:'Clair et ouvert' },
   acajou: { hex:'#822E02', texte:'#F5F1E7', doux:'#D9A183', nom:'Acajou',     note:'Chaud, artisanal' },
@@ -41,10 +41,10 @@ export const ACCENT_DEFAUT = 'ambre';
 // l'accent reste la couleur de marque appliquée par-dessus, quel que soit le
 // style choisi.
 export const STYLES = {
-  atelier:  { nom:'Atelier',  note:'L’identité Cadence d’origine — nav en haut, parchemin, Fraunces.' },
+  atelier:  { nom:'Atelier',  note:'L’identité Mirrio d’origine — nav en haut, parchemin, Fraunces.' },
   nocturne: { nom:'Nocturne', note:'Menu latéral sombre, icônes seules, look feutré.' },
   clair:    { nom:'Clair',    note:'Minimal et silencieux, un seul accent, aucune barre latérale.' },
-  repere:   { nom:'Repère',   note:'L’identité Cadence en menu latéral classique, avec libellés.' }
+  repere:   { nom:'Repère',   note:'L’identité Mirrio en menu latéral classique, avec libellés.' }
 };
 
 export const STYLE_DEFAUT = 'atelier';
@@ -75,7 +75,7 @@ const CLE_CACHE = 'cadence:brand';
 
 // Valeurs de repli : ce que voit un compte qui n'a rien personnalisé.
 const DEFAUT = {
-  business_name: 'Cadence',
+  business_name: 'Mirrio',
   metier: 'autre',
   terme_singulier: null,
   terme_pluriel: null,
@@ -170,8 +170,8 @@ export function appliquerTheme(brand){
 // ---------------------------------------------------------------------------
 // En-tête applicatif
 // ---------------------------------------------------------------------------
-// Le nom commercial de l'utilisateur prend la place du mot-clé « Cadence » :
-// l'outil s'efface derrière le travail du praticien (charte, §2). Cadence reste
+// Le nom commercial de l'utilisateur prend la place du mot-clé « Mirrio » :
+// l'outil s'efface derrière le travail du praticien (charte, §2). Mirrio reste
 // signée discrètement en pied d'écran, pas en tête.
 
 const ONGLETS = [
@@ -211,7 +211,7 @@ const ICONES_ONGLETS = {
 
 export function monterEntete(brand, actif, estAdmin){
   const b = { ...DEFAUT, ...(brand || {}) };
-  const nom = (b.business_name || 'Cadence').trim() || 'Cadence';
+  const nom = (b.business_name || 'Mirrio').trim() || 'Mirrio';
 
   // `.app-header .logo` (nav du haut) ET `.app-sidebar .logo` (menu latéral)
   // coexistent maintenant dans chaque écran — chrome.css n'affiche que l'un
@@ -288,7 +288,7 @@ export async function chargerBrand(supabase, espaceId){
   if(error || !data) return { ...DEFAUT };
 
   const brand = {
-    business_name: data.business_name || data.full_name || 'Cadence',
+    business_name: data.business_name || data.full_name || 'Mirrio',
     metier: data.metier || 'autre',
     terme_singulier: data.terme_singulier,
     terme_pluriel: data.terme_pluriel,
@@ -404,7 +404,7 @@ export function formaterNomAffichage(nom){
 }
 
 // Initiales pour l'avatar du menu latéral — « Sophie Marchand » → « SM »,
-// « Cadence » → « CA ». Utilisé sur tous les écrans dotés d'un menu latéral.
+// « Mirrio » → « CA ». Utilisé sur tous les écrans dotés d'un menu latéral.
 export function initiales(nom){
   const mots = (nom || '').trim().split(/\s+/).filter(Boolean);
   if(!mots.length) return '?';

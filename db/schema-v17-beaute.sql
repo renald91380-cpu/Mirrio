@@ -1,4 +1,4 @@
--- Cadence — migration v17 : vertical beauté (coiffure, barbier, esthétique, onglerie, massage).
+-- Mirrio — migration v17 : vertical beauté (coiffure, barbier, esthétique, onglerie, massage).
 -- À exécuter une fois dans Supabase (SQL Editor). Idempotent.
 --
 --   1. `profiles_metier_check` : autorise enfin coiffure, esthetique, onglerie

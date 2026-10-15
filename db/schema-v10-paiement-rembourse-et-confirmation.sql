@@ -1,4 +1,4 @@
--- Cadence — migration v10 : statut "remboursé" + confirmation atomique d'une
+-- Mirrio — migration v10 : statut "remboursé" + confirmation atomique d'une
 -- réservation payée, phase 3 (réservation en ligne avec auto-confirmation).
 -- À exécuter une fois dans Supabase : Project → SQL Editor → New query → coller → Run.
 -- Idempotent : peut être rejouée sans casser l'existant.

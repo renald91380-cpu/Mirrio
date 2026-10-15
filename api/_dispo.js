@@ -1,4 +1,4 @@
-// Cadence - calcul de disponibilité, partagé par api/reservation-disponibilites.js
+// Mirrio - calcul de disponibilité, partagé par api/reservation-disponibilites.js
 // (créneaux proposés) et api/reservation-publique.js (revérification juste avant
 // d'écrire). Module `_` : pas une route Vercel (limite de 12 fonctions).
 //

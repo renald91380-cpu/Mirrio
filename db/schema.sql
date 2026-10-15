@@ -1,4 +1,4 @@
--- Cadence — schéma de base pour l'authentification.
+-- Mirrio — schéma de base pour l'authentification.
 -- À exécuter une fois dans Supabase : Project → SQL Editor → New query → coller → Run.
 
 -- Table de profil, liée 1-1 à chaque utilisateur Supabase Auth.

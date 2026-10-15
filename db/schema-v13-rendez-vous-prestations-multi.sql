@@ -1,4 +1,4 @@
--- Cadence — migration v13 : plusieurs prestations sur un même rendez-vous.
+-- Mirrio — migration v13 : plusieurs prestations sur un même rendez-vous.
 -- Nécessaire pour que la réservation en ligne (site/reservation.html) laisse
 -- un client choisir plusieurs prestations d'un coup (ex. Coupe + Couleur) et
 -- que la durée totale (donc les créneaux proposés) et le prix total en

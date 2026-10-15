@@ -1,4 +1,4 @@
-// Cadence — webhook Stripe : confirme un paiement anticipé et génère la
+// Mirrio — webhook Stripe : confirme un paiement anticipé et génère la
 // facture acquittée correspondante (phase 1 : rendez-vous déjà confirmé,
 // demandé depuis site/agenda.html via api/paiement-creer-checkout.js).
 //
@@ -36,7 +36,7 @@ import { icsParId, pieceJointe } from './_ics.js';
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const RESEND_FROM = process.env.RESEND_FROM || 'Cadence <onboarding@resend.dev>';
+const RESEND_FROM = process.env.RESEND_FROM || 'Mirrio <onboarding@resend.dev>';
 
 const TOLERANCE_SECONDES = 300;
 
@@ -197,7 +197,7 @@ function gabaritSimple({ titre, paragraphes }){
 <tr><td align="center" style="padding:32px 16px;">
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px; width:100%; background:${PARCH}; border-radius:10px; overflow:hidden;">
 <tr><td style="background:${INK}; padding:22px 32px;">
-<span style="font-weight:700; font-size:17px; color:${PARCH};">Cadence</span>
+<span style="font-weight:700; font-size:17px; color:${PARCH};">Mirrio</span>
 </td></tr>
 <tr><td style="padding:32px;">
 <h1 style="margin:0 0 16px; font-size:20px; color:${INK};">${echapperHtml(titre)}</h1>
@@ -324,7 +324,7 @@ async function traiterPaiementDevis({ documentId, ownerId, req, res }){
       await supabasePatchConditionnel(`documents?id=eq.${facture.id}`, { partage_token: jetonPartage });
 
       const origine = `https://${req.headers.host}`;
-      const nomEmetteur = params.emetteur_nom || profil.business_name || profil.full_name || 'Cadence';
+      const nomEmetteur = params.emetteur_nom || profil.business_name || profil.full_name || 'Mirrio';
       await envoyerEmail({
         to: client.email,
         replyTo: params.emetteur_email || undefined,
@@ -422,7 +422,7 @@ async function traiterConfirmationReservation({ rdv, session, ownerId, stripeSec
     const libelleCombine = prestationsOrdonnees.map(p => p.libelle).join(' + ');
     const profil = profils[0] || {};
     const params = facturation[0] || {};
-    const nomEmetteur = params.emetteur_nom || profil.business_name || profil.full_name || 'Cadence';
+    const nomEmetteur = params.emetteur_nom || profil.business_name || profil.full_name || 'Mirrio';
 
     // Mode « espèces » : seul l'acompte a été réglé par carte. La facture porte le
     // prix total, reste « envoyée » (non payée) et mentionne le solde à encaisser au
@@ -688,7 +688,7 @@ export default async function handler(req, res){
       await supabasePatchConditionnel(`documents?id=eq.${doc.id}`, { partage_token: jetonPartage });
 
       const origine = `https://${req.headers.host}`;
-      const nomEmetteur = params.emetteur_nom || profil.business_name || profil.full_name || 'Cadence';
+      const nomEmetteur = params.emetteur_nom || profil.business_name || profil.full_name || 'Mirrio';
       await envoyerEmail({
         to: client.email,
         replyTo: params.emetteur_email || undefined,
