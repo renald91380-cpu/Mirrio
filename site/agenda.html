@@ -663,8 +663,9 @@
     overlay.classList.remove('show');
   }
 
+  // Date locale (AAAA-MM-JJ) : toISOString() raisonne en UTC et reculait d'un jour les dates posées à minuit heure de Paris.
   function toDateInput(d){
-    return d.toISOString().slice(0,10);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
   function toTimeInput(d){
     return d.toTimeString().slice(0,5);
