@@ -307,6 +307,10 @@ Pour vendre Mirrio : `site/demo.html` (non indexée) donne accès à **trois sal
 - **Le produit s'appelle Mirrio** (anciennement Cadence). Seuls les textes visibles ont changé : identifiants techniques conservés (projet Vercel `cadence-site`, dépôt GitHub, clés `localStorage`/`sessionStorage` en `cadence-…`, UID `@cadence` des .ics pour ne pas dupliquer les événements existants, type de message `cadence-vitrine`). Icônes PWA regénérées (« M. » ambre sur encre), cache du service worker passé en `cadence-v3`. **À faire côté exploitant** : variable Vercel `RESEND_FROM` si elle contient encore « Cadence », domaine propre, recherche de marque INPI/EUIPO.
 - **`site/demo-creation.html`** : assistant en 5 étapes (salon, prestations, équipe et spécialités, style, paiement) avec aperçu en direct de la vraie page (`pro.html?preview=1`). Il ne crée aucun compte ni donnée : la configuration est gardée dans `sessionStorage` (`mirrio-demo-salon`) et `demo-mode.js` la transforme en salon fictif `demo-nouveau` (page, réservation avec choix de la personne et spécialités, annuaire `?demo=1`). Le slug `demo-nouveau` est réservé (contrainte SQL v20).
 
+### 3.26a Email de confirmation et reçu (`api/_email.js`)
+
+Un seul email à la réservation payée (Stripe `paiement-webhook-stripe.js`, PayPal `paiement-capturer-paypal.js`) qui joue deux rôles : **confirmation du rendez-vous et reçu de paiement**, sur le modèle d'un reçu bancaire (`gabaritConfirmation`) : bandeau sombre avec le logotype, monogramme (logo du salon ou initiale), titre, trois repères (quand, heure, avec qui), résumé des prestations avec acompte déduit et encadré « Reste à régler sur place », détail du paiement (montant, date, moyen), boutons « Voir ou annuler », « Ajouter à mon agenda », « Voir ma facture ». HTML d'email (tableaux, styles en ligne). Aperçu : `demo-messages.html`.
+
 ### 3.26 SMS et rappels de rendez-vous
 
 **Deux SMS seulement** (`api/_sms.js`, fournisseur Twilio : `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM`, « Mirrio » par défaut), et **uniquement pour les salons qui les activent** (`parametres_reservation.rappel_sms`, faux par défaut : chaque SMS est facturé) :

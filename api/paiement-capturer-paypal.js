@@ -39,6 +39,8 @@ import { icsParId, pieceJointe } from './_ics.js';
 
 import { smsConfirmation } from './_sms.js';
 
+import { gabaritConfirmation } from './_email.js';
+import { lienEspace } from './_client.js';
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -155,20 +157,6 @@ function echapperHtml(str){
 }
 
 // Identique à api/paiement-webhook-stripe.js — dupliqué à dessein.
-function gabaritEmailFacturePayee({ nomEmetteur, logoUrl, nomClient, numero, montant, lienDocument }){
-  return `<!doctype html>
-<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="color-scheme" content="light"><title>Votre facture</title></head>
-<body style="margin:0; padding:0; background:${PARCHDIM}; font-family:${SANS};">
-<div style="display:none; max-height:0; overflow:hidden;">Facture ${echapperHtml(numero)} — ${formaterEuros(montant)}, réglée.</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${PARCHDIM};">
-<tr><td align="center" style="padding:32px 16px;">
-<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background:${PARCH}; border-radius:10px; overflow:hidden;">
-<tr><td style="background:${INK}; padding:22px 32px;">
-${logoUrl
-  ? `<img src="${echapperHtml(logoUrl)}" alt="${echapperHtml(nomEmetteur)}" style="max-height:40px; max-width:200px; display:block;">`
-  : `<span style="font-family:${SERIF}; font-weight:700; font-size:19px; color:${PARCH};">${echapperHtml(nomEmetteur)}</span>`
-}
 </td></tr>
 <tr><td style="padding:40px 32px 8px; text-align:center;">
 <h1 style="margin:0 0 18px; font-family:${SERIF}; font-size:24px; color:${INK};">Paiement reçu, merci !</h1>
@@ -318,15 +306,28 @@ export default async function handler(req, res){
 
       const nomEmetteur = params.emetteur_nom || profil.business_name || profil.full_name || 'Mirrio';
       const ical = await icsParId(rdv.id, origine);
+      let avec = null, adresse = null;
+      try{
+        if(rdv.intervenant_id) avec = (await supabaseGet(`vitrine_equipe?id=eq.${rdv.intervenant_id}&select=nom`))[0]?.nom || null;
+        adresse = (await supabaseGet(`parametres_reservation?owner_id=eq.${ownerId}&select=adresse_annuaire`))[0]?.adresse_annuaire || null;
+      }catch(e){ /* facultatif */ }
       await envoyerEmail({
         to: client.email,
         replyTo: params.emetteur_email || undefined,
         attachments: pieceJointe(ical?.ics),
-        subject: `Facture ${doc.numero || ''} — ${nomEmetteur}`,
-        html: gabaritEmailFacturePayee({
-          nomEmetteur, logoUrl: profil.logo_url, nomClient: client.full_name,
-          numero: doc.numero, montant: rdv.paiement_montant,
-          lienDocument: `${origine}/voir-document.html?t=${jetonPartage}`
+        subject: `Votre rendez-vous est confirmé chez ${nomEmetteur}`,
+        html: gabaritConfirmation({
+          salon: nomEmetteur, logoUrl: profil.logo_url, titre: 'Rendez-vous confirmé',
+          reference: doc.numero || String(rdv.id).slice(0, 8).toUpperCase(),
+          debut: rdv.date_debut, fin: rdv.date_fin, avec, adresse,
+          lignes: prestationsOrdonnees.map(p => ({ libelle: p.libelle, prix: Number(p.prix_unitaire) * (1 + (Number(p.tva_taux) || 0) / 100) })),
+          acompteDeduit: 0, reste: 0,
+          paiement: { montant: Number(rdv.paiement_montant) || 0, date: new Date().toISOString(), moyen: 'PayPal' },
+          boutons: [
+            { href: lienEspace(client.email, origine), texte: 'Voir ou annuler mon rendez-vous', fort: true },
+            ...(ical?.lien ? [{ href: ical.lien, texte: 'Ajouter à mon agenda' }] : []),
+            { href: `${origine}/voir-document.html?t=${jetonPartage}`, texte: 'Voir ma facture' }
+          ]
         })
       });
     }

@@ -35,6 +35,8 @@ import { icsParId, pieceJointe } from './_ics.js';
 
 import { smsConfirmation } from './_sms.js';
 
+import { gabaritConfirmation } from './_email.js';
+import { lienEspace } from './_client.js';
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -460,6 +462,12 @@ async function traiterConfirmationReservation({ rdv, session, ownerId, stripeSec
 
     const origine = `https://${req.headers.host}`;
     const ical = await icsParId(rdv.id, origine);
+    // Personne et adresse pour l'email de confirmation (facultatifs).
+    let nomIntervenantEmail = null, adresseSalon = null;
+    try{
+      if(rdv.intervenant_id) nomIntervenantEmail = (await supabaseGet(`vitrine_equipe?id=eq.${rdv.intervenant_id}&select=nom`))[0]?.nom || null;
+      adresseSalon = (await supabaseGet(`parametres_reservation?owner_id=eq.${ownerId}&select=adresse_annuaire`))[0]?.adresse_annuaire || null;
+    }catch(e){ /* facultatif */ }
 
     // SMS de confirmation (si le salon l'a activé) : paiement reçu, rendez-vous confirmé.
     await smsConfirmation({ rdvId: rdv.id, ownerId, telephone: resultat.prospect_telephone, origine });
@@ -471,22 +479,22 @@ async function traiterConfirmationReservation({ rdv, session, ownerId, stripeSec
         to: resultat.prospect_email,
         replyTo: params.emetteur_email || undefined,
         attachments: pieceJointe(ical?.ics),
-        subject: surPlace ? `Votre rendez-vous est confirmé chez ${nomEmetteur}` : `Facture ${doc.numero || ''} — ${nomEmetteur}`,
-        html: surPlace
-          ? gabaritSimple({
-              titre: 'Rendez-vous confirmé, acompte reçu',
-              paragraphes: [
-                `Bonjour ${echapperHtml(resultat.prospect_nom || '')},`,
-                `Votre acompte de <strong>${eur(acompte)}</strong> a bien été reçu : votre rendez-vous chez ${echapperHtml(nomEmetteur)} est confirmé.`,
-                `Cet acompte est <strong>déduit du prix final</strong> : il vous restera <strong>${eur(reste)} à régler en espèces</strong> sur place. En cas d'absence, l'acompte est conservé par le salon.`,
-                `<a href="${origine}/voir-document.html?t=${jetonPartage}">Voir le détail de la facture</a>`
-              ]
-            })
-          : gabaritEmailFacturePayee({
-              nomEmetteur, logoUrl: profil.logo_url, nomClient: resultat.prospect_nom,
-              numero: doc.numero, montant: resultat.paiement_montant,
-              lienDocument: `${origine}/voir-document.html?t=${jetonPartage}`
-            })
+        subject: `Votre rendez-vous est confirmé chez ${nomEmetteur}`,
+        html: gabaritConfirmation({
+          salon: nomEmetteur, logoUrl: profil.logo_url, titre: 'Rendez-vous confirmé',
+          reference: doc.numero || String(rdv.id).slice(0, 8).toUpperCase(),
+          debut: resultat.date_debut, fin: resultat.date_fin, avec: nomIntervenantEmail, adresse: adresseSalon,
+          lignes: prestationsOrdonnees.length
+            ? prestationsOrdonnees.map(p => ({ libelle: p.libelle, prix: Number(p.prix_unitaire) * (1 + (Number(p.tva_taux) || 0) / 100) }))
+            : [{ libelle: libelleCombine || 'Prestation', prix: acompte + reste }],
+          acompteDeduit: surPlace ? acompte : 0, reste: surPlace ? reste : 0,
+          paiement: { montant: Number(resultat.paiement_montant) || acompte, date: new Date().toISOString(), moyen: 'Carte bancaire' },
+          boutons: [
+            { href: lienEspace(resultat.prospect_email, origine), texte: 'Voir ou annuler mon rendez-vous', fort: true },
+            ...(ical?.lien ? [{ href: ical.lien, texte: 'Ajouter à mon agenda' }] : []),
+            { href: `${origine}/voir-document.html?t=${jetonPartage}`, texte: 'Voir ma facture' }
+          ]
+        })
       });
     }
 
