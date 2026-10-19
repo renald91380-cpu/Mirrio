@@ -15,17 +15,19 @@ const heure = iso => {
 
 const INK = '#101216', AMBER = '#E2A63D', MUTED = '#6B7080', LINE = '#E6E6E1';
 const SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+// Titres en romaine classique (empattements), cohérents avec le logotype gravé ; texte courant en sans.
+const SERIF = "'Cormorant Garamond','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif";
 const MARQUE = "Cinzel,'Trajan Pro',Optima,Georgia,serif";
 
-const repere = (label, valeur) => `<td valign="top" style="padding:0 8px 0 0;">
-  <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${MUTED};margin-bottom:4px;">${esc(label)}</div>
-  <div style="font-size:16px;font-weight:600;color:${INK};line-height:1.35;">${valeur}</div></td>`;
-
-const rangee = (trois) => `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 6px;"><tr>${trois.map(([l, v]) => repere(l, v)).join('')}</tr></table>`;
-
-const titreSection = t => `<div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:${MUTED};margin:26px 0 10px;">${esc(t)}</div>`;
-
+const etiquette = t => `<div style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:${MUTED};margin-bottom:5px;">${esc(t)}</div>`;
+const titreSection = t => `<div style="margin:30px 0 12px;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:${INK};border-bottom:1px solid ${INK};padding-bottom:8px;">${esc(t)}</div>`;
 const bouton = (href, texte, fort) => `<a href="${esc(href)}" style="display:inline-block;margin:0 8px 10px 0;padding:14px 24px;border-radius:999px;text-decoration:none;font-weight:700;font-size:15px;${fort ? `background:${AMBER};color:${INK};` : `background:#F5F5F3;color:${INK};border:1px solid #D9D9D4;`}">${esc(texte)}</a>`;
+
+// Ligne « carte de menu » : libellé, points de conduite, prix.
+const ligneMenu = (libelle, prix, { fort = false, discret = false } = {}) => `<tr>
+  <td style="padding:7px 0;font-size:${fort ? 17 : 15}px;${fort ? 'font-weight:700;' : ''}${discret ? `color:${MUTED};` : `color:${INK};`}white-space:nowrap;">${libelle}</td>
+  <td style="padding:7px 8px 11px;width:100%;"><div style="border-bottom:2px dotted #CFCFC8;height:1px;line-height:1px;font-size:1px;">&nbsp;</div></td>
+  <td align="right" style="padding:7px 0;font-size:${fort ? 17 : 15}px;${fort ? 'font-weight:700;' : ''}${discret ? `color:${MUTED};` : `color:${INK};`}white-space:nowrap;">${prix}</td></tr>`;
 
 // params : { salon, logoUrl, reference, titre, avec, adresse, debut, fin,
 //            lignes:[{libelle, prix}], acompteDeduit, reste,
@@ -34,28 +36,31 @@ const bouton = (href, texte, fort) => `<a href="${esc(href)}" style="display:inl
 export function gabaritConfirmation(p){
   const initiale = esc((p.salon || '?').trim().charAt(0).toUpperCase());
   const monogramme = p.logoUrl && /^https:\/\//i.test(p.logoUrl)
-    ? `<img src="${esc(p.logoUrl)}" width="88" height="88" alt="${esc(p.salon)}" style="display:block;border-radius:50%;border:5px solid #ffffff;background:#ffffff;object-fit:cover;">`
-    : `<table role="presentation" cellpadding="0" cellspacing="0"><tr><td align="center" valign="middle" width="88" height="88" style="width:88px;height:88px;border-radius:50%;border:5px solid #ffffff;background:${INK};color:${AMBER};font-family:${MARQUE};font-size:36px;font-weight:700;">${initiale}</td></tr></table>`;
+    ? `<img src="${esc(p.logoUrl)}" width="52" height="52" alt="" style="display:block;border-radius:50%;object-fit:cover;background:#fff;">`
+    : `<table role="presentation" cellpadding="0" cellspacing="0"><tr><td align="center" valign="middle" width="52" height="52" style="width:52px;height:52px;border-radius:50%;background:${INK};color:${AMBER};font-family:${MARQUE};font-size:22px;font-weight:700;">${initiale}</td></tr></table>`;
 
   const total = (p.lignes || []).reduce((t, l) => t + (Number(l.prix) || 0), 0);
-  const lignes = (p.lignes || []).map(l => `<tr><td style="padding:8px 0;border-bottom:1px solid ${LINE};font-size:15px;color:${INK};">${esc(l.libelle)}</td><td align="right" style="padding:8px 0;border-bottom:1px solid ${LINE};font-size:15px;color:${INK};white-space:nowrap;">${eur(l.prix)}</td></tr>`).join('');
-  const ligneTotal = (label, valeur, fort) => `<tr><td style="padding:7px 0;font-size:${fort ? 16 : 14.5}px;${fort ? 'font-weight:700;' : `color:${MUTED};`}">${label}</td><td align="right" style="padding:7px 0;font-size:${fort ? 16 : 14.5}px;${fort ? 'font-weight:700;' : `color:${MUTED};`}white-space:nowrap;">${valeur}</td></tr>`;
-
   const resume = (p.lignes && p.lignes.length) ? `${titreSection('Résumé')}
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${lignes}
-      ${ligneTotal('Total', eur(total), true)}
-      ${p.acompteDeduit > 0 ? ligneTotal('Acompte réglé par carte (déduit)', '− ' + eur(p.acompteDeduit)) : ''}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      ${p.lignes.map(l => ligneMenu(esc(l.libelle), eur(l.prix))).join('')}
+      ${ligneMenu('Total', eur(total), { fort: true })}
+      ${p.acompteDeduit > 0 ? ligneMenu('Acompte réglé par carte, déduit', '− ' + eur(p.acompteDeduit), { discret: true }) : ''}
     </table>` : '';
-  const reste = p.reste > 0 ? `<div style="margin:14px 0 0;padding:16px 18px;border-radius:14px;background:#FBEFD2;">
-      <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7A5200;">Reste à régler sur place</div>
-      <div style="font-size:24px;font-weight:800;color:${INK};margin-top:2px;">${eur(p.reste)}</div>
+  const reste = p.reste > 0 ? `<div style="margin:16px 0 0;padding:18px 20px;border-radius:14px;background:#FBEFD2;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#7A5200;">Reste à régler sur place</div>
+      <div style="font-family:${SERIF};font-size:34px;font-weight:700;color:${INK};line-height:1.15;margin-top:2px;">${eur(p.reste)}</div>
       <div style="font-size:13.5px;color:#5B4A1E;margin-top:2px;">Le solde se règle au salon, en espèces ou par carte.</div></div>` : '';
 
-  const paiement = p.paiement ? `${titreSection('Paiement')}${rangee([
-      ['Montant payé', eur(p.paiement.montant)],
-      ['Date du paiement', `${esc(fmt(p.paiement.date, { day: 'numeric', month: 'short', year: 'numeric' }))}<br><span style="font-weight:400;color:${MUTED};font-size:14px;">${esc(heure(p.paiement.date))}</span>`],
-      ['Moyen de paiement', esc(p.paiement.moyen || 'Carte bancaire')]
-    ])}` : '';
+  const paiement = p.paiement ? `${titreSection('Paiement')}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td valign="top" width="34%">${etiquette('Montant payé')}<div style="font-size:16px;font-weight:600;">${eur(p.paiement.montant)}</div></td>
+      <td valign="top" width="36%">${etiquette('Le')}<div style="font-size:16px;font-weight:600;">${esc(fmt(p.paiement.date, { day: 'numeric', month: 'short', year: 'numeric' }))}</div><div style="font-size:13.5px;color:${MUTED};">${esc(heure(p.paiement.date))}</div></td>
+      <td valign="top" width="30%">${etiquette('Moyen')}<div style="font-size:16px;font-weight:600;">${esc(p.paiement.moyen || 'Carte bancaire')}</div></td>
+    </tr></table>` : '';
+
+  const mois = fmt(p.debut, { month: 'short' }).replace('.', '').toUpperCase();
+  const jourNum = fmt(p.debut, { day: 'numeric' });
+  const jourSem = fmt(p.debut, { weekday: 'long' });
 
   return `<!doctype html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="color-scheme" content="light">
@@ -63,28 +68,38 @@ export function gabaritConfirmation(p){
 <body style="margin:0;padding:0;background:#F5F5F3;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F5F5F3;"><tr><td align="center" style="padding:28px 12px;">
   <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;border-radius:24px;overflow:hidden;background:#ffffff;font-family:${SANS};color:${INK};">
-    <tr><td align="center" bgcolor="${INK}" style="background:${INK};padding:30px 24px 22px;">
-      <div style="font-family:${MARQUE};font-weight:700;font-size:15px;letter-spacing:.2em;text-transform:uppercase;color:#F5F5F3;">Mirrio<span style="color:${AMBER};">.</span></div>
+    <tr><td bgcolor="${INK}" style="background:${INK};padding:22px 32px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+        <td style="font-family:${MARQUE};font-weight:700;font-size:16px;letter-spacing:.2em;text-transform:uppercase;color:#F5F5F3;">Mirrio<span style="color:${AMBER};">.</span></td>
+        <td align="right" style="font-size:12px;letter-spacing:.08em;color:#A3A8B3;">${p.reference ? 'N° ' + esc(p.reference) : ''}</td>
+      </tr></table>
     </td></tr>
-    <tr><td align="center" bgcolor="#ffffff" style="background:${INK};background-image:linear-gradient(${INK} 50%, #ffffff 50%);padding:0;">
-      <table role="presentation" cellpadding="0" cellspacing="0" align="center"><tr><td>${monogramme}</td></tr></table>
-    </td></tr>
-    <tr><td style="padding:8px 36px 34px;">
-      <h1 style="margin:12px 0 4px;text-align:center;font-size:28px;line-height:1.15;letter-spacing:-.02em;color:${INK};">${esc(p.titre)}</h1>
-      <div style="text-align:center;font-size:16px;color:${MUTED};">chez ${esc(p.salon)}</div>
-      ${p.reference ? `<div style="text-align:center;font-size:13.5px;color:${MUTED};margin-top:6px;">Réservation n° ${esc(p.reference)}</div>` : ''}
-      <div style="height:26px;"></div>
-      ${rangee([
-        ['Quand', `<span style="text-transform:capitalize;">${esc(fmt(p.debut, { weekday: 'long', day: 'numeric', month: 'long' }))}</span>`],
-        ['Heure', `${esc(heure(p.debut))} - ${esc(heure(p.fin))}`],
-        ['Avec', p.avec ? esc(p.avec) : 'L’équipe du salon']
-      ])}
-      ${p.adresse ? `<div style="font-size:14.5px;color:${MUTED};margin-top:10px;">${esc(p.adresse)}</div>` : ''}
+    <tr><td style="height:4px;line-height:4px;font-size:4px;background:${AMBER};">&nbsp;</td></tr>
+    <tr><td style="padding:34px 36px 36px;">
+      <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+        <td valign="middle" style="padding-right:14px;">${monogramme}</td>
+        <td valign="middle"><div style="font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#A1700A;">${esc(p.titre)}</div>
+          <div style="font-family:${SERIF};font-size:32px;font-weight:700;line-height:1.1;color:${INK};margin-top:2px;">${esc(p.salon)}</div></td>
+      </tr></table>
+
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:26px;"><tr>
+        <td valign="top" width="92" style="width:92px;"><table role="presentation" width="92" cellpadding="0" cellspacing="0" style="border-radius:16px;overflow:hidden;background:${INK};"><tr><td align="center" style="padding:12px 0 14px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.2em;color:${AMBER};">${esc(mois)}</div>
+          <div style="font-family:${SERIF};font-size:46px;font-weight:700;line-height:1;color:#ffffff;margin:2px 0;">${esc(jourNum)}</div>
+          <div style="font-size:12px;letter-spacing:.06em;color:#A3A8B3;text-transform:capitalize;">${esc(jourSem)}</div>
+        </td></tr></table></td>
+        <td valign="top" style="padding-left:20px;">
+          <div style="margin-bottom:12px;">${etiquette('Heure')}<div style="font-size:19px;font-weight:700;">${esc(heure(p.debut))} - ${esc(heure(p.fin))}</div></div>
+          <div style="margin-bottom:${p.adresse ? 12 : 0}px;">${etiquette('Avec')}<div style="font-size:16px;font-weight:600;">${p.avec ? esc(p.avec) : 'L’équipe du salon'}</div></div>
+          ${p.adresse ? `<div>${etiquette('Adresse')}<div style="font-size:14.5px;color:${INK};line-height:1.4;">${esc(p.adresse)}</div></div>` : ''}
+        </td>
+      </tr></table>
+
       ${resume}
       ${reste}
       ${paiement}
-      <div style="margin:28px 0 0;">${(p.boutons || []).map(b => bouton(b.href, b.texte, b.fort)).join('')}</div>
-      <div style="font-size:12.5px;color:#8A8F9A;margin-top:20px;line-height:1.55;">${esc(p.mention || 'Vous pouvez annuler jusqu’à 24 h avant le rendez-vous. L’acompte réglé n’est pas remboursé en cas d’absence.')}</div>
+      <div style="margin:30px 0 0;">${(p.boutons || []).map(b => bouton(b.href, b.texte, b.fort)).join('')}</div>
+      <div style="font-size:12.5px;color:#8A8F9A;margin-top:18px;line-height:1.55;">${esc(p.mention || 'Vous pouvez annuler jusqu’à 24 h avant le rendez-vous. L’acompte réglé n’est pas remboursé en cas d’absence.')}</div>
     </td></tr>
   </table>
   <div style="font-family:${SANS};font-size:12px;color:#8A8F9A;margin-top:16px;">Envoyé via Mirrio, la réservation en ligne sans commission.</div>
