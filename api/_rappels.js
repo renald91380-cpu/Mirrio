@@ -57,7 +57,7 @@ export function htmlEmail({ salon, debut, fin, titre, avec, adresse, reglement, 
   const bouton = (href, txt, fort) => `<a href="${esc(href)}" style="display:inline-block;margin:4px 6px 4px 0;padding:13px 22px;border-radius:999px;text-decoration:none;font-weight:700;font-size:15px;${fort ? 'background:#E2A63D;color:#101216;' : 'background:#F5F5F3;color:#101216;border:1px solid #D9D9D4;'}">${txt}</a>`;
   return `<div style="background:#F5F5F3;padding:28px 12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#101216">
   <div style="max-width:520px;margin:auto;background:#fff;border-radius:22px;padding:30px 28px">
-    <div style="font-weight:800;font-size:20px;letter-spacing:-.04em;margin-bottom:18px">Mirrio<span style="color:#E2A63D">.</span></div>
+    <div style="font-family:Cinzel,'Trajan Pro',Optima,Georgia,serif;font-weight:700;font-size:20px;letter-spacing:.16em;text-transform:uppercase;margin-bottom:18px">Mirrio<span style="color:#E2A63D">.</span></div>
     <h1 style="font-size:24px;line-height:1.2;margin:0 0 6px">À demain chez ${esc(salon)}</h1>
     <p style="margin:0 0 20px;color:#5B606B">Un petit rappel de votre rendez-vous.</p>
     <div style="border:1px solid #E6E6E1;border-radius:16px;padding:18px 20px;margin-bottom:18px">

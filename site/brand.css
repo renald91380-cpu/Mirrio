@@ -1,0 +1,10 @@
+/* Mirrio : logotype en capitales de style gravure antique grecque et romaine (Cinzel).
+   Appliqué au nom « Mirrio » des pages publiques et de connexion. Jamais au nom commercial d'un salon
+   (en-tête applicatif, page salon, devis/factures) : ceux-là gardent la typographie choisie par le salon. */
+.logo, .marque{
+  font-family:'Cinzel', 'Trajan Pro', 'Optima', Georgia, serif !important;
+  font-weight:700 !important; text-transform:uppercase !important; letter-spacing:.16em !important;
+}
+.logo b, .logo .dot{ letter-spacing:0 !important; margin-left:.04em; }
+.logo{ font-size:24px !important; }
+.marque{ font-size:22px !important; }
