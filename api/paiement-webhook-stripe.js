@@ -33,6 +33,8 @@ import crypto from 'crypto';
 
 import { icsParId, pieceJointe } from './_ics.js';
 
+import { smsConfirmation } from './_sms.js';
+
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -458,6 +460,9 @@ async function traiterConfirmationReservation({ rdv, session, ownerId, stripeSec
 
     const origine = `https://${req.headers.host}`;
     const ical = await icsParId(rdv.id, origine);
+
+    // SMS de confirmation (si le salon l'a activé) : paiement reçu, rendez-vous confirmé.
+    await smsConfirmation({ rdvId: rdv.id, ownerId, telephone: resultat.prospect_telephone, origine });
 
     if(resultat.prospect_email && RESEND_API_KEY){
       const jetonPartage = await nouveauJetonPartage();

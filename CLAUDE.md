@@ -305,14 +305,17 @@ Pour vendre Mirrio : `site/demo.html` (non indexée) donne accès à **trois sal
 - **Le produit s'appelle Mirrio** (anciennement Cadence). Seuls les textes visibles ont changé : identifiants techniques conservés (projet Vercel `cadence-site`, dépôt GitHub, clés `localStorage`/`sessionStorage` en `cadence-…`, UID `@cadence` des .ics pour ne pas dupliquer les événements existants, type de message `cadence-vitrine`). Icônes PWA regénérées (« M. » ambre sur encre), cache du service worker passé en `cadence-v3`. **À faire côté exploitant** : variable Vercel `RESEND_FROM` si elle contient encore « Cadence », domaine propre, recherche de marque INPI/EUIPO.
 - **`site/demo-creation.html`** : assistant en 5 étapes (salon, prestations, équipe et spécialités, style, paiement) avec aperçu en direct de la vraie page (`pro.html?preview=1`). Il ne crée aucun compte ni donnée : la configuration est gardée dans `sessionStorage` (`mirrio-demo-salon`) et `demo-mode.js` la transforme en salon fictif `demo-nouveau` (page, réservation avec choix de la personne et spécialités, annuaire `?demo=1`). Le slug `demo-nouveau` est réservé (contrainte SQL v20).
 
-### 3.26 Rappels de rendez-vous (email et SMS)
+### 3.26 SMS et rappels de rendez-vous
 
-`api/_rappels.js`, déclenché par la tâche planifiée `/api/relances?tache=rappels` (`vercel.json`, tous les jours à 16 h UTC) : regroupé dans `api/relances.js` pour rester à 12 fonctions. Il prévient chaque client de ses rendez-vous de **demain (jour calendaire Europe/Paris)**.
+**Deux SMS seulement** (`api/_sms.js`, fournisseur Twilio : `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM`, « Mirrio » par défaut), et **uniquement pour les salons qui les activent** (`parametres_reservation.rappel_sms`, faux par défaut : chaque SMS est facturé) :
+1. **Confirmation**, dès que le rendez-vous est confirmé : réservation gratuite (`reservation-publique.js`), acompte ou carte (`paiement-webhook-stripe.js`), PayPal (`paiement-capturer-paypal.js`). Idempotent via `rendez_vous.sms_confirmation_le` (un webhook rejoué ne renvoie rien).
+2. **Rappel la veille**, `api/_rappels.js`, tâche planifiée `/api/relances?tache=rappels` (tous les jours 16 h UTC, regroupée dans `relances.js` pour rester à 12 fonctions). Rendez-vous de **demain (jour de Paris)**, jamais deux fois (`rappel_sms_le`, `rappel_email_le`).
 
-- **Migration `db/schema-v21-rappels.sql`** : `parametres_reservation.rappel_email` (vrai par défaut), `rappel_sms` (faux par défaut, un SMS est facturé), `rendez_vous.rappel_email_le`/`rappel_sms_le` (jamais deux rappels). Réglages dans Paramètres → Réservation.
-- **Email** (Resend) : heure, personne, adresse, reste à régler, bouton « Voir ou annuler » (lien signé de `_client.js`, `lienEspace`) et fichier calendrier. **SMS** (Twilio : `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM`, « Mirrio » par défaut) : texte court avec l'adresse de « Mes rendez-vous », mobiles uniquement (06/07 en France), 100 SMS maximum par salon et par exécution. Sans clés Twilio, aucun SMS n'est envoyé (compté dans `ignores_sms_sans_fournisseur`).
-- Exclus : rendez-vous annulés, demandes en attente, paiement en cours, fiches sans email ni mobile. `?dry=1` liste sans envoyer. Les rendez-vous pris **après** l'exécution du soir pour le lendemain ne reçoivent pas de rappel (ils ont leur confirmation).
-- **Limite Vercel gratuit** : une seule exécution par jour ; un rappel « 2 h avant » demandera le plan Pro (cron plus fréquent).
+**Les deux messages disent toujours où en est le règlement** (`etatReglement()`) : « Payé, rien à régler sur place », « Acompte reçu, reste X € sur place » ou « À régler sur place : X € » (rien si le total est inconnu). Le rappel par email de la veille, indépendant (`rappel_email`, vrai par défaut, Resend), reprend le même bandeau et ajoute les boutons « Voir ou annuler » (lien signé) et « Ajouter à mon agenda ».
+
+- Migrations `schema-v21-rappels.sql` et `schema-v22-sms-confirmation.sql`. Mobiles uniquement (06/07 en France), 100 SMS maximum par salon et par exécution du rappel. Sans clés Twilio : aucun SMS, aucune erreur. Jamais bloquant pour une réservation.
+- Exclus : rendez-vous annulés, en attente, paiement en cours, fiches sans contact. `?dry=1` liste sans envoyer. Un rendez-vous pris après l'exécution du soir pour le lendemain n'a que sa confirmation.
+- **Limite Vercel gratuit** : une exécution par jour ; un rappel « 2 h avant » demanderait le plan Pro. Aucun autre SMS n'est prévu (pas de SMS promotionnel).
 
 ### 3.24 Design de l'application connectée et de l'authentification
 

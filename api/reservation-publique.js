@@ -28,6 +28,8 @@
 import { icsParId, pieceJointe } from './_ics.js';
 
 import { contexte, occupes as chargerOccupes, choisirRessource } from './_dispo.js';
+import { smsConfirmation } from './_sms.js';
+
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -547,6 +549,9 @@ export default async function handler(req, res){
 
   // .ics du rendez-vous (calculé APRÈS confirmation : statut CONFIRMED, pas TENTATIVE).
   const ical = await icsParId(rdvGratuit.id, `https://${req.headers.host}`);
+
+  // SMS de confirmation (si le salon l'a activé) : seulement une fois le rendez-vous réellement confirmé.
+  if(confirme) await smsConfirmation({ rdvId: rdvGratuit.id, ownerId, telephone, origine: `https://${req.headers.host}` });
 
   // ---- emails best-effort : jamais bloquants ----
   if(RESEND_API_KEY){

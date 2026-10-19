@@ -37,6 +37,8 @@
 
 import { icsParId, pieceJointe } from './_ics.js';
 
+import { smsConfirmation } from './_sms.js';
+
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -273,7 +275,7 @@ export default async function handler(req, res){
       // Voir schema-v13 : un rendez-vous peut porter plusieurs prestations,
       // la liste complète vit dans rendez_vous_prestations.
       supabaseGet(`rendez_vous_prestations?rendez_vous_id=eq.${rdv.id}&select=position,prestations(libelle,prix_unitaire,tva_taux)&order=position.asc`),
-      supabaseGet(`clients?id=eq.${rdv.client_id}&select=full_name,email`),
+      supabaseGet(`clients?id=eq.${rdv.client_id}&select=full_name,email,phone`),
       supabaseGet(`profiles?id=eq.${ownerId}&select=business_name,full_name,logo_url`),
       supabaseGet(`parametres_facturation?owner_id=eq.${ownerId}&select=emetteur_nom,emetteur_email`)
     ]);
@@ -286,6 +288,9 @@ export default async function handler(req, res){
     const client = clients[0];
     const profil = profils[0] || {};
     const params = facturation[0] || {};
+
+    // SMS de confirmation (si le salon l'a activé) : paiement PayPal reçu.
+    await smsConfirmation({ rdvId: rdv.id, ownerId, telephone: client?.phone || rdv.prospect_telephone, origine });
 
     const docs = await supabasePost('documents', {
       owner_id: ownerId,
