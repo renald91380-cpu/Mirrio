@@ -3,7 +3,7 @@
 // Deux SMS seulement, jamais d'autre :
 //   1. Confirmation : dès qu'un rendez-vous est confirmé (réservation gratuite, acompte ou paiement carte/PayPal).
 //   2. Rappel la veille (voir api/_rappels.js).
-// Les deux disent où en est le règlement : rien à prévoir, reste X € sur place, ou total à régler sur place.
+// Règlement : rien n'est dit si tout est déjà payé ; sinon « reste X € sur place » ou « à régler sur place : X € ».
 //
 // Réservé aux salons qui l'activent (`parametres_reservation.rappel_sms`, faux par défaut : chaque SMS est
 // facturé par le fournisseur). Fournisseur : Twilio (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM).
@@ -44,7 +44,7 @@ export function etatReglement(r){
 }
 export function phraseReglement(e, { confirmation = false } = {}){
   if(!e) return '';
-  if(e.type === 'paye') return confirmation ? 'Payé, rien à régler sur place.' : 'Rien à régler sur place.';
+  if(e.type === 'paye') return '';                       // déjà tout réglé : rien à préciser, le message se limite au rappel
   if(e.type === 'reste') return confirmation ? `Acompte reçu, reste ${eur(e.montant)} sur place.` : `Reste ${eur(e.montant)} sur place.`;
   return `À régler sur place : ${eur(e.total)}.`;
 }

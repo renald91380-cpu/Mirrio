@@ -3,7 +3,7 @@
 // Appelé par api/relances.js quand la tâche planifiée est `?tache=rappels` (voir vercel.json,
 // une fois par jour). Prévient chaque client de ses rendez-vous de DEMAIN (jour calendaire de Paris),
 // qu'ils aient été pris en ligne ou saisis à la main, à condition que la fiche porte un email ou un mobile.
-// Le message dit toujours où en est le règlement : rien à prévoir, reste X € sur place, ou total à régler.
+// Le message précise le règlement seulement s'il reste quelque chose à payer sur place (rien si tout est déjà payé).
 //
 //   - Email : activé par défaut (`parametres_reservation.rappel_email`), via Resend.
 //   - SMS   : désactivé par défaut (`rappel_sms`), chaque SMS coûte de l'argent. Fournisseur : Twilio
@@ -65,7 +65,7 @@ export function htmlEmail({ salon, debut, fin, titre, avec, adresse, reglement, 
       <div style="font-size:17px;margin:2px 0 10px">${esc(heureFr(debut))} - ${esc(heureFr(fin))}</div>
       ${titre ? `<div>${esc(titre)}</div>` : ''}${avec ? `<div style="color:#5B606B">Avec ${esc(avec)}</div>` : ''}${adresse ? `<div style="color:#5B606B">${esc(adresse)}</div>` : ''}
     </div>
-    ${reglement ? `<p style="background:${reglement.type === 'paye' ? '#E3F2EA' : '#FBEFD2'};border-radius:12px;padding:12px 14px;margin:0 0 18px;font-size:14.5px">${reglement.type === 'reste' ? `Reste à régler sur place : <b>${esc(reglement.montant)} €</b> (acompte déjà déduit).` : reglement.type === 'paye' ? 'Tout est réglé : <b>rien à prévoir sur place</b>.' : `À régler sur place : <b>${esc(reglement.total)} €</b>.`}</p>` : ''}
+    ${reglement && reglement.type !== 'paye' ? `<p style="background:#FBEFD2;border-radius:12px;padding:12px 14px;margin:0 0 18px;font-size:14.5px">${reglement.type === 'reste' ? `Reste à régler sur place : <b>${esc(reglement.montant)} €</b> (acompte déjà déduit).` : `À régler sur place : <b>${esc(reglement.total)} €</b>.`}</p>` : ''}
     <div>${bouton(lien, 'Voir ou annuler mon rendez-vous', true)}${ics ? bouton(ics, 'Ajouter à mon agenda', false) : ''}</div>
     <p style="font-size:12.5px;color:#8A8F9A;margin:22px 0 0">Un empêchement ? Vous pouvez annuler jusqu'à 24 h avant. Un acompte déjà réglé n'est pas remboursé.</p>
   </div></div>`;
