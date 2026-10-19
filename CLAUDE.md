@@ -225,6 +225,8 @@ Deux pages statiques autonomes, `site/cgu.html` et `site/confidentialite.html` �
 - Le champ « Assuré par » de la fiche n'apparaît que s'il y a au moins un collaborateur. Le nom d'une colonne vient de `profiles.full_name` si la RLS le permet, sinon du préfixe de l'email d'invitation.
 - **Limite connue :** la réservation en ligne publique ne choisit pas de collaborateur et ne tient pas compte des disponibilités individuelles — un seul horaire hebdomadaire par espace (§3.10).
 
+- **Refonte « sexy » + glisser-déposer + horaires** : colonnes colorées par personne, bandeau des 7 jours, résumé de la journée, pastille de règlement sur chaque rendez-vous (Payé / Reste X € / À encaisser). Les **heures de fermeture** (hors horaires de la personne, ou du salon) sont grisées, une personne absente ce jour-là affiche « Fermé » (cliquer reste possible). On peut **glisser un rendez-vous** (souris ou stylet) pour changer l'heure par quarts d'heure et/ou la personne : chevauchement = confirmation, mise à jour en base puis poussée Google en best-effort. **Le client n'est pas prévenu** du déplacement (toast de rappel). Au toucher, pas de glisser (il bloquerait le défilement) : la fiche du rendez-vous reste l'alternative clavier/tactile.
+
 ### 3.18 Vertical beauté (coiffure, barbier, esthétique, onglerie, massage)
 
 Mirrio se positionne aussi comme logiciel de salon, façon Planity — **sans commission** (voir §3.15). Vitrine : `site/beaute.html` (liée depuis `index.html` et l'annuaire ; le comparatif Planity/Treatwell y est sourcé « FrenchWeb, juillet 2026 » et daté — à revérifier avant de le republier).

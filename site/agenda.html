@@ -260,6 +260,10 @@
   .eq-pay.reste{ background:rgba(226,166,61,.28); color:#6B4600; }
   .eq-pay.du{ background:rgba(181,56,31,.13); color:#8C2A14; }
   .eq-bloc.attente{ border-style:dashed; background:repeating-linear-gradient(135deg, #fff 0 8px, color-mix(in srgb, var(--c) 10%, #fff) 8px 16px); }
+  .eq-ferme{ position:absolute; left:0; right:0; pointer-events:none; background:repeating-linear-gradient(135deg, rgba(16,18,22,.05) 0 6px, transparent 6px 12px); }
+  .eq-ferme.tout::after{ content:"Fermé"; position:absolute; top:10px; left:0; right:0; text-align:center; font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:rgba(16,18,22,.4); }
+  .eq-bloc{ cursor:grab; touch-action:manipulation; user-select:none; -webkit-user-select:none; }
+  .eq-bloc.glisse{ cursor:grabbing; z-index:6; transition:none; opacity:.92; box-shadow:0 18px 36px -12px rgba(16,18,22,.45); }
   .eq-maintenant{ position:absolute; left:0; right:0; height:2px; background:#D94F2B; z-index:2; pointer-events:none; }
   .eq-maintenant::before{ content:""; position:absolute; left:-4px; top:-4px; width:10px; height:10px; border-radius:50%; background:#D94F2B; }
   @media (prefers-reduced-motion: reduce){ .eq-bloc, .eq-jour, .eq-actions button, .vue-bascule button{ transition:none; } .eq-bloc:hover{ transform:none; } }
@@ -1074,10 +1078,13 @@
   // celles proposées à la réservation en ligne. Sans équipe : une seule colonne, « Moi ».
   // L'identifiant `espaceId` désigne la colonne « sans intervenant » (rendez-vous non attribués).
   let membres = [];
+  let horairesSalon = null;          // horaires hebdomadaires du salon (réservation en ligne)
   async function chargerEquipe(){
     try{
-      const { data } = await supabase.from('vitrine_equipe').select('id, nom, reservable').order('position');
+      const { data } = await supabase.from('vitrine_equipe').select('id, nom, reservable, jours_ouvres, heure_debut, heure_fin').order('position');
       membres = data || [];
+      const { data: reg } = await supabase.from('parametres_reservation').select('jours_ouvres, heure_debut, heure_fin').maybeSingle();
+      horairesSalon = reg || null;
     }catch(e){ membres = []; }
     equipe = membres.length ? membres.map(m => ({ id: m.id, nom: m.nom })) : [{ id: espaceId, nom: 'Moi' }];
     const sel = document.getElementById('collaborateur_id');
@@ -1095,6 +1102,75 @@
     if(reste > 0) return { cle:'reste', texte:'Reste ' + eur0(reste), montant: reste };
     if(a.paiement_statut === 'paye' || a.reste_encaisse_le) return { cle:'ok', texte:'Payé' };
     return { cle:'du', texte:'À encaisser' };
+  }
+
+  const enMinutes = t => { const [h, m] = String(t).split(':').map(Number); return h * 60 + (m || 0); };
+  // Plage d'ouverture d'une colonne pour le jour affiché : { debut, fin } en minutes, null = fermé, undefined = inconnue.
+  function plageOuverte(col){
+    const m = membres.find(x => x.id === col.id);
+    if(col.id === espaceId && membres.length) return undefined;                  // colonne « Non attribué »
+    const h = (m && m.jours_ouvres) ? m : horairesSalon;
+    if(!h || !h.jours_ouvres) return undefined;
+    const debut = (m && m.heure_debut) || (horairesSalon && horairesSalon.heure_debut) || h.heure_debut;
+    const fin = (m && m.heure_fin) || (horairesSalon && horairesSalon.heure_fin) || h.heure_fin;
+    if(!h.jours_ouvres.includes(jourEquipe.getDay()) || !debut || !fin) return h.jours_ouvres.includes(jourEquipe.getDay()) ? undefined : null;
+    return { debut: enMinutes(debut), fin: enMinutes(fin) };
+  }
+  function voileFerme(col){
+    const p = plageOuverte(col), total = (H_FIN - H_DEBUT) * 60 * PX_MIN;
+    if(p === undefined) return '';
+    if(p === null) return `<div class="eq-ferme tout" style="top:0; height:${total}px;"></div>`;
+    const avant = Math.max(0, (p.debut - H_DEBUT * 60) * PX_MIN), apres = Math.max(0, (p.fin - H_DEBUT * 60) * PX_MIN);
+    return (avant > 0 ? `<div class="eq-ferme" style="top:0; height:${Math.min(avant, total)}px;"></div>` : '') +
+           (apres < total ? `<div class="eq-ferme" style="top:${apres}px; height:${total - apres}px;"></div>` : '');
+  }
+
+  // Déplacer un rendez-vous en le glissant (souris ou stylet) : change l'heure (par quarts d'heure) et/ou la personne.
+  // Au toucher, on garde le clic (fiche du rendez-vous) pour ne pas bloquer le défilement.
+  function activerGlisser(grille, rdvs){
+    const cols = [...grille.querySelectorAll('.eq-col')];
+    grille.querySelectorAll('.eq-bloc').forEach(b => {
+      b.addEventListener('click', e => { if(b._glisse){ e.stopImmediatePropagation(); b._glisse = false; } }, true);
+      b.addEventListener('pointerdown', e => {
+        if(e.pointerType === 'touch' || e.button !== 0) return;
+        const a = rdvs.find(x => x.id === b.dataset.id); if(!a) return;
+        const col0 = b.parentElement, startX = e.clientX, startY = e.clientY, top0 = parseFloat(b.style.top);
+        const dureeMin = Math.round((new Date(a.date_fin) - new Date(a.date_debut)) / 60000);
+        const debut0 = new Date(a.date_debut), min0 = debut0.getHours() * 60 + debut0.getMinutes();
+        const etiquette = b.querySelector('.l1 span');
+        let actif = false, delta = 0, cible = col0;
+        const rectCol0 = col0.getBoundingClientRect();
+        const bouge = ev => {
+          if(!actif){ if(Math.hypot(ev.clientX - startX, ev.clientY - startY) < 6) return; actif = true; b.classList.add('glisse'); }
+          delta = Math.round((ev.clientY - startY) / PX_MIN / 15) * 15;
+          delta = Math.max(H_DEBUT * 60 - min0, Math.min(H_FIN * 60 - dureeMin - min0, delta));      // reste dans la journée affichée
+          const c = cols.find(x => { const r = x.getBoundingClientRect(); return ev.clientX >= r.left && ev.clientX < r.right; });
+          if(c) cible = c;
+          b.style.transform = `translate(${cible.getBoundingClientRect().left - rectCol0.left}px, ${delta * PX_MIN}px)`;
+          const n = min0 + delta, f = n + dureeMin, h = x => `${String(Math.floor(x / 60)).padStart(2,'0')}:${String(x % 60).padStart(2,'0')}`;
+          if(etiquette) etiquette.textContent = `${h(n)} - ${h(f)}`;
+        };
+        const fin = async ev => {
+          document.removeEventListener('pointermove', bouge); document.removeEventListener('pointerup', fin); document.removeEventListener('pointercancel', fin);
+          if(!actif) return;
+          b._glisse = true; b.classList.remove('glisse');
+          const interv = membres.length ? (cible.dataset.collab === espaceId ? null : cible.dataset.collab) : undefined;
+          if(delta === 0 && cible === col0){ b.style.transform = ''; return rendreEquipe(); }
+          const nouveauDebut = new Date(debut0.getTime() + delta * 60000), nouvelleFin = new Date(nouveauDebut.getTime() + dureeMin * 60000);
+          const chevauche = rdvs.some(x => x.id !== a.id && x.statut !== 'annule'
+            && (interv === undefined || (x.intervenant_id || null) === interv || !x.intervenant_id || !interv)
+            && new Date(x.date_debut) < nouvelleFin && new Date(x.date_fin) > nouveauDebut);
+          if(chevauche && !window.confirm('Ce créneau chevauche un autre rendez-vous. Déplacer quand même ?')) return rendreEquipe();
+          const maj = { date_debut: nouveauDebut.toISOString(), date_fin: nouvelleFin.toISOString(), ...(interv !== undefined ? { intervenant_id: interv } : {}) };
+          const { data: d, error } = await supabase.from('rendez_vous').update(maj).eq('id', a.id).select();
+          if(error){ showToast("Le déplacement a échoué. Réessayez."); return rendreEquipe(); }
+          try{ if(d && d.length) await pousserPlusieurs(supabase, d, clientsById); }catch(err){}
+          showToast('Rendez-vous déplacé. Pensez à prévenir le client.');
+          rendreEquipe();
+        };
+        document.addEventListener('pointermove', bouge); document.addEventListener('pointerup', fin); document.addEventListener('pointercancel', fin);
+      });
+    });
   }
 
   function rendreJours(){
@@ -1147,7 +1223,7 @@
         `<span style="top:${i * PXH}px;">${String(H_DEBUT + i).padStart(2,'0')}:00</span>`).join('') + '</div>';
     colonnes.forEach((m, i) => {
       const siens = rdvs.filter(a => (a.intervenant_id || espaceId) === m.id);
-      html += `<div class="eq-col" data-collab="${m.id}" style="height:${hauteur}px; --c:${couleurDe(i)}">` + siens.map(a => {
+      html += `<div class="eq-col" data-collab="${m.id}" style="height:${hauteur}px; --c:${couleurDe(i)}">` + voileFerme(m) + siens.map(a => {
         const d = new Date(a.date_debut), f = new Date(a.date_fin);
         const top = Math.max(0, (d.getHours() * 60 + d.getMinutes() - H_DEBUT * 60) * PX_MIN);
         const h = Math.max(30, ((f - d) / 60000) * PX_MIN - 3);
@@ -1170,6 +1246,7 @@
     const premier = rdvs.length ? Math.min(...rdvs.map(a => { const d = new Date(a.date_debut); return d.getHours() * 60 + d.getMinutes(); })) : (toDateInput(auj) === toDateInput(jourEquipe) ? auj.getHours() * 60 : 8 * 60);
     document.querySelector('.equipe-scroll').scrollTop = Math.max(0, (premier - H_DEBUT * 60 - 30) * PX_MIN);
 
+    activerGlisser(grille, rdvs);
     grille.querySelectorAll('.eq-bloc').forEach(b => b.addEventListener('click', e => {
       e.stopPropagation(); openModal(rdvs.find(a => a.id === b.dataset.id));
     }));
