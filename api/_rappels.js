@@ -53,7 +53,7 @@ async function envoyerEmail({ to, replyTo, sujet, html }){
   });
   if(!r.ok) throw new Error('Resend ' + r.status);
 }
-function htmlEmail({ salon, debut, fin, titre, avec, adresse, reglement, lien, ics }){
+export function htmlEmail({ salon, debut, fin, titre, avec, adresse, reglement, lien, ics }){
   const bouton = (href, txt, fort) => `<a href="${esc(href)}" style="display:inline-block;margin:4px 6px 4px 0;padding:13px 22px;border-radius:999px;text-decoration:none;font-weight:700;font-size:15px;${fort ? 'background:#E2A63D;color:#101216;' : 'background:#F5F5F3;color:#101216;border:1px solid #D9D9D4;'}">${txt}</a>`;
   return `<div style="background:#F5F5F3;padding:28px 12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#101216">
   <div style="max-width:520px;margin:auto;background:#fff;border-radius:22px;padding:30px 28px">
