@@ -218,27 +218,51 @@
   .toast svg{ stroke:var(--teal); flex-shrink:0; }
 
   /* ---- Vue Équipe (jour, une colonne par membre) ---- */
-  .vue-bascule{ display:inline-flex; background:rgba(28,35,51,0.06); border-radius:9px; padding:3px; margin-bottom:16px; }
-  .vue-bascule button{ border:none; background:none; padding:7px 16px; border-radius:7px; font:600 13.5px Inter, sans-serif; color:rgba(28,35,51,0.6); cursor:pointer; }
-  .vue-bascule button.on{ background:#fff; color:var(--ink); box-shadow:0 1px 3px rgba(28,35,51,0.15); }
-  .equipe-nav{ display:flex; align-items:center; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
-  .equipe-nav .date-titre{ font-weight:700; font-size:16px; text-transform:capitalize; flex:1; min-width:160px; }
-  .equipe-nav button{ border:1px solid rgba(28,35,51,0.18); background:#fff; border-radius:8px; padding:7px 12px; font:600 13.5px Inter, sans-serif; cursor:pointer; }
-  .equipe-scroll{ overflow-x:auto; background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(28,35,51,0.08); }
+  .vue-bascule{ display:inline-flex; background:rgba(16,18,22,.06); border-radius:999px; padding:4px; margin-bottom:18px; }
+  .vue-bascule button{ border:none; background:none; min-height:40px; padding:0 20px; border-radius:999px; font:600 14px var(--body); color:rgba(16,18,22,.6); cursor:pointer; transition:background .25s, color .25s; }
+  .vue-bascule button.on{ background:var(--ink); color:var(--parchment); }
+  .equipe-nav{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+  .equipe-nav .date-titre{ font:800 clamp(22px,3vw,30px) var(--display); letter-spacing:-.03em; text-transform:capitalize; line-height:1.1; }
+  .eq-actions{ display:flex; gap:8px; }
+  .eq-actions button{ border:1.5px solid rgba(16,18,22,.14); background:#fff; border-radius:999px; min-height:42px; min-width:42px; padding:0 16px; font:600 14px var(--body); cursor:pointer; transition:border-color .2s, transform .3s; }
+  .eq-actions button:hover{ border-color:var(--ink); }
+  .eq-jours{ display:flex; gap:8px; overflow-x:auto; padding:2px 2px 8px; scrollbar-width:none; margin-bottom:6px; }
+  .eq-jours::-webkit-scrollbar{ display:none; }
+  .eq-jour{ flex:1 0 62px; max-width:96px; display:flex; flex-direction:column; align-items:center; gap:2px; padding:10px 6px; border-radius:18px; border:1.5px solid rgba(16,18,22,.1); background:#fff; cursor:pointer; font-family:var(--body); position:relative; transition:transform .3s, border-color .2s; }
+  .eq-jour small{ font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:rgba(16,18,22,.55); font-weight:600; }
+  .eq-jour b{ font:800 20px var(--display); letter-spacing:-.03em; }
+  .eq-jour:hover{ border-color:var(--ink); }
+  .eq-jour[aria-pressed="true"]{ background:var(--ink); border-color:var(--ink); color:var(--parchment); }
+  .eq-jour[aria-pressed="true"] small{ color:rgba(245,245,243,.65); }
+  .eq-jour.auj::after{ content:""; position:absolute; bottom:5px; width:5px; height:5px; border-radius:50%; background:var(--amber); }
+  .eq-resume{ display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 16px; }
+  .eq-chip{ display:inline-flex; align-items:center; gap:7px; padding:7px 14px; border-radius:999px; font-size:13.5px; font-weight:600; background:#fff; border:1px solid rgba(16,18,22,.1); }
+  .eq-chip i{ width:8px; height:8px; border-radius:50%; background:var(--c, rgba(16,18,22,.35)); }
+  .equipe-scroll{ overflow:auto; max-height:72vh; background:#fff; border:1px solid rgba(16,18,22,.1); border-radius:22px; box-shadow:var(--ombre); }
   .equipe-grille{ display:grid; min-width:560px; }
-  .eq-tete{ position:sticky; top:0; z-index:2; background:#fff; padding:12px 8px; border-bottom:1px solid rgba(28,35,51,0.1);
-            display:flex; align-items:center; gap:8px; font-weight:600; font-size:14px; justify-content:center; }
-  .eq-avatar{ width:30px; height:30px; border-radius:50%; background:var(--ink); color:#F5F1E7; display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0; }
-  .eq-heures{ position:relative; border-right:1px solid rgba(28,35,51,0.08); }
-  .eq-heures span{ position:absolute; right:8px; font-size:11.5px; color:rgba(28,35,51,0.5); transform:translateY(-50%); }
-  .eq-col{ position:relative; border-left:1px solid rgba(28,35,51,0.06); cursor:pointer;
-           background-image:repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--h) - 1px), rgba(28,35,51,0.07) calc(var(--h) - 1px), rgba(28,35,51,0.07) var(--h)); }
-  .eq-bloc{ position:absolute; left:4px; right:4px; background:#F3F1EC; border-left:3px solid var(--amber); border-radius:6px; padding:5px 8px;
-            font-size:12.5px; line-height:1.35; overflow:hidden; cursor:pointer; box-shadow:0 1px 2px rgba(28,35,51,0.08); }
-  .eq-bloc:hover{ background:#ECE9E1; }
-  .eq-bloc b{ display:block; font-size:12.5px; }
-  .eq-bloc.attente{ border-left-color:#B5533F; background:#FBF1EE; }
-  .eq-maintenant{ position:absolute; left:0; right:0; height:2px; background:#B5533F; z-index:1; pointer-events:none; }
+  .eq-tete{ position:sticky; top:0; z-index:3; background:rgba(255,255,255,.94); backdrop-filter:blur(8px); padding:14px 10px; border-bottom:1px solid rgba(16,18,22,.1);
+            display:flex; align-items:center; gap:10px; font-weight:700; font-size:15px; justify-content:center; }
+  .eq-avatar{ width:34px; height:34px; border-radius:50%; background:var(--c, var(--ink)); color:#fff; display:flex; align-items:center; justify-content:center; font:800 14px var(--display); flex-shrink:0; }
+  .eq-heures{ position:relative; border-right:1px solid rgba(16,18,22,.08); background:rgba(16,18,22,.015); }
+  .eq-heures span{ position:absolute; right:10px; font-size:12px; font-weight:500; color:rgba(16,18,22,.5); transform:translateY(-50%); font-variant-numeric:tabular-nums; }
+  .eq-col{ position:relative; border-left:1px solid rgba(16,18,22,.06); cursor:pointer;
+           background-image:repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--h) / 2 - 1px), rgba(16,18,22,.035) calc(var(--h) / 2 - 1px), rgba(16,18,22,.035) calc(var(--h) / 2), transparent calc(var(--h) / 2), transparent calc(var(--h) - 1px), rgba(16,18,22,.08) calc(var(--h) - 1px), rgba(16,18,22,.08) var(--h)); transition:background-color .2s; }
+  .eq-col:hover{ background-color:rgba(226,166,61,.045); }
+  .eq-bloc{ position:absolute; left:5px; right:5px; padding:6px 10px 6px 12px; border-radius:14px; overflow:hidden; cursor:pointer; line-height:1.3; font-size:13px;
+            background:color-mix(in srgb, var(--c) 15%, #fff); border:1px solid color-mix(in srgb, var(--c) 35%, transparent); box-shadow:0 1px 2px rgba(16,18,22,.06); transition:transform .25s, box-shadow .25s; }
+  .eq-bloc::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--c); }
+  .eq-bloc:hover{ transform:translateY(-1px); box-shadow:0 8px 20px -10px rgba(16,18,22,.35); z-index:2; }
+  .eq-bloc .l1{ display:flex; justify-content:space-between; align-items:center; gap:6px; font-weight:700; font-size:12.5px; font-variant-numeric:tabular-nums; }
+  .eq-bloc .nom{ font-weight:700; font-size:13.5px; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .eq-bloc .titre{ font-size:12.5px; color:rgba(16,18,22,.65); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .eq-pay{ font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; white-space:nowrap; }
+  .eq-pay.ok{ background:rgba(31,122,90,.16); color:#14573F; }
+  .eq-pay.reste{ background:rgba(226,166,61,.28); color:#6B4600; }
+  .eq-pay.du{ background:rgba(181,56,31,.13); color:#8C2A14; }
+  .eq-bloc.attente{ border-style:dashed; background:repeating-linear-gradient(135deg, #fff 0 8px, color-mix(in srgb, var(--c) 10%, #fff) 8px 16px); }
+  .eq-maintenant{ position:absolute; left:0; right:0; height:2px; background:#D94F2B; z-index:2; pointer-events:none; }
+  .eq-maintenant::before{ content:""; position:absolute; left:-4px; top:-4px; width:10px; height:10px; border-radius:50%; background:#D94F2B; }
+  @media (prefers-reduced-motion: reduce){ .eq-bloc, .eq-jour, .eq-actions button, .vue-bascule button{ transition:none; } .eq-bloc:hover{ transform:none; } }
 </style>
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#1C2333">
@@ -309,11 +333,15 @@
 
     <div id="equipe-view" style="display:none;">
       <div class="equipe-nav">
-        <button type="button" id="eq-prec" aria-label="Jour précédent">‹</button>
-        <button type="button" id="eq-auj">Aujourd'hui</button>
-        <button type="button" id="eq-suiv" aria-label="Jour suivant">›</button>
-        <span class="date-titre" id="eq-date"></span>
+        <h2 class="date-titre" id="eq-date"></h2>
+        <div class="eq-actions">
+          <button type="button" id="eq-prec" aria-label="Jour précédent">‹</button>
+          <button type="button" id="eq-auj">Aujourd'hui</button>
+          <button type="button" id="eq-suiv" aria-label="Jour suivant">›</button>
+        </div>
       </div>
+      <div class="eq-jours" id="eq-jours" role="group" aria-label="Choisir un jour de la semaine"></div>
+      <div class="eq-resume" id="eq-resume" aria-live="polite"></div>
       <div class="equipe-scroll"><div class="equipe-grille" id="eq-grille"></div></div>
     </div>
 
@@ -1037,7 +1065,7 @@
   document.getElementById('sidebar-logout-btn').addEventListener('click', seDeconnecter);
 
   // ------------------------------------------------------------ Vue Équipe
-  const PX_MIN = 1;                 // 1 px par minute → 60 px par heure
+  const PX_MIN = 1.8;               // 1,8 px par minute → 108 px par heure
   const H_DEBUT = 7, H_FIN = 21;    // plage affichée
   let equipe = [];                  // [{ id, nom }] — propriétaire en premier
   let jourEquipe = new Date(); jourEquipe.setHours(0,0,0,0);
@@ -1057,10 +1085,37 @@
     document.getElementById('collab-field').style.display = membres.length ? '' : 'none';
   }
 
+  const COULEURS_EQ = ['#E2A63D', '#C25B7E', '#2F7D6B', '#3B6FD4', '#FF6B35', '#0E8F8F'];
+  const eur0 = n => new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR', maximumFractionDigits: 2 }).format(n);
+
+  // État de règlement d'un rendez-vous : réglé, reste à encaisser, ou rien reçu.
+  function reglementDe(a){
+    if(a.statut === 'en_attente') return null;
+    const reste = a.paiement_mode === 'sur_place' && !a.reste_encaisse_le ? Number(a.reste_sur_place) || 0 : 0;
+    if(reste > 0) return { cle:'reste', texte:'Reste ' + eur0(reste), montant: reste };
+    if(a.paiement_statut === 'paye' || a.reste_encaisse_le) return { cle:'ok', texte:'Payé' };
+    return { cle:'du', texte:'À encaisser' };
+  }
+
+  function rendreJours(){
+    const lundi = new Date(jourEquipe); lundi.setDate(lundi.getDate() - ((lundi.getDay() + 6) % 7));
+    const auj = toDateInput(new Date());
+    document.getElementById('eq-jours').innerHTML = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(lundi); d.setDate(lundi.getDate() + i);
+      const sel = toDateInput(d) === toDateInput(jourEquipe);
+      return `<button type="button" class="eq-jour${toDateInput(d) === auj ? ' auj' : ''}" data-d="${toDateInput(d)}" aria-pressed="${sel}" aria-label="${d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' })}">
+        <small>${d.toLocaleDateString('fr-FR', { weekday:'short' }).replace('.', '')}</small><b>${d.getDate()}</b></button>`;
+    }).join('');
+    document.querySelectorAll('.eq-jour').forEach(b => b.addEventListener('click', () => {
+      const [y, m, j] = b.dataset.d.split('-').map(Number); jourEquipe = new Date(y, m - 1, j); rendreEquipe();
+    }));
+  }
+
   async function rendreEquipe(){
     const debut = new Date(jourEquipe), fin = new Date(jourEquipe); fin.setDate(fin.getDate() + 1);
     document.getElementById('eq-date').textContent =
       jourEquipe.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' });
+    rendreJours();
     const { data, error } = await supabase.from('rendez_vous').select('*')
       .gte('date_debut', debut.toISOString()).lt('date_debut', fin.toISOString())
       .order('date_debut', { ascending: true });
@@ -1069,23 +1124,38 @@
     const rdvs = (data || []).filter(a => a.statut !== 'annule');
     // Avec une équipe, les rendez-vous sans intervenant s'affichent dans une colonne « Non attribué ».
     const colonnes = membres.length && rdvs.some(a => !a.intervenant_id) ? [...equipe, { id: espaceId, nom: 'Non attribué' }] : equipe;
+    const couleurDe = i => COULEURS_EQ[i % COULEURS_EQ.length];
 
-    const hauteur = (H_FIN - H_DEBUT) * 60 * PX_MIN;
-    grille.style.gridTemplateColumns = `56px repeat(${colonnes.length}, minmax(150px, 1fr))`;
-    grille.style.setProperty('--h', (60 * PX_MIN) + 'px');
-    let html = '<div class="eq-tete"></div>' + colonnes.map(m =>
-      `<div class="eq-tete"><span class="eq-avatar">${escapeHtml((m.nom || '?').charAt(0).toUpperCase())}</span>${escapeHtml(m.nom)}</div>`).join('');
+    // Résumé de la journée : combien de rendez-vous, combien déjà réglés, combien reste à encaisser.
+    const regs = rdvs.map(reglementDe);
+    const nPayes = regs.filter(r => r && r.cle === 'ok').length;
+    const nDus = regs.filter(r => r && (r.cle === 'du' || r.cle === 'reste')).length;
+    const reste = regs.reduce((t, r) => t + (r && r.cle === 'reste' ? r.montant : 0), 0);
+    document.getElementById('eq-resume').innerHTML = rdvs.length
+      ? `<span class="eq-chip"><i></i>${rdvs.length} rendez-vous</span><span class="eq-chip"><i style="--c:#1F7A5A"></i>${nPayes} payé${nPayes > 1 ? 's' : ''}</span>` +
+        (nDus ? `<span class="eq-chip"><i style="--c:#D94F2B"></i>${nDus} à encaisser${reste ? ' dont ' + eur0(reste) + ' en espèces' : ''}</span>` : '')
+      : '<span class="eq-chip">Journée libre : cliquez sur un créneau pour ajouter un rendez-vous</span>';
+
+    const PXH = 60 * PX_MIN;
+    const hauteur = (H_FIN - H_DEBUT) * PXH;
+    grille.style.gridTemplateColumns = `60px repeat(${colonnes.length}, minmax(170px, 1fr))`;
+    grille.style.setProperty('--h', PXH + 'px');
+    let html = '<div class="eq-tete"></div>' + colonnes.map((m, i) =>
+      `<div class="eq-tete" style="--c:${couleurDe(i)}"><span class="eq-avatar">${escapeHtml((m.nom || '?').charAt(0).toUpperCase())}</span>${escapeHtml(m.nom)}</div>`).join('');
     html += `<div class="eq-heures" style="height:${hauteur}px;">` +
       Array.from({ length: H_FIN - H_DEBUT }, (_, i) =>
-        `<span style="top:${i * 60 * PX_MIN}px;">${String(H_DEBUT + i).padStart(2,'0')}:00</span>`).join('') + '</div>';
-    colonnes.forEach(m => {
+        `<span style="top:${i * PXH}px;">${String(H_DEBUT + i).padStart(2,'0')}:00</span>`).join('') + '</div>';
+    colonnes.forEach((m, i) => {
       const siens = rdvs.filter(a => (a.intervenant_id || espaceId) === m.id);
-      html += `<div class="eq-col" data-collab="${m.id}" style="height:${hauteur}px;">` + siens.map(a => {
+      html += `<div class="eq-col" data-collab="${m.id}" style="height:${hauteur}px; --c:${couleurDe(i)}">` + siens.map(a => {
         const d = new Date(a.date_debut), f = new Date(a.date_fin);
         const top = Math.max(0, (d.getHours() * 60 + d.getMinutes() - H_DEBUT * 60) * PX_MIN);
-        const h = Math.max(24, ((f - d) / 60000) * PX_MIN - 2);
+        const h = Math.max(30, ((f - d) / 60000) * PX_MIN - 3);
+        const r = reglementDe(a);
+        const nom = a.client_id ? clientsById[a.client_id] : (a.prospect_nom || '');
         return `<div class="eq-bloc${a.statut === 'en_attente' ? ' attente' : ''}" data-id="${a.id}" style="top:${top}px; height:${h}px;">
-          <b>${toTimeInput(d)} - ${toTimeInput(f)}</b>${escapeHtml(a.titre)}</div>`;
+          <div class="l1"><span>${toTimeInput(d)} - ${toTimeInput(f)}</span>${r && h >= 40 ? `<span class="eq-pay ${r.cle}">${r.texte}</span>` : ''}</div>
+          ${h >= 50 ? `<div class="nom">${escapeHtml(nom || a.titre)}</div>` : ''}${h >= 84 ? `<div class="titre">${escapeHtml(a.titre)}</div>` : ''}</div>`;
       }).join('') + '</div>';
     });
     grille.innerHTML = html;
@@ -1096,6 +1166,9 @@
       if(y > 0 && y < hauteur) grille.querySelectorAll('.eq-col').forEach(c =>
         c.insertAdjacentHTML('beforeend', `<div class="eq-maintenant" style="top:${y}px;"></div>`));
     }
+    // Fait défiler la grille vers le premier rendez-vous, ou vers l'heure actuelle.
+    const premier = rdvs.length ? Math.min(...rdvs.map(a => { const d = new Date(a.date_debut); return d.getHours() * 60 + d.getMinutes(); })) : (toDateInput(auj) === toDateInput(jourEquipe) ? auj.getHours() * 60 : 8 * 60);
+    document.querySelector('.equipe-scroll').scrollTop = Math.max(0, (premier - H_DEBUT * 60 - 30) * PX_MIN);
 
     grille.querySelectorAll('.eq-bloc').forEach(b => b.addEventListener('click', e => {
       e.stopPropagation(); openModal(rdvs.find(a => a.id === b.dataset.id));
