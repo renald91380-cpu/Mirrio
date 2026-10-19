@@ -368,11 +368,16 @@ export default async function handler(req, res){
     }
   }
   const stripeActif = !!(paiementConfig?.stripe_actif && paiementConfig?.stripe_secret_key);
+  // Pas de réservation sans paiement en ligne : un acompte est toujours exigé.
+  if(!stripeActif){
+    return json(res, 409, { error: 'Ce salon n’a pas encore activé le paiement en ligne : la réservation n’est pas disponible. Contactez-le directement.' });
+  }
 
   // ---- mode de paiement : CB (total) ou espèces (acompte + solde sur place) ----
   const especesAutorise = paiementConfig?.especes_actif !== false;
   const totalCentimes = Math.round(montantTTC * 100);
-  const acompteMin = Math.round(Number(paiementConfig?.acompte_minimum ?? 5) * 100);
+  // Règle Mirrio : toujours au moins 5 € d'acompte par carte (garantie contre les absences), quoi que dise le réglage.
+  const acompteMin = Math.max(500, Math.round(Number(paiementConfig?.acompte_minimum ?? 5) * 100));
   const acomptePct = Number(paiementConfig?.acompte_pourcentage ?? 0);
   // Acompte = le plus grand de (minimum, pourcentage du total), jamais plus que le total.
   const acompteCentimes = Math.min(totalCentimes, Math.max(acompteMin, Math.round(totalCentimes * acomptePct / 100)));

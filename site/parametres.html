@@ -1080,8 +1080,8 @@
           <div class="grid-2">
             <div class="field">
               <label for="paiement-acompte-min">Acompte minimum (€)</label>
-              <input type="number" id="paiement-acompte-min" data-bind="paiement.acompte_minimum" min="0" max="500" step="0.5" placeholder="5">
-              <div class="hint">Montant débité par carte pour garantir le créneau, déduit du prix final et conservé en cas d'absence. 5 € par défaut ; 0 pour ne rien demander à l'avance.</div>
+              <input type="number" id="paiement-acompte-min" data-bind="paiement.acompte_minimum" min="5" max="500" step="0.5" placeholder="5">
+              <div class="hint">Montant débité par carte pour garantir le créneau, déduit du prix final et conservé en cas d'absence. 5 € minimum, toujours exigé : c'est la garantie de votre créneau.</div>
             </div>
             <div class="field">
               <label for="paiement-acompte-pct">Acompte en pourcentage du prix (%)</label>
@@ -1089,7 +1089,7 @@
               <div class="hint">Facultatif. Le client verse le plus élevé des deux : minimum ou pourcentage.</div>
             </div>
           </div>
-          <div class="note-box">Sans Stripe activé, tout se règle sur place : la réservation reste une demande à confirmer, avec le montant à encaisser indiqué dans l'Agenda.</div>
+          <div class="note-box">Mirrio ne prend que des paiements directs : un acompte par carte d'au moins 5 € est toujours demandé à la réservation. <b>Sans Stripe activé, la réservation en ligne reste fermée.</b></div>
         </div>
 
         <div class="card">
@@ -2458,6 +2458,7 @@
     if(stripeWebhookSecretSaisi) pPaiement.stripe_webhook_secret = stripeWebhookSecretSaisi;
     const paypalSecretSaisi = document.getElementById('paiement-paypal-secret').value.trim();
     if(paypalSecretSaisi) pPaiement.paypal_client_secret = paypalSecretSaisi;
+    pPaiement.acompte_minimum = Math.max(5, Number(pPaiement.acompte_minimum) || 5);   // acompte toujours d'au moins 5 €
 
     const [r1, r2, r3, r4] = await Promise.all([
       supabase.from('profiles').upsert(pProfil, { onConflict:'id' }),

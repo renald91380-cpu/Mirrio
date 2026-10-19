@@ -197,11 +197,11 @@
       [['clair','Clair'],['creme','Crème'],['sombre','Sombre']].map(function(f){ return '<label><input type="radio" name="fond" value="' + f[0] + '"' + (etat.fond === f[0] ? ' checked' : '') + '>' + f[1] + '</label>'; }).join('') + '</div></div>';
   }
   function vuePaiement(){
-    var opts = [['carte','Carte à la réservation','Le client règle la totalité en ligne.'],['acompte','Acompte puis espèces sur place','Un acompte par carte garantit le rendez-vous, le solde se règle au salon. Il n\'est pas remboursé en cas d\'absence.'],['place','Tout sur place','Aucun paiement en ligne. La réservation est confirmée tout de suite.']];
+    var opts = [['acompte','Acompte puis solde sur place','Un acompte par carte d\'au moins 5 € garantit le rendez-vous, le solde se règle au salon. Il n\'est pas remboursé en cas d\'absence.'],['carte','Carte à la réservation','Le client règle la totalité en ligne.']];
     return '<div class="champ" role="radiogroup" aria-label="Mode de règlement"><div class="lignes">' + opts.map(function(o){
       return '<label class="ligne" style="cursor:pointer;align-items:flex-start"><input type="radio" name="mode" value="' + o[0] + '"' + (etat.mode === o[0] ? ' checked' : '') + ' style="margin-top:3px"><span><b>' + o[1] + '</b><br><span class="meta" style="white-space:normal">' + o[2] + '</span></span></label>';
     }).join('') + '</div></div>' +
-    '<div class="champ" id="bloc-acompte"' + (etat.mode === 'acompte' ? '' : ' hidden') + '><label class="t" for="f-acompte">Acompte minimum (€)</label><input type="number" id="f-acompte" min="0" max="100" value="' + etat.acompte + '" style="max-width:160px"></div>';
+    '<div class="champ" id="bloc-acompte"' + (etat.mode === 'acompte' ? '' : ' hidden') + '><label class="t" for="f-acompte">Acompte (€, 5 € minimum)</label><input type="number" id="f-acompte" min="5" max="100" value="' + etat.acompte + '" style="max-width:160px"></div>';
   }
   var VUES = [vueSalon, vuePrestations, vueEquipe, vueStyle, vuePaiement];
 
@@ -233,7 +233,7 @@
     e.querySelectorAll('input[name=couleur]').forEach(function(r){ r.addEventListener('change', function(){ etat.couleur = r.value; envoyerApercu(); }); });
     e.querySelectorAll('input[name=fond]').forEach(function(r){ r.addEventListener('change', function(){ etat.fond = r.value; envoyerApercu(); }); });
     e.querySelectorAll('input[name=mode]').forEach(function(r){ r.addEventListener('change', function(){ etat.mode = r.value; $('bloc-acompte').hidden = r.value !== 'acompte'; }); });
-    var ac = $('f-acompte'); if(ac) ac.addEventListener('input', function(){ etat.acompte = Math.max(0, Number(ac.value) || 0); });
+    var ac = $('f-acompte'); if(ac) ac.addEventListener('input', function(){ etat.acompte = Math.max(5, Number(ac.value) || 5); });
   }
 
   function valider(){
@@ -253,7 +253,7 @@
     var cfg = {
       nom: etat.nom.trim(), ville: etat.ville.trim() || 'Votre ville', metier: etat.metier === 'therapeute' ? 'massage' : etat.metier, couleur: etat.couleur, fond: etat.fond,
       accroche: 'Réservez en ligne, 24h/24.',
-      paiement: { en_ligne: etat.mode !== 'place', especes: etat.mode !== 'carte', acompte_minimum: etat.mode === 'acompte' ? etat.acompte : 0, acompte_pourcentage: 0 },
+      paiement: { en_ligne: true, especes: etat.mode !== 'carte', acompte_minimum: Math.max(5, etat.acompte), acompte_pourcentage: 0 },
       equipe: etat.equipe.map(function(m, k){ return { id: 'n-' + k, nom: m.nom.trim(), role: m.role.trim() || 'Praticien·ne', bio: '', presta: m.presta.map(function(id){ return id; }) }; }),
       prestations: actives().map(function(p){ return { id: p.id, categorie: p.categorie, libelle: p.libelle, prix: p.prix, duree: p.duree, public: p.public }; })
     };
@@ -261,7 +261,7 @@
     $('progression').innerHTML = ETAPES.map(function(e){ return '<li class="fait">' + e[0] + '</li>'; }).join('');
     $('titre').textContent = ''; $('intro').textContent = '';
     document.querySelector('.actions').hidden = true;
-    var ou = { carte: 'carte à la réservation', acompte: 'acompte puis espèces', place: 'paiement sur place' }[etat.mode];
+    var ou = { carte: 'carte à la réservation', acompte: 'acompte puis solde sur place' }[etat.mode];
     $('etape').innerHTML = '<div class="fin"><h2 id="fin-titre" tabindex="-1">' + esc(cfg.nom) + ' est en ligne.</h2>' +
       '<p class="intro" style="margin:0">' + cfg.prestations.length + ' prestations, ' + cfg.equipe.length + ' personnes, règlement : ' + ou + '. Voyez maintenant ce que vivent vos clients.</p>' +
       '<div class="liens"><a class="lien fort" href="reservation.html?p=demo-nouveau"><i class="ph ph-calendar-check" aria-hidden="true"></i><span><b>Prendre un rendez-vous comme un client</b><small>Choisissez prestations, personne et créneau sur votre salon</small></span></a>' +

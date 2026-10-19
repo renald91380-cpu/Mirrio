@@ -222,7 +222,7 @@ export default async function handler(req, res){
     paiement: {
       en_ligne: paiementRequis,
       especes: paiement?.especes_actif !== false,
-      acompte_minimum: Number(paiement?.acompte_minimum ?? 5),
+      acompte_minimum: Math.max(5, Number(paiement?.acompte_minimum ?? 5)),
       acompte_pourcentage: Number(paiement?.acompte_pourcentage ?? 0)
     },
     reglages: {

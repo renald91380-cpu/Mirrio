@@ -70,7 +70,7 @@
         galerie: [g('Drying hair in salon.jpg'), g('Salon interior.jpg'), g('Woman Weaves Hair in Salon 03.jpg'), g('Young men with trendy haircut at barber shop.jpg')],
         a_propos: 'Un salon lumineux au cœur de la rue Oberkampf, où l\'on prend le temps d\'écouter avant de couper.\n\nColorations sans ammoniaque, balayages à la main, coupes femme et homme. Votre rendez-vous est confirmé immédiatement dès que le créneau est libre.',
         instagram: '@maisoneloise', telephone_public: '01 40 00 00 00', email_public: 'bonjour@maison-eloise.fr' },
-      paiement: { en_ligne: false, especes: true, acompte_minimum: 0, acompte_pourcentage: 0 },
+      paiement: { en_ligne: true, especes: true, acompte_minimum: 5, acompte_pourcentage: 0 },
       equipe: [
         { id: 'c-eloise', nom: 'Éloïse', role: 'Coloriste, fondatrice', bio: 'Balayages et colorations végétales.', presta: ['coupef','brushing','coloration','balayage','soin','chignon'] },
         { id: 'c-ines', nom: 'Inès', role: 'Coiffeuse', bio: 'Coupes, brushings et coiffures de cérémonie.', presta: ['coupef','brushing','coupeh','soin','chignon'] },
@@ -306,7 +306,7 @@
       var l = lire(); l.push({ slug: slug, interv: choisi, a: deb.getTime(), b: finD.getTime() }); ecrire(l);
 
       var total = idsR.reduce(function(t, id){ return t + pris(salon)[id].prix; }, 0), cfg = salon.paiement;
-      var acompte = Math.min(total, Math.max(cfg.acompte_minimum, Math.round(total * cfg.acompte_pourcentage) / 100));
+      var acompte = Math.min(total, Math.max(5, cfg.acompte_minimum, Math.round(total * cfg.acompte_pourcentage) / 100));
       var surPlace = b.mode_paiement === 'sur_place' && cfg.especes && acompte < total;
       var aPayer = !cfg.en_ligne ? 0 : (surPlace ? acompte : total);
       if(aPayer > 0) return reponse({ url: 'paiement-merci.html?statut=succes&demo=1&p=' + slug });   // Stripe simulé

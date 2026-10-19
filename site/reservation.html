@@ -305,6 +305,7 @@
   const etapesActives = () => ['etape-prestation', ...(avecEquipe() ? ['etape-intervenant'] : []), 'etape-date', 'etape-form'];
 
   let bootstrap = null;
+  let fermee = false;               // salon sans paiement en ligne : pas de réservation
   // Une ou plusieurs prestations choisies ensemble (ex. « Coupe + Couleur »).
   // L'ordre reflète l'ordre de sélection, conservé jusqu'au serveur pour que
   // l'itemisation (facture, reçu Stripe) suive le même ordre.
@@ -473,7 +474,7 @@
   }
 
   const continuer = () => {
-    if(!prestationsChoisies.length) return;
+    if(fermee || !prestationsChoisies.length) return;
     const alerte = $('alerte-prestations'); alerte.hidden = true;
     if(avecEquipe()){
       const el = eligibles();
@@ -705,6 +706,10 @@
     $('lien-salon').href = salon; $('retour-salon').href = salon;
 
     rendrePrestations();
+    if(bootstrap.paiement_requis === false){
+      fermee = true;
+      const al = $('alerte-prestations'); al.innerHTML = '<strong>Réservation en ligne indisponible.</strong>Ce salon n\'a pas encore activé le paiement en ligne (acompte de 5 € minimum). Contactez-le directement.'; al.hidden = false;
+    }
     // « Reprendre ce rendez-vous » (mon-espace.html) : prestations et personne déjà choisies, à confirmer par « Continuer ».
     const q = new URLSearchParams(location.search);
     (q.get('prestations') || '').split(',').filter(Boolean).forEach(id => {

@@ -132,6 +132,6 @@ export function heureParis(iso){
 // api/reservation-publique.js (le serveur recalcule et fait foi).
 export function calculerAcompte(total, { acompte_minimum = 5, acompte_pourcentage = 0 } = {}){
   const totalC = Math.round(total * 100);
-  const c = Math.min(totalC, Math.max(Math.round(Number(acompte_minimum) * 100), Math.round(totalC * Number(acompte_pourcentage) / 100)));
+  const c = Math.min(totalC, Math.max(500, Math.round(Number(acompte_minimum) * 100), Math.round(totalC * Number(acompte_pourcentage) / 100)));
   return c / 100;
 }
