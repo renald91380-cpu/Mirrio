@@ -18,6 +18,8 @@
 //   RESEND_FROM                  — ex. "Mirrio <relances@votre-domaine.fr>" ;
 //                                   à défaut, un envoi de test Resend
 
+import rappels from './_rappels.js';
+
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -142,6 +144,10 @@ export default async function handler(req, res){
   if(CRON_SECRET && req.headers.authorization !== `Bearer ${CRON_SECRET}`){
     return json(res, 401, { error: 'Non autorisé.' });
   }
+
+  // Même tâche planifiée, autre travail : rappels de rendez-vous de demain (voir api/_rappels.js).
+  // Regroupé ici pour ne pas dépasser la limite de 12 fonctions Vercel.
+  if(new URL(req.url, 'http://x').searchParams.get('tache') === 'rappels') return rappels(req, res);
 
   // Les relances sont un avantage Studio (voir la page tarifs) et une
   // fonctionnalité que l'utilisateur active lui-même (parametres_facturation.

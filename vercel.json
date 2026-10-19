@@ -8,6 +8,10 @@
     {
       "path": "/api/paiement-nettoyer",
       "schedule": "50 6 * * *"
+    },
+    {
+      "path": "/api/relances?tache=rappels",
+      "schedule": "0 16 * * *"
     }
   ],
   "headers": [

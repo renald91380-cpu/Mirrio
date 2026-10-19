@@ -103,9 +103,12 @@ async function rendezVousDe(email){
   });
 }
 
+// Lien de connexion signé vers « Mes rendez-vous » (aussi utilisé par les rappels de rendez-vous).
+export const lienEspace = (email, origine) => `${origine}/mon-espace.html?t=${signer({ e: String(email).toLowerCase(), x: Date.now() + VALIDITE_JOURS * 86400000 })}`;
+
 async function envoyerLien(email, origine){
   if(!RESEND_API_KEY) return;
-  const lien = `${origine}/mon-espace.html?t=${signer({ e: email, x: Date.now() + VALIDITE_JOURS * 86400000 })}`;
+  const lien = lienEspace(email, origine);
   const html = `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#101216">
     <h2 style="margin:0 0 12px">Vos rendez-vous</h2>
     <p style="line-height:1.5">Voici votre lien pour retrouver vos rendez-vous, les annuler ou les reprendre en un clic. Il est valable ${VALIDITE_JOURS} jours.</p>

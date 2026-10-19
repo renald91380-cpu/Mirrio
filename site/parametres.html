@@ -976,6 +976,15 @@
             <label for="resa-validation-auto" style="margin:0;">Confirmer automatiquement les réservations</label>
           </div>
           <div class="hint" style="margin-bottom:12px;">Le créneau est confirmé tout de suite quand la personne choisie est libre : rien à valider à la main. Décochez pour garder chaque demande « en attente » jusqu'à votre accord.</div>
+          <div class="field" style="display:flex; align-items:center; gap:10px; margin:14px 0 4px;">
+            <input type="checkbox" id="resa-rappel-email" data-bind="reservation.rappel_email" style="width:20px; height:20px;">
+            <label for="resa-rappel-email" style="margin:0;">Rappeler le rendez-vous par email la veille</label>
+          </div>
+          <div class="field" style="display:flex; align-items:center; gap:10px; margin:6px 0 4px;">
+            <input type="checkbox" id="resa-rappel-sms" data-bind="reservation.rappel_sms" style="width:20px; height:20px;">
+            <label for="resa-rappel-sms" style="margin:0;">Rappeler aussi par SMS</label>
+          </div>
+          <div class="hint" style="margin-bottom:12px;">Chaque soir, vos clients de demain reçoivent un rappel avec l'heure, la personne, le reste à régler et un lien pour annuler. Les rappels réduisent les absences. Le SMS n'est envoyé qu'aux mobiles renseignés et chaque message est facturé par le fournisseur d'envoi : activez-le seulement si votre abonnement l'inclut.</div>
           <div class="field" style="display:flex; align-items:center; gap:10px; margin:6px 0 4px;">
             <input type="checkbox" id="resa-annuaire" data-bind="reservation.visible_annuaire" style="width:20px; height:20px;">
             <label for="resa-annuaire" style="margin:0;">Apparaître dans l'annuaire public Mirrio</label>
@@ -2561,7 +2570,7 @@
     delete facturation.owner_id;
 
     reservation = rr.data ? { ...rr.data } : {
-      activee: false, slug: null, validation_auto: true,
+      activee: false, slug: null, validation_auto: true, rappel_email: true, rappel_sms: false,
       jours_ouvres: [1,2,3,4,5],
       heure_debut: '09:00', heure_fin: '18:00',
       intervalle_minutes: 30, delai_min_heures: 24, horizon_jours: 30
