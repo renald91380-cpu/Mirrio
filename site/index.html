@@ -15,6 +15,8 @@
 <link rel="preconnect" href="https://unpkg.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/@phosphor-icons/web@2.1.1" defer></script>
+<link rel="preload" as="image" href="img/fond-accueil.webp" media="(min-width:961px)">
+<link rel="preload" as="image" href="img/fond-accueil-mobile.webp" media="(max-width:960px)">
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#101216">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
@@ -67,6 +69,27 @@
 
   /* ---------- hero : asymétrique ---------- */
   .hero{ padding:56px 0 90px; }
+  /* Héros sur photo : la photo passe sous la barre de navigation flottante, un voile sombre garde le texte lisible. */
+  .hero.photo{ position:relative; isolation:isolate; margin-top:-92px; padding:170px 0 110px; color:#F1F1EE; overflow:hidden; }
+  .hero.photo::before{ content:""; position:absolute; inset:0; z-index:-2; background:#101216 url('img/fond-accueil.webp') 62% 30%/cover no-repeat; }
+  .hero.photo::after{ content:""; position:absolute; inset:0; z-index:-1;
+    background:linear-gradient(90deg, rgba(10,11,14,.9) 0%, rgba(10,11,14,.78) 42%, rgba(10,11,14,.4) 100%), linear-gradient(180deg, rgba(10,11,14,.35) 0%, rgba(10,11,14,0) 28%, rgba(10,11,14,.55) 100%); }
+  /* Mobile : la section est très haute, la photo n'en couvre que le haut (sinon un zoom énorme) et se fond dans l'encre. */
+  @media(max-width:960px){
+    .hero.photo{ background:#101216; padding-top:150px; }
+    .hero.photo::before{ inset:0 0 auto 0; height:680px; background-image:url('img/fond-accueil-mobile.webp'); background-position:58% 22%; }
+    .hero.photo::after{ background:linear-gradient(180deg, rgba(10,11,14,.5) 0, rgba(10,11,14,.72) 300px, #101216 660px); }
+  }
+  .hero.photo h1{ color:#fff; }
+  .hero.photo p{ color:rgba(241,241,238,.88); }
+  .hero.photo .puce{ background:rgba(255,255,255,.12); border-color:rgba(255,255,255,.28); color:#fff; box-shadow:none; backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+  .hero.photo .puce i{ color:var(--accent); }
+  .hero.photo .btn.discret{ color:#fff; box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.55); }
+  .hero.photo .btn.discret:hover{ box-shadow:inset 0 0 0 1.5px #fff; }
+  .hero.photo .confiance{ color:rgba(241,241,238,.85); } .hero.photo .confiance i{ color:var(--accent); }
+  .hero.photo .halo{ opacity:.55; }
+  .hero.photo .flottant{ color:#101216; }   /* les cartes flottantes restent claires : texte encre */
+  .hero.photo .flottant small{ color:#5B606B; }
   .hero .wrap{ display:grid; grid-template-columns:1.12fr .88fr; gap:56px; align-items:center; }
   @media(max-width:960px){ .hero .wrap{ grid-template-columns:1fr; gap:44px; } }
   .hero h1{ font-size:clamp(38px, 4.7vw, 64px); font-weight:800; margin-bottom:22px; }
@@ -155,6 +178,7 @@
   /* ---------- appel final ---------- */
   .final{ margin:0 14px 14px; border-radius:44px; background:var(--sombre); color:var(--sombre-ink); text-align:left; padding:100px 0; position:relative; overflow:hidden; }
   .final::before{ content:""; position:absolute; left:50%; top:-40%; width:900px; height:700px; margin-left:-450px; background:radial-gradient(closest-side, rgba(226,166,61,.4), transparent 70%); }
+  .final{ background:linear-gradient(rgba(16,18,22,.84), rgba(16,18,22,.92)), var(--sombre) url('img/fond-accueil.webp') 60% 40%/cover no-repeat; }
   .final .wrap{ position:relative; }
   .final h2{ max-width:16ch; margin-bottom:28px; }
   footer{ padding:34px 0 50px; color:var(--muted); font-size:14px; }
@@ -246,7 +270,7 @@
 </header>
 
 <main id="contenu">
-  <section class="hero" style="padding-top:56px;">
+  <section class="hero photo">
     <div class="wrap">
       <div>
         <p class="puce rv"><i class="ph ph-seal-check" aria-hidden="true"></i>0 % de commission sur vos rendez-vous</p>
