@@ -236,6 +236,8 @@
           <ul id="form-errors-list"></ul>
         </div>
 
+        <div class="note-box" id="claim-note" style="display:none; border-left:3px solid var(--amber); background:rgba(226,166,61,0.10); padding:13px 16px; border-radius:0 8px 8px 0; font-size:13px; color:rgba(28,35,51,0.75); margin-bottom:18px;"><strong style="color:var(--ink);">Vous reprenez la fiche de votre salon.</strong> Créez votre compte : nous vérifions que cette fiche est bien la vôtre avant d'ouvrir les réservations.</div>
+
         <div class="note-box" id="invite-note" style="display:none; border-left:3px solid var(--teal); background:rgba(62,124,116,0.07); padding:13px 16px; border-radius:0 8px 8px 0; font-size:13px; color:rgba(28,35,51,0.75); line-height:1.6; margin-bottom:20px;">
           <strong style="color:var(--ink);">Vous rejoignez une équipe déjà installée sur Mirrio.</strong> Créez votre compte ci-dessous : vous retrouverez directement ses clients, son agenda et ses devis, sans rien reconfigurer.
         </div>
@@ -488,6 +490,12 @@
     // on l'efface pour qu'un login.html ultérieur n'essaie pas de le ré-accepter.
     if(jetonInviteActuel){ try{ sessionStorage.removeItem(CLE_INVITE); }catch(e){} }
 
+    // Revendication d'une fiche de l'annuaire : on prévient le serveur (best-effort), l'équipe vérifie ensuite avant la mise en réservation.
+    const ficheRevendiquee = new URLSearchParams(window.location.search).get('revendiquer');
+    if(ficheRevendiquee){
+      fetch('/api/annuaire', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ action:'revendiquer', id: ficheRevendiquee, email }) }).catch(()=>{});
+    }
+
     document.getElementById('success-email').textContent = email;
     document.getElementById('form-view').style.display = 'none';
     document.getElementById('success-view').classList.add('show');
@@ -495,6 +503,7 @@
 
   const params = new URLSearchParams(window.location.search);
   const plan = params.get('plan');
+  if(params.get('revendiquer')) document.getElementById('claim-note').style.display = 'block';
   if(plan === 'studio'){
     document.querySelector('input[name="plan"][value="studio"]').checked = true;
   }

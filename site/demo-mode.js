@@ -12,7 +12,7 @@
   'use strict';
   var params = new URLSearchParams(location.search);
   var slug = params.get('p') || '';
-  var estAnnuaire = /explorer\.html$/.test(location.pathname) && params.get('demo') === '1';
+  var estAnnuaire = /(explorer|revendiquer)\.html$/.test(location.pathname) && params.get('demo') === '1';
 
   // ------------------------------------------------------------------ photos
   // Photos libres de droits (Wikimedia Commons). CC0 : aucune obligation ; CC BY / BY-SA :
@@ -150,6 +150,15 @@
   var salon = DEMOS[slug];
   if(!salon && !estAnnuaire) return;
 
+  // Salons fictifs « pas encore sur Mirrio » (annuaire en mode démo uniquement). Les demandes sont comptées dans la session.
+  var EXTERNES = [
+    { id: 'demo-ext-1', nom: 'Coiffure Les Tilleuls (exemple)', metier: 'coiffure', adresse: '8 rue des Tilleuls', code_postal: '69003', ville: 'Lyon', latitude: 45.7603, longitude: 4.8590, statut: 'non_revendiquee', nb_demandes: 7 },
+    { id: 'demo-ext-2', nom: 'Institut Rose et Sable (exemple)', metier: 'esthetique', adresse: '31 avenue Foch', code_postal: '75116', ville: 'Paris', latitude: 48.8738, longitude: 2.2950, statut: 'non_revendiquee', nb_demandes: 12 },
+    { id: 'demo-ext-3', nom: 'Nails by Léa (exemple)', metier: 'onglerie', adresse: '5 cours Victor Hugo', code_postal: '33000', ville: 'Bordeaux', latitude: 44.8378, longitude: -0.5792, statut: 'non_revendiquee', nb_demandes: 3 }
+  ];
+  var DEMANDES_CLE = 'mirrio-demo-demandes';
+  function demandesAjoutees(){ try{ return JSON.parse(sessionStorage.getItem(DEMANDES_CLE) || '{}'); }catch(e){ return {}; } }
+
   // ------------------------------------------------------------ utilitaires
   var DEMO_CLE = 'cadence-demo-rdv';
   function lire(){ try{ return JSON.parse(sessionStorage.getItem(DEMO_CLE) || '[]'); }catch(e){ return []; } }
@@ -244,6 +253,17 @@
     var url; try{ url = new URL(String(entree), location.origin); }catch(e){ return fetchReel(entree, options); }
     var chemin = url.pathname, q = url.searchParams;
 
+    // « Prévenir ce salon » (simulé : une demande de plus dans cette session, rien n'est envoyé)
+    if(chemin === '/api/annuaire' && estAnnuaire && (options || {}).method === 'POST'){
+      var cp = JSON.parse(options.body || '{}'), dem = demandesAjoutees();
+      if(cp.action === 'prevenir'){ dem[cp.id] = 1; try{ sessionStorage.setItem(DEMANDES_CLE, JSON.stringify(dem)); }catch(e){} var base = (EXTERNES.filter(function(e){ return e.id === cp.id; })[0] || {}).nb_demandes || 0; return reponse({ ok: true, nb_demandes: base + 1 }); }
+      return reponse({ ok: true });
+    }
+    // Page de revendication en démo
+    if(chemin === '/api/annuaire' && q.get('fiche') && /demo-ext-/.test(q.get('fiche'))){
+      var fx = EXTERNES.filter(function(e){ return e.id === q.get('fiche'); })[0];
+      return fx ? reponse(Object.assign({}, fx, { nb_demandes: fx.nb_demandes + (demandesAjoutees()[fx.id] ? 1 : 0) })) : reponse({ error: 'Fiche introuvable.' }, 404);
+    }
     // Annuaire (explorer.html?demo=1)
     if(chemin === '/api/annuaire' && estAnnuaire){
       await wait(250);
@@ -270,7 +290,11 @@
         return (!me || x.metier === me) && (!pu || x.publics.indexOf(pu) >= 0) && (!vi || norm(x.ville).indexOf(vi) >= 0) && okTexte && okBudget;
       });
       liste.forEach(function(x){ delete x._s; });
-      return reponse({ praticiens: liste });
+      var villeCherchee = norm(q.get('ville')), dem2 = demandesAjoutees();
+      var externes = (villeCherchee && bmin == null && bmax == null && !soloPromo && !pu) ? EXTERNES.filter(function(e){
+        return norm(e.ville).indexOf(villeCherchee) >= 0 && (!me || e.metier === me) && (!qt || norm(e.nom).indexOf(qt) >= 0);
+      }).map(function(e){ return Object.assign({}, e, { nb_demandes: e.nb_demandes + (dem2[e.id] ? 1 : 0) }); }) : [];
+      return reponse({ praticiens: liste, non_inscrits: externes });
     }
     if(!salon) return fetchReel(entree, options);
 

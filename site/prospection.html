@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Prospection | Mirrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{ --bg:#F5F5F3; --surface:#FFFFFF; --ink:#101216; --muted:#5B606B; --line:rgba(16,18,22,.12); --accent:#E2A63D; --ok:#1F7A5A; }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ font-family:'Geist', system-ui, sans-serif; background:var(--bg); color:var(--ink); line-height:1.5; -webkit-font-smoothing:antialiased; }
+  a{ color:inherit; }
+  h1,h2{ font-family:'Bricolage Grotesque', system-ui, sans-serif; letter-spacing:-.03em; }
+  :focus-visible{ outline:3px solid var(--accent); outline-offset:2px; border-radius:8px; }
+  main{ max-width:1100px; margin:0 auto; padding:28px 20px 90px; }
+  .haut{ display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:6px; }
+  h1{ font-size:34px; font-weight:800; }
+  .sous{ color:var(--muted); max-width:70ch; margin-bottom:20px; }
+  .btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:42px; padding:0 18px; border-radius:999px; border:none; cursor:pointer; font:600 14px 'Geist', system-ui, sans-serif; background:var(--accent); color:#101216; text-decoration:none; }
+  .btn.discret{ background:transparent; box-shadow:inset 0 0 0 1.5px var(--line); } .btn.petit{ min-height:36px; padding:0 14px; font-size:13px; }
+  .regles{ padding:16px 18px; border-radius:16px; background:#FBEFD2; font-size:14px; margin-bottom:20px; }
+  .regles b{ display:block; margin-bottom:4px; } .regles ul{ margin:6px 0 0 18px; }
+  .filtres{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; align-items:center; }
+  .filtres input, .filtres select{ min-height:42px; padding:0 14px; border-radius:999px; border:1.5px solid var(--line); background:var(--surface); font:500 14px 'Geist', system-ui, sans-serif; color:var(--ink); }
+  .compteur{ font-size:14px; color:var(--muted); margin:6px 0 14px; } .compteur b{ color:var(--ink); }
+  .liste{ display:grid; gap:12px; }
+  .fiche{ background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:16px 18px; display:grid; grid-template-columns:1.3fr 1fr; gap:14px 24px; }
+  @media(max-width:820px){ .fiche{ grid-template-columns:1fr; } }
+  .fiche h2{ font-size:19px; font-weight:800; } .meta{ color:var(--muted); font-size:13.5px; }
+  .dem{ display:inline-flex; gap:6px; align-items:center; font-size:13px; font-weight:700; padding:3px 10px; border-radius:999px; background:#E9F3EE; color:var(--ok); margin-top:4px; }
+  .champs{ display:grid; gap:8px; }
+  .champs label{ font-size:12px; font-weight:600; color:var(--muted); display:block; margin-bottom:3px; }
+  .champs input, .champs select, .champs textarea{ width:100%; min-height:40px; padding:8px 12px; border-radius:12px; border:1.5px solid var(--line); font:500 14px 'Geist', system-ui, sans-serif; background:var(--bg); color:var(--ink); }
+  .champs textarea{ min-height:60px; resize:vertical; }
+  .rang{ display:flex; gap:8px; flex-wrap:wrap; grid-column:1/-1; }
+  .vide{ padding:40px; text-align:center; color:var(--muted); border:1.5px dashed var(--line); border-radius:18px; }
+  .toast{ position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:var(--ink); color:#fff; padding:12px 20px; border-radius:999px; font-size:14px; opacity:0; pointer-events:none; transition:opacity .2s; }
+  .toast.on{ opacity:1; }
+</style>
+</head>
+<body>
+<main>
+  <div class="haut"><h1>Prospection des salons</h1><a class="btn discret" href="admin.html">Retour au back-office</a></div>
+  <p class="sous">Salons listés mais pas encore inscrits (OpenStreetMap). Triés par nombre de demandes de clients : contactez d'abord ceux que des clients attendent déjà.</p>
+
+  <div class="regles"><b>Règles pour contacter par Instagram ou un autre réseau</b>
+    Envoyez chaque message à la main, depuis votre compte : l'automatisation (outils d'envoi en masse) est interdite par Instagram et peut faire fermer votre compte.
+    <ul><li>Maximum une quinzaine de nouveaux contacts par jour, avec un message personnalisé.</li><li>Un seul message, une seule relance. Si le salon refuse ou ne répond pas, passez en « Refus » et ne revenez pas.</li><li>Dites qui vous êtes, ce que vous proposez, et que le salon peut demander à ne plus être contacté.</li></ul></div>
+
+  <div class="filtres">
+    <input type="search" id="f-ville" placeholder="Ville" aria-label="Ville">
+    <select id="f-metier" aria-label="Métier"><option value="">Tous les métiers</option><option value="coiffure">Coiffure</option><option value="barbier">Barbier</option><option value="esthetique">Institut</option><option value="onglerie">Onglerie</option><option value="massage">Massage</option></select>
+    <select id="f-statut" aria-label="Suivi"><option value="a_contacter">À contacter</option><option value="contacte">Contactés</option><option value="a_repondu">Ont répondu</option><option value="inscrit">Inscrits</option><option value="refus">Refus</option><option value="">Tous</option></select>
+    <label style="font-size:14px;display:inline-flex;gap:8px;align-items:center"><input type="checkbox" id="f-insta" style="width:18px;height:18px"> Avec Instagram connu</label>
+  </div>
+  <div class="compteur" id="compteur" role="status" aria-live="polite"></div>
+  <div class="liste" id="liste"><div class="vide">Chargement…</div></div>
+</main>
+<div class="toast" id="toast" role="status"></div>
+
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+  import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const LIB = { coiffure:'Coiffure', barbier:'Barbier', esthetique:'Institut', onglerie:'Onglerie', massage:'Massage', therapeute:'Bien-être', autre:'Beauté' };
+  let fiches = [];
+
+  function toast(t){ const e = $('toast'); e.textContent = t; e.classList.add('on'); setTimeout(() => e.classList.remove('on'), 2200); }
+  const lien = f => `${location.origin}/revendiquer.html?f=${f.id}`;
+  function message(f){
+    const n = Number(f.nb_demandes) || 0;
+    return `Bonjour ! Je suis Renald, fondateur de Mirrio, une plateforme de réservation pour salons, sans commission sur les rendez-vous.\n\n` +
+      `${f.nom} apparaît déjà dans notre annuaire` + (n > 0 ? ` et ${n} ${n > 1 ? 'personnes ont' : 'personne a'} demandé à y réserver.` : '.') +
+      ` Si ça vous intéresse, vous pouvez reprendre votre fiche ici, sans engagement : ${lien(f)}\n\n` +
+      `Si vous préférez que je ne vous écrive plus, dites-le-moi et je ne reviens pas. Belle journée !`;
+  }
+  async function copier(texte, ok){ try{ await navigator.clipboard.writeText(texte); toast(ok); }catch(e){ window.prompt('Copiez ce texte :', texte); } }
+
+  async function charger(){
+    const { data: sess } = await supabase.auth.getSession();
+    if(!sess.session){ location.href = 'login.html'; return; }
+    const { data: admin } = await supabase.rpc('admin_est_admin');
+    if(!admin){ $('liste').innerHTML = '<div class="vide">Accès réservé à l\'administrateur de Mirrio.</div>'; return; }
+    const { data, error } = await supabase.from('fiches_externes_demandes').select('*').neq('statut', 'retiree').order('nb_demandes', { ascending: false }).limit(1000);
+    if(error){ $('liste').innerHTML = '<div class="vide">Chargement impossible. Les migrations v25 sont-elles passées ?</div>'; return; }
+    fiches = data || [];
+    dessiner();
+  }
+
+  function filtrees(){
+    const v = $('f-ville').value.trim().toLowerCase(), m = $('f-metier').value, s = $('f-statut').value, i = $('f-insta').checked;
+    return fiches.filter(f => (!v || (f.ville || '').toLowerCase().includes(v)) && (!m || f.metier === m) && (!s || f.contact_statut === s) && (!i || f.instagram));
+  }
+
+  function dessiner(){
+    const l = filtrees(), auj = new Date(); auj.setHours(0, 0, 0, 0);
+    const aujourdhui = fiches.filter(f => f.contacte_le && new Date(f.contacte_le) >= auj).length;
+    $('compteur').innerHTML = `<b>${l.length}</b> salon${l.length > 1 ? 's' : ''} · contactés aujourd'hui : <b>${aujourdhui}</b> (conseillé : 15 au plus)`;
+    if(!l.length){ $('liste').innerHTML = '<div class="vide">Aucun salon avec ces filtres. Importez une ville avec <code>scripts/importer-fiches.mjs</code>.</div>'; return; }
+    $('liste').innerHTML = l.slice(0, 120).map(f => `<article class="fiche" data-id="${f.id}">
+      <div><h2>${esc(f.nom)}</h2><div class="meta">${esc(LIB[f.metier] || 'Beauté')}${f.ville ? ', ' + esc(f.ville) : ''}${f.adresse ? ' · ' + esc(f.adresse) : ''}</div>
+        <span class="dem">${f.nb_demandes} demande${f.nb_demandes > 1 ? 's' : ''} de clients</span>
+        ${f.statut === 'en_cours' ? '<div class="meta" style="margin-top:6px;color:#8C2A14"><b>Revendication en cours</b> : ' + esc(f.revendiquee_email || '') + '</div>' : ''}</div>
+      <div class="champs">
+        <div><label for="i-${f.id}">Instagram (sans @)</label><input id="i-${f.id}" data-champ="instagram" value="${esc(f.instagram || '')}" placeholder="nomdusalon"></div>
+        <div><label for="s-${f.id}">Suivi</label><select id="s-${f.id}" data-champ="contact_statut">${[['a_contacter','À contacter'],['contacte','Contacté'],['a_repondu','A répondu'],['inscrit','Inscrit'],['refus','Refus']].map(([v, t]) => `<option value="${v}" ${f.contact_statut === v ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+        <div><label for="n-${f.id}">Note (offre proposée, réponse…)</label><textarea id="n-${f.id}" data-champ="contact_note">${esc(f.contact_note || '')}</textarea></div>
+      </div>
+      <div class="rang">
+        <button class="btn petit" type="button" data-act="msg">Copier le message</button>
+        <button class="btn petit discret" type="button" data-act="lien">Copier le lien</button>
+        ${f.instagram ? `<a class="btn petit discret" target="_blank" rel="noopener" href="https://www.instagram.com/${encodeURIComponent(f.instagram)}/">Ouvrir Instagram</a>` : ''}
+        <button class="btn petit discret" type="button" data-act="contacte">Marquer contacté</button>
+        <button class="btn petit discret" type="button" data-act="retirer" style="margin-left:auto">Retirer la fiche</button>
+      </div></article>`).join('');
+    $('liste').querySelectorAll('.fiche').forEach(carte => {
+      const f = fiches.find(x => x.id === carte.dataset.id);
+      carte.querySelectorAll('[data-champ]').forEach(el => el.addEventListener('change', () => maj(f, { [el.dataset.champ]: el.value.trim() || null })));
+      carte.querySelectorAll('[data-act]').forEach(b => b.addEventListener('click', () => {
+        const a = b.dataset.act;
+        if(a === 'msg') copier(message(f), 'Message copié');
+        if(a === 'lien') copier(lien(f), 'Lien copié');
+        if(a === 'contacte') maj(f, { contact_statut: 'contacte', contacte_le: new Date().toISOString() }, true);
+        if(a === 'retirer' && window.confirm(`Retirer la fiche « ${f.nom} » de l'annuaire ?`)) maj(f, { statut: 'retiree' }, true);
+      }));
+    });
+  }
+
+  async function maj(f, champs, redessiner){
+    const { error } = await supabase.from('fiches_externes').update(champs).eq('id', f.id);
+    if(error){ toast("L'enregistrement a échoué."); return; }
+    Object.assign(f, champs);
+    if(champs.statut === 'retiree') fiches = fiches.filter(x => x.id !== f.id);
+    toast('Enregistré');
+    if(redessiner) dessiner();
+  }
+
+  ['f-ville', 'f-metier', 'f-statut', 'f-insta'].forEach(id => $(id).addEventListener(id === 'f-ville' ? 'input' : 'change', dessiner));
+  charger();
+</script>
+</body>
+</html>

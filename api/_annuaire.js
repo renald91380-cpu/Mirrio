@@ -10,15 +10,23 @@
 // publiques : jamais d'email ni de téléphone. L'adresse n'est renvoyée que si
 // le praticien l'a saisie exprès pour l'annuaire (`adresse_annuaire`).
 //
+// Fiches « non revendiquées » (salons pas encore inscrits, données publiques OpenStreetMap/Sirene, voir db/schema-v25) :
+//   GET  /api/annuaire?...&ville=<ville>    → ajoute `non_inscrits` (sans filtre de prix, de public ni de promo)
+//   GET  /api/annuaire?fiche=<uuid>         → une fiche non revendiquée (pour la page de revendication)
+//   POST /api/annuaire {action:'prevenir', id}               → « Prévenir ce salon » (une demande par visiteur et par fiche)
+//   POST /api/annuaire {action:'revendiquer', id, email}     → le salon demande à reprendre sa fiche (validée ensuite à la main)
+//
 // Zéro dépendance npm. Variables : SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+
+import crypto from 'node:crypto';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-function json(res, statut, corps){
+function json(res, statut, corps, { cache = true } = {}){
   res.statusCode = statut;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+  res.setHeader('Cache-Control', cache ? 'public, s-maxage=60, stale-while-revalidate=300' : 'no-store');
   res.end(JSON.stringify(corps));
 }
 
@@ -32,6 +40,55 @@ async function supabase(chemin){
 
 const ttc = p => Number(p.prix_unitaire) * (1 + (Number(p.tva_taux) || 0) / 100);
 const arrondi = n => Math.round(n * 100) / 100;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const enc = encodeURIComponent;
+// Valeur sûre pour un filtre PostgREST `ilike` : on retire les caractères qui en changent le sens.
+const motif = s => String(s || '').replace(/[*%,()\\]/g, ' ').trim().slice(0, 60);
+const CHAMPS_PUBLICS = 'id,nom,metier,adresse,code_postal,ville,latitude,longitude,statut';
+
+async function nbDemandes(ids){
+  if(!ids.length) return {};
+  const lignes = await supabase(`fiches_demandes?fiche_id=in.(${ids.join(',')})&select=fiche_id`).catch(() => []);
+  const n = {}; lignes.forEach(l => { n[l.fiche_id] = (n[l.fiche_id] || 0) + 1; });
+  return n;
+}
+
+async function ecrire(chemin, corps, methode, prefer){
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${chemin}`, {
+    method: methode, headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json', Prefer: prefer || 'return=minimal' },
+    body: JSON.stringify(corps)
+  });
+  if(!r.ok) throw new Error(`Supabase ${r.status}`);
+}
+
+// Empreinte anonyme d'un visiteur (pas d'adresse IP conservée) : sert uniquement à ne compter qu'une demande par fiche.
+function empreinte(req){
+  const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'inconnue';
+  return crypto.createHash('sha256').update(`${ip}|${req.headers['user-agent'] || ''}|${SERVICE_KEY}`).digest('hex').slice(0, 40);
+}
+
+async function actionPost(req, res){
+  const corps = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+  const id = String(corps.id || '');
+  if(!UUID.test(id)) return json(res, 400, { error: 'Fiche invalide.' }, { cache: false });
+  const [fiche] = await supabase(`fiches_externes?id=eq.${id}&statut=in.(non_revendiquee,en_cours)&select=id,statut`);
+  if(!fiche) return json(res, 404, { error: 'Fiche introuvable.' }, { cache: false });
+
+  if(corps.action === 'prevenir'){
+    await ecrire('fiches_demandes', { fiche_id: id, empreinte: empreinte(req) }, 'POST', 'resolution=ignore-duplicates,return=minimal');
+    return json(res, 200, { ok: true, nb_demandes: (await nbDemandes([id]))[id] || 0 }, { cache: false });
+  }
+  if(corps.action === 'revendiquer'){
+    const email = String(corps.email || '').trim().toLowerCase();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 254) return json(res, 400, { error: 'Email invalide.' }, { cache: false });
+    if(fiche.statut === 'non_revendiquee'){
+      await ecrire(`fiches_externes?id=eq.${id}`, { statut: 'en_cours', revendiquee_email: email, revendiquee_le: new Date().toISOString(), contact_statut: 'inscrit' }, 'PATCH');
+    }
+    return json(res, 200, { ok: true }, { cache: false });
+  }
+  return json(res, 400, { error: 'Action inconnue.' }, { cache: false });
+}
+
 const normaliser = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
 const FICHE_COLS = 'owner_id,slug,description_annuaire,photos,adresse_annuaire,latitude,longitude';
 
@@ -71,12 +128,35 @@ async function fiche(slug){
   };
 }
 
+// Salons pas encore sur Mirrio, seulement quand on cherche une ville, et jamais avec un filtre qui n'a de sens que pour un salon inscrit.
+async function chercherNonInscrits({ ville, metier, q, params, filtreInscrit }){
+  if(!ville || filtreInscrit) return [];
+  try{
+    const filtres = ['statut=in.(non_revendiquee,en_cours)', `ville=ilike.*${enc(motif(params.get('ville')))}*`];
+    if(metier) filtres.push(`metier=eq.${metier}`);
+    if(q) filtres.push(`nom=ilike.*${enc(motif(params.get('q')))}*`);
+    const lignes = await supabase(`fiches_externes?${filtres.join('&')}&select=${CHAMPS_PUBLICS}&order=nom&limit=60`);
+    const n = await nbDemandes(lignes.map(l => l.id));
+    return lignes.map(l => ({ ...l, nb_demandes: n[l.id] || 0 }));
+  }catch(e){ return []; }
+}
+
 export default async function handler(req, res){
-  if(req.method !== 'GET') return json(res, 405, { error: 'Méthode non autorisée.' });
+  if(req.method !== 'GET' && req.method !== 'POST') return json(res, 405, { error: 'Méthode non autorisée.' });
   if(!SUPABASE_URL || !SERVICE_KEY) return json(res, 500, { error: 'Serveur non configuré.' });
 
   try{
+    if(req.method === 'POST') return await actionPost(req, res);
     const params = new URL(req.url, 'http://x').searchParams;
+
+    // Une fiche non revendiquée, pour la page « Vous êtes ce salon ? ».
+    const idFiche = params.get('fiche');
+    if(idFiche){
+      if(!UUID.test(idFiche)) return json(res, 404, { error: 'Fiche introuvable.' });
+      const [f] = await supabase(`fiches_externes?id=eq.${idFiche}&statut=in.(non_revendiquee,en_cours)&select=${CHAMPS_PUBLICS}`);
+      if(!f) return json(res, 404, { error: 'Fiche introuvable.' });
+      return json(res, 200, { ...f, nb_demandes: (await nbDemandes([f.id]))[f.id] || 0 }, { cache: false });
+    }
 
     const slug = params.get('slug');
     if(slug){
@@ -94,7 +174,7 @@ export default async function handler(req, res){
 
     const fiches = await supabase(
       `parametres_reservation?activee=eq.true&visible_annuaire=eq.true&slug=not.is.null&select=${FICHE_COLS}&limit=500`);
-    if(!fiches.length) return json(res, 200, { praticiens: [] });
+    if(!fiches.length) return json(res, 200, { praticiens: [], non_inscrits: await chercherNonInscrits({ ville, metier, q, params, filtreInscrit: budgetMin != null || budgetMax != null || seulementPromo || publicCible }) });
 
     const ids = fiches.map(f => f.owner_id).join(',');
     const [profils, villes, prestations, avis, vitrines, creuxLignes] = await Promise.all([
@@ -160,7 +240,9 @@ export default async function handler(req, res){
       .sort((a, b) => (b.note_moyenne ?? 0) - (a.note_moyenne ?? 0) || a.nom.localeCompare(b.nom, 'fr'));
 
     praticiens.forEach(x => { delete x._ok_budget; delete x._ok_texte; });
-    return json(res, 200, { praticiens });
+
+    const non_inscrits = await chercherNonInscrits({ ville, metier, q, params, filtreInscrit: budgetMin != null || budgetMax != null || seulementPromo || publicCible });
+    return json(res, 200, { praticiens, non_inscrits });
   }catch(e){
     return json(res, 500, { error: 'Erreur serveur.' });
   }

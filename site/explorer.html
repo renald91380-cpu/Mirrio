@@ -83,6 +83,16 @@
   .budget .champs input{ width:62px; min-height:36px; border:none; background:transparent; color:var(--ink); font:600 15px var(--body); text-align:right; outline:none; }
   .budget .champs:focus-within{ border-color:var(--ink); }
   .budget .champs span.eur{ color:var(--muted); font-size:14px; }
+  .non-inscrits{ margin-top:46px; }
+  .non-inscrits h2{ font-size:28px; font-weight:800; margin-bottom:6px; }
+  .non-inscrits > p{ color:var(--muted); max-width:60ch; margin-bottom:20px; }
+  .liste-ext{ display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:14px; }
+  .ext{ padding:20px; border-radius:var(--r); border:1.5px dashed var(--line); background:transparent; display:flex; flex-direction:column; gap:10px; }
+  .ext h3{ font-size:20px; font-weight:700; } .ext .meta{ color:var(--muted); font-size:14px; }
+  .ext .demandes{ display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--icone); }
+  .ext .actions{ display:flex; gap:8px; flex-wrap:wrap; margin-top:auto; padding-top:6px; }
+  .ext .btn{ min-height:44px; padding:0 18px; font-size:14px; }
+  .credit-osm{ font-size:12.5px; color:var(--muted); margin-top:16px; }
   .promo-badge{ position:absolute; left:12px; top:12px; z-index:2; display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:999px; background:var(--accent); color:#101216; font-size:12.5px; font-weight:700; box-shadow:0 6px 16px -6px rgba(0,0,0,.4); }
   .correspondance{ display:inline-flex; align-items:center; gap:8px; margin:2px 0 8px; padding:6px 12px; border-radius:var(--pill); background:color-mix(in srgb, var(--accent) 20%, transparent); font-size:13.5px; font-weight:600; }
 
@@ -181,6 +191,12 @@
     <h2 class="sr" id="resultats" tabindex="-1">Résultats de la recherche</h2>
     <div class="compte" id="compte" role="status" aria-live="polite"></div>
     <div class="grille" id="grille" aria-busy="false"></div>
+    <section class="non-inscrits" id="non-inscrits" hidden aria-labelledby="titre-ext">
+      <h2 id="titre-ext">Pas encore sur Mirrio</h2>
+      <p>Ces salons n'ont pas encore ouvert leurs réservations en ligne, vous ne pouvez pas y réserver ici. Prévenez-les : plus ils reçoivent de demandes, plus vite ils s'inscrivent.</p>
+      <div class="liste-ext" id="liste-ext"></div>
+      <p class="credit-osm">Informations sur les salons : © contributeurs OpenStreetMap.</p>
+    </section>
     <aside class="pro">
       <h2>Vous tenez un salon ?</h2>
       <p>Apparaissez ici, recevez des réservations jour et nuit, sans commission.</p>
@@ -203,7 +219,7 @@
   let metier = '';
 
   let carteL = null, marqueurs = null;
-  function majCarte(liste){
+  function majCarte(liste, externes = []){
     if(!window.L) return;
     if(!carteL){
       carteL = L.map('carte', { scrollWheelZoom:true }).setView([46.6, 2.5], 5);
@@ -211,10 +227,41 @@
       marqueurs = L.layerGroup().addTo(carteL);
     }
     marqueurs.clearLayers();
+    const ext = externes.filter(x => x.latitude != null);
+    ext.forEach(x => L.circleMarker([x.latitude, x.longitude], { radius:7, color:'#6B7080', weight:2, fillColor:'#B9BCC6', fillOpacity:.85 }).addTo(marqueurs)
+      .bindPopup(`<b>${esc(x.nom)}</b><br>Pas encore sur Mirrio`));
     const pts = liste.filter(x => x.latitude != null);
     pts.forEach(x => L.marker([x.latitude, x.longitude]).addTo(marqueurs)
       .bindPopup(`<b>${esc(x.nom)}</b><br>${x.nb_avis ? '★ ' + x.note_moyenne + '<br>' : ''}<a href="pro.html?p=${encodeURIComponent(x.slug)}">Voir la fiche</a>`));
-    if(pts.length) carteL.fitBounds(pts.map(x => [x.latitude, x.longitude]), { padding:[40, 40], maxZoom:14 });
+    const tous = [...pts, ...ext];
+    if(tous.length) carteL.fitBounds(tous.map(x => [x.latitude, x.longitude]), { padding:[40, 40], maxZoom:14 });
+  }
+
+  // Salons pas encore inscrits : « Prévenir ce salon » (une demande par visiteur) et « C'est mon salon » (page de revendication).
+  const prevenus = new Set((() => { try{ return JSON.parse(localStorage.getItem('mirrio-prevenus') || '[]'); }catch(e){ return []; } })());
+  function rendreNonInscrits(liste){
+    const zone = document.getElementById('non-inscrits'), cont = document.getElementById('liste-ext');
+    zone.hidden = !liste.length;
+    if(!liste.length){ cont.innerHTML = ''; return; }
+    const demo = new URLSearchParams(location.search).get('demo') === '1' ? '&demo=1' : '';
+    cont.innerHTML = liste.map(x => `<article class="ext">
+      <h3>${esc(x.nom)}</h3>
+      <div class="meta">${esc(LIB[x.metier] || 'Autre')}${x.ville ? ', ' + esc(x.ville) : ''}${x.adresse ? '<br>' + esc(x.adresse) : ''}</div>
+      ${x.nb_demandes ? `<span class="demandes"><i class="ph ph-hand-waving" aria-hidden="true"></i>${x.nb_demandes} ${x.nb_demandes > 1 ? 'personnes ont demandé' : 'personne a demandé'} à réserver ici</span>` : ''}
+      <div class="actions">
+        ${x.statut === 'en_cours' ? '<span class="meta">Le salon a demandé à reprendre cette fiche.</span>' : `
+        <button class="btn" type="button" data-prevenir="${esc(x.id)}" ${prevenus.has(x.id) ? 'disabled' : ''}>${prevenus.has(x.id) ? 'Merci, demande envoyée' : 'Prévenir ce salon'}</button>
+        <a class="btn discret" href="revendiquer.html?f=${encodeURIComponent(x.id)}${demo}">C'est mon salon</a>`}
+      </div></article>`).join('');
+    cont.querySelectorAll('[data-prevenir]').forEach(b => b.addEventListener('click', async () => {
+      b.disabled = true; b.textContent = 'Envoi…';
+      try{
+        const r = await fetch('/api/annuaire', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ action:'prevenir', id:b.dataset.prevenir }) });
+        if(!r.ok) throw 0;
+        prevenus.add(b.dataset.prevenir); try{ localStorage.setItem('mirrio-prevenus', JSON.stringify([...prevenus])); }catch(e){}
+        b.textContent = 'Merci, demande envoyée';
+      }catch(e){ b.disabled = false; b.textContent = 'Réessayer'; }
+    }));
   }
 
   const squelettes = () => Array.from({ length:6 }, () => '<div class="squelette"><div class="v"></div><div class="l"></div><div class="l"></div></div>').join('');
@@ -232,11 +279,12 @@
     try{
       const r = await fetch('/api/annuaire?' + p);
       if(!r.ok) throw 0;
-      const { praticiens } = await r.json();
+      const { praticiens, non_inscrits } = await r.json();
+      rendreNonInscrits(non_inscrits || []);
       if(!praticiens?.length){
         grille.innerHTML = '<div class="vide"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><h3>Aucun salon trouvé</h3><p>Essayez une autre ville, une autre catégorie ou un budget plus large.</p><button class="btn" type="button" id="effacer">Effacer les filtres</button></div>';
         document.getElementById('effacer').addEventListener('click', effacerFiltres);
-        compte.textContent = 'Aucun résultat.'; majCarte([]); return;
+        compte.textContent = 'Aucun résultat.'; majCarte([], non_inscrits || []); return;
       }
       compte.textContent = `${praticiens.length} ${praticiens.length > 1 ? 'professionnels' : 'professionnel'}`;
       grille.innerHTML = praticiens.map(x => {
@@ -256,8 +304,9 @@
             <div class="bas"><span class="prix">${x.prix_a_partir_de != null ? (x.prix_max && x.prix_max > x.prix_a_partir_de ? `De <b>${Number(x.prix_a_partir_de).toFixed(0)}</b> à <b>${Number(x.prix_max).toFixed(0)} €</b>` : `Dès <b>${Number(x.prix_a_partir_de).toFixed(0)} €</b>`) : ''}</span><span class="btn">Réserver</span></div>
           </div></a>`;
       }).join('');
-      majCarte(praticiens);
+      majCarte(praticiens, non_inscrits || []);
     }catch(e){
+      rendreNonInscrits([]);
       compte.textContent = '';
       grille.innerHTML = '<div class="vide" role="alert"><i class="ph ph-cloud-slash" aria-hidden="true"></i><h3>Chargement impossible</h3><p>Vérifiez votre connexion puis réessayez.</p><button class="btn" type="button" id="reessayer">Réessayer</button></div>';
       document.getElementById('reessayer').addEventListener('click', chercher);
