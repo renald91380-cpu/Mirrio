@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Aphrodite, effigie en médaillon">
+  <defs>
+    <clipPath id="disque"><circle cx="200" cy="200" r="168"/></clipPath>
+    <radialGradient id="fond" cx="38%" cy="32%" r="80%"><stop offset="0" stop-color="#2A2E37"/><stop offset="1" stop-color="#101216"/></radialGradient>
+  </defs>
+  <circle cx="200" cy="200" r="192" fill="#101216"/>
+  <circle cx="200" cy="200" r="186" fill="none" stroke="#E2A63D" stroke-width="5"/>
+  <circle cx="200" cy="200" r="174" fill="none" stroke="#E2A63D" stroke-width="1.5" stroke-dasharray="2 6" stroke-linecap="round"/>
+  <circle cx="200" cy="200" r="168" fill="url(#fond)"/>
+  <g clip-path="url(#disque)">
+    <!-- buste : nuque, cou, drapé -->
+    <path fill="#E2A63D" d="M172 266 C176 296 178 322 176 346 L96 400 L330 400 L296 368 C270 356 246 352 238 342 C234 324 234 306 238 288 C220 282 190 272 172 266 Z"/>
+    <!-- visage de profil, tourné vers la droite -->
+    <path fill="#E2A63D" d="M196 100 C230 104 250 128 256 158 C259 172 262 186 267 197 C271 205 275 212 275 218 C275 224 267 227 259 227 C260 232 263 235 261 239 C259 241 256 241 255 242 C259 246 260 251 256 255 C254 263 255 269 249 275 C245 281 239 285 232 291 L172 266 C158 226 166 136 196 100 Z"/>
+    <!-- chevelure ramenée en chignon, bandeau, mèches -->
+    <path fill="#E2A63D" d="M196 96 C160 92 124 112 112 150 C102 182 108 220 128 246 C142 264 164 274 184 270 C176 252 182 234 196 222 C206 200 206 160 222 122 C216 104 208 98 196 96 Z"/>
+    <circle cx="124" cy="236" r="30" fill="#E2A63D"/>
+    <g fill="none" stroke="#101216" stroke-width="3.2" stroke-linecap="round">
+      <path d="M205 104 C176 108 150 126 140 156 C132 182 138 214 156 240"/>
+      <path d="M200 124 C176 130 158 148 154 172 C150 194 156 214 168 232"/>
+      <path d="M196 146 C180 152 170 166 170 184 C170 198 174 210 182 220"/>
+      <path d="M206 112 C216 124 218 140 214 154" stroke-width="2.4"/>
+      <path d="M108 226 C118 212 134 214 140 228 C146 242 132 256 118 252" stroke-width="2.6"/>
+      <path d="M100 242 C108 232 118 232 124 240 C130 250 122 260 112 258" stroke-width="2.2"/>
+      <!-- bandeau -->
+      <path d="M142 128 C164 108 196 100 224 112" stroke-width="3.6"/>
+      <!-- œil, sourcil, narine, bouche -->
+      <path d="M232 179 C238 175 245 176 249 180" stroke-width="2.8"/>
+      <path d="M229 168 C238 162 249 163 255 169" stroke-width="2.4"/>
+      <path d="M263 215 C260 218 256 217 254 214" stroke-width="2.2"/>
+      <path d="M255 242 C259 243 261 244 262 245" stroke-width="2.2"/>
+    </g>
+    <!-- boucle d'oreille et collier -->
+    <path d="M196 224 C204 217 214 221 214 230 C214 238 207 242 200 240" fill="none" stroke="#101216" stroke-width="2.6" stroke-linecap="round"/>
+    <circle cx="203" cy="252" r="4.6" fill="#101216"/>
+    <path d="M178 310 C200 326 226 326 238 312" fill="none" stroke="#101216" stroke-width="3" stroke-linecap="round"/><circle cx="208" cy="326" r="3.4" fill="#101216"/>
+    <!-- drapé -->
+    <g fill="none" stroke="#101216" stroke-width="3" stroke-linecap="round"><path d="M182 350 C212 360 252 362 290 376"/><path d="M150 372 C176 372 200 376 226 388"/></g>
+    <!-- feuilles de myrte -->
+    <g fill="#E2A63D"><path d="M104 150 C92 138 94 120 108 112 C116 124 114 140 104 150Z"/><path d="M92 176 C78 168 76 150 88 140 C98 150 100 166 92 176Z"/></g>
+  </g>
+</svg>
