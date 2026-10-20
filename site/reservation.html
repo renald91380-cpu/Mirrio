@@ -199,7 +199,7 @@
 <div id="app" hidden>
   <header class="haut">
     <div id="entete"></div>
-    <a class="lien-salon" id="lien-salon" href="#">Voir la page du salon</a>
+    <span style="display:inline-flex; gap:18px; align-items:center;"><a class="lien-salon" id="lien-wa" href="#" target="_blank" rel="noopener" hidden><i class="ph ph-whatsapp-logo" aria-hidden="true"></i> WhatsApp</a><a class="lien-salon" id="lien-salon" href="#">Voir la page du salon</a></span>
   </header>
 
   <div class="mise">
@@ -719,6 +719,14 @@
     $('titre-page').textContent = `Réserver chez ${nom}`;
     const salon = `pro.html?p=${encodeURIComponent(slug)}`;
     $('lien-salon').href = salon; $('retour-salon').href = salon;
+    // WhatsApp du salon (si renseigné dans « Ma page ») : une question avant de réserver. Jamais sur un salon de démonstration.
+    (() => {
+      let n = String(bootstrap.whatsapp || '').replace(/[\s.\-()]/g, '');
+      if(/^00\d+$/.test(n)) n = n.slice(2); else if(/^\+\d+$/.test(n)) n = n.slice(1); else if(/^0[1-9]\d{8}$/.test(n)) n = '33' + n.slice(1);
+      if(!/^[1-9]\d{7,14}$/.test(n) || /^demo-/.test(slug)) return;
+      $('lien-wa').href = `https://wa.me/${n}?text=${encodeURIComponent(`Bonjour, j'ai une question avant de réserver chez ${nom}.`)}`;
+      $('lien-wa').hidden = false;
+    })();
 
     rendrePrestations();
     if(bootstrap.creux){

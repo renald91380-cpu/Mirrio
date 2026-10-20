@@ -13,6 +13,15 @@ const heure = iso => {
   return p.minute === '00' ? `${Number(p.hour)}h` : `${Number(p.hour)}h${p.minute}`;
 };
 
+// Lien WhatsApp (wa.me) vers le salon, ou null si le numéro est absent ou invalide.
+export function lienWhatsapp(brut, salon){
+  let n = String(brut || '').replace(/[\s.\-()]/g, '');
+  if(/^00\d+$/.test(n)) n = n.slice(2); else if(/^\+\d+$/.test(n)) n = n.slice(1);
+  else if(/^0[1-9]\d{8}$/.test(n)) n = '33' + n.slice(1);
+  if(!/^[1-9]\d{7,14}$/.test(n)) return null;
+  return `https://wa.me/${n}?text=${encodeURIComponent(`Bonjour${salon ? ' ' + salon : ''}, j'ai une question sur mon rendez-vous.`)}`;
+}
+
 const INK = '#101216', AMBER = '#E2A63D', MUTED = '#6B7080', LINE = '#E6E6E1';
 const SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 // Titres en romaine classique (empattements), cohérents avec le logotype gravé ; texte courant en sans.

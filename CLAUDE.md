@@ -327,6 +327,14 @@ Pour amorcer l'annuaire : les salons **pas encore inscrits** y apparaissent (`db
 - Confidentialité : section 11 bis de `confidentialite.html`. **À faire valider juridiquement avant de démarcher à grande échelle.**
 - Démo : `explorer.html?demo=1&ville=Lyon|Paris|Bordeaux` (trois fiches fictives marquées « exemple »).
 
+### 3.29 Bouton WhatsApp
+
+Aucun « connecteur » ni API WhatsApp Business n'est nécessaire : le salon saisit son numéro dans **Ma page → Contact & réseaux → WhatsApp** (`vitrine.whatsapp`, `db/schema-v26-whatsapp.sql`) et un **lien `wa.me`** suffit (ouvre WhatsApp ou WhatsApp Business chez le client, message prérempli). Dès que le champ est valide :
+- `pro.html` affiche une **pastille verte flottante** (bas droite, au-dessus de la barre de réservation) et un lien « WhatsApp » dans la section Contact ;
+- `reservation.html` affiche un lien « WhatsApp » dans l'en-tête (`/api/reservation-disponibilites` renvoie `whatsapp`) ;
+- l'**email de confirmation** (Stripe, PayPal) ajoute le bouton « Une question ? WhatsApp » (`lienWhatsapp()` dans `api/_email.js`).
+Le numéro est converti en chiffres internationaux (06… devient 336…), un numéro invalide n'affiche rien. **Salons de démo (`demo-*`) : le bouton n'ouvre jamais de vrai numéro**, il explique ce qu'il ferait. Limites : Mirrio ne lit pas les messages WhatsApp, n'en envoie pas automatiquement (ni rappels, ni SMS de confirmation, qui restent chez Twilio), et n'utilise pas l'API officielle WhatsApp Business (payante, soumise à validation Meta).
+
 ### 3.26a Email de confirmation et reçu (`api/_email.js`)
 
 Un seul email à la réservation payée (Stripe `paiement-webhook-stripe.js`, PayPal `paiement-capturer-paypal.js`) qui joue deux rôles : **confirmation du rendez-vous et reçu de paiement**, sur le modèle d'un reçu bancaire (`gabaritConfirmation`) : bandeau sombre avec le logotype, monogramme (logo du salon ou initiale), titre, trois repères (quand, heure, avec qui), résumé des prestations avec acompte déduit et encadré « Reste à régler sur place », détail du paiement (montant, date, moyen), boutons « Voir ou annuler », « Ajouter à mon agenda », « Voir ma facture ». HTML d'email (tableaux, styles en ligne). Aperçu : `demo-messages.html`.

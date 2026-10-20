@@ -306,7 +306,7 @@
         slug: slug, nom: salon.nom, metier: salon.metier, logo_url: null, accent: salon.accent, ville: salon.ville,
         horaires: { jours: salon.jours, debut: salon.debut, fin: salon.fin }, adresse: salon.adresse, latitude: salon.latitude, longitude: salon.longitude,
         vitrine: { accroche: v.accroche, a_propos: v.a_propos, cover_url: v.cover_url, galerie: v.galerie, mise_en_page: v.mise_en_page, police: v.police, couleur: v.couleur, fond: v.fond, boutons: v.boutons,
-          texte_bouton: v.texte_bouton, bandeau_actif: !!v.bandeau_actif, bandeau_texte: v.bandeau_texte || null, instagram: v.instagram, telephone_public: v.telephone_public, email_public: v.email_public || null,
+          texte_bouton: v.texte_bouton, bandeau_actif: !!v.bandeau_actif, bandeau_texte: v.bandeau_texte || null, instagram: v.instagram, whatsapp: v.whatsapp || '06 12 34 56 78', telephone_public: v.telephone_public, email_public: v.email_public || null,
           sections: { a_propos: true, prestations: true, galerie: true, equipe: true, avis: true, horaires: true, carte: true }, ordre: ['a_propos', 'prestations', 'galerie', 'equipe', 'horaires', 'carte', 'avis'] },
         equipe: salon.equipe.map(function(i){ return { nom: i.nom, role: i.role, bio: i.bio, photo_url: null }; }),
         prestations: listePrestations(salon), avis: avisListe(salon)

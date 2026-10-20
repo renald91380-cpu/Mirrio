@@ -204,6 +204,8 @@ export default async function handler(req, res){
   prestations = prestations.map(p => ({ ...p, intervenants: intervenants.filter(i => !parIntervenant[i.id] || parIntervenant[i.id].has(p.id)).map(i => i.id) }));
 
   const creuxActif = await chargerCreux(ownerId);
+  // WhatsApp du salon (schema-v26, facultatif) : bouton « Une question ? » sur la page de confirmation.
+  const whatsapp = await getDispo(`vitrine?owner_id=eq.${ownerId}&select=whatsapp`).then(l => l[0]?.whatsapp || null).catch(() => null);
   const profil = profils[0] || {};
   const paiement = paiements[0];
   const paiementRequis = !!(paiement?.stripe_actif && paiement?.stripe_secret_key);
@@ -222,6 +224,7 @@ export default async function handler(req, res){
     validation_auto: validationAuto,
     prestations,
     paiement_requis: paiementRequis,
+    whatsapp,
     // Heures creuses (schema-v24) : null si le salon n'en propose pas.
     creux: creuxActif ? { pourcentage: creuxActif.pourcentage, jours: creuxActif.jours, debut: String(creuxActif.debut).slice(0, 5), fin: String(creuxActif.fin).slice(0, 5) } : null,
     // Choix proposé au client : CB (total en ligne) ou espèces (acompte en ligne, solde au salon).

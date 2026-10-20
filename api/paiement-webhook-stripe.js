@@ -35,7 +35,7 @@ import { icsParId, pieceJointe } from './_ics.js';
 
 import { smsConfirmation } from './_sms.js';
 
-import { gabaritConfirmation } from './_email.js';
+import { gabaritConfirmation, lienWhatsapp } from './_email.js';
 import { lienEspace } from './_client.js';
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -470,6 +470,8 @@ async function traiterConfirmationReservation({ rdv, session, ownerId, stripeSec
       if(rdv.intervenant_id) nomIntervenantEmail = (await supabaseGet(`vitrine_equipe?id=eq.${rdv.intervenant_id}&select=nom`))[0]?.nom || null;
       adresseSalon = (await supabaseGet(`parametres_reservation?owner_id=eq.${ownerId}&select=adresse_annuaire`))[0]?.adresse_annuaire || null;
     }catch(e){ /* facultatif */ }
+    let whatsappSalon = null;
+    try{ whatsappSalon = lienWhatsapp((await supabaseGet(`vitrine?owner_id=eq.${ownerId}&select=whatsapp`))[0]?.whatsapp, nomEmetteur); }catch(e){ /* schema-v26 absent : pas de bouton */ }
 
     // SMS de confirmation (si le salon l'a activé) : paiement reçu, rendez-vous confirmé.
     await smsConfirmation({ rdvId: rdv.id, ownerId, telephone: resultat.prospect_telephone, origine });
@@ -494,7 +496,8 @@ async function traiterConfirmationReservation({ rdv, session, ownerId, stripeSec
           boutons: [
             { href: lienEspace(resultat.prospect_email, origine), texte: 'Voir ou annuler mon rendez-vous', fort: true },
             ...(ical?.lien ? [{ href: ical.lien, texte: 'Ajouter à mon agenda' }] : []),
-            { href: `${origine}/voir-document.html?t=${jetonPartage}`, texte: 'Voir ma facture' }
+            { href: `${origine}/voir-document.html?t=${jetonPartage}`, texte: 'Voir ma facture' },
+            ...(whatsappSalon ? [{ href: whatsappSalon, texte: 'Une question ? WhatsApp' }] : [])
           ]
         })
       });

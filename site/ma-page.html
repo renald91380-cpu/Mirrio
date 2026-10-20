@@ -378,6 +378,7 @@
               <div class="field"><label for="tiktok">TikTok</label><input type="text" id="tiktok" maxlength="200" placeholder="@monsalon"></div>
               <div class="field"><label for="site_web">Site web</label><input type="text" id="site_web" maxlength="200" placeholder="www.monsalon.fr"></div>
               <div class="field"><label for="telephone_public">Téléphone affiché</label><input type="text" id="telephone_public" maxlength="30" placeholder="01 23 45 67 89"></div>
+              <div class="field"><label for="whatsapp">WhatsApp (numéro)</label><input type="text" id="whatsapp" maxlength="30" placeholder="06 12 34 56 78" inputmode="tel"><div class="hint">Un bouton WhatsApp apparaît sur votre page dès que ce champ est rempli. Fonctionne avec WhatsApp ou WhatsApp Business.</div></div>
               <div class="field"><label for="email_public">Email affiché</label><input type="text" id="email_public" maxlength="120" placeholder="contact@monsalon.fr"></div>
             </div>
           </div>
@@ -417,9 +418,9 @@
     boutons:'arrondi', texte_bouton:null, bandeau_actif:false, bandeau_texte:null,
     sections:{ a_propos:true, prestations:true, galerie:true, equipe:true, avis:true, horaires:true, carte:true },
     ordre:['a_propos','prestations','galerie','equipe','horaires','carte','avis'],
-    instagram:null, facebook:null, tiktok:null, site_web:null, telephone_public:null, email_public:null
+    instagram:null, facebook:null, tiktok:null, site_web:null, telephone_public:null, email_public:null, whatsapp:null
   };
-  const CHAMPS_TEXTE = ['accroche','a_propos','texte_bouton','bandeau_texte','instagram','facebook','tiktok','site_web','telephone_public','email_public'];
+  const CHAMPS_TEXTE = ['accroche','a_propos','texte_bouton','bandeau_texte','instagram','facebook','tiktok','site_web','telephone_public','email_public','whatsapp'];
   const SECTIONS = { a_propos:'À propos', prestations:'Prestations', galerie:'Galerie photos', equipe:"L'équipe", horaires:'Horaires', carte:'Carte & contact', avis:'Avis clients' };
   const COULEURS = ['#E2A63D','#C0392B','#D96C8A','#8E44AD','#244990','#1F7A8C','#3E7C74','#2E7D32','#6D4C41','#1C2333','#B5533F','#C9A227'];
 
