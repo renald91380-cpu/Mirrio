@@ -1,6 +1,8 @@
 // Mirrio — annuaire public des praticiens (site/explorer.html, site/pro.html).
 //
-//   GET /api/annuaire?q=<texte>&ville=<ville>&metier=<metier>   → liste
+//   GET /api/annuaire?q=<texte>&ville=<ville>&metier=<metier>&public=<femme|homme>&budget_min=<€>&budget_max=<€>   → liste
+//     Le budget (TTC, en euros) s'applique aux PRESTATIONS : un salon est retenu s'il propose au moins une prestation
+//     dans la fourchette (celles qui correspondent à la recherche `q` si elle en désigne, et au public choisi).
 //   GET /api/annuaire?slug=<slug>                                → fiche détaillée
 //
 // Ne renvoie que les praticiens qui ont activé la réservation en ligne, posé
@@ -28,6 +30,8 @@ async function supabase(chemin){
   return r.json();
 }
 
+const ttc = p => Number(p.prix_unitaire) * (1 + (Number(p.tva_taux) || 0) / 100);
+const arrondi = n => Math.round(n * 100) / 100;
 const normaliser = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
 const FICHE_COLS = 'owner_id,slug,description_annuaire,photos,adresse_annuaire,latitude,longitude';
 
@@ -84,6 +88,8 @@ export default async function handler(req, res){
     const ville = normaliser(params.get('ville'));
     const metier = (params.get('metier') || '').replace(/[^a-z_-]/g, '');
     const publicCible = ['femme', 'homme'].includes(params.get('public')) ? params.get('public') : '';
+    const nombre = v => { const n = Number(String(v || '').replace(',', '.')); return v !== null && v !== '' && isFinite(n) && n >= 0 ? n : null; };
+    const budgetMin = nombre(params.get('budget_min')), budgetMax = nombre(params.get('budget_max'));
 
     const fiches = await supabase(
       `parametres_reservation?activee=eq.true&visible_annuaire=eq.true&slug=not.is.null&select=${FICHE_COLS}&limit=500`);
@@ -93,8 +99,8 @@ export default async function handler(req, res){
     const [profils, villes, prestations, avis, vitrines] = await Promise.all([
       supabase(`profiles?id=in.(${ids})&select=id,business_name,full_name,logo_url,metier`),
       supabase(`parametres_facturation?owner_id=in.(${ids})&select=owner_id,emetteur_ville`),
-      supabase(`prestations?owner_id=in.(${ids})&actif=eq.true&select=owner_id,prix_unitaire,public_cible`)
-        .catch(() => supabase(`prestations?owner_id=in.(${ids})&actif=eq.true&select=owner_id,prix_unitaire`)),
+      supabase(`prestations?owner_id=in.(${ids})&actif=eq.true&select=owner_id,libelle,prix_unitaire,tva_taux,public_cible`)
+        .catch(() => supabase(`prestations?owner_id=in.(${ids})&actif=eq.true&select=owner_id,libelle,prix_unitaire,tva_taux`)),
       supabase(`avis?owner_id=in.(${ids})&masque=eq.false&select=owner_id,note`),
       supabase(`vitrine?owner_id=in.(${ids})&select=owner_id,cover_url,galerie`).catch(() => [])
     ]);
@@ -104,7 +110,7 @@ export default async function handler(req, res){
     const prixParId = {}, avisParId = {};
     prestations.forEach(p => {
       const e = prixParId[p.owner_id] || (prixParId[p.owner_id] = { min: Infinity, n: 0 });
-      e.min = Math.min(e.min, Number(p.prix_unitaire) || 0); e.n++;
+      e.min = Math.min(e.min, ttc(p)); e.max = Math.max(e.max || 0, ttc(p)); e.n++;
       (e.liste || (e.liste = [])).push(p);
     });
     avis.forEach(a => (avisParId[a.owner_id] || (avisParId[a.owner_id] = [])).push(a));
@@ -112,6 +118,15 @@ export default async function handler(req, res){
     const praticiens = fiches.map(f => {
       const p = profilParId[f.owner_id] || {};
       const px = prixParId[f.owner_id];
+      const liste = px?.liste || [];
+      // Prestations candidates : celles du public choisi, puis celles qui correspondent à la recherche si elle en désigne.
+      let candidates = liste.filter(l => !publicCible || (l.public_cible || 'mixte') === 'mixte' || l.public_cible === publicCible);
+      const parTexte = q ? candidates.filter(l => normaliser(l.libelle).includes(q)) : [];
+      if(parTexte.length) candidates = parTexte;
+      const dansBudget = candidates.filter(l => (budgetMin == null || ttc(l) >= budgetMin) && (budgetMax == null || ttc(l) <= budgetMax))
+        .sort((a, b) => ttc(a) - ttc(b));
+      const correspondance = (parTexte.length || budgetMin != null || budgetMax != null) && dansBudget[0]
+        ? { libelle: dansBudget[0].libelle, prix: arrondi(ttc(dansBudget[0])), nb: dansBudget.length } : null;
       return {
         slug: f.slug,
         nom: p.business_name || p.full_name || 'Praticien',
@@ -121,18 +136,24 @@ export default async function handler(req, res){
         photo: vitParId[f.owner_id]?.cover_url || (vitParId[f.owner_id]?.galerie || [])[0] || (f.photos || [])[0] || null,
         description: f.description_annuaire || null,
         latitude: f.latitude, longitude: f.longitude,
-        prix_a_partir_de: px && isFinite(px.min) ? px.min : null,
+        prix_a_partir_de: px && isFinite(px.min) ? arrondi(px.min) : null,
+        prix_max: px && px.max ? arrondi(px.max) : null,
+        correspondance,
+        _ok_budget: (budgetMin == null && budgetMax == null) || dansBudget.length > 0,
+        _ok_texte: !q || parTexte.length > 0,
         nb_prestations: px ? px.n : 0,
-        publics: publicsDe(px?.liste || []),
+        publics: publicsDe(liste),
         ...statsAvis(avisParId[f.owner_id] || [])
       };
     }).filter(x => x.nb_prestations > 0)
       .filter(x => !metier || x.metier === metier)
       .filter(x => !publicCible || x.publics.includes(publicCible))
       .filter(x => !ville || normaliser(x.ville).includes(ville))
-      .filter(x => !q || normaliser(`${x.nom} ${x.description || ''} ${x.metier}`).includes(q))
+      .filter(x => !q || x._ok_texte || normaliser(`${x.nom} ${x.description || ''} ${x.metier}`).includes(q))
+      .filter(x => x._ok_budget)
       .sort((a, b) => (b.note_moyenne ?? 0) - (a.note_moyenne ?? 0) || a.nom.localeCompare(b.nom, 'fr'));
 
+    praticiens.forEach(x => { delete x._ok_budget; delete x._ok_texte; });
     return json(res, 200, { praticiens });
   }catch(e){
     return json(res, 500, { error: 'Erreur serveur.' });

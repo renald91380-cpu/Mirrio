@@ -243,12 +243,24 @@
         var s = DEMOS[k], notes = s.avis.map(function(a){ return a[1]; }), pub = {};
         s.prestations.forEach(function(p){ if(p.public === 'mixte'){ pub.femme = pub.homme = 1; } else pub[p.public] = 1; });
         return { slug: k, nom: s.nom, metier: s.metier, ville: s.ville, logo_url: null, photo: s.style.cover_url, description: s.style.accroche, latitude: s.latitude, longitude: s.longitude,
-          prix_a_partir_de: Math.min.apply(null, s.prestations.map(function(p){ return p.prix; })), nb_prestations: s.prestations.length, publics: Object.keys(pub),
+          prix_a_partir_de: Math.min.apply(null, s.prestations.map(function(p){ return p.prix; })), prix_max: Math.max.apply(null, s.prestations.map(function(p){ return p.prix; })), nb_prestations: s.prestations.length, publics: Object.keys(pub), _s: s,
           note_moyenne: notes.length ? Math.round(notes.reduce(function(a, b){ return a + b; }, 0) / notes.length * 10) / 10 : null, nb_avis: notes.length };
       });
       var norm = function(x){ return String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); };
       var qt = norm(q.get('q')), vi = norm(q.get('ville')), me = q.get('metier') || '', pu = q.get('public') || '';
-      liste = liste.filter(function(x){ return (!me || x.metier === me) && (!pu || x.publics.indexOf(pu) >= 0) && (!vi || norm(x.ville).indexOf(vi) >= 0) && (!qt || norm(x.nom + ' ' + x.description).indexOf(qt) >= 0); });
+      var nb = function(v){ var n = Number(String(v || '').replace(',', '.')); return v !== null && v !== '' && isFinite(n) && n >= 0 ? n : null; };
+      var bmin = nb(q.get('budget_min')), bmax = nb(q.get('budget_max'));
+      liste = liste.filter(function(x){
+        var cand = x._s.prestations.filter(function(p){ return !pu || p.public === 'mixte' || p.public === pu; });
+        var parTexte = qt ? cand.filter(function(p){ return norm(p.libelle).indexOf(qt) >= 0; }) : [];
+        if(parTexte.length) cand = parTexte;
+        var dans = cand.filter(function(p){ return (bmin == null || p.prix >= bmin) && (bmax == null || p.prix <= bmax); }).sort(function(a, b){ return a.prix - b.prix; });
+        if(parTexte.length || bmin != null || bmax != null) x.correspondance = dans[0] ? { libelle: dans[0].libelle, prix: dans[0].prix, nb: dans.length } : null;
+        var okTexte = !qt || parTexte.length > 0 || norm(x.nom + ' ' + x.description).indexOf(qt) >= 0;
+        var okBudget = (bmin == null && bmax == null) || dans.length > 0;
+        return (!me || x.metier === me) && (!pu || x.publics.indexOf(pu) >= 0) && (!vi || norm(x.ville).indexOf(vi) >= 0) && okTexte && okBudget;
+      });
+      liste.forEach(function(x){ delete x._s; });
       return reponse({ praticiens: liste });
     }
     if(!salon) return fetchReel(entree, options);

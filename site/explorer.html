@@ -74,6 +74,16 @@
   @media(max-width:620px){ .puces{ flex-wrap:nowrap; overflow-x:auto; margin:20px -24px 0; padding:0 24px 6px; scrollbar-width:none; } .puces::-webkit-scrollbar{ display:none; } .puces button{ flex-shrink:0; } }
   @media(max-width:520px){ .nav .discret{ display:none; } .nav{ padding-left:18px; } }
   .puces button[aria-pressed=true]{ background:var(--ink); color:var(--bg); border-color:var(--ink); }
+  .budget{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:14px; }
+  .budget .titre{ font-size:14px; font-weight:600; display:inline-flex; align-items:center; gap:8px; margin-right:4px; }
+  .budget .titre i{ color:var(--icone); }
+  .budget .puces{ margin-top:0; }
+  .budget .champs{ display:inline-flex; align-items:center; gap:8px; padding:4px 6px 4px 16px; border-radius:var(--pill); border:1px solid var(--line); background:var(--surface); }
+  .budget .champs label{ font-size:13px; color:var(--muted); }
+  .budget .champs input{ width:62px; min-height:36px; border:none; background:transparent; color:var(--ink); font:600 15px var(--body); text-align:right; outline:none; }
+  .budget .champs:focus-within{ border-color:var(--ink); }
+  .budget .champs span.eur{ color:var(--muted); font-size:14px; }
+  .correspondance{ display:inline-flex; align-items:center; gap:8px; margin:2px 0 8px; padding:6px 12px; border-radius:var(--pill); background:color-mix(in srgb, var(--accent) 20%, transparent); font-size:13.5px; font-weight:600; }
 
   .corps{ max-width:1200px; margin:0 auto; padding:30px 24px 90px; display:grid; grid-template-columns:minmax(0,1fr) 440px; gap:24px; align-items:start; }
   @media(max-width:1060px){ .corps{ grid-template-columns:1fr; } }
@@ -151,6 +161,17 @@
     <button type="button" data-m="onglerie" aria-pressed="false"><i class="ph ph-hand-heart" aria-hidden="true"></i>Onglerie</button>
     <button type="button" data-m="massage" aria-pressed="false"><i class="ph ph-leaf" aria-hidden="true"></i>Massage et spa</button>
   </div>
+  <div class="budget" role="group" aria-label="Budget">
+    <span class="titre"><i class="ph ph-coins" aria-hidden="true"></i>Budget</span>
+    <div class="puces" id="puces-budget">
+      <button type="button" data-min="" data-max="" aria-pressed="true">Tous budgets</button>
+      <button type="button" data-min="" data-max="30" aria-pressed="false">Moins de 30 €</button>
+      <button type="button" data-min="30" data-max="60" aria-pressed="false">30 à 60 €</button>
+      <button type="button" data-min="60" data-max="100" aria-pressed="false">60 à 100 €</button>
+      <button type="button" data-min="100" data-max="" aria-pressed="false">Plus de 100 €</button>
+    </div>
+    <div class="champs"><label for="bmin">De</label><input type="number" id="bmin" min="0" step="5" inputmode="numeric" placeholder="0"><label for="bmax">à</label><input type="number" id="bmax" min="0" step="5" inputmode="numeric" placeholder="∞"><span class="eur">€</span></div>
+  </div>
 </section>
 
 <main class="corps">
@@ -198,7 +219,8 @@
 
   async function chercher(){
     const p = new URLSearchParams();
-    const vals = { q:document.getElementById('q').value.trim(), ville:document.getElementById('ville').value.trim(), public:document.getElementById('public').value, metier };
+    const vals = { q:document.getElementById('q').value.trim(), ville:document.getElementById('ville').value.trim(), public:document.getElementById('public').value, metier,
+      budget_min:document.getElementById('bmin').value.trim(), budget_max:document.getElementById('bmax').value.trim() };
     Object.entries(vals).forEach(([k, v]) => { if(v) p.set(k, v); });
     // L'adresse garde le mode démo (demo.html) quand on recherche.
     const url = new URLSearchParams(p); if(new URLSearchParams(location.search).get('demo') === '1') url.set('demo', '1');
@@ -209,7 +231,7 @@
       if(!r.ok) throw 0;
       const { praticiens } = await r.json();
       if(!praticiens?.length){
-        grille.innerHTML = '<div class="vide"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><h3>Aucun salon trouvé</h3><p>Essayez une autre ville ou une autre catégorie.</p><button class="btn" type="button" id="effacer">Effacer les filtres</button></div>';
+        grille.innerHTML = '<div class="vide"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><h3>Aucun salon trouvé</h3><p>Essayez une autre ville, une autre catégorie ou un budget plus large.</p><button class="btn" type="button" id="effacer">Effacer les filtres</button></div>';
         document.getElementById('effacer').addEventListener('click', effacerFiltres);
         compte.textContent = 'Aucun résultat.'; majCarte([]); return;
       }
@@ -225,8 +247,9 @@
             <h3>${esc(x.nom)}</h3>
             <div class="meta">${esc(LIB[x.metier] || 'Autre')}${x.ville ? ', ' + esc(x.ville) : ''}</div>
             ${pub.length ? `<div class="etiquettes">${pub.map(q => `<span>${q === 'femme' ? 'Femme' : 'Homme'}</span>`).join('')}</div>` : ''}
+            ${x.correspondance ? `<div class="correspondance"><i class="ph ph-tag" aria-hidden="true"></i>${esc(x.correspondance.libelle)} : ${Number(x.correspondance.prix).toFixed(0)} €${x.correspondance.nb > 1 ? ` (+${x.correspondance.nb - 1})` : ''}</div>` : ''}
             <p class="desc">${esc(x.description || '')}</p>
-            <div class="bas"><span class="prix">${x.prix_a_partir_de != null ? `Dès <b>${Number(x.prix_a_partir_de).toFixed(0)} €</b>` : ''}</span><span class="btn">Réserver</span></div>
+            <div class="bas"><span class="prix">${x.prix_a_partir_de != null ? (x.prix_max && x.prix_max > x.prix_a_partir_de ? `De <b>${Number(x.prix_a_partir_de).toFixed(0)}</b> à <b>${Number(x.prix_max).toFixed(0)} €</b>` : `Dès <b>${Number(x.prix_a_partir_de).toFixed(0)} €</b>`) : ''}</span><span class="btn">Réserver</span></div>
           </div></a>`;
       }).join('');
       majCarte(praticiens);
@@ -238,8 +261,8 @@
   }
 
   function effacerFiltres(){
-    ['q', 'ville', 'public'].forEach(id => { document.getElementById(id).value = ''; });
-    metier = '';
+    ['q', 'ville', 'public', 'bmin', 'bmax'].forEach(id => { document.getElementById(id).value = ''; });
+    metier = ''; majPucesBudget();
     document.querySelectorAll('#puces button').forEach(o => o.setAttribute('aria-pressed', o.dataset.m === ''));
     chercher();
   }
@@ -248,6 +271,17 @@
   let minuterie;
   ['q', 'ville'].forEach(id => document.getElementById(id).addEventListener('input', () => { clearTimeout(minuterie); minuterie = setTimeout(chercher, 350); }));
   document.getElementById('public').addEventListener('change', chercher);
+
+  // Budget : puces prédéfinies ET fourchette libre (les deux se répondent).
+  function majPucesBudget(){
+    const mn = document.getElementById('bmin').value.trim(), mx = document.getElementById('bmax').value.trim();
+    document.querySelectorAll('#puces-budget button').forEach(o => o.setAttribute('aria-pressed', o.dataset.min === mn && o.dataset.max === mx));
+  }
+  document.querySelectorAll('#puces-budget button').forEach(b => b.addEventListener('click', () => {
+    document.getElementById('bmin').value = b.dataset.min; document.getElementById('bmax').value = b.dataset.max;
+    majPucesBudget(); chercher();
+  }));
+  ['bmin', 'bmax'].forEach(id => document.getElementById(id).addEventListener('input', () => { majPucesBudget(); clearTimeout(minuterie); minuterie = setTimeout(chercher, 450); }));
 
   // Puces de catégorie
   document.querySelectorAll('#puces button').forEach(b => b.addEventListener('click', () => {
@@ -269,6 +303,9 @@
   // État initial depuis l'URL
   const init = new URLSearchParams(location.search);
   ['q', 'ville', 'public'].forEach(id => { if(init.get(id)) document.getElementById(id).value = init.get(id); });
+  if(init.get('budget_min')) document.getElementById('bmin').value = init.get('budget_min');
+  if(init.get('budget_max')) document.getElementById('bmax').value = init.get('budget_max');
+  majPucesBudget();
   if(init.get('metier')){ metier = init.get('metier'); document.querySelectorAll('#puces button').forEach(o => o.setAttribute('aria-pressed', o.dataset.m === metier)); }
   chercher();
 </script>
