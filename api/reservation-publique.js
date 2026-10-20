@@ -27,7 +27,7 @@
 
 import { icsParId, pieceJointe } from './_ics.js';
 
-import { contexte, occupes as chargerOccupes, choisirRessource } from './_dispo.js';
+import { contexte, occupes as chargerOccupes, choisirRessource, chargerCreux, remiseCreux, prixRemise, repartirCentimes } from './_dispo.js';
 import { smsConfirmation } from './_sms.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -301,10 +301,13 @@ export default async function handler(req, res){
   const prestationsParId = new Map(prestations.map(p => [p.id, p]));
   const prestationsOrdonnees = prestationIds.map(id => prestationsParId.get(id));
   const dureeMinutesTotale = prestationsOrdonnees.reduce((s, p) => s + (Number(p.duree_minutes) || 0), 0);
-  const montantTTC = prestationsOrdonnees.reduce((s, p) => {
+  const montantBrutTTC = prestationsOrdonnees.reduce((s, p) => {
     const taux = Number(p.tva_taux) || 0;
     return s + Number(p.prix_unitaire) * (1 + taux / 100);
   }, 0);
+  // Heures creuses : si le créneau choisi est dans la plage remisée du salon, le prix baisse. Seul le serveur décide.
+  const remisePct = remiseCreux(await chargerCreux(ownerId), dateDebut);
+  const montantTTC = prixRemise(montantBrutTTC, remisePct);
   const libelleCombine = prestationsOrdonnees.map(p => p.libelle).join(' + ');
   // Représentant unique pour les colonnes historiques (rendez_vous.prestation_id,
   // affichage à un seul champ dans agenda.html) — toujours la première
@@ -394,7 +397,7 @@ export default async function handler(req, res){
   const paiementRequis = stripeActif && aPayerEnLigneCentimes > 0;
   const modeEnregistre = stripeActif ? mode : 'sur_place';
   // Colonnes schema-v19 : ajoutées seulement si présentes en base (voir insertSouple).
-  const infosPaiement = { paiement_mode: modeEnregistre, total_ttc: montantTTC, reste_sur_place: resteSurPlace };
+  const infosPaiement = { paiement_mode: modeEnregistre, total_ttc: montantTTC, reste_sur_place: resteSurPlace, remise_pct: remisePct };
 
   if(paiementRequis){
     const montantCentimes = aPayerEnLigneCentimes;
@@ -449,6 +452,8 @@ export default async function handler(req, res){
       nomPraticien = profils[0]?.business_name || profils[0]?.full_name || 'Mirrio';
     }catch(e){ /* pas bloquant : "Mirrio" par défaut sur la page Stripe */ }
 
+    const lignesRemisees = remisePct > 0
+      ? repartirCentimes(prestationsOrdonnees.map(p => Math.round(Number(p.prix_unitaire) * (1 + (Number(p.tva_taux) || 0) / 100) * 100)), totalCentimes) : [];
     const origine = `https://${req.headers.host}`;
     let session;
     try{
@@ -462,14 +467,15 @@ export default async function handler(req, res){
           ? [{ quantity: 1, price_data: { currency: 'eur', unit_amount: montantCentimes,
               product_data: { name: `Acompte, ${libelleCombine} chez ${nomPraticien}`,
                 description: `Acompte déduit du prix final, non remboursé en cas d'absence. Reste ${(resteSurPlace).toFixed(2).replace('.', ',')} € à régler en espèces au salon.` } } }]
-          : prestationsOrdonnees.map(p => {
+          : prestationsOrdonnees.map((p, i) => {
               const taux = Number(p.tva_taux) || 0;
               const montant = Number(p.prix_unitaire) * (1 + taux / 100);
               return {
                 quantity: 1,
                 price_data: {
                   currency: 'eur',
-                  unit_amount: Math.round(montant * 100),
+                  // Avec une remise, les lignes sont recalculées pour que leur somme soit exactement le total remisé.
+                  unit_amount: remisePct > 0 ? lignesRemisees[i] : Math.round(montant * 100),
                   product_data: { name: `${p.libelle} chez ${nomPraticien}` }
                 }
               };

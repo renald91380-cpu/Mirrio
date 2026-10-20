@@ -1,6 +1,6 @@
 // Mirrio — annuaire public des praticiens (site/explorer.html, site/pro.html).
 //
-//   GET /api/annuaire?q=<texte>&ville=<ville>&metier=<metier>&public=<femme|homme>&budget_min=<€>&budget_max=<€>   → liste
+//   GET /api/annuaire?q=<texte>&ville=<ville>&metier=<metier>&public=<femme|homme>&budget_min=<€>&budget_max=<€>&promo=1   → liste (promo=1 : salons avec heures creuses)
 //     Le budget (TTC, en euros) s'applique aux PRESTATIONS : un salon est retenu s'il propose au moins une prestation
 //     dans la fourchette (celles qui correspondent à la recherche `q` si elle en désigne, et au public choisi).
 //   GET /api/annuaire?slug=<slug>                                → fiche détaillée
@@ -90,20 +90,24 @@ export default async function handler(req, res){
     const publicCible = ['femme', 'homme'].includes(params.get('public')) ? params.get('public') : '';
     const nombre = v => { const n = Number(String(v || '').replace(',', '.')); return v !== null && v !== '' && isFinite(n) && n >= 0 ? n : null; };
     const budgetMin = nombre(params.get('budget_min')), budgetMax = nombre(params.get('budget_max'));
+    const seulementPromo = params.get('promo') === '1';
 
     const fiches = await supabase(
       `parametres_reservation?activee=eq.true&visible_annuaire=eq.true&slug=not.is.null&select=${FICHE_COLS}&limit=500`);
     if(!fiches.length) return json(res, 200, { praticiens: [] });
 
     const ids = fiches.map(f => f.owner_id).join(',');
-    const [profils, villes, prestations, avis, vitrines] = await Promise.all([
+    const [profils, villes, prestations, avis, vitrines, creuxLignes] = await Promise.all([
       supabase(`profiles?id=in.(${ids})&select=id,business_name,full_name,logo_url,metier`),
       supabase(`parametres_facturation?owner_id=in.(${ids})&select=owner_id,emetteur_ville`),
       supabase(`prestations?owner_id=in.(${ids})&actif=eq.true&select=owner_id,libelle,prix_unitaire,tva_taux,public_cible`)
         .catch(() => supabase(`prestations?owner_id=in.(${ids})&actif=eq.true&select=owner_id,libelle,prix_unitaire,tva_taux`)),
       supabase(`avis?owner_id=in.(${ids})&masque=eq.false&select=owner_id,note`),
-      supabase(`vitrine?owner_id=in.(${ids})&select=owner_id,cover_url,galerie`).catch(() => [])
+      supabase(`vitrine?owner_id=in.(${ids})&select=owner_id,cover_url,galerie`).catch(() => []),
+      // Heures creuses (schema-v24) : salons qui proposent une remise sur certains créneaux.
+      supabase(`parametres_reservation?owner_id=in.(${ids})&creux_actif=eq.true&select=owner_id,creux_pourcentage`).catch(() => [])
     ]);
+    const creuxParId = Object.fromEntries(creuxLignes.map(c => [c.owner_id, Number(c.creux_pourcentage) || null]));
     const vitParId = Object.fromEntries(vitrines.map(v => [v.owner_id, v]));
     const profilParId = Object.fromEntries(profils.map(p => [p.id, p]));
     const villeParId = Object.fromEntries(villes.map(v => [v.owner_id, v.emetteur_ville]));
@@ -139,6 +143,7 @@ export default async function handler(req, res){
         prix_a_partir_de: px && isFinite(px.min) ? arrondi(px.min) : null,
         prix_max: px && px.max ? arrondi(px.max) : null,
         correspondance,
+        creux: creuxParId[f.owner_id] || null,
         _ok_budget: (budgetMin == null && budgetMax == null) || dansBudget.length > 0,
         _ok_texte: !q || parTexte.length > 0,
         nb_prestations: px ? px.n : 0,
@@ -151,6 +156,7 @@ export default async function handler(req, res){
       .filter(x => !ville || normaliser(x.ville).includes(ville))
       .filter(x => !q || x._ok_texte || normaliser(`${x.nom} ${x.description || ''} ${x.metier}`).includes(q))
       .filter(x => x._ok_budget)
+      .filter(x => !seulementPromo || x.creux)
       .sort((a, b) => (b.note_moyenne ?? 0) - (a.note_moyenne ?? 0) || a.nom.localeCompare(b.nom, 'fr'));
 
     praticiens.forEach(x => { delete x._ok_budget; delete x._ok_texte; });

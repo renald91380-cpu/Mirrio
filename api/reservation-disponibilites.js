@@ -28,7 +28,7 @@ import avis from './_avis.js';
 import rdvIcs from './_rdv-ics.js';
 import vitrine from './_vitrine.js';
 import client from './_client.js';
-import { contexte, occupes, creneauxDuJour, composantsParis, parisVersUtc, get as getDispo } from './_dispo.js';
+import { contexte, occupes, creneauxDuJour, composantsParis, parisVersUtc, get as getDispo, chargerCreux, remiseCreux } from './_dispo.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -164,7 +164,10 @@ export default async function handler(req, res){
     catch(e){ return json(res, 503, { error: 'Page de réservation temporairement indisponible.' }); }
 
     const creneaux = creneauxDuJour(ctx, busy, { annee, mois, jour }, intervenantId).map(c => c.iso);
-    return json(res, 200, { date: dateStr, creneaux });
+    // Heures creuses : les créneaux concernés portent une remise, affichée avant la réservation (le serveur recalcule au paiement).
+    const creux = await chargerCreux(ownerId);
+    const enPromo = creux ? creneaux.filter(iso => remiseCreux(creux, new Date(iso)) > 0) : [];
+    return json(res, 200, { date: dateStr, creneaux, promo: enPromo.length ? { pourcentage: creux.pourcentage, creneaux: enPromo } : null });
   }
 
   // -------------------------------------------------- appel « bootstrap »
@@ -200,6 +203,7 @@ export default async function handler(req, res){
   affectations.forEach(a => { (parIntervenant[a.intervenant_id] = parIntervenant[a.intervenant_id] || new Set()).add(a.prestation_id); });
   prestations = prestations.map(p => ({ ...p, intervenants: intervenants.filter(i => !parIntervenant[i.id] || parIntervenant[i.id].has(p.id)).map(i => i.id) }));
 
+  const creuxActif = await chargerCreux(ownerId);
   const profil = profils[0] || {};
   const paiement = paiements[0];
   const paiementRequis = !!(paiement?.stripe_actif && paiement?.stripe_secret_key);
@@ -218,6 +222,8 @@ export default async function handler(req, res){
     validation_auto: validationAuto,
     prestations,
     paiement_requis: paiementRequis,
+    // Heures creuses (schema-v24) : null si le salon n'en propose pas.
+    creux: creuxActif ? { pourcentage: creuxActif.pourcentage, jours: creuxActif.jours, debut: String(creuxActif.debut).slice(0, 5), fin: String(creuxActif.fin).slice(0, 5) } : null,
     // Choix proposé au client : CB (total en ligne) ou espèces (acompte en ligne, solde au salon).
     paiement: {
       en_ligne: paiementRequis,

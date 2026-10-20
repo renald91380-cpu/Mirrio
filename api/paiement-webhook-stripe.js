@@ -431,6 +431,8 @@ async function traiterConfirmationReservation({ rdv, session, ownerId, stripeSec
     // Mode « espèces » : seul l'acompte a été réglé par carte. La facture porte le
     // prix total, reste « envoyée » (non payée) et mentionne le solde à encaisser au
     // salon ; le praticien la passe en payée depuis l'Agenda (« Espèces reçues »).
+    // Heures creuses : la remise appliquée à la réservation (rendez_vous.remise_pct) se répercute sur les lignes de la facture.
+    const remise = Number(rdv.remise_pct) || 0, facteur = 1 - remise / 100;
     const surPlace = rdv.paiement_mode === 'sur_place';
     const acompte = Number(resultat.paiement_montant) || 0;
     const reste = Number(rdv.reste_sur_place) || 0;
@@ -442,8 +444,8 @@ async function traiterConfirmationReservation({ rdv, session, ownerId, stripeSec
       type: 'facture',
       statut: surPlace ? 'envoye' : 'paye',
       notes: surPlace
-        ? `Acompte de ${eur(acompte)} réglé par carte (Stripe) le ${dateJour}, déduit du total. Reste à régler en espèces sur place : ${eur(reste)}.`
-        : `Réservation en ligne réglée par carte (Stripe) le ${dateJour}.`
+        ? `Acompte de ${eur(acompte)} réglé par carte (Stripe) le ${dateJour}, déduit du total. Reste à régler en espèces sur place : ${eur(reste)}.${remise ? ` Remise heures creuses de ${remise} % appliquée.` : ''}`
+        : `Réservation en ligne réglée par carte (Stripe) le ${dateJour}.${remise ? ` Remise heures creuses de ${remise} % appliquée.` : ''}`
     });
     const doc = docs[0];
     // Lien rendez-vous → facture, pour que « Espèces reçues » puisse la marquer payée.
@@ -454,7 +456,7 @@ async function traiterConfirmationReservation({ rdv, session, ownerId, stripeSec
         document_id: doc.id,
         description: p.libelle,
         quantite: 1,
-        prix_unitaire: p.prix_unitaire,
+        prix_unitaire: remise ? Math.round(Number(p.prix_unitaire) * facteur * 10000) / 10000 : p.prix_unitaire,
         position: i,
         tva_taux: p.tva_taux || 0
       })));
@@ -485,7 +487,7 @@ async function traiterConfirmationReservation({ rdv, session, ownerId, stripeSec
           reference: doc.numero || String(rdv.id).slice(0, 8).toUpperCase(),
           debut: resultat.date_debut, fin: resultat.date_fin, avec: nomIntervenantEmail, adresse: adresseSalon,
           lignes: prestationsOrdonnees.length
-            ? prestationsOrdonnees.map(p => ({ libelle: p.libelle, prix: Number(p.prix_unitaire) * (1 + (Number(p.tva_taux) || 0) / 100) }))
+            ? prestationsOrdonnees.map(p => ({ libelle: p.libelle, prix: Number(p.prix_unitaire) * facteur * (1 + (Number(p.tva_taux) || 0) / 100) }))
             : [{ libelle: libelleCombine || 'Prestation', prix: acompte + reste }],
           acompteDeduit: surPlace ? acompte : 0, reste: surPlace ? reste : 0,
           paiement: { montant: Number(resultat.paiement_montant) || acompte, date: new Date().toISOString(), moyen: 'Carte bancaire' },

@@ -976,6 +976,24 @@
             <label for="resa-validation-auto" style="margin:0;">Confirmer automatiquement les réservations</label>
           </div>
           <div class="hint" style="margin-bottom:12px;">Le créneau est confirmé tout de suite quand la personne choisie est libre : rien à valider à la main. Décochez pour garder chaque demande « en attente » jusqu'à votre accord.</div>
+          <h3 style="margin:26px 0 6px; font-size:15px;">Heures creuses : remplissez vos créneaux vides</h3>
+          <div class="field" style="display:flex; align-items:center; gap:10px; margin:6px 0 4px;">
+            <input type="checkbox" id="resa-creux-actif" data-bind="reservation.creux_actif" style="width:20px; height:20px;">
+            <label for="resa-creux-actif" style="margin:0;">Proposer un prix réduit sur certains créneaux</label>
+          </div>
+          <div class="hint" style="margin-bottom:10px;">Vos clients voient la remise sur chaque créneau concerné avant de réserver, et vous gagnez des rendez-vous là où votre agenda est vide. Le prix, l'acompte et la facture suivent automatiquement. Une remise de 15 % sur un créneau vide rapporte plus qu'un créneau qui reste vide.</div>
+          <div id="resa-creux-detail" style="margin-bottom:14px;">
+            <div class="grid-3">
+              <div class="field">
+                <label for="resa-creux-pct">Remise</label>
+                <select id="resa-creux-pct" data-bind="reservation.creux_pourcentage"><option value="5">5 %</option><option value="10">10 %</option><option value="15">15 %</option><option value="20">20 %</option><option value="25">25 %</option><option value="30">30 %</option><option value="40">40 %</option><option value="50">50 %</option></select>
+              </div>
+              <div class="field"><label for="resa-creux-debut">De</label><input type="time" id="resa-creux-debut" data-bind="reservation.creux_heure_debut"></div>
+              <div class="field"><label for="resa-creux-fin">À</label><input type="time" id="resa-creux-fin" data-bind="reservation.creux_heure_fin"></div>
+            </div>
+            <div class="field"><label>Jours concernés</label><div id="resa-creux-jours" style="display:flex; gap:8px; flex-wrap:wrap;"></div></div>
+          </div>
+
           <div class="field" style="display:flex; align-items:center; gap:10px; margin:14px 0 4px;">
             <input type="checkbox" id="resa-rappel-email" data-bind="reservation.rappel_email" style="width:20px; height:20px;">
             <label for="resa-rappel-email" style="margin:0;">Rappeler le rendez-vous par email la veille</label>
@@ -1367,6 +1385,7 @@
     majVocabDemo();
     majExemplesNumero();
     monterJoursReservation();
+    monterJoursCreux();
     photosEl.value = (reservation.photos || []).join('\n');
     majGeoAffichage();
     majApercuReservation();
@@ -1465,6 +1484,29 @@
       });
     });
   }
+
+  // Heures creuses : jours concernés (même présentation que les jours ouverts) et affichage conditionnel du détail.
+  function monterJoursCreux(){
+    const cont = document.getElementById('resa-creux-jours');
+    const actifs = new Set(reservation.creux_jours || [2,3,4]);
+    cont.innerHTML = JOURS_LABELS.map((label, i) => `
+      <label style="display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border:1px solid rgba(28,35,51,0.16); border-radius:7px; font-size:13px; cursor:pointer;">
+        <input type="checkbox" value="${i}" ${actifs.has(i) ? 'checked' : ''} style="width:16px;height:16px;">
+        ${label}
+      </label>`).join('');
+    cont.querySelectorAll('input[type="checkbox"]').forEach(el => el.addEventListener('change', () => {
+      const set = new Set(reservation.creux_jours || [2,3,4]);
+      if(el.checked) set.add(Number(el.value)); else set.delete(Number(el.value));
+      reservation.creux_jours = [...set].sort((a, b) => a - b);
+      majBarre();
+    }));
+    majDetailCreux();
+  }
+  function majDetailCreux(){
+    const actif = document.getElementById('resa-creux-actif').checked;
+    document.getElementById('resa-creux-detail').style.display = actif ? '' : 'none';
+  }
+  document.getElementById('resa-creux-actif').addEventListener('change', majDetailCreux);
 
   function majApercuReservation(){
     const pret = !!(reservation.activee && reservation.slug);
@@ -2419,6 +2461,16 @@
       return;
     }
 
+    // Heures creuses : au moins un jour et une plage horaire cohérente, sinon la remise ne s'appliquerait jamais.
+    if(reservation.creux_actif){
+      const d = String(reservation.creux_heure_debut || '').slice(0, 5), f = String(reservation.creux_heure_fin || '').slice(0, 5);
+      if(!(reservation.creux_jours || []).length || !d || !f || f <= d){
+        activerOnglet('reservation');
+        showToast('Heures creuses : choisissez au moins un jour et une plage horaire valide.', true);
+        return;
+      }
+    }
+
     saveBtn.disabled = true;
     saveBtn.textContent = 'Enregistrement…';
 
@@ -2574,7 +2626,8 @@
       activee: false, slug: null, validation_auto: true, rappel_email: true, rappel_sms: false,
       jours_ouvres: [1,2,3,4,5],
       heure_debut: '09:00', heure_fin: '18:00',
-      intervalle_minutes: 30, delai_min_heures: 24, horizon_jours: 30
+      intervalle_minutes: 30, delai_min_heures: 24, horizon_jours: 30,
+      creux_actif: false, creux_pourcentage: 15, creux_jours: [2,3,4], creux_heure_debut: '09:00', creux_heure_fin: '12:00'
     };
     delete reservation.owner_id;
 

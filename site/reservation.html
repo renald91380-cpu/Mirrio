@@ -62,6 +62,11 @@
   .retour{ display:inline-flex; align-items:center; gap:6px; min-height:44px; padding:0 4px; margin:-8px 0 8px -4px; font-size:14px; font-weight:600; color:var(--muted); background:none; border:none; cursor:pointer; border-radius:var(--rayon); }
   .retour:hover{ color:var(--ink); }
 
+  .creneau-btn.promo{ border-color:var(--c); background:var(--c-doux); }
+  .creneau-btn .tag-promo{ display:block; font-size:11px; font-weight:700; color:var(--ink); line-height:1.2; margin-top:1px; }
+  .legende-promo{ display:flex; align-items:center; gap:8px; margin:0 0 12px; padding:9px 14px; border-radius:999px; background:var(--c-doux); font-size:13.5px; font-weight:600; width:fit-content; }
+  .bandeau-creux{ display:flex; align-items:center; gap:10px; margin:0 0 16px; padding:11px 16px; border-radius:16px; background:var(--c-doux); font-size:14px; line-height:1.4; }
+  .bandeau-creux b{ font-weight:700; }
   /* ---------- étape 1 : prestations ---------- */
   .onglets{ display:inline-flex; background:var(--bg); border:1px solid var(--trait); border-radius:var(--rayon); padding:4px; margin-bottom:16px; }
   .onglets button{ border:none; background:none; min-height:44px; padding:8px 22px; border-radius:var(--rayon); font:600 14.5px var(--corps); color:var(--muted); cursor:pointer; }
@@ -180,6 +185,7 @@
 <meta name="theme-color" content="#101216">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <script src="demo-mode.js"></script>
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1" defer></script>
 </head>
 <body>
 <a class="evitement" href="#principal">Aller à la réservation</a>
@@ -206,6 +212,7 @@
           <h2 id="t-prestation" tabindex="-1">Choisissez vos prestations</h2>
           <p class="sub">Une ou plusieurs, elles seront enchaînées sur un même créneau.</p>
           <div id="zone-onglets"></div>
+          <div class="bandeau-creux" id="bandeau-creux" hidden></div>
           <div class="liste-prestations" id="liste-prestations"></div>
           <div class="creneau-vide" id="note-aucune-prestation" hidden>Aucune prestation n'est disponible à la réservation pour le moment.</div>
           <div class="alerte" id="alerte-prestations" role="alert" hidden></div>
@@ -305,7 +312,10 @@
   const etapesActives = () => ['etape-prestation', ...(avecEquipe() ? ['etape-intervenant'] : []), 'etape-date', 'etape-form'];
 
   let bootstrap = null;
-  let fermee = false;               // salon sans paiement en ligne : pas de réservation
+  let fermee = false;
+  // Heures creuses : créneaux remisés du jour affiché, et remise du créneau choisi (le serveur recalcule le prix au paiement).
+  let remisePct = 0, promoPct = 0, promoSet = new Set();
+  const prixDu = () => { const p = totaux(prestationsChoisies).prix; return remisePct > 0 ? Math.round(p * (100 - remisePct)) / 100 : p; };               // salon sans paiement en ligne : pas de réservation
   // Une ou plusieurs prestations choisies ensemble (ex. « Coupe + Couleur »).
   // L'ordre reflète l'ordre de sélection, conservé jusqu'au serveur pour que
   // l'itemisation (facture, reçu Stripe) suive le même ordre.
@@ -349,7 +359,7 @@
   // CB = tout en ligne ; espèces = acompte en ligne (garantie anti no-show) + solde au salon.
   const modePaiement = () => (document.querySelector('input[name=mode]:checked') || {}).value || 'en_ligne';
   function infosPaiement(){
-    const total = totaux(prestationsChoisies).prix;
+    const total = prixDu();
     const cfg = bootstrap.paiement || { en_ligne:false, especes:true };
     if(!cfg.en_ligne) return { mode:'sur_place', maintenant:0, reste:total, total, choix:false };
     const acompte = calculerAcompte(total, cfg);
@@ -362,7 +372,7 @@
 
   function majChoixMode(){
     const cfg = bootstrap.paiement || { en_ligne:false };
-    const total = totaux(prestationsChoisies).prix;
+    const total = prixDu();
     const acompte = cfg.en_ligne ? calculerAcompte(total, cfg) : 0;
     const especesPossible = cfg.en_ligne && cfg.especes && acompte < total;
     $('choix-mode').hidden = !especesPossible;
@@ -410,7 +420,8 @@
     }else{
       const t = totaux(prestationsChoisies);
       corps.innerHTML = `<ul>${prestationsChoisies.map(p => `<li><span>${echapperHtml(p.libelle)}</span><span>${formaterEuros(prixTTC(p))}</span></li>`).join('')}</ul>
-        <div class="total"><span>Total, ${formaterDuree(t.duree)}</span><strong>${formaterEuros(t.prix)}</strong></div>
+        ${etapeCourante === 'etape-form' && remisePct > 0 ? `<div class="total" style="border-top:0; padding-top:4px;"><span>Heures creuses, −${remisePct} %</span><span>− ${formaterEuros(t.prix - prixDu())}</span></div>` : ''}
+        <div class="total"><span>Total, ${formaterDuree(t.duree)}</span><strong>${formaterEuros(etapeCourante === 'etape-form' ? prixDu() : t.prix)}</strong></div>
         ${etapeCourante === 'etape-form' ? (() => { const i = infosPaiement(); return `<ul style="margin-top:10px;">${i.maintenant > 0 ? `<li><span>À payer maintenant (carte)</span><strong>${formaterEuros(i.maintenant)}</strong></li>` : ''}${i.reste > 0 ? `<li><span>Au salon (espèces)</span><strong>${formaterEuros(i.reste)}</strong></li>` : ''}</ul>`; })() : ''}
         ${intervenantChoisi !== 'any' && intervenantParId(intervenantChoisi) && etapeCourante !== 'etape-prestation' ? `<div class="quand" style="background:transparent; padding:12px 0 0; font-weight:500;">Avec ${echapperHtml(intervenantParId(intervenantChoisi).nom)}</div>` : ''}
         ${creneauChoisi && etapeCourante !== 'etape-prestation' && etapeCourante !== 'etape-date' ? `<div class="quand">${echapperHtml(quand(creneauChoisi))}</div>` : ''}`;
@@ -585,11 +596,15 @@
     }
     // Regroupement matin / après-midi / soir : on scanne bien plus vite qu'une longue grille.
     const groupes = [['Matin', c => heureParis(c) < 12], ['Après-midi', c => heureParis(c) >= 12 && heureParis(c) < 18], ['Soir', c => heureParis(c) >= 18]];
-    zone.innerHTML = groupes.map(([nom, test]) => {
+    promoSet = new Set(payload.promo ? payload.promo.creneaux : []); promoPct = payload.promo ? payload.promo.pourcentage : 0;
+    const bouton = c => promoSet.has(c)
+      ? boutonCreneau(c).replace('class="creneau-btn"', 'class="creneau-btn promo"').replace('</button>', `<span class="tag-promo">−${promoPct} %</span></button>`)
+      : boutonCreneau(c);
+    zone.innerHTML = (promoSet.size ? `<p class="legende-promo"><i class="ph ph-tag" aria-hidden="true"></i>Heures creuses : −${promoPct} % sur les créneaux signalés.</p>` : '') + groupes.map(([nom, test]) => {
       const liste = payload.creneaux.filter(test);
-      return liste.length ? `<div class="periode">${nom}</div><div class="creneaux-grille">${liste.map(boutonCreneau).join('')}</div>` : '';
+      return liste.length ? `<div class="periode">${nom}</div><div class="creneaux-grille">${liste.map(bouton).join('')}</div>` : '';
     }).join('');
-    zone.querySelectorAll('.creneau-btn').forEach(el => el.addEventListener('click', () => { creneauChoisi = el.dataset.iso; ouvrirEtapeForm(); }));
+    zone.querySelectorAll('.creneau-btn').forEach(el => el.addEventListener('click', () => { creneauChoisi = el.dataset.iso; remisePct = promoSet.has(el.dataset.iso) ? promoPct : 0; ouvrirEtapeForm(); }));
   }
 
   // ------------------------------------------------------------------- form
@@ -706,6 +721,13 @@
     $('lien-salon').href = salon; $('retour-salon').href = salon;
 
     rendrePrestations();
+    if(bootstrap.creux){
+      const hCreux = h => h.replace(/^0/, '').replace(':', 'h').replace(/h00$/, 'h');
+      const jr = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+      const noms = bootstrap.creux.jours.slice().sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)).map(j => jr[j]);
+      $('bandeau-creux').innerHTML = `<i class="ph ph-tag" aria-hidden="true"></i><span><b>−${bootstrap.creux.pourcentage} % aux heures creuses</b> : ${noms.join(', ')}, de ${hCreux(bootstrap.creux.debut)} à ${hCreux(bootstrap.creux.fin)}. Le prix baisse automatiquement sur ces créneaux.</span>`;
+      $('bandeau-creux').hidden = false;
+    }
     if(bootstrap.paiement_requis === false){
       fermee = true;
       const al = $('alerte-prestations'); al.innerHTML = '<strong>Réservation en ligne indisponible.</strong>Ce salon n\'a pas encore activé le paiement en ligne (acompte de 5 € minimum). Contactez-le directement.'; al.hidden = false;

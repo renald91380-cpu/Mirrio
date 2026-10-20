@@ -65,6 +65,7 @@
       nom: 'Maison Éloïse', metier: 'coiffure', ville: 'Paris 11e', accent: 'rose',
       adresse: '27 rue Oberkampf, 75011 Paris', latitude: 48.8650, longitude: 2.3790,
       jours: [2,3,4,5,6], debut: '09:30', fin: '19:00', pas: 30,
+      creux: { pourcentage: 15, jours: [2,3,4], debut: '09:30', fin: '12:00' },
       style: { accroche: 'Coiffure femme et homme. Colorations végétales, balayages sur mesure.', mise_en_page: 'classique', police: 'elegante', couleur: '#C25B7E', fond: 'creme', boutons: 'pilule',
         texte_bouton: 'Prendre rendez-vous', cover_url: c('Ricky Reyes salon interiorB.jpg'),
         galerie: [g('Drying hair in salon.jpg'), g('Salon interior.jpg'), g('Woman Weaves Hair in Salon 03.jpg'), g('Young men with trendy haircut at barber shop.jpg')],
@@ -140,6 +141,7 @@
       nom: cfg.nom, metier: cfg.metier, ville: cfg.ville, accent: 'ambre', adresse: cfg.ville, latitude: null, longitude: null,
       jours: [2,3,4,5,6], debut: '09:30', fin: '19:00', pas: 30,
       style: { accroche: cfg.accroche || '', mise_en_page: 'classique', police: 'moderne', couleur: cfg.couleur, fond: cfg.fond, boutons: 'pilule', texte_bouton: 'Prendre rendez-vous', cover_url: photo, galerie: [], a_propos: null },
+      creux: cfg.creux || null,
       paiement: cfg.paiement, equipe: cfg.equipe, prestations: cfg.prestations, avis: []
     };
   }
@@ -208,6 +210,12 @@
     });
     return Object.keys(par).map(Number).sort(function(x, y){ return x - y; }).map(function(t){ return { iso: parisVersUtc(a, mo, j, Math.floor(t / 60), t % 60).toISOString(), qui: par[t] }; });
   }
+  // Heures creuses : même règle que api/_dispo.js (jours + plage horaire du salon).
+  function remiseCreux(s, date){
+    if(!s.creux) return 0;
+    var c = composants(date), js = new Date(Date.UTC(c.annee, c.mois - 1, c.jour)).getUTCDay(), m = c.heure * 60 + c.minute;
+    return s.creux.jours.indexOf(js) >= 0 && m >= minutes(s.creux.debut) && m < minutes(s.creux.fin) ? s.creux.pourcentage : 0;
+  }
   var dureeDe = function(s, ids){ return ids.reduce(function(t, id){ return t + s.prestations.filter(function(p){ return p.id === id; })[0].duree; }, 0); };
   var jourStr = function(offset){ var c = composants(new Date()); return new Date(Date.UTC(c.annee, c.mois - 1, c.jour + offset)).toISOString().slice(0, 10); };
 
@@ -243,13 +251,13 @@
         var s = DEMOS[k], notes = s.avis.map(function(a){ return a[1]; }), pub = {};
         s.prestations.forEach(function(p){ if(p.public === 'mixte'){ pub.femme = pub.homme = 1; } else pub[p.public] = 1; });
         return { slug: k, nom: s.nom, metier: s.metier, ville: s.ville, logo_url: null, photo: s.style.cover_url, description: s.style.accroche, latitude: s.latitude, longitude: s.longitude,
-          prix_a_partir_de: Math.min.apply(null, s.prestations.map(function(p){ return p.prix; })), prix_max: Math.max.apply(null, s.prestations.map(function(p){ return p.prix; })), nb_prestations: s.prestations.length, publics: Object.keys(pub), _s: s,
+          prix_a_partir_de: Math.min.apply(null, s.prestations.map(function(p){ return p.prix; })), prix_max: Math.max.apply(null, s.prestations.map(function(p){ return p.prix; })), creux: s.creux ? s.creux.pourcentage : null, nb_prestations: s.prestations.length, publics: Object.keys(pub), _s: s,
           note_moyenne: notes.length ? Math.round(notes.reduce(function(a, b){ return a + b; }, 0) / notes.length * 10) / 10 : null, nb_avis: notes.length };
       });
       var norm = function(x){ return String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); };
       var qt = norm(q.get('q')), vi = norm(q.get('ville')), me = q.get('metier') || '', pu = q.get('public') || '';
       var nb = function(v){ var n = Number(String(v || '').replace(',', '.')); return v !== null && v !== '' && isFinite(n) && n >= 0 ? n : null; };
-      var bmin = nb(q.get('budget_min')), bmax = nb(q.get('budget_max'));
+      var bmin = nb(q.get('budget_min')), bmax = nb(q.get('budget_max')), soloPromo = q.get('promo') === '1';
       liste = liste.filter(function(x){
         var cand = x._s.prestations.filter(function(p){ return !pu || p.public === 'mixte' || p.public === pu; });
         var parTexte = qt ? cand.filter(function(p){ return norm(p.libelle).indexOf(qt) >= 0; }) : [];
@@ -258,6 +266,7 @@
         if(parTexte.length || bmin != null || bmax != null) x.correspondance = dans[0] ? { libelle: dans[0].libelle, prix: dans[0].prix, nb: dans.length } : null;
         var okTexte = !qt || parTexte.length > 0 || norm(x.nom + ' ' + x.description).indexOf(qt) >= 0;
         var okBudget = (bmin == null && bmax == null) || dans.length > 0;
+        if(soloPromo && !x.creux) return false;
         return (!me || x.metier === me) && (!pu || x.publics.indexOf(pu) >= 0) && (!vi || norm(x.ville).indexOf(vi) >= 0) && okTexte && okBudget;
       });
       liste.forEach(function(x){ delete x._s; });
@@ -290,6 +299,7 @@
           style: stylePourReservation(salon),
           intervenants: salon.equipe.map(function(i){ return { id: i.id, nom: i.nom, role: i.role, photo_url: null }; }),
           validation_auto: true, prestations: listePrestations(salon),
+          creux: salon.creux ? { pourcentage: salon.creux.pourcentage, jours: salon.creux.jours, debut: salon.creux.debut, fin: salon.creux.fin } : null,
           paiement_requis: salon.paiement.en_ligne, paiement: salon.paiement,
           reglages: { jours_ouvres: salon.jours, heure_debut: salon.debut, heure_fin: salon.fin, delai_min_heures: 2, horizon_jours: 21 }
         });
@@ -302,7 +312,9 @@
         var jours = []; for(var d = 0; d <= 21; d++){ var ds = jourStr(d); if(creneaux(salon, ids, duree, ds, qui).length) jours.push(ds); }
         return reponse({ jours: jours, raison: jours.length ? null : 'complet' });
       }
-      return reponse({ date: q.get('date'), creneaux: creneaux(salon, ids, duree, q.get('date'), qui).map(function(x){ return x.iso; }) });
+      var isos = creneaux(salon, ids, duree, q.get('date'), qui).map(function(x){ return x.iso; });
+      var promos = salon.creux ? isos.filter(function(iso){ return remiseCreux(salon, new Date(iso)) > 0; }) : [];
+      return reponse({ date: q.get('date'), creneaux: isos, promo: promos.length ? { pourcentage: salon.creux.pourcentage, creneaux: promos } : null });
     }
 
     // Réservation (simulée)
@@ -318,6 +330,7 @@
       var l = lire(); l.push({ slug: slug, interv: choisi, a: deb.getTime(), b: finD.getTime() }); ecrire(l);
 
       var total = idsR.reduce(function(t, id){ return t + pris(salon)[id].prix; }, 0), cfg = salon.paiement;
+      var remisePct = remiseCreux(salon, deb); if(remisePct > 0) total = Math.round(total * (100 - remisePct)) / 100;
       var acompte = Math.min(total, Math.max(5, cfg.acompte_minimum, Math.round(total * cfg.acompte_pourcentage) / 100));
       var surPlace = b.mode_paiement === 'sur_place' && cfg.especes && acompte < total;
       var aPayer = !cfg.en_ligne ? 0 : (surPlace ? acompte : total);

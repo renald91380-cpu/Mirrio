@@ -149,3 +149,38 @@ export function choisirRessource(ctx, busy, debutDate, intervenantId){
   candidats.sort((a, b) => charge(a) - charge(b));
   return { ok:true, intervenantId: candidats[0] ? candidats[0].id : null };
 }
+
+// ---------------------------------------------------------------- heures creuses
+// Remise proposée sur certains créneaux (jours + plage horaire choisis par le salon). Le serveur est seul juge du prix.
+// Absent ou désactivé (ou migration v24 pas passée) : aucune remise.
+export async function chargerCreux(ownerId){
+  try{
+    const l = await get(`parametres_reservation?owner_id=eq.${ownerId}&select=creux_actif,creux_pourcentage,creux_jours,creux_heure_debut,creux_heure_fin`);
+    const c = l[0];
+    if(!c || !c.creux_actif) return null;
+    return { pourcentage: Number(c.creux_pourcentage) || 0, jours: c.creux_jours || [], debut: c.creux_heure_debut, fin: c.creux_heure_fin };
+  }catch(e){ return null; }
+}
+
+// Pourcentage de remise applicable à un rendez-vous commençant à `debutDate` (0 = aucune).
+export function remiseCreux(creux, debutDate){
+  if(!creux || !(creux.pourcentage > 0)) return 0;
+  const c = composantsParis(debutDate);
+  const jourSemaine = new Date(Date.UTC(c.annee, c.mois - 1, c.jour)).getUTCDay();
+  if(!creux.jours.includes(jourSemaine)) return 0;
+  const m = c.heure * 60 + c.minute;
+  return m >= minutes(creux.debut) && m < minutes(creux.fin) ? creux.pourcentage : 0;
+}
+
+// Prix TTC après remise, arrondi au centime (même formule côté page : Math.round(prix * (100 - pct)) / 100).
+export const prixRemise = (prix, pct) => pct > 0 ? Math.round(prix * (100 - pct)) / 100 : prix;
+
+// Répartit un total remisé (en centimes) sur des lignes proportionnellement à leur prix brut, sans perdre un centime.
+export function repartirCentimes(bruts, totalCentimes){
+  const somme = bruts.reduce((s, b) => s + b, 0) || 1;
+  const lignes = bruts.map(b => Math.floor(b * totalCentimes / somme));
+  let reste = totalCentimes - lignes.reduce((s, l) => s + l, 0);
+  for(let i = 0; reste > 0; i = (i + 1) % lignes.length, reste--) lignes[i]++;
+  return lignes;
+}
+

@@ -137,7 +137,7 @@
     ['Paiement', 'Comment vos clients règlent', 'Toujours en direct : l\'argent va sur votre compte, sans commission.']
   ];
 
-  var etat = { i: 0, nom: 'Studio Aurore', ville: 'Nantes', metier: 'coiffure', prestations: [], equipe: [], couleur: '#E2A63D', fond: 'clair', mode: 'acompte', acompte: 5 };
+  var etat = { creux: true, i: 0, nom: 'Studio Aurore', ville: 'Nantes', metier: 'coiffure', prestations: [], equipe: [], couleur: '#E2A63D', fond: 'clair', mode: 'acompte', acompte: 5 };
   var idRef = 0;
   function chargerCatalogue(){
     etat.prestations = (CATALOGUES[etat.metier] || []).map(function(p, k){ return { id: 'p' + (++idRef), libelle: p[0], categorie: p[1], prix: p[2], duree: p[3], public: p[4], actif: true }; });
@@ -204,6 +204,7 @@
     return '<div class="champ" role="radiogroup" aria-label="Mode de règlement"><div class="lignes">' + opts.map(function(o){
       return '<label class="ligne" style="cursor:pointer;align-items:flex-start"><input type="radio" name="mode" value="' + o[0] + '"' + (etat.mode === o[0] ? ' checked' : '') + ' style="margin-top:3px"><span><b>' + o[1] + '</b><br><span class="meta" style="white-space:normal">' + o[2] + '</span></span></label>';
     }).join('') + '</div></div>' +
+    '<div class="champ"><label class="ligne" style="cursor:pointer;align-items:flex-start"><input type="checkbox" id="f-creux"' + (etat.creux ? ' checked' : '') + ' style="margin-top:3px"><span><b>Heures creuses : −15 % du mardi au jeudi matin</b><br><span class="meta" style="white-space:normal">Un prix réduit sur les créneaux vides, affiché au client avant de réserver. L\'acompte et la facture suivent automatiquement.</span></span></label></div>' +
     '<div class="champ" id="bloc-acompte"' + (etat.mode === 'acompte' ? '' : ' hidden') + '><label class="t" for="f-acompte">Acompte (€, 5 € minimum)</label><input type="number" id="f-acompte" min="5" max="100" value="' + etat.acompte + '" style="max-width:160px"></div>';
   }
   var VUES = [vueSalon, vuePrestations, vueEquipe, vueStyle, vuePaiement];
@@ -236,6 +237,7 @@
     e.querySelectorAll('input[name=couleur]').forEach(function(r){ r.addEventListener('change', function(){ etat.couleur = r.value; envoyerApercu(); }); });
     e.querySelectorAll('input[name=fond]').forEach(function(r){ r.addEventListener('change', function(){ etat.fond = r.value; envoyerApercu(); }); });
     e.querySelectorAll('input[name=mode]').forEach(function(r){ r.addEventListener('change', function(){ etat.mode = r.value; $('bloc-acompte').hidden = r.value !== 'acompte'; }); });
+    var cr = $('f-creux'); if(cr) cr.addEventListener('change', function(){ etat.creux = cr.checked; });
     var ac = $('f-acompte'); if(ac) ac.addEventListener('input', function(){ etat.acompte = Math.max(5, Number(ac.value) || 5); });
   }
 
@@ -256,6 +258,7 @@
     var cfg = {
       nom: etat.nom.trim(), ville: etat.ville.trim() || 'Votre ville', metier: etat.metier === 'therapeute' ? 'massage' : etat.metier, couleur: etat.couleur, fond: etat.fond,
       accroche: 'Réservez en ligne, 24h/24.',
+      creux: etat.creux ? { pourcentage: 15, jours: [2,3,4], debut: '09:30', fin: '12:00' } : null,
       paiement: { en_ligne: true, especes: etat.mode !== 'carte', acompte_minimum: Math.max(5, etat.acompte), acompte_pourcentage: 0 },
       equipe: etat.equipe.map(function(m, k){ return { id: 'n-' + k, nom: m.nom.trim(), role: m.role.trim() || 'Praticien·ne', bio: '', presta: m.presta.map(function(id){ return id; }) }; }),
       prestations: actives().map(function(p){ return { id: p.id, categorie: p.categorie, libelle: p.libelle, prix: p.prix, duree: p.duree, public: p.public }; })

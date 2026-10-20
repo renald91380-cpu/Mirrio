@@ -280,12 +280,14 @@ export default async function handler(req, res){
     // SMS de confirmation (si le salon l'a activé) : paiement PayPal reçu.
     await smsConfirmation({ rdvId: rdv.id, ownerId, telephone: client?.phone || rdv.prospect_telephone, origine });
 
+    // Heures creuses : remise appliquée à la réservation, répercutée sur la facture.
+    const remise = Number(rdv.remise_pct) || 0, facteur = 1 - remise / 100;
     const docs = await supabasePost('documents', {
       owner_id: ownerId,
       client_id: rdv.client_id,
       type: 'facture',
       statut: 'paye',
-      notes: `Réglée en ligne par PayPal le ${new Date().toLocaleDateString('fr-FR')}.`
+      notes: `Réglée en ligne par PayPal le ${new Date().toLocaleDateString('fr-FR')}.${remise ? ` Remise heures creuses de ${remise} % appliquée.` : ''}`
     });
     const doc = docs[0];
 
@@ -294,7 +296,7 @@ export default async function handler(req, res){
         document_id: doc.id,
         description: p.libelle,
         quantite: 1,
-        prix_unitaire: p.prix_unitaire,
+        prix_unitaire: remise ? Math.round(Number(p.prix_unitaire) * facteur * 10000) / 10000 : p.prix_unitaire,
         position: i,
         tva_taux: p.tva_taux || 0
       })));
@@ -320,7 +322,7 @@ export default async function handler(req, res){
           salon: nomEmetteur, logoUrl: profil.logo_url, titre: 'Rendez-vous confirmé',
           reference: doc.numero || String(rdv.id).slice(0, 8).toUpperCase(),
           debut: rdv.date_debut, fin: rdv.date_fin, avec, adresse,
-          lignes: prestationsOrdonnees.map(p => ({ libelle: p.libelle, prix: Number(p.prix_unitaire) * (1 + (Number(p.tva_taux) || 0) / 100) })),
+          lignes: prestationsOrdonnees.map(p => ({ libelle: p.libelle, prix: Number(p.prix_unitaire) * facteur * (1 + (Number(p.tva_taux) || 0) / 100) })),
           acompteDeduit: 0, reste: 0,
           paiement: { montant: Number(rdv.paiement_montant) || 0, date: new Date().toISOString(), moyen: 'PayPal' },
           boutons: [
