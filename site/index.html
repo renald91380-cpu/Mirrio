@@ -130,21 +130,30 @@
   @media(max-width:560px){ .bento{ grid-template-columns:1fr; } .c1,.c2,.c3,.c4,.c5{ grid-column:span 1; } .c1 h3{ font-size:30px; } }
 
   /* ---------- métiers : défilement ---------- */
-  .metiers{ background:var(--sombre); color:var(--sombre-ink); border-radius:44px; margin:0 14px; padding:96px 0; overflow:hidden; }
+  .metiers{ color:var(--sombre-ink); border-radius:44px; margin:0 14px; padding:96px 0; }
   .metiers h2{ margin-bottom:12px; } .metiers .lead{ color:var(--sombre-muted); max-width:52ch; font-size:18px; margin-bottom:44px; }
-  .rail-outils{ display:flex; gap:10px; margin-top:-8px; padding:0 0 18px; }
-  .rail-outils button{ width:48px; height:48px; border-radius:var(--pill); border:1.5px solid rgba(255,255,255,.22); background:transparent; color:var(--sombre-ink); cursor:pointer; display:grid; place-items:center; transition:border-color .3s, transform .35s var(--ease); }
-  .rail-outils button:hover{ border-color:var(--accent); transform:translateY(-2px); }
-  .rail{ display:flex; gap:16px; overflow-x:auto; scroll-snap-type:x mandatory; padding:4px 24px 26px max(24px, calc((100vw - 1200px) / 2 + 10px)); scrollbar-width:none; }
-  .rail::-webkit-scrollbar{ display:none; }
-  .metier{ flex:0 0 min(300px, 78vw); scroll-snap-align:start; border-radius:var(--r); padding:26px; min-height:360px; display:flex; flex-direction:column; justify-content:space-between; position:relative; overflow:hidden; background:#1C2028; border:1px solid rgba(255,255,255,.08); transition:transform .5s var(--ease), border-color .3s; }
-  .metier:hover{ transform:translateY(-6px); border-color:rgba(226,166,61,.6); }
-  .metier::before{ content:""; position:absolute; inset:0; opacity:.9; background:radial-gradient(120% 80% at var(--x,80%) var(--y,0%), rgba(226,166,61,.30), transparent 60%); }
-  .metier > *{ position:relative; }
-  .metier i.ph{ font-size:38px; color:var(--accent); }
-  .metier h3{ font-size:30px; font-weight:700; margin-bottom:8px; }
-  .metier p{ color:var(--sombre-muted); font-size:15px; }
-  .metier:nth-child(2){ --x:10%; --y:100%; } .metier:nth-child(3){ --x:90%; --y:90%; } .metier:nth-child(4){ --x:0%; --y:0%; } .metier:nth-child(5){ --x:60%; --y:40%; }
+  /* ---------- métiers : icônes façon iPhone, en verre liquide ---------- */
+  .metiers{ position:relative; isolation:isolate; overflow:hidden; background:linear-gradient(rgba(12,14,19,.8), rgba(12,14,19,.9)), var(--sombre) url('img/fond-site.webp') 60% 40%/cover no-repeat; }
+  .metiers::before{ content:""; position:absolute; inset:0; z-index:-1; pointer-events:none;
+    background:radial-gradient(420px 300px at 18% 70%, rgba(255,120,150,.32), transparent 70%), radial-gradient(460px 320px at 50% 25%, rgba(226,166,61,.34), transparent 70%), radial-gradient(420px 300px at 84% 72%, rgba(60,190,170,.28), transparent 70%); }
+  .icones{ display:flex; flex-wrap:wrap; justify-content:center; gap:34px 38px; margin-top:42px; }
+  .icone{ display:flex; flex-direction:column; align-items:center; gap:12px; width:112px; text-align:center; color:var(--sombre-ink); -webkit-tap-highlight-color:transparent; }
+  .verre{ position:relative; width:104px; height:104px; border-radius:30px; display:grid; place-items:center; overflow:hidden;
+    background:linear-gradient(145deg, rgba(255,255,255,.34) 0%, rgba(255,255,255,.1) 45%, rgba(255,255,255,.2) 100%), radial-gradient(90% 90% at 25% 15%, var(--t), transparent 75%), rgba(255,255,255,.06);
+    -webkit-backdrop-filter:blur(16px) saturate(190%); backdrop-filter:blur(16px) saturate(190%);
+    border:1px solid rgba(255,255,255,.3);
+    box-shadow:inset 2px 2px 1px rgba(255,255,255,.75), inset -1px -2px 2px rgba(255,255,255,.22), inset 0 -14px 22px -10px var(--t), 0 18px 34px -14px rgba(0,0,0,.65), 0 0 0 .5px rgba(0,0,0,.35);
+    transition:transform .45s var(--ease), box-shadow .45s var(--ease); }
+  .verre::before{ content:""; position:absolute; left:8%; right:8%; top:3%; height:46%; border-radius:26px 26px 60% 60% / 26px 26px 100% 100%; background:linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.04)); pointer-events:none; }
+  .verre i.ph-fill{ position:relative; font-size:50px; color:#fff; filter:drop-shadow(0 3px 6px rgba(0,0,0,.35)); }
+  .icone b{ font-size:14.5px; font-weight:600; line-height:1.2; }
+  .icone:hover .verre, .icone:focus-visible .verre{ transform:translateY(-6px) scale(1.07); }
+  .icone:active .verre{ transform:scale(.93); transition-duration:.12s; }
+  .icone:focus-visible{ outline:none; } .icone:focus-visible .verre{ outline:3px solid var(--accent); outline-offset:4px; }
+  .metier-desc{ margin:34px auto 0; min-height:3.2em; text-align:center; max-width:46ch; color:var(--sombre-muted); font-size:17px; }
+  .metier-desc b{ color:var(--sombre-ink); }
+  @media(max-width:620px){ .icones{ gap:24px 8px; } .icone{ width:88px; } .verre{ width:76px; height:76px; border-radius:23px; } .verre i.ph-fill{ font-size:38px; } .icone b{ font-size:13.5px; } }
+  @media (prefers-reduced-motion: reduce){ .verre{ transition:none; } .icone:hover .verre, .icone:focus-visible .verre{ transform:none; } }
 
   /* ---------- catalogue femme / homme : onglets ---------- */
   .catalogue .tete{ display:flex; justify-content:space-between; align-items:flex-end; gap:24px; flex-wrap:wrap; margin-bottom:34px; }
@@ -403,15 +412,14 @@
     <div class="wrap">
       <h2 class="rv">Un outil pour chaque métier de la beauté.</h2>
       <p class="lead rv">Choisissez votre métier : le vocabulaire s'adapte et un catalogue type vous attend.</p>
-      <div class="rail-outils"><button type="button" id="rail-prec" aria-label="Métier précédent"><i class="ph ph-arrow-left" aria-hidden="true"></i></button><button type="button" id="rail-suiv" aria-label="Métier suivant"><i class="ph ph-arrow-right" aria-hidden="true"></i></button></div>
-    </div>
-    <div class="rail" id="rail" role="region" tabindex="0" aria-label="Liste des métiers, défilement horizontal">
-      <!-- TODO photo : une image réelle par métier (format 3:4) remplacerait les halos -->
-      <article class="metier"><i class="ph ph-scissors" aria-hidden="true"></i><div><h3>Coiffure</h3><p>Coupe, couleur, balayage, brushing, cérémonie.</p></div></article>
-      <article class="metier"><i class="ph ph-razor" aria-hidden="true"></i><div><h3>Barbier</h3><p>Dégradé, barbe, rasage traditionnel. Des créneaux courts et fréquents.</p></div></article>
-      <article class="metier"><i class="ph ph-flower-lotus" aria-hidden="true"></i><div><h3>Institut</h3><p>Soins du visage, épilations, regard, mains et pieds.</p></div></article>
-      <article class="metier"><i class="ph ph-hand-heart" aria-hidden="true"></i><div><h3>Onglerie</h3><p>Semi-permanent, gel, remplissage, nail art.</p></div></article>
-      <article class="metier"><i class="ph ph-leaf" aria-hidden="true"></i><div><h3>Massage et spa</h3><p>Relaxant, californien, pierres chaudes, rituels duo.</p></div></article>
+      <div class="icones rv" role="list">
+        <a class="icone" role="listitem" href="explorer.html?metier=coiffure" data-desc="Coupe, couleur, balayage, brushing, cérémonie." style="--t:rgba(255,128,160,.75)"><span class="verre"><i class="ph-fill ph-scissors" aria-hidden="true"></i></span><b>Coiffure</b></a>
+        <a class="icone" role="listitem" href="explorer.html?metier=barbier" data-desc="Dégradé, barbe, rasage traditionnel. Des créneaux courts et fréquents." style="--t:rgba(110,160,255,.75)"><span class="verre"><i class="ph-fill ph-razor" aria-hidden="true"></i></span><b>Barbier</b></a>
+        <a class="icone" role="listitem" href="explorer.html?metier=esthetique" data-desc="Soins du visage, épilations, regard, mains et pieds." style="--t:rgba(255,190,90,.8)"><span class="verre"><i class="ph-fill ph-flower-lotus" aria-hidden="true"></i></span><b>Institut</b></a>
+        <a class="icone" role="listitem" href="explorer.html?metier=onglerie" data-desc="Semi-permanent, gel, remplissage, nail art." style="--t:rgba(200,130,255,.75)"><span class="verre"><i class="ph-fill ph-hand-heart" aria-hidden="true"></i></span><b>Onglerie</b></a>
+        <a class="icone" role="listitem" href="explorer.html?metier=massage" data-desc="Relaxant, californien, pierres chaudes, rituels duo. Pour elle comme pour lui." style="--t:rgba(70,205,165,.75)"><span class="verre"><i class="ph-fill ph-leaf" aria-hidden="true"></i></span><b>Massage et spa</b></a>
+      </div>
+      <p class="metier-desc" id="metier-desc" aria-live="polite">Touchez une icône pour voir le détail, ou ouvrez-la pour trouver un salon.</p>
     </div>
   </section>
 
@@ -519,12 +527,15 @@
     });
   });
 
-  // ---- Rail des métiers : boutons précédent / suivant (alternative au glissement)
-  const rail = document.getElementById('rail');
-  const pas = () => Math.min(320, rail.clientWidth * .8);
+  // ---- Métiers : la légende suit l'icône survolée, touchée ou sélectionnée au clavier
+  const legende = document.getElementById('metier-desc'), legendeDefaut = legende.textContent;
+  document.querySelectorAll('.icone').forEach(a => {
+    const montrer = () => { legende.innerHTML = `<b>${a.querySelector('b').textContent}</b> : ${a.dataset.desc}`; };
+    const rendre = () => { legende.textContent = legendeDefaut; };
+    ['mouseenter', 'focus'].forEach(ev => a.addEventListener(ev, montrer));
+    ['mouseleave', 'blur'].forEach(ev => a.addEventListener(ev, rendre));
+  });
   const reduit = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  document.getElementById('rail-prec').addEventListener('click', () => rail.scrollBy({ left:-pas(), behavior: reduit ? 'auto' : 'smooth' }));
-  document.getElementById('rail-suiv').addEventListener('click', () => rail.scrollBy({ left:pas(), behavior: reduit ? 'auto' : 'smooth' }));
 
   // ---- Apparition au scroll : IntersectionObserver, sans écouteur de scroll
   const io = new IntersectionObserver(es => es.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold:.15 });
