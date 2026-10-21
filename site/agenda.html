@@ -439,7 +439,7 @@
 
       <div class="modal-actions">
         <a href="#" class="link-danger" id="delete-series-link" style="display:none;">Supprimer toute la série</a>
-        <a href="#" id="avis-link" style="display:none; font-size:13px;">Copier le lien d'avis</a>
+        <a href="#" id="avis-link" style="display:none; font-size:13px;">Copier le lien du livre d’or</a>
         <div class="modal-actions-right">
           <button type="button" class="btn btn-secondary" id="cancel-btn">Annuler</button>
           <button type="submit" class="btn btn-primary" id="save-btn">Enregistrer</button>
@@ -490,7 +490,7 @@
     const lien = `${location.origin}/avis.html?t=${avisLink.dataset.t}`;
     try{ await navigator.clipboard.writeText(lien); avisLink.textContent = 'Lien copié ✓'; }
     catch(_){ window.prompt('Copiez ce lien et envoyez-le à votre client :', lien); }
-    setTimeout(()=>{ avisLink.textContent = "Copier le lien d'avis"; }, 2500);
+    setTimeout(()=>{ avisLink.textContent = "Copier le lien du livre d’or"; }, 2500);
   });
 
   let brand = null;

@@ -245,7 +245,7 @@
       carte: () => (d.latitude != null && d.longitude != null)
         ? `<section id="lieu"><h2>Où nous trouver</h2>${d.adresse ? `<p>${esc(d.adresse)}</p>` : ''}<div id="carte"></div>${contact}</section>`
         : (contact ? `<section id="lieu"><h2>Contact</h2>${contact}</section>` : ''),
-      avis: () => nbAvis ? `<section id="avis"><h2>Avis clients <span class="etoiles" style="font-size:18px;">${etoiles(note)}</span> <small style="font-size:15px; color:var(--muted); font-family:var(--corps);">${note} · ${nbAvis} avis</small></h2>
+      avis: () => nbAvis ? `<section id="avis"><h2>Livre d'or <span class="etoiles" style="font-size:18px;">${etoiles(note)}</span> <small style="font-size:15px; color:var(--muted); font-family:var(--corps);">${note} · ${nbAvis} avis</small></h2>
           <div class="carte-s">${d.avis.map(a => `<div class="avis"><span class="etoiles">${etoiles(a.note)}</span>
           <small> ${esc(a.auteur || 'Client')} · ${new Date(a.created_at).toLocaleDateString('fr-FR')}</small>${a.commentaire ? `<p>${esc(a.commentaire)}</p>` : ''}</div>`).join('')}</div></section>` : ''
     };

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<title>Donner votre avis | Mirrio</title>
+<title>Signer le livre d’or | Mirrio</title>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{ --ink:#1C2333; --parchment:#F5F1E7; --teal:#3E7C74; --amber:#E2A63D; --brick:#B5533F; }
@@ -47,8 +47,8 @@
       const r = await fetch('/api/avis?t=' + encodeURIComponent(jeton));
       if(!r.ok) return fin('Ce lien n\'est pas valide.');
       const d = await r.json();
-      if(d.deja_note) return fin('<h1>Merci !</h1><p class="sub">Vous avez déjà donné votre avis pour ce rendez-vous.</p>');
-      if(d.pas_encore) return fin('<h1>Un peu de patience</h1><p class="sub">Vous pourrez donner votre avis une fois le rendez-vous passé.</p>');
+      if(d.deja_note) return fin('<h1>Merci !</h1><p class="sub">Vous avez déjà signé le livre d’or pour ce rendez-vous.</p>');
+      if(d.pas_encore) return fin('<h1>Un peu de patience</h1><p class="sub">Vous pourrez signer le livre d’or une fois le rendez-vous passé.</p>');
       carte.innerHTML = `
         <h1>Comment s'est passé votre rendez-vous ?</h1>
         <p class="sub">${esc(d.praticien)} · ${esc(d.titre)}</p>
@@ -57,7 +57,7 @@
         <label for="auteur">Votre prénom (facultatif)</label><input id="auteur" maxlength="60">
         <label for="com">Votre commentaire (facultatif)</label><textarea id="com" maxlength="800"></textarea>
         <div class="err" id="err"></div>
-        <button class="envoi" id="envoi" disabled>Publier mon avis</button>`;
+        <button class="envoi" id="envoi" disabled>Signer le livre d’or</button>`;
       const btns = [...document.querySelectorAll('#etoiles button')];
       btns.forEach(b => b.addEventListener('click', () => {
         note = +b.dataset.n; btns.forEach(x => x.classList.toggle('on', +x.dataset.n <= note));
@@ -67,7 +67,7 @@
         e.target.disabled = true;
         const r2 = await fetch('/api/avis', { method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ t: jeton, note, auteur: document.getElementById('auteur').value, commentaire: document.getElementById('com').value }) });
-        if(r2.ok) return fin('<h1>Merci pour votre avis !</h1><p class="sub">Il sera visible sur la fiche du professionnel.</p>');
+        if(r2.ok) return fin('<h1>Merci pour votre message !</h1><p class="sub">Il sera visible dans le livre d’or du professionnel.</p>');
         const j = await r2.json().catch(() => ({}));
         document.getElementById('err').textContent = j.error || 'Une erreur est survenue.';
         e.target.disabled = false;

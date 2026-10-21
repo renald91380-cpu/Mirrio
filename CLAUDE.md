@@ -237,6 +237,8 @@ Mirrio se positionne aussi comme logiciel de salon, façon Planity — **sans co
 - Vocabulaire : `barbier` → « rendez-vous », `massage` → « massage(s) » dans `theme.js` ; `admin.html` connaît les deux nouveaux métiers.
 - **Pas construit** : liste d'attente, rappels SMS, fiches client beauté (allergies, couleur…), horaires par collaborateur, choix du coiffeur à la réservation, produits/vente en boutique.
 
+> **Vocabulaire : « Livre d'or » plutôt qu'« avis »** dans tous les textes visibles (accueil, page du salon, page de dépôt `avis.html`, lien dans l'agenda, éditeur « Ma page »). Les identifiants techniques (`avis`, `/api/avis`, `avis_token`) et le décompte « 4,8 (10) » restent inchangés.
+
 ### 3.19 Vitrine publique personnalisable (« Ma page »)
 
 Chaque praticien/salon a une page publique `site/pro.html?p=<slug>` (servie par `api/_vitrine.js` via `/api/vitrine`) et un éditeur `site/ma-page.html` (onglet « Ma page » de la nav, `theme.js` → `ONGLETS`), avec **aperçu en direct** : l'éditeur charge `pro.html?preview=1` dans une iframe et lui envoie les données par `postMessage` (même origine uniquement, des deux côtés) — la page publique et l'aperçu passent par la même fonction `rendre()`, donc ce que le pro voit est ce que voit son client (même principe que `document-render.js`, §3.1).
