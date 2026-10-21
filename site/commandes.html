@@ -341,7 +341,7 @@
           <p class="hint" id="aide-slug"></p>
           <div class="grille-champs">
             <div class="field"><label for="g-delai">Délai minimum (jours)</label><input type="number" id="g-delai" min="0" max="60"></div>
-            <div class="field"><label for="g-max">Commandes maximum par jour</label><input type="number" id="g-max" min="1" max="100"></div>
+            <div class="field"><label for="g-max">Charge maximale par jour (points)</label><input type="number" id="g-max" min="1" max="100" aria-describedby="aide-charge"><div class="hint" id="aide-charge" style="margin:4px 0 0">Anniversaire = 1, gros gâteau (plus de 25 parts) = 2, mariage = 3. Avec 5, un mariage et un anniversaire tiennent dans la journée, pas deux mariages.</div></div>
             <div class="field"><label for="g-horizon">Prise de commande jusqu’à (jours)</label><input type="number" id="g-horizon" min="7" max="365"></div>
             <div class="field"><label for="g-acompte">Acompte demandé (%)</label><input type="number" id="g-acompte" min="0" max="100"></div>
             <div class="field"><label for="g-debut">Retrait à partir de</label><input type="time" id="g-debut"></div>

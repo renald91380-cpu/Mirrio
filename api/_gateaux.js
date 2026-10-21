@@ -71,11 +71,37 @@ async function pâtisserie(slug){
   return { id, cfg, profil: profil || {}, fact: fact || {} };
 }
 
-// Dates où la capacité du jour est atteinte (commandes non annulées).
-async function datesCompletes(id, cfg, debut, fin){
-  const lignes = await get(`gateaux_commandes?owner_id=eq.${id}&statut=neq.annulee&date_retrait=gte.${debut}&date_retrait=lte.${fin}&select=date_retrait`);
-  const n = {}; lignes.forEach(l => { n[l.date_retrait] = (n[l.date_retrait] || 0) + 1; });
-  return { n, completes: Object.keys(n).filter(d => n[d] >= cfg.commandes_max_par_jour) };
+// Charge de travail d'une commande, en points : un anniversaire pèse 1, un gros gâteau (plus de 25 parts)
+// 2, un mariage ou une pièce montée 3. La capacité du jour (`commandes_max_par_jour`) est exprimée dans
+// ces points. Même règle dans commander.html : à garder identique des deux côtés.
+function charge(occasion, parts, capacite){
+  const c = occasion === 'mariage' ? 3 : (parts > 25 ? 2 : 1);
+  return Math.min(c, capacite);
+}
+
+// Charge déjà engagée par date (commandes non annulées) sur [debut, fin].
+async function chargesParDate(id, cfg, debut, fin){
+  const lignes = await get(`gateaux_commandes?owner_id=eq.${id}&statut=neq.annulee&date_retrait=gte.${debut}&date_retrait=lte.${fin}&select=date_retrait,occasion,parts`);
+  const n = {};
+  lignes.forEach(l => { n[l.date_retrait] = (n[l.date_retrait] || 0) + charge(l.occasion, l.parts, cfg.commandes_max_par_jour); });
+  return n;
+}
+
+// Une date peut-elle accueillir une commande de cette charge ?
+function dateLibre(iso, cfg, n, c, aujourdhui){
+  if(iso < ajouterJours(aujourdhui, cfg.delai_min_jours) || iso > ajouterJours(aujourdhui, cfg.horizon_jours)) return false;
+  if((cfg.jours_fermes || []).includes(jourSemaine(iso))) return false;
+  return (n[iso] || 0) + c <= cfg.commandes_max_par_jour;
+}
+
+// Dates proches possibles : la plus proche avant et la plus proche après, dans une semaine.
+function alternatives(iso, cfg, n, c, aujourdhui){
+  let avant = null, apres = null;
+  for(let i = 1; i <= 7 && (!avant || !apres); i++){
+    if(!avant && dateLibre(ajouterJours(iso, -i), cfg, n, c, aujourdhui)) avant = ajouterJours(iso, -i);
+    if(!apres && dateLibre(ajouterJours(iso, i), cfg, n, c, aujourdhui)) apres = ajouterJours(iso, i);
+  }
+  return { avant, apres };
 }
 
 async function envoyer({ to, replyTo, subject, html }){
@@ -103,9 +129,9 @@ export default async function handler(req, res){
       if(!p) return json(res, 404, { error: 'Les commandes en ligne ne sont pas ouvertes ici.' });
       const aujourdhui = aujourdhuiParis();
       const fin = ajouterJours(aujourdhui, p.cfg.horizon_jours);
-      const [produits, { completes }] = await Promise.all([
+      const [produits, charges] = await Promise.all([
         get(`gateaux_produits?owner_id=eq.${p.id}&actif=eq.true&select=id,nom,description,categorie,photo_url,prix_part,parts_min,parts_max&order=position`),
-        datesCompletes(p.id, p.cfg, aujourdhui, fin)
+        chargesParDate(p.id, p.cfg, aujourdhui, fin)
       ]);
       if(!produits.length) return json(res, 404, { error: 'Les commandes en ligne ne sont pas ouvertes ici.' });
       const c = p.cfg;
@@ -115,7 +141,7 @@ export default async function handler(req, res){
         occasions: OCCASIONS, produits,
         regles: {
           date_min: ajouterJours(aujourdhui, c.delai_min_jours), date_max: fin, delai_min_jours: c.delai_min_jours,
-          jours_fermes: c.jours_fermes, dates_completes: completes,
+          jours_fermes: c.jours_fermes, charges, capacite: c.commandes_max_par_jour,
           heure_debut: String(c.heure_retrait_debut).slice(0, 5), heure_fin: String(c.heure_retrait_fin).slice(0, 5),
           acompte_pourcentage: c.acompte_pourcentage, adresse: c.adresse_retrait, message: c.message_accueil
         }
@@ -149,8 +175,19 @@ export default async function handler(req, res){
     if(date < ajouterJours(aujourdhui, c.delai_min_jours)) return json(res, 400, { error: `Les commandes se prennent au moins ${c.delai_min_jours} jour(s) à l’avance.` });
     if(date > ajouterJours(aujourdhui, c.horizon_jours)) return json(res, 400, { error: 'Cette date est trop lointaine.' });
     if((c.jours_fermes || []).includes(jourSemaine(date))) return json(res, 400, { error: 'La pâtisserie est fermée ce jour-là.' });
-    const { n } = await datesCompletes(p.id, c, date, date);
-    if((n[date] || 0) >= c.commandes_max_par_jour) return json(res, 409, { error: 'Ce jour est complet, choisissez une autre date.' });
+    const aCharge = charge(b.occasion, parts, c.commandes_max_par_jour);
+    const debutFenetre = ajouterJours(date, -7), finFenetre = ajouterJours(date, 7);
+    const n = await chargesParDate(p.id, c, debutFenetre, finFenetre);
+    if(!dateLibre(date, c, n, aCharge, aujourdhui)){
+      const alt = alternatives(date, c, n, aCharge, aujourdhui);
+      const phrase = d => dateLongue(d);
+      return json(res, 409, {
+        error: alt.avant || alt.apres
+          ? `La pâtisserie ne peut pas honorer cette commande ce jour-là. Dates proches possibles : ${[alt.avant && phrase(alt.avant), alt.apres && phrase(alt.apres)].filter(Boolean).join(' ou ')}.`
+          : 'La pâtisserie ne peut pas honorer cette commande à cette date ni dans la semaine autour. Essayez une date plus éloignée ou contactez-la directement.',
+        alternatives: alt
+      });
+    }
 
     let heure = String(b.heure_retrait || '');
     if(heure && !/^\d{2}:\d{2}$/.test(heure)) heure = '';

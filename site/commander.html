@@ -78,6 +78,31 @@
   .ref{ display:inline-block; padding:8px 16px; border-radius:999px; background:var(--bg); border:1px solid var(--line); font:600 15px 'Geist', monospace; letter-spacing:.12em; margin:6px 0 14px; }
   .bandeau-demo{ margin:0 0 20px; padding:12px 16px; border-radius:14px; background:color-mix(in srgb, var(--accent) 18%, var(--surface)); font-size:14px; font-weight:500; }
   .piege{ position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
+  .cal{ border:1.5px solid var(--line); border-radius:18px; padding:14px; background:var(--bg); }
+  .cal-tete{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .cal-tete strong{ font-family:'Bricolage Grotesque', system-ui, sans-serif; font-size:17px; text-transform:capitalize; }
+  .cal-nav{ width:44px; height:44px; border-radius:50%; border:1.5px solid var(--line); background:var(--surface); color:var(--ink); cursor:pointer; display:grid; place-items:center; font-size:18px; }
+  .cal-nav[disabled]{ opacity:.35; cursor:default; }
+  .cal-grille{ display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
+  .cal-jsem{ text-align:center; font-size:12px; color:var(--muted); font-weight:600; padding:4px 0; text-transform:uppercase; }
+  .cal-j{ position:relative; min-height:46px; border-radius:12px; border:1.5px solid transparent; background:var(--surface); color:var(--ink); font:600 14.5px 'Geist', system-ui, sans-serif; cursor:pointer; padding:0; }
+  .cal-j:hover:not([disabled]){ border-color:var(--accent); }
+  .cal-j[disabled]{ background:transparent; color:var(--muted); opacity:.45; cursor:default; }
+  .cal-j.charge::after{ content:''; position:absolute; bottom:6px; left:50%; width:6px; height:6px; margin-left:-3px; border-radius:50%; background:var(--accent); }
+  .cal-j.non{ background:repeating-linear-gradient(135deg, color-mix(in srgb, var(--ko) 16%, var(--surface)) 0 6px, var(--surface) 6px 12px); color:var(--ko); }
+  .cal-j[aria-pressed="true"]{ background:var(--accent); color:#101216; border-color:var(--accent); }
+  .cal-j[aria-pressed="true"]::after{ background:#101216; }
+  .cal-legende{ display:flex; flex-wrap:wrap; gap:6px 16px; margin-top:12px; font-size:12.5px; color:var(--muted); }
+  .cal-legende span{ display:inline-flex; align-items:center; gap:6px; }
+  .cal-legende i{ width:12px; height:12px; border-radius:4px; background:var(--surface); border:1px solid var(--line); display:inline-block; }
+  .cal-legende i.c{ background:var(--accent); border-radius:50%; width:8px; height:8px; border:0; }
+  .cal-legende i.n{ background:repeating-linear-gradient(135deg, color-mix(in srgb, var(--ko) 40%, var(--surface)) 0 3px, var(--surface) 3px 6px); }
+  .msg-date{ margin-top:12px; padding:12px 14px; border-radius:14px; font-size:14px; background:color-mix(in srgb, var(--accent) 16%, var(--surface)); }
+  .msg-date:empty{ display:none; }
+  .msg-date.ko{ background:color-mix(in srgb, var(--ko) 12%, var(--surface)); }
+  .msg-date.ok{ background:color-mix(in srgb, #1F7A5A 14%, var(--surface)); }
+  .alts{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .alts button{ min-height:44px; padding:8px 16px; border-radius:999px; border:1.5px solid var(--accent); background:var(--surface); color:var(--ink); font:600 14px 'Geist', system-ui, sans-serif; cursor:pointer; }
   .vide{ text-align:center; padding:60px 20px; color:var(--muted); }
   @media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
 </style>
@@ -108,6 +133,24 @@
   function iso(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
   function plus(isoDate, n){ var d = new Date(isoDate + 'T12:00:00'); d.setDate(d.getDate() + n); return iso(d); }
 
+  // Agenda fictif du pâtissier de démo : un mariage et un anniversaire le même jour, etc.
+  function DEMO_DETAILS(auj){
+    var d = {};
+    d[plus(auj, 6)] = ['mariage', 'anniversaire'];
+    d[plus(auj, 7)] = ['anniversaire'];
+    d[plus(auj, 10)] = ['mariage', 'gros gâteau'];
+    d[plus(auj, 13)] = ['anniversaire', 'communion'];
+    d[plus(auj, 14)] = ['mariage'];
+    d[plus(auj, 15)] = ['mariage', 'anniversaire'];
+    d[plus(auj, 20)] = ['mariage'];
+    return d;
+  }
+  function DEMO_CHARGES(auj){
+    var d = DEMO_DETAILS(auj), c = {};
+    Object.keys(d).forEach(function(k){ c[k] = d[k].reduce(function(t, o){ return t + (o === 'mariage' ? 3 : (o === 'gros gâteau' ? 2 : 1)); }, 0); });
+    return c;
+  }
+
   function donneesDemo(){
     var auj = iso(new Date());
     return {
@@ -121,7 +164,8 @@
         { id:'d5', nom:'Layer cake personnalisé', categorie:'Gâteaux de fête', description:'Message et décor à votre goût, parfums au choix.', prix_part:5.9, parts_min:8, parts_max:40 },
         { id:'d6', nom:'Plateau de petits fours sucrés', categorie:'Petits fours', description:'Assortiment de 12 variétés, par pièce (6 pièces = 1 part).', prix_part:3.4, parts_min:10, parts_max:80 }
       ],
-      regles: { date_min: plus(auj, 3), date_max: plus(auj, 120), delai_min_jours: 3, jours_fermes: [1], dates_completes: [plus(auj, 9)],
+      regles: { date_min: plus(auj, 3), date_max: plus(auj, 120), delai_min_jours: 3, jours_fermes: [1], capacite: 5,
+        charges: DEMO_CHARGES(auj), details: DEMO_DETAILS(auj),
         heure_debut:'08:00', heure_fin:'18:00', acompte_pourcentage: 30, adresse:'12 rue de la République, Lyon 2e', message:'Tout est fait maison, la veille ou le matin même du retrait.' }
     };
   }
@@ -163,6 +207,7 @@
     f.addEventListener('input', majRecap); f.addEventListener('change', majRecap);
     f.addEventListener('submit', envoyer);
     ['nom','email','date','occasion','parts'].forEach(function(id){ var el = $('#' + id); if(el) el.addEventListener('blur', function(){ valider(id); }); });
+    etat.mois = new Date(r.date_min + 'T12:00:00'); etat.mois.setDate(1); etat.calendrierPret = true; rendreCalendrier();
     var pre = params.get('gateau'); if(pre && d.produits.some(function(p){ return p.id === pre; })) choisir(pre);
     majRecap();
   }
@@ -184,7 +229,7 @@
     return '<h2>2. L’occasion et le retrait</h2><div class="deux">' +
       '<div class="champ"><label for="occasion">Occasion</label><select id="occasion" required aria-describedby="err-occasion"><option value="">Choisir…</option>' + occ + '</select><div class="erreur" id="err-occasion"></div></div>' +
       '<div class="champ"><label for="parts">Nombre de parts</label><input type="number" id="parts" inputmode="numeric" min="1" step="1" aria-describedby="aide-parts err-parts"><div class="aide" id="aide-parts">Choisissez d’abord un gâteau.</div><div class="erreur" id="err-parts"></div></div>' +
-      '<div class="champ"><label for="date">Date de retrait</label><input type="date" id="date" min="' + r.date_min + '" max="' + r.date_max + '" aria-describedby="err-date"><div class="erreur" id="err-date"></div></div>' +
+      '<div class="champ" style="grid-column:1 / -1"><span class="lbl" id="lbl-date" style="font-weight:600;font-size:14px;display:block;margin-bottom:6px">Date de retrait</span><input type="hidden" id="date"><div class="cal" id="calendrier" role="group" aria-labelledby="lbl-date"></div><div class="msg-date" id="msg-date" role="status" aria-live="polite"></div><div class="erreur" id="err-date"></div></div>' +
       '<div class="champ"><label for="heure">Heure souhaitée <span style="font-weight:400;color:var(--muted)">(facultatif)</span></label><input type="time" id="heure" min="' + r.heure_debut + '" max="' + r.heure_fin + '" style="width:100%;min-height:48px;padding:12px 16px;border-radius:14px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);font:400 16px Geist,system-ui,sans-serif"><div class="aide">Entre ' + r.heure_debut.replace(':','h') + ' et ' + r.heure_fin.replace(':','h') + '.</div></div></div>' +
       '<h2 style="margin-top:8px">3. Personnalisation</h2>' +
       '<div class="champ"><label for="message">Message sur le gâteau <span style="font-weight:400;color:var(--muted)">(facultatif)</span></label><input type="text" id="message" maxlength="80" placeholder="Joyeux anniversaire Camille !"></div>' +
@@ -209,10 +254,94 @@
 
   function jourLong(isoDate){ return new Intl.DateTimeFormat('fr-FR', { weekday:'long', day:'numeric', month:'long' }).format(new Date(isoDate + 'T12:00:00')); }
 
+
+  // ---- calendrier de disponibilité : même règle de charge que le serveur (api/_gateaux.js)
+  function charge(occ, parts, cap){ var c = occ === 'mariage' ? 3 : (parts > 25 ? 2 : 1); return Math.min(c, cap); }
+  function chargeCourante(){ return charge(($('#occasion') || {}).value, +($('#parts') || {}).value || 0, etat.donnees.regles.capacite); }
+  function jourFerme(r, v){ return (r.jours_fermes || []).indexOf(new Date(v + 'T12:00:00').getDay()) >= 0; }
+  function horsPlage(r, v){ return v < r.date_min || v > r.date_max; }
+  function jourLibre(v){
+    var r = etat.donnees.regles;
+    return !horsPlage(r, v) && !jourFerme(r, v) && (r.charges[v] || 0) + chargeCourante() <= r.capacite;
+  }
+  function alternatives(v){
+    var avant = null, apres = null;
+    for(var i = 1; i <= 7 && (!avant || !apres); i++){
+      if(!avant && jourLibre(plus(v, -i))) avant = plus(v, -i);
+      if(!apres && jourLibre(plus(v, i))) apres = plus(v, i);
+    }
+    return { avant: avant, apres: apres };
+  }
+  function listeOccasions(l){
+    var noms = { mariage:'un mariage', anniversaire:'un anniversaire', communion:'une communion', 'gros gâteau':'un gros gâteau' };
+    var t = l.map(function(o){ return noms[o] || 'une commande'; });
+    return t.length > 1 ? t.slice(0, -1).join(', ') + ' et ' + t[t.length - 1] : t[0];
+  }
+
+  function rendreCalendrier(){
+    var r = etat.donnees.regles, m = etat.mois, sel = ($('#date') || {}).value;
+    var premier = new Date(m.getFullYear(), m.getMonth(), 1), decalage = (premier.getDay() + 6) % 7;
+    var nb = new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate();
+    var titre = new Intl.DateTimeFormat('fr-FR', { month:'long', year:'numeric' }).format(premier);
+    var debutMin = new Date(r.date_min + 'T12:00:00'), finMax = new Date(r.date_max + 'T12:00:00');
+    var precDesactive = premier <= new Date(debutMin.getFullYear(), debutMin.getMonth(), 1);
+    var suivDesactive = new Date(m.getFullYear(), m.getMonth() + 1, 1) > finMax;
+    var h = '<div class="cal-tete"><button type="button" class="cal-nav" id="cal-prec" aria-label="Mois précédent"' + (precDesactive ? ' disabled' : '') + '><i class="ph ph-caret-left" aria-hidden="true"></i></button><strong aria-live="polite">' + titre + '</strong><button type="button" class="cal-nav" id="cal-suiv" aria-label="Mois suivant"' + (suivDesactive ? ' disabled' : '') + '><i class="ph ph-caret-right" aria-hidden="true"></i></button></div><div class="cal-grille">';
+    ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].forEach(function(j){ h += '<div class="cal-jsem" aria-hidden="true">' + j + '</div>'; });
+    for(var i = 0; i < decalage; i++) h += '<div></div>';
+    for(var j = 1; j <= nb; j++){
+      var v = iso(new Date(m.getFullYear(), m.getMonth(), j)), cls = 'cal-j', dis = false, etatTxt = 'disponible';
+      if(horsPlage(r, v)){ dis = true; etatTxt = 'hors délai'; }
+      else if(jourFerme(r, v)){ dis = true; etatTxt = 'fermé'; }
+      else if(!jourLibre(v)){ cls += ' non'; etatTxt = 'indisponible pour cette commande'; }
+      else if(r.charges[v]){ cls += ' charge'; etatTxt = 'déjà chargé, mais possible'; }
+      h += '<button type="button" class="' + cls + '" data-d="' + v + '"' + (dis ? ' disabled' : '') + ' aria-pressed="' + (sel === v) + '" aria-label="' + esc(jourLong(v) + ', ' + etatTxt) + '">' + j + '</button>';
+    }
+    h += '</div><div class="cal-legende"><span><i></i>Disponible</span><span><i class="c"></i>Déjà chargé, possible</span><span><i class="n"></i>Impossible pour cette commande</span></div>';
+    $('#calendrier').innerHTML = h;
+    $('#cal-prec').addEventListener('click', function(){ etat.mois = new Date(m.getFullYear(), m.getMonth() - 1, 1); rendreCalendrier(); });
+    $('#cal-suiv').addEventListener('click', function(){ etat.mois = new Date(m.getFullYear(), m.getMonth() + 1, 1); rendreCalendrier(); });
+    $('#calendrier').querySelectorAll('.cal-j').forEach(function(b){ b.addEventListener('click', function(){ choisirDate(b.dataset.d); }); });
+  }
+
+  function messageDate(v){
+    var r = etat.donnees.regles, box = $('#msg-date'), nom = esc(etat.donnees.nom);
+    box.className = 'msg-date'; box.innerHTML = '';
+    if(!v) return;
+    if(jourLibre(v)){
+      box.className = 'msg-date ok';
+      box.textContent = (r.charges[v] ? 'Cette date est possible, même si la pâtisserie a déjà des commandes ce jour-là.' : 'Cette date est disponible.');
+      return;
+    }
+    var detail = r.details && r.details[v] ? nom + ' a déjà ' + listeOccasions(r.details[v]) + ' à préparer ce jour-là.' : 'La journée est déjà chargée pour une commande de cette taille.';
+    var alt = alternatives(v);
+    box.className = 'msg-date ko';
+    if(alt.avant || alt.apres){
+      box.innerHTML = '<strong>Impossible ce jour-là.</strong> ' + detail + ' Dates proches possibles :' +
+        '<div class="alts">' + (alt.avant ? '<button type="button" data-d="' + alt.avant + '">Juste avant : ' + esc(jourLong(alt.avant)) + '</button>' : '') +
+        (alt.apres ? '<button type="button" data-d="' + alt.apres + '">Juste après : ' + esc(jourLong(alt.apres)) + '</button>' : '') + '</div>';
+      box.querySelectorAll('button').forEach(function(b){ b.addEventListener('click', function(){ choisirDate(b.dataset.d); }); });
+    } else {
+      box.innerHTML = '<strong>Impossible d’honorer cette commande à cette date.</strong> ' + detail + ' Rien non plus dans la semaine autour : essayez une date plus éloignée ou contactez directement la pâtisserie.';
+    }
+  }
+
+  function choisirDate(v){
+    var r = etat.donnees.regles;
+    $('#date').value = v;
+    etat.mois = new Date(v + 'T12:00:00'); etat.mois.setDate(1);
+    if(horsPlage(r, v)) erreurChamp('date', 'Les commandes se prennent ' + r.delai_min_jours + ' jour(s) à l’avance.');
+    else if(jourFerme(r, v)) erreurChamp('date', 'Fermé le ' + JOURS[new Date(v + 'T12:00:00').getDay()] + '.');
+    else if(!jourLibre(v)) erreurChamp('date', 'La pâtisserie ne peut pas honorer cette commande ce jour-là.');
+    else erreurChamp('date', '');
+    rendreCalendrier(); messageDate(v); majRecap();
+  }
+
   function majRecap(){
     var p = etat.produit, parts = +($('#parts') || {}).value, date = ($('#date') || {}).value;
     var lignes = [['Gâteau', p ? esc(p.nom) : '–'], ['Parts', parts > 0 ? parts : '–'], ['Retrait', date ? esc(jourLong(date)) + (($('#heure') || {}).value ? ' à ' + $('#heure').value.replace(':','h') : '') : '–']];
     $('#recap').innerHTML = lignes.map(function(l){ return '<dt>' + l[0] + '</dt><dd>' + l[1] + '</dd>'; }).join('');
+    if(etat.calendrierPret && (document.activeElement || {}).id !== 'date'){ var cle = chargeCourante() + '|' + ($('#date').value || ''); if(cle !== etat.cleCal){ etat.cleCal = cle; rendreCalendrier(); if($('#date').value) messageDate($('#date').value); } }
     $('#total').textContent = p && parts >= p.parts_min && parts <= p.parts_max ? euros(Math.round(parts * p.prix_part * 100) / 100) : '–';
   }
 
@@ -233,11 +362,10 @@
       var n = +v; return erreurChamp(id, n >= p.parts_min && n <= p.parts_max && n % 1 === 0 ? '' : 'Entre ' + p.parts_min + ' et ' + p.parts_max + ' parts.');
     }
     if(id === 'date'){
-      if(!v) return erreurChamp(id, 'Choisissez une date de retrait.');
-      if(v < r.date_min) return erreurChamp(id, 'Les commandes se prennent ' + r.delai_min_jours + ' jour(s) à l’avance : à partir du ' + jourLong(r.date_min) + '.');
-      if(v > r.date_max) return erreurChamp(id, 'Cette date est trop lointaine.');
-      if((r.jours_fermes || []).indexOf(new Date(v + 'T12:00:00').getDay()) >= 0) return erreurChamp(id, 'Fermé le ' + JOURS[new Date(v + 'T12:00:00').getDay()] + '.');
-      if((r.dates_completes || []).indexOf(v) >= 0) return erreurChamp(id, 'Ce jour est complet, choisissez-en un autre.');
+      if(!v) return erreurChamp(id, 'Choisissez une date de retrait dans le calendrier.');
+      if(horsPlage(r, v)) return erreurChamp(id, 'Les commandes se prennent ' + r.delai_min_jours + ' jour(s) à l’avance : à partir du ' + jourLong(r.date_min) + '.');
+      if(jourFerme(r, v)) return erreurChamp(id, 'Fermé le ' + JOURS[new Date(v + 'T12:00:00').getDay()] + '.');
+      if(!jourLibre(v)) return erreurChamp(id, 'La pâtisserie ne peut pas honorer cette commande ce jour-là : choisissez une date proposée.');
       return erreurChamp(id, '');
     }
   }
