@@ -89,17 +89,20 @@ async function chargesParDate(id, cfg, debut, fin){
   return n;
 }
 
-// État d'une date pour une commande de charge `c` : 'normal', 'surcharge' ou 'impossible'.
+// État d'une date pour une commande de charge `c` : 'normal', 'surcharge', 'exception' ou 'impossible'.
 //  - normal    : la charge totale tient dans la capacité du jour ;
 //  - surcharge : la journée a déjà des commandes, la nouvelle tient dans la marge `surcharge_points`
 //                (majoration + règlement intégral par carte), seulement si le paiement par carte est actif ;
-//  - impossible : fermé, hors délai, ou au-delà de la marge.
+//  - exception : au-delà de la surcharge, encore dans la marge `exception_points` : le client qui tient
+//                vraiment à cette date l'obtient avec une majoration plus forte (30 %), même règlement ;
+//  - impossible : fermé, hors délai, ou au-delà de toutes les marges.
 function etatDate(iso, cfg, n, c, aujourdhui, carteActive){
   if(iso < ajouterJours(aujourdhui, cfg.delai_min_jours) || iso > ajouterJours(aujourdhui, cfg.horizon_jours)) return 'impossible';
   if((cfg.jours_fermes || []).includes(jourSemaine(iso))) return 'impossible';
-  const deja = n[iso] || 0, total = deja + c;
-  if(total <= cfg.commandes_max_par_jour) return 'normal';
-  if(carteActive && deja > 0 && cfg.surcharge_points > 0 && total <= cfg.commandes_max_par_jour + cfg.surcharge_points) return 'surcharge';
+  const deja = n[iso] || 0, total = deja + c, cap = cfg.commandes_max_par_jour;
+  if(total <= cap) return 'normal';
+  if(carteActive && deja > 0 && cfg.surcharge_points > 0 && total <= cap + cfg.surcharge_points) return 'surcharge';
+  if(carteActive && deja > 0 && cfg.exception_points > 0 && total <= cap + cfg.surcharge_points + cfg.exception_points) return 'exception';
   return 'impossible';
 }
 
@@ -184,6 +187,7 @@ export default async function handler(req, res){
           date_min: ajouterJours(aujourdhui, c.delai_min_jours), date_max: fin, delai_min_jours: c.delai_min_jours,
           jours_fermes: c.jours_fermes, charges, capacite: c.commandes_max_par_jour,
           surcharge_points: carte ? c.surcharge_points : 0, surcharge_pourcentage: c.surcharge_pourcentage,
+          exception_points: carte ? c.exception_points : 0, exception_pourcentage: c.exception_pourcentage,
           heure_debut: String(c.heure_retrait_debut).slice(0, 5), heure_fin: String(c.heure_retrait_fin).slice(0, 5),
           acompte_pourcentage: c.acompte_pourcentage, adresse: c.adresse_retrait, message: c.message_accueil
         }
@@ -230,9 +234,10 @@ export default async function handler(req, res){
         alternatives: alt
       });
     }
-    const surcharge = etat === 'surcharge';
+    const surcharge = etat === 'surcharge' || etat === 'exception';
+    const pctMajoration = etat === 'exception' ? c.exception_pourcentage : c.surcharge_pourcentage;
     if(surcharge && b.accepte_surcharge !== true)
-      return json(res, 409, { error: `Cette journée est très chargée : la commande n’est possible qu’avec un supplément de ${c.surcharge_pourcentage} % et un règlement intégral par carte. Cochez la case d’acceptation pour continuer.` });
+      return json(res, 409, { error: `Cette journée est très chargée : la commande n’est possible qu’avec un supplément de ${pctMajoration} % et un règlement intégral par carte. Validez le supplément pour continuer.` });
 
     let heure = String(b.heure_retrait || '');
     if(heure && !/^\d{2}:\d{2}$/.test(heure)) heure = '';
@@ -243,14 +248,14 @@ export default async function handler(req, res){
     if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json(res, 400, { error: 'Indiquez une adresse email valide.' });
 
     const prixBase = Math.round(parts * Number(produit.prix_part) * 100) / 100;
-    const prixEstime = surcharge ? Math.round(prixBase * (100 + c.surcharge_pourcentage)) / 100 : prixBase;
+    const prixEstime = surcharge ? Math.round(prixBase * (100 + pctMajoration)) / 100 : prixBase;
     const commande = await inserer('gateaux_commandes', {
       owner_id: p.id, produit_id: produit.id, produit_nom: produit.nom, occasion: b.occasion, parts,
       personnalisation: propre(b.personnalisation, 600) || null, message_gateau: propre(b.message_gateau, 80) || null,
       allergies: propre(b.allergies, 300) || null, date_retrait: date, heure_retrait: heure || null,
       client_nom: nom, client_email: email, client_telephone: propre(b.telephone, 30) || null,
       prix_estime: prixEstime, acompte_pourcentage: surcharge ? 0 : c.acompte_pourcentage,
-      ...(surcharge ? { statut: 'a_payer', surcharge: true, surcharge_pourcentage: c.surcharge_pourcentage, paiement_statut: 'en_attente' } : {})
+      ...(surcharge ? { statut: 'a_payer', surcharge: true, surcharge_pourcentage: pctMajoration, paiement_statut: 'en_attente' } : {})
     });
 
     // Surcharge : règlement intégral par carte AVANT toute confirmation (le webhook Stripe confirme).
@@ -262,7 +267,7 @@ export default async function handler(req, res){
           mode: 'payment', payment_method_types: ['card'],
           line_items: [{ quantity: 1, price_data: { currency: 'eur', unit_amount: Math.round(prixEstime * 100),
             product_data: { name: `${produit.nom}, ${parts} parts, chez ${nomBoutique}`,
-              description: `Retrait le ${dateLongue(date)}. Journée très chargée : supplément de ${c.surcharge_pourcentage} % inclus, règlement intégral à la commande.` } } }],
+              description: `Retrait le ${dateLongue(date)}. Journée très chargée : supplément de ${pctMajoration} % inclus, règlement intégral à la commande.` } } }],
           customer_email: email,
           expires_at: Math.floor(Date.now() / 1000) + 31 * 60,
           success_url: `${origine}/paiement-merci.html?statut=succes&gateau=1`,
