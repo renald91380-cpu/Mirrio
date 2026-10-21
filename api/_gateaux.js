@@ -83,10 +83,15 @@ function charge(occasion, parts, capacite){
 async function chargesParDate(id, cfg, debut, fin){
   // Une commande « à payer » réserve la place 40 minutes (le temps du paiement Stripe), pas davantage.
   const il40 = new Date(Date.now() - 40 * 60 * 1000).toISOString();
-  const lignes = await get(`gateaux_commandes?owner_id=eq.${id}&date_retrait=gte.${debut}&date_retrait=lte.${fin}&or=(statut.in.(nouvelle,confirmee,prete,retiree),and(statut.eq.a_payer,created_at.gt.${il40}))&select=date_retrait,occasion,parts`);
-  const n = {};
-  lignes.forEach(l => { n[l.date_retrait] = (n[l.date_retrait] || 0) + charge(l.occasion, l.parts, cfg.commandes_max_par_jour); });
-  return n;
+  const lignes = await get(`gateaux_commandes?owner_id=eq.${id}&date_retrait=gte.${debut}&date_retrait=lte.${fin}&or=(statut.in.(nouvelle,confirmee,prete,retiree),and(statut.eq.a_payer,created_at.gt.${il40}))&select=date_retrait,occasion,parts,surcharge,niveau_charge`);
+  const n = {}, niveaux = {};
+  lignes.forEach(l => {
+    n[l.date_retrait] = (n[l.date_retrait] || 0) + charge(l.occasion, l.parts, cfg.commandes_max_par_jour);
+    // Règle interne : une seule commande « surcharge » et une seule « exception » par jour.
+    const niv = l.niveau_charge || (l.surcharge ? 'surcharge' : null);
+    if(niv){ const e = niveaux[l.date_retrait] || (niveaux[l.date_retrait] = { surcharge: 0, exception: 0 }); e[niv]++; }
+  });
+  return { charges: n, niveaux };
 }
 
 // État d'une date pour une commande de charge `c` : 'normal', 'surcharge', 'exception' ou 'impossible'.
@@ -96,13 +101,14 @@ async function chargesParDate(id, cfg, debut, fin){
 //  - exception : au-delà de la surcharge, encore dans la marge `exception_points` : le client qui tient
 //                vraiment à cette date l'obtient avec une majoration plus forte (30 %), même règlement ;
 //  - impossible : fermé, hors délai, ou au-delà de toutes les marges.
-function etatDate(iso, cfg, n, c, aujourdhui, carteActive){
+function etatDate(iso, cfg, n, c, aujourdhui, carteActive, niveaux){
   if(iso < ajouterJours(aujourdhui, cfg.delai_min_jours) || iso > ajouterJours(aujourdhui, cfg.horizon_jours)) return 'impossible';
   if((cfg.jours_fermes || []).includes(jourSemaine(iso))) return 'impossible';
   const deja = n[iso] || 0, total = deja + c, cap = cfg.commandes_max_par_jour;
   if(total <= cap) return 'normal';
-  if(carteActive && deja > 0 && cfg.surcharge_points > 0 && total <= cap + cfg.surcharge_points) return 'surcharge';
-  if(carteActive && deja > 0 && cfg.exception_points > 0 && total <= cap + cfg.surcharge_points + cfg.exception_points) return 'exception';
+  const pris = (niveaux && niveaux[iso]) || { surcharge: 0, exception: 0 };
+  if(carteActive && deja > 0 && cfg.surcharge_points > 0 && pris.surcharge < 1 && total <= cap + cfg.surcharge_points) return 'surcharge';
+  if(carteActive && deja > 0 && cfg.exception_points > 0 && pris.exception < 1 && total <= cap + cfg.surcharge_points + cfg.exception_points) return 'exception';
   return 'impossible';
 }
 
@@ -110,8 +116,8 @@ function etatDate(iso, cfg, n, c, aujourdhui, carteActive){
 function alternatives(iso, cfg, n, c, aujourdhui){
   let avant = null, apres = null;
   for(let i = 1; i <= 7 && (!avant || !apres); i++){
-    if(!avant && etatDate(ajouterJours(iso, -i), cfg, n, c, aujourdhui, false) === 'normal') avant = ajouterJours(iso, -i);
-    if(!apres && etatDate(ajouterJours(iso, i), cfg, n, c, aujourdhui, false) === 'normal') apres = ajouterJours(iso, i);
+    if(!avant && etatDate(ajouterJours(iso, -i), cfg, n, c, aujourdhui, false, null) === 'normal') avant = ajouterJours(iso, -i);
+    if(!apres && etatDate(ajouterJours(iso, i), cfg, n, c, aujourdhui, false, null) === 'normal') apres = ajouterJours(iso, i);
   }
   return { avant, apres };
 }
@@ -172,7 +178,7 @@ export default async function handler(req, res){
       if(!p) return json(res, 404, { error: 'Les commandes en ligne ne sont pas ouvertes ici.' });
       const aujourdhui = aujourdhuiParis();
       const fin = ajouterJours(aujourdhui, p.cfg.horizon_jours);
-      const [produits, charges, carte] = await Promise.all([
+      const [produits, { charges, niveaux }, carte] = await Promise.all([
         get(`gateaux_produits?owner_id=eq.${p.id}&actif=eq.true&select=id,nom,description,categorie,photo_url,prix_part,parts_min,parts_max&order=position`),
         chargesParDate(p.id, p.cfg, aujourdhui, fin),
         stripeDuSalon(p.id).then(Boolean)
@@ -185,7 +191,7 @@ export default async function handler(req, res){
         occasions: OCCASIONS, produits,
         regles: {
           date_min: ajouterJours(aujourdhui, c.delai_min_jours), date_max: fin, delai_min_jours: c.delai_min_jours,
-          jours_fermes: c.jours_fermes, charges, capacite: c.commandes_max_par_jour,
+          jours_fermes: c.jours_fermes, charges, niveaux, capacite: c.commandes_max_par_jour,
           surcharge_points: carte ? c.surcharge_points : 0, surcharge_pourcentage: c.surcharge_pourcentage,
           exception_points: carte ? c.exception_points : 0, exception_pourcentage: c.exception_pourcentage,
           heure_debut: String(c.heure_retrait_debut).slice(0, 5), heure_fin: String(c.heure_retrait_fin).slice(0, 5),
@@ -222,9 +228,9 @@ export default async function handler(req, res){
     if(date > ajouterJours(aujourdhui, c.horizon_jours)) return json(res, 400, { error: 'Cette date est trop lointaine.' });
     if((c.jours_fermes || []).includes(jourSemaine(date))) return json(res, 400, { error: 'La pâtisserie est fermée ce jour-là.' });
     const aCharge = charge(b.occasion, parts, c.commandes_max_par_jour);
-    const n = await chargesParDate(p.id, c, ajouterJours(date, -7), ajouterJours(date, 7));
+    const { charges: n, niveaux } = await chargesParDate(p.id, c, ajouterJours(date, -7), ajouterJours(date, 7));
     const cleStripe = await stripeDuSalon(p.id);
-    const etat = etatDate(date, c, n, aCharge, aujourdhui, !!cleStripe);
+    const etat = etatDate(date, c, n, aCharge, aujourdhui, !!cleStripe, niveaux);
     if(etat === 'impossible'){
       const alt = alternatives(date, c, n, aCharge, aujourdhui);
       return json(res, 409, {
@@ -255,7 +261,7 @@ export default async function handler(req, res){
       allergies: propre(b.allergies, 300) || null, date_retrait: date, heure_retrait: heure || null,
       client_nom: nom, client_email: email, client_telephone: propre(b.telephone, 30) || null,
       prix_estime: prixEstime, acompte_pourcentage: surcharge ? 0 : c.acompte_pourcentage,
-      ...(surcharge ? { statut: 'a_payer', surcharge: true, surcharge_pourcentage: pctMajoration, paiement_statut: 'en_attente' } : {})
+      ...(surcharge ? { statut: 'a_payer', surcharge: true, niveau_charge: etat, surcharge_pourcentage: pctMajoration, paiement_statut: 'en_attente' } : {})
     });
 
     // Surcharge : règlement intégral par carte AVANT toute confirmation (le webhook Stripe confirme).

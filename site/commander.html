@@ -154,6 +154,8 @@
     d[plus(auj, 15)] = ['mariage', 'anniversaire'];
     d[plus(auj, 17)] = ['mariage', 'mariage', 'gros gâteau'];
     d[plus(auj, 20)] = ['mariage'];
+    d[plus(auj, 22)] = ['mariage', 'mariage'];
+    d[plus(auj, 24)] = ['mariage', 'mariage', 'anniversaire'];
     return d;
   }
   function DEMO_CHARGES(auj){
@@ -177,6 +179,7 @@
       ],
       regles: { date_min: plus(auj, 3), date_max: plus(auj, 120), delai_min_jours: 3, jours_fermes: [1], capacite: 5, surcharge_points: 2, surcharge_pourcentage: 15, exception_points: 3, exception_pourcentage: 30,
         charges: DEMO_CHARGES(auj), details: DEMO_DETAILS(auj),
+        niveaux: (function(){ var n = {}; n[plus(auj, 22)] = { surcharge: 1, exception: 0 }; n[plus(auj, 24)] = { surcharge: 1, exception: 1 }; return n; })(),
         heure_debut:'08:00', heure_fin:'18:00', acompte_pourcentage: 30, adresse:'12 rue de la République, Lyon 2e', message:'Tout est fait maison, la veille ou le matin même du retrait.' }
     };
   }
@@ -277,8 +280,10 @@
     if(horsPlage(r, v) || jourFerme(r, v)) return 'impossible';
     var deja = r.charges[v] || 0, total = deja + chargeCourante();
     if(total <= r.capacite) return 'normal';
-    if(deja > 0 && r.surcharge_points > 0 && total <= r.capacite + r.surcharge_points) return 'surcharge';
-    if(deja > 0 && r.exception_points > 0 && total <= r.capacite + r.surcharge_points + r.exception_points) return 'exception';
+    // Règle interne : une seule commande « surcharge » et une seule « exception » par jour.
+    var pris = (r.niveaux && r.niveaux[v]) || { surcharge: 0, exception: 0 };
+    if(deja > 0 && r.surcharge_points > 0 && pris.surcharge < 1 && total <= r.capacite + r.surcharge_points) return 'surcharge';
+    if(deja > 0 && r.exception_points > 0 && pris.exception < 1 && total <= r.capacite + r.surcharge_points + r.exception_points) return 'exception';
     return 'impossible';
   }
   function jourLibre(v){ return etatJour(v) !== 'impossible'; }
@@ -297,8 +302,11 @@
   function pctCourant(){ var v = ($('#date') || {}).value; return v ? pctDe(etatJour(v)) : 0; }
   function prixAffiche(base){ return enSurcharge() ? Math.round(base * (100 + pctCourant())) / 100 : base; }
   function listeOccasions(l){
-    var noms = { mariage:'un mariage', anniversaire:'un anniversaire', communion:'une communion', 'gros gâteau':'un gros gâteau' };
-    var t = l.map(function(o){ return noms[o] || 'une commande'; });
+    var un = { mariage:'un mariage', anniversaire:'un anniversaire', communion:'une communion', 'gros gâteau':'un gros gâteau' };
+    var plu = { mariage:'mariages', anniversaire:'anniversaires', communion:'communions', 'gros gâteau':'gros gâteaux' };
+    var nb = {}, ordre = [];
+    l.forEach(function(o){ if(!nb[o]){ nb[o] = 0; ordre.push(o); } nb[o]++; });
+    var t = ordre.map(function(o){ return nb[o] === 1 ? (un[o] || 'une commande') : (nb[o] === 2 ? 'deux ' : 'trois ') + (plu[o] || 'commandes'); });
     return t.length > 1 ? t.slice(0, -1).join(', ') + ' et ' + t[t.length - 1] : t[0];
   }
 
@@ -353,6 +361,8 @@
       return;
     }
     var detail = r.details && r.details[v] ? nom + ' a déjà ' + listeOccasions(r.details[v]) + ' à préparer ce jour-là.' : 'La journée est déjà chargée pour une commande de cette taille.';
+    var prisJ = (r.niveaux && r.niveaux[v]) || { surcharge: 0, exception: 0 };
+    if(et !== 'exception' && (prisJ.surcharge || prisJ.exception)) detail += ' Les commandes exceptionnelles de cette journée sont déjà prises.';
     var alt = alternatives(v);
     box.className = 'msg-date ko';
     var exc = et === 'exception', baseE = etat.produit ? Math.round((+$('#parts').value || 0) * etat.produit.prix_part * 100) / 100 : 0;
