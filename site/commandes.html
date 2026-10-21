@@ -307,6 +307,13 @@
   .field select{ width:100%; min-height:46px; padding:10px 14px; font-size:15px; font-family:var(--body); background:#fff; border:1px solid rgba(28,35,51,.2); border-radius:7px; }
   .bandeau-demo{ margin:12px 0 0; padding:12px 16px; border-radius:12px; background:rgba(226,166,61,.18); font-size:14px; }
   .lien-reset{ background:none; border:0; text-decoration:underline; cursor:pointer; font:inherit; color:inherit; margin-left:6px; }
+  .photo-zone{ display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
+  .photo-apercu{ width:112px; height:84px; border-radius:12px; border:1.5px dashed rgba(28,35,51,.25); background:#fff center/cover no-repeat; flex-shrink:0; display:grid; place-items:center; color:var(--slate); font-size:12px; }
+  .photo-apercu.avec{ border-style:solid; }
+  .photo-actions{ flex:1; min-width:180px; }
+  .sr-fichier{ position:absolute; width:1px; height:1px; opacity:0; overflow:hidden; pointer-events:none; }
+  .miniature{ width:56px; height:56px; border-radius:12px; background:var(--parchment-dim) center/cover no-repeat; flex-shrink:0; display:grid; place-items:center; color:var(--slate); font-size:11px; }
+  .produit .gauche{ display:flex; align-items:center; gap:14px; min-width:0; }
   .detail{ display:grid; grid-template-columns:auto 1fr; gap:8px 16px; font-size:14px; margin-bottom:20px; } .detail dt{ color:var(--slate); }
   [hidden]{ display:none !important; }
 </style>
@@ -428,7 +435,17 @@
         <div class="field"><label for="mp-min" id="lbl-mp-min">Parts minimum</label><input type="number" id="mp-min" min="1" value="6"></div>
         <div class="field"><label for="mp-max" id="lbl-mp-max">Parts maximum</label><input type="number" id="mp-max" min="1" value="30"></div>
       </div>
-      <div class="field"><label for="mp-photo">Photo (lien https)</label><input type="url" id="mp-photo" placeholder="https://…"></div>
+      <div class="field"><span class="lbl" id="lbl-photo">Photo de la création</span>
+        <div class="photo-zone">
+          <div id="mp-apercu" class="photo-apercu" role="img" aria-label="Aucune photo"></div>
+          <div class="photo-actions">
+            <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn btn-secondary" id="mp-photo-choisir" aria-describedby="lbl-photo">Choisir une photo</button><button type="button" class="btn btn-secondary" id="mp-photo-retirer" hidden>Retirer</button></div>
+            <div class="hint" style="margin:6px 0 0" id="mp-photo-etat">JPEG, PNG ou WebP : elle est redimensionnée automatiquement. C’est la photo que verront vos clients sur la page de commande.</div>
+          </div>
+        </div>
+        <input type="file" id="mp-fichier" accept="image/jpeg,image/png,image/webp" class="sr-fichier" tabindex="-1" aria-hidden="true">
+        <input type="hidden" id="mp-photo">
+      </div>
       <label class="interrupteur"><input type="checkbox" id="mp-actif" checked> Proposé à la commande</label>
       <div class="modal-actions">
         <button type="button" class="btn btn-secondary" data-fermer>Annuler</button>
@@ -597,7 +614,7 @@
   function rendreProduits(){
     if(!produits.length){ $('#liste-produits').innerHTML = '<div class="empty-state"><h2>Aucune création pour l’instant</h2><p>Ajoutez vos entremets, tartes, éclairs ou macarons, ou importez une base de créations types à ajuster ensuite.</p></div>'; return; }
     $('#liste-produits').innerHTML = produits.map(p => `<div class="produit${p.actif ? '' : ' inactif'}">
-      <div><strong>${echapper(p.nom)}</strong> ${p.actif ? '' : '<span class="statut s-annulee">Masqué</span>'}<br><span class="sous">${echapper(p.categorie || 'Sans catégorie')} · ${euros(p.prix_part)} ${p.unite === 'piece' ? 'la pièce' : 'la part'} · ${p.parts_min} à ${p.parts_max} ${p.unite === 'piece' ? 'pièces' : 'parts'}</span></div>
+      <div class="gauche"><span class="miniature"${p.photo_url ? ` style="background-image:url('${echapper(p.photo_url)}')" role="img" aria-label="Photo de ${echapper(p.nom)}"` : ' aria-hidden="true"'}>${p.photo_url ? '' : '–'}</span><div><strong>${echapper(p.nom)}</strong> ${p.actif ? '' : '<span class="statut s-annulee">Masqué</span>'}<br><span class="sous">${echapper(p.categorie || 'Sans catégorie')} · ${euros(p.prix_part)} ${p.unite === 'piece' ? 'la pièce' : 'la part'} · ${p.parts_min} à ${p.parts_max} ${p.unite === 'piece' ? 'pièces' : 'parts'}</span></div></div>
       <div class="actions"><button type="button" class="btn btn-secondary" data-edit="${p.id}">Modifier</button><button type="button" class="btn btn-secondary" data-suppr="${p.id}">Supprimer</button></div></div>`).join('');
     $('#liste-produits').querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => ouvrirProduit(b.dataset.edit)));
     $('#liste-produits').querySelectorAll('[data-suppr]').forEach(b => b.addEventListener('click', async () => {
@@ -612,6 +629,54 @@
   // Catégorie : liste du rayon + « Autre » (champ libre).
   $('#mp-cat').innerHTML = '<option value="">Choisir une catégorie…</option>' + CATEGORIES.map(c => `<option>${echapper(c)}</option>`).join('') + '<option value="__autre">Autre</option>';
   $('#noms-patisserie').innerHTML = TYPES.map(t => `<option value="${echapper(t[1])}">${echapper(t[0])}</option>`).join('');
+  // ---- photo : redimensionnée dans le navigateur puis envoyée dans le bucket public « vitrines » (dossier de l'espace).
+  let photoInitiale = '', photoSauvee = false;
+  async function compresser(fichier, maxPx){
+    const bmp = await createImageBitmap(fichier, { imageOrientation: 'from-image' });
+    const k = Math.min(1, maxPx / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(bmp, 0, 0, c.width, c.height);
+    return new Promise((ok, ko) => c.toBlob(b => b ? ok(b) : ko(new Error('conversion')), 'image/jpeg', DEMO ? 0.7 : 0.82));
+  }
+  function supprimerFichier(url){
+    if(DEMO || !url) return;
+    const m = url.match(/\/vitrines\/(.+)$/);
+    if(m && m[1].startsWith(espaceId + '/')) supabase.storage.from('vitrines').remove([decodeURIComponent(m[1])]).catch(() => {});
+  }
+  function majApercuPhoto(){
+    const url = $('#mp-photo').value;
+    const ap = $('#mp-apercu');
+    ap.style.backgroundImage = url ? `url('${url.replace(/'/g, '%27')}')` : '';
+    ap.classList.toggle('avec', !!url); ap.textContent = url ? '' : 'Aucune photo'; ap.setAttribute('aria-label', url ? 'Aperçu de la photo' : 'Aucune photo');
+    $('#mp-photo-retirer').hidden = !url; $('#mp-photo-choisir').textContent = url ? 'Changer la photo' : 'Choisir une photo';
+  }
+  $('#mp-photo-choisir').addEventListener('click', () => $('#mp-fichier').click());
+  $('#mp-photo-retirer').addEventListener('click', () => {
+    const cour = $('#mp-photo').value;
+    if(cour && cour !== photoInitiale) supprimerFichier(cour);       // envoyée pendant cette édition et jamais enregistrée
+    $('#mp-photo').value = ''; majApercuPhoto();
+  });
+  $('#mp-fichier').addEventListener('change', async () => {
+    const f = $('#mp-fichier').files[0]; $('#mp-fichier').value = '';
+    if(!f) return;
+    if(!/^image\/(jpeg|png|webp)$/.test(f.type)){ showToast('Format non pris en charge (JPEG, PNG ou WebP).'); return; }
+    if(f.size > 15 * 1024 * 1024){ showToast('Cette image est trop lourde (15 Mo maximum).'); return; }
+    $('#mp-photo-etat').textContent = 'Envoi de la photo…';
+    let blob;
+    try{ blob = await compresser(f, DEMO ? 640 : 1200); }catch(e){ showToast('Impossible de lire cette image.'); $('#mp-photo-etat').textContent = ''; return; }
+    let url;
+    if(DEMO){ url = await new Promise(ok => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(blob); }); }
+    else {
+      const chemin = `${espaceId}/gateaux/${crypto.randomUUID()}.jpg`;
+      const { error } = await supabase.storage.from('vitrines').upload(chemin, blob, { contentType: 'image/jpeg', cacheControl: '31536000' });
+      if(error){ showToast('L’envoi de la photo a échoué.'); $('#mp-photo-etat').textContent = ''; return; }
+      url = supabase.storage.from('vitrines').getPublicUrl(chemin).data.publicUrl;
+    }
+    const cour = $('#mp-photo').value;
+    if(cour && cour !== photoInitiale) supprimerFichier(cour);       // remplace une photo envoyée pendant cette édition
+    $('#mp-photo').value = url; majApercuPhoto();
+    $('#mp-photo-etat').textContent = 'Photo prête : enregistrez la création pour la publier.';
+  });
   function majUniteLibelles(){
     const piece = $('#mp-unite').value === 'piece';
     $('#lbl-mp-prix').innerHTML = (piece ? 'Prix de la pièce' : 'Prix de la part') + ' (€) <span class="req">*</span>';
@@ -634,7 +699,7 @@
     const connue = !p.categorie || CATEGORIES.includes(p.categorie);
     $('#mp-cat').value = connue ? (p.categorie || '') : '__autre'; $('#bloc-cat-autre').hidden = connue; $('#mp-cat-autre').value = connue ? '' : p.categorie;
     $('#mp-unite').value = p.unite === 'piece' ? 'piece' : 'part'; majUniteLibelles();
-    $('#mp-prix').value = p.prix_part ?? ''; $('#mp-min').value = p.parts_min ?? 6; $('#mp-max').value = p.parts_max ?? 30; $('#mp-photo').value = p.photo_url || '';
+    $('#mp-prix').value = p.prix_part ?? ''; $('#mp-min').value = p.parts_min ?? 6; $('#mp-max').value = p.parts_max ?? 30; $('#mp-photo').value = p.photo_url || ''; photoInitiale = p.photo_url || ''; photoSauvee = false; majApercuPhoto(); $('#mp-photo-etat').textContent = 'JPEG, PNG ou WebP : elle est redimensionnée automatiquement. C’est la photo que verront vos clients sur la page de commande.';
     $('#mp-actif').checked = id ? p.actif : true;
     $('#modal-produit').classList.add('show'); $('#mp-nom').focus();
   }
@@ -645,14 +710,15 @@
     if(nom.length < 2 || $('#mp-prix').value === '' || !(prix >= 0)){ showToast('Indiquez un nom et un prix.'); return; }
     if(max < min){ showToast('Le maximum doit dépasser le minimum.'); return; }
     const photo = $('#mp-photo').value.trim();
-    if(photo && !/^https:\/\//.test(photo)){ showToast('Le lien de la photo doit commencer par https://'); return; }
+    if(photo && !DEMO && !/^https:\/\//.test(photo)){ showToast('La photo n’est pas valide, choisissez-la à nouveau.'); return; }
     const cat = $('#mp-cat').value === '__autre' ? $('#mp-cat-autre').value.trim() : $('#mp-cat').value;
     const ligne = { nom, categorie: cat || null, unite: $('#mp-unite').value, description: $('#mp-desc').value.trim() || null, prix_part: prix, parts_min: min, parts_max: max, photo_url: photo || null, actif: $('#mp-actif').checked };
     const id = $('#mp-id').value;
     const { error } = id ? await supabase.from('gateaux_produits').update(ligne).eq('id', id)
       : await supabase.from('gateaux_produits').insert({ ...ligne, owner_id: espaceId, position: produits.length });
     if(error){ showToast('L’enregistrement a échoué.'); return; }
-    fermer(); showToast(id ? 'Gâteau mis à jour.' : 'Gâteau ajouté.'); chargerProduits();
+    photoSauvee = true; if(photoInitiale && photoInitiale !== photo) supprimerFichier(photoInitiale);
+    fermer(); showToast(id ? 'Création mise à jour.' : 'Création ajoutée.'); chargerProduits();
   });
   $('#import-types').addEventListener('click', async () => {
     const existants = new Set(produits.map(p => p.nom.toLowerCase()));
@@ -717,7 +783,11 @@
   });
 
   // ---- modales, session
-  function fermer(){ document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('show')); }
+  function fermer(){
+    // Photo envoyée pendant l'édition d'une création mais jamais enregistrée : on supprime le fichier orphelin.
+    if($('#modal-produit').classList.contains('show') && !photoSauvee){ const cour = $('#mp-photo').value; if(cour && cour !== photoInitiale) supprimerFichier(cour); }
+    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('show'));
+  }
   document.querySelectorAll('[data-fermer]').forEach(b => b.addEventListener('click', fermer));
   document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if(e.target === m) fermer(); }));
   document.addEventListener('keydown', e => { if(e.key === 'Escape') fermer(); });
