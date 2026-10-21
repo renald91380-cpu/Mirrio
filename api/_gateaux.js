@@ -17,10 +17,15 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const RESEND_FROM = process.env.RESEND_FROM || 'Mirrio <onboarding@resend.dev>';
 
-const OCCASIONS = {
-  mariage: 'Mariage', anniversaire: 'Anniversaire', retraite: 'Départ en retraite', communion: 'Communion',
-  bapteme: 'Baptême', naissance: 'Naissance', fiancailles: 'Fiançailles', entreprise: 'Événement d’entreprise', autre: 'Autre occasion'
-};
+// Événements proposés dans la liste déroulante (groupés), « Autre » toujours en dernier avec un champ à préciser.
+const GROUPES_OCCASIONS = [
+  { nom: 'Cérémonies', items: { mariage: 'Mariage', anniversaire_mariage: 'Anniversaire de mariage (noces)', fiancailles: 'Fiançailles', bapteme: 'Baptême', communion: 'Communion', bar_mitsva: 'Bar ou bat-mitsva' } },
+  { nom: 'Fêtes personnelles', items: { anniversaire: 'Anniversaire', anniversaire_enfant: 'Anniversaire d’enfant', naissance: 'Naissance, baby shower', gender_reveal: 'Révélation du sexe du bébé', diplome: 'Remise de diplôme', cremaillere: 'Pendaison de crémaillère', reunion_famille: 'Repas de famille ou entre amis' } },
+  { nom: 'Vie professionnelle', items: { retraite: 'Départ en retraite', pot_depart: 'Pot de départ ou d’arrivée', entreprise: 'Événement d’entreprise' } },
+  { nom: 'Fêtes de l’année', items: { epiphanie: 'Épiphanie (galette des rois)', saint_valentin: 'Saint-Valentin', paques: 'Pâques', fete_parents: 'Fête des mères ou des pères', noel: 'Noël, fêtes de fin d’année', fete_religieuse: 'Fête religieuse (Aïd, Hanouka…)' } },
+  { nom: 'Autre', items: { autre: 'Autre (à préciser)' } }
+];
+const OCCASIONS = Object.assign({}, ...GROUPES_OCCASIONS.map(g => g.items));
 
 function json(res, statut, corps){
   res.statusCode = statut;
@@ -179,7 +184,8 @@ export default async function handler(req, res){
       const aujourdhui = aujourdhuiParis();
       const fin = ajouterJours(aujourdhui, p.cfg.horizon_jours);
       const [produits, { charges, niveaux }, carte] = await Promise.all([
-        get(`gateaux_produits?owner_id=eq.${p.id}&actif=eq.true&select=id,nom,description,categorie,photo_url,prix_part,parts_min,parts_max&order=position`),
+        get(`gateaux_produits?owner_id=eq.${p.id}&actif=eq.true&select=id,nom,description,categorie,photo_url,prix_part,parts_min,parts_max,unite&order=position`)
+          .catch(() => get(`gateaux_produits?owner_id=eq.${p.id}&actif=eq.true&select=id,nom,description,categorie,photo_url,prix_part,parts_min,parts_max&order=position`)),
         chargesParDate(p.id, p.cfg, aujourdhui, fin),
         stripeDuSalon(p.id).then(Boolean)
       ]);
@@ -188,7 +194,7 @@ export default async function handler(req, res){
       return json(res, 200, {
         slug, nom: p.profil.business_name || p.profil.full_name || 'Pâtisserie', logo_url: p.profil.logo_url || null,
         ville: p.fact.emetteur_ville || null,
-        occasions: OCCASIONS, produits,
+        occasions: OCCASIONS, groupes: GROUPES_OCCASIONS, produits,
         regles: {
           date_min: ajouterJours(aujourdhui, c.delai_min_jours), date_max: fin, delai_min_jours: c.delai_min_jours,
           jours_fermes: c.jours_fermes, charges, niveaux, capacite: c.commandes_max_par_jour,
@@ -216,12 +222,14 @@ export default async function handler(req, res){
 
     const [produit] = /^[0-9a-f-]{36}$/i.test(b.produit_id || '')
       ? await get(`gateaux_produits?id=eq.${b.produit_id}&owner_id=eq.${p.id}&actif=eq.true&select=*`) : [];
-    if(!produit) return json(res, 400, { error: 'Choisissez un gâteau du catalogue.' });
-    if(!OCCASIONS[b.occasion]) return json(res, 400, { error: 'Choisissez une occasion.' });
+    if(!produit) return json(res, 400, { error: 'Choisissez une création du catalogue.' });
+    if(!OCCASIONS[b.occasion]) return json(res, 400, { error: 'Choisissez un événement dans la liste.' });
+    const precision = b.occasion === 'autre' ? propre(b.occasion_precision, 80) : '';
+    if(b.occasion === 'autre' && precision.length < 3) return json(res, 400, { error: 'Précisez l’événement (« Autre »).' });
 
     const parts = Math.floor(Number(b.parts));
     if(!(parts >= produit.parts_min && parts <= produit.parts_max))
-      return json(res, 400, { error: `Ce gâteau se commande de ${produit.parts_min} à ${produit.parts_max} parts.` });
+      return json(res, 400, { error: `Cette création se commande de ${produit.parts_min} à ${produit.parts_max} ${produit.unite === 'piece' ? 'pièces' : 'parts'}.` });
 
     const date = String(b.date_retrait || '');
     if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) return json(res, 400, { error: 'Choisissez une date de retrait.' });
@@ -258,7 +266,7 @@ export default async function handler(req, res){
     const prixBase = Math.round(parts * Number(produit.prix_part) * 100) / 100;
     const prixEstime = surcharge ? Math.round(prixBase * (100 + pctMajoration)) / 100 : prixBase;
     const commande = await inserer('gateaux_commandes', {
-      owner_id: p.id, produit_id: produit.id, produit_nom: produit.nom, occasion: b.occasion, parts,
+      owner_id: p.id, produit_id: produit.id, produit_nom: produit.nom, occasion: b.occasion, occasion_precision: precision || null, parts,
       personnalisation: propre(b.personnalisation, 600) || null, message_gateau: propre(b.message_gateau, 80) || null,
       allergies: propre(b.allergies, 300) || null, date_retrait: date, heure_retrait: heure || null,
       client_nom: nom, client_email: email, client_telephone: propre(b.telephone, 30) || null,
@@ -294,18 +302,18 @@ export default async function handler(req, res){
     const quand = dateLongue(date) + (heure ? ` à ${heure.replace(':', 'h')}` : '');
     try{
       await envoyer({
-        to: email, replyTo: p.fact.emetteur_email, subject: `Votre demande de gâteau, ${nomBoutique} (réf. ${commande.reference})`,
+        to: email, replyTo: p.fact.emetteur_email, subject: `Votre commande de pâtisserie, ${nomBoutique} (réf. ${commande.reference})`,
         html: gabarit('Votre demande est bien reçue', [
-          `${echapper(nomBoutique)} a reçu votre demande pour <strong>${echapper(produit.nom)}</strong> (${parts} parts, ${echapper(OCCASIONS[b.occasion].toLowerCase())}).`,
+          `${echapper(nomBoutique)} a reçu votre demande pour <strong>${echapper(produit.nom)}</strong> (${parts} ${produit.unite === 'piece' ? 'pièces' : 'parts'}, ${echapper(precision || OCCASIONS[b.occasion].toLowerCase())}).`,
           `Retrait souhaité : <strong>${echapper(quand)}</strong>${c.adresse_retrait ? `, ${echapper(c.adresse_retrait)}` : ''}.`,
           `Prix estimé : <strong>${euros(prixEstime)}</strong>. Ce n’est pas encore une commande ferme : la pâtisserie vous confirme la faisabilité et le prix final${c.acompte_pourcentage ? `, avec un acompte de ${c.acompte_pourcentage} %` : ''}.`,
           `Référence : <strong>${echapper(commande.reference)}</strong>. Vous pouvez répondre à cet email pour toute précision.`
         ])
       });
       if(p.fact.emetteur_email) await envoyer({
-        to: p.fact.emetteur_email, replyTo: email, subject: `Nouvelle demande de gâteau : ${produit.nom}, ${quand}`,
-        html: gabarit('Nouvelle demande de gâteau', [
-          `<strong>${echapper(nom)}</strong> (${echapper(email)}${b.telephone ? `, ${echapper(propre(b.telephone, 30))}` : ''}) demande <strong>${echapper(produit.nom)}</strong>, ${parts} parts, ${echapper(OCCASIONS[b.occasion].toLowerCase())}.`,
+        to: p.fact.emetteur_email, replyTo: email, subject: `Nouvelle commande : ${produit.nom}, ${quand}`,
+        html: gabarit('Nouvelle commande de pâtisserie', [
+          `<strong>${echapper(nom)}</strong> (${echapper(email)}${b.telephone ? `, ${echapper(propre(b.telephone, 30))}` : ''}) demande <strong>${echapper(produit.nom)}</strong>, ${parts} ${produit.unite === 'piece' ? 'pièces' : 'parts'}, ${echapper(precision || OCCASIONS[b.occasion].toLowerCase())}.`,
           `Retrait : <strong>${echapper(quand)}</strong>. Estimation : ${euros(prixEstime)}.`,
           ...(commande.message_gateau ? [`Message sur le gâteau : « ${echapper(commande.message_gateau)} »`] : []),
           ...(commande.allergies ? [`<strong>Allergies :</strong> ${echapper(commande.allergies)}`] : []),

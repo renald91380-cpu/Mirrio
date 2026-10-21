@@ -17,7 +17,7 @@
     }catch(e){}
   })();
 </script>
-<title>Commandes de gâteaux | Mirrio</title>
+<title>Commandes de pâtisseries | Mirrio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -313,7 +313,7 @@
   <main class="app-content">
     <div class="content-topbar">
       <div>
-        <h1 class="content-title">Commandes de gâteaux</h1>
+        <h1 class="content-title">Commandes de pâtisseries</h1>
         <p id="page-sub">Mariages, anniversaires, départs en retraite : vos clients commandent en ligne, vous confirmez.</p>
       </div>
       <div class="content-actions">
@@ -337,8 +337,8 @@
 
       <section id="p-catalogue" role="tabpanel" aria-labelledby="t-catalogue" hidden>
         <div class="barre-actions">
-          <button class="btn btn-primary" id="ajout-produit" type="button">Ajouter un gâteau</button>
-          <button class="btn btn-secondary" id="import-types" type="button">Importer des gâteaux types</button>
+          <button class="btn btn-primary" id="ajout-produit" type="button">Ajouter une création</button>
+          <button class="btn btn-secondary" id="import-types" type="button">Importer des créations types</button>
         </div>
         <div id="liste-produits"></div>
       </section>
@@ -346,8 +346,9 @@
       <section id="p-reglages" role="tabpanel" aria-labelledby="t-reglages" hidden>
         <form id="form-reglages" class="carte-form" novalidate>
           <label class="interrupteur"><input type="checkbox" id="g-activee"> Ouvrir les commandes en ligne</label>
+          <div class="field" id="bloc-slug"><label for="g-slug">Adresse de votre page de commande</label><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span class="sous">…/commander.html?p=</span><input type="text" id="g-slug" maxlength="40" pattern="[a-z0-9-]{3,40}" placeholder="maison-doree" style="flex:1;min-width:180px" autocomplete="off"></div><div class="hint" style="margin:4px 0 0">3 à 40 caractères : lettres minuscules, chiffres, tirets. C’est l’adresse que vous donnez à vos clients.</div></div>
           <p class="hint" id="aide-slug"></p>
-          <p class="hint">Le <strong>prix à la part</strong> et le <strong>nombre de parts minimum et maximum</strong> se règlent gâteau par gâteau, dans l’onglet Catalogue.</p>
+          <p class="hint">Le <strong>prix à la part</strong> et le <strong>nombre de parts minimum et maximum</strong> se règlent création par création (entremets, tartes, éclairs, macarons…), dans l’onglet Catalogue.</p>
 
           <fieldset class="groupe"><legend>Jours et heures d’ouverture</legend>
             <div class="field"><span class="lbl">Jours d’ouverture (retrait)</span><div class="jours" id="g-jours"></div></div>
@@ -414,16 +415,18 @@
 
 <div class="modal-overlay" id="modal-produit" role="dialog" aria-modal="true" aria-labelledby="mp-titre">
   <div class="modal">
-    <h2 id="mp-titre">Gâteau</h2>
+    <h2 id="mp-titre">Création</h2>
     <form id="form-produit" novalidate>
       <input type="hidden" id="mp-id">
-      <div class="field"><label for="mp-nom">Nom <span class="req">*</span></label><input type="text" id="mp-nom" maxlength="80"></div>
-      <div class="field"><label for="mp-cat">Catégorie</label><input type="text" id="mp-cat" maxlength="40" list="cats" placeholder="Entremets, Gâteaux de fête…"><datalist id="cats"><option>Entremets</option><option>Gâteaux de fête</option><option>Pièces montées</option><option>Tartes</option><option>Petits fours</option></datalist></div>
+      <div class="field"><label for="mp-nom">Nom de la création <span class="req">*</span></label><input type="text" id="mp-nom" maxlength="80" list="noms-patisserie" autocomplete="off" placeholder="Fraisier, croquembouche, éclairs…"><datalist id="noms-patisserie"></datalist><div class="hint" style="margin:4px 0 0">Choisissez un nom proposé pour préremplir la description, la catégorie et l’unité.</div></div>
+      <div class="field"><label for="mp-cat">Catégorie</label><select id="mp-cat"></select></div>
+      <div class="field" id="bloc-cat-autre" hidden><label for="mp-cat-autre">Votre catégorie</label><input type="text" id="mp-cat-autre" maxlength="40"></div>
+      <div class="field"><label for="mp-unite">Vendu</label><select id="mp-unite"><option value="part">À la part (entremets, tartes, gâteaux de fête…)</option><option value="piece">À la pièce (éclairs, macarons, mignardises…)</option></select></div>
       <div class="field"><label for="mp-desc">Description</label><textarea id="mp-desc" maxlength="300"></textarea></div>
       <div class="grille-champs">
-        <div class="field"><label for="mp-prix">Prix de la part (€) <span class="req">*</span></label><input type="number" id="mp-prix" min="0" step="0.05"></div>
-        <div class="field"><label for="mp-min">Parts minimum</label><input type="number" id="mp-min" min="1" value="6"></div>
-        <div class="field"><label for="mp-max">Parts maximum</label><input type="number" id="mp-max" min="1" value="30"></div>
+        <div class="field"><label for="mp-prix" id="lbl-mp-prix">Prix de la part (€) <span class="req">*</span></label><input type="number" id="mp-prix" min="0" step="0.05"></div>
+        <div class="field"><label for="mp-min" id="lbl-mp-min">Parts minimum</label><input type="number" id="mp-min" min="1" value="6"></div>
+        <div class="field"><label for="mp-max" id="lbl-mp-max">Parts maximum</label><input type="number" id="mp-max" min="1" value="30"></div>
       </div>
       <div class="field"><label for="mp-photo">Photo (lien https)</label><input type="url" id="mp-photo" placeholder="https://…"></div>
       <label class="interrupteur"><input type="checkbox" id="mp-actif" checked> Proposé à la commande</label>
@@ -483,18 +486,46 @@
   const $ = (s, r) => (r || document).querySelector(s);
   const echapper = s => { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; };
   const euros = n => new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR' }).format(n);
-  const OCCASIONS = { mariage:'Mariage', anniversaire:'Anniversaire', retraite:'Départ en retraite', communion:'Communion', bapteme:'Baptême', naissance:'Naissance', fiancailles:'Fiançailles', entreprise:'Événement d’entreprise', autre:'Autre occasion' };
+  const OCCASIONS = Object.assign({}, ...window.DEMO_PATISSERIE.groupes.map(g => g.items));   // même liste que api/_gateaux.js (demo-patisserie.js la porte pour les deux écrans)
   const STATUTS = { a_payer:'Paiement en attente', nouvelle:'Nouvelle demande', confirmee:'Confirmée', prete:'Prête', retiree:'Retirée', annulee:'Annulée' };
   const JOURS = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+  // Catégories du rayon pâtisserie-boulangerie (« Autre » ouvre un champ libre).
+  const CATEGORIES = ['Entremets','Tartes et tartelettes','Gâteaux de fête et layer cakes','Pièces montées et croquembouches','Pâtisseries individuelles','Macarons','Petits fours et mignardises',
+    'Viennoiseries','Pains spéciaux et brioches','Galettes et bûches de saison','Salé et buffets'];
+  // [catégorie, nom, description, prix (part ou pièce), minimum, maximum, unité]
   const TYPES = [
-    ['Entremets','Fraisier',5.2,6,30], ['Entremets','Entremets chocolat noisette',5.6,6,30], ['Entremets','Framboisier',5.4,6,30],
-    ['Gâteaux de fête','Layer cake personnalisé',5.9,8,40], ['Gâteaux de fête','Gâteau d’anniversaire enfant',4.8,8,30], ['Gâteaux de fête','Wedding cake',6.5,25,100],
-    ['Pièces montées','Pièce montée de choux',4.2,20,120], ['Tartes','Tarte aux fruits de saison',4.0,6,16], ['Petits fours','Plateau de petits fours sucrés',3.4,10,80]
+    ['Entremets','Fraisier','Génoise, crème mousseline vanille, fraises fraîches et pâte d’amande.',5.2,6,30,'part'],
+    ['Entremets','Framboisier','Biscuit cuillère, crème mousseline vanille, framboises fraîches.',5.4,6,30,'part'],
+    ['Entremets','Entremets chocolat noisette','Croustillant praliné, mousse chocolat noir 70 %, glaçage miroir.',5.6,6,30,'part'],
+    ['Entremets','Opéra','Biscuit Joconde imbibé café, ganache chocolat, crème au beurre café.',5.5,6,30,'part'],
+    ['Entremets','Forêt-noire','Génoise au chocolat, chantilly kirsch, cerises griottes, copeaux.',5.3,6,30,'part'],
+    ['Entremets','Paris-Brest','Couronne de pâte à choux, crème mousseline pralinée, amandes effilées.',5.0,6,20,'part'],
+    ['Entremets','Saint-Honoré','Pâte feuilletée, choux caramélisés, crème chiboust vanille.',5.8,6,20,'part'],
+    ['Tartes et tartelettes','Tarte au citron meringuée','Pâte sablée, crème citron, meringue italienne dorée au chalumeau.',4.2,6,16,'part'],
+    ['Tartes et tartelettes','Tarte aux fruits de saison','Pâte sucrée, crème d’amande, fruits frais de saison.',4.0,6,16,'part'],
+    ['Tartes et tartelettes','Tarte Tatin','Pommes caramélisées, pâte feuilletée, à servir tiède.',3.8,6,16,'part'],
+    ['Gâteaux de fête et layer cakes','Layer cake personnalisé','Étages de biscuit et de crème au beurre, message et décor sur mesure.',5.9,8,40,'part'],
+    ['Gâteaux de fête et layer cakes','Number cake','Chiffre ou lettre en biscuit, crème mousseline, fruits et meringues.',6.2,8,24,'part'],
+    ['Gâteaux de fête et layer cakes','Gâteau d’anniversaire enfant','Génoise, crème au beurre, décor en pâte à sucre au thème de l’enfant.',4.8,8,30,'part'],
+    ['Gâteaux de fête et layer cakes','Wedding cake','Génoise vanille, ganache montée, finition pâte à sucre, plusieurs étages.',6.5,25,100,'part'],
+    ['Pièces montées et croquembouches','Croquembouche','Choux garnis de crème pâtissière, caramel filé et nougatine.',4.2,20,120,'part'],
+    ['Pâtisseries individuelles','Éclairs','Pâte à choux, crème pâtissière café, chocolat ou vanille, glaçage fondant.',3.2,12,120,'piece'],
+    ['Pâtisseries individuelles','Religieuses','Deux choux superposés, crème pâtissière, glaçage et crème au beurre.',3.8,12,80,'piece'],
+    ['Pâtisseries individuelles','Mille-feuilles individuels','Pâte feuilletée caramélisée, crème diplomate vanille.',3.6,12,80,'piece'],
+    ['Macarons','Macarons assortis','Coques lisses et ganaches : pistache, framboise, caramel beurre salé, chocolat.',1.9,24,200,'piece'],
+    ['Petits fours et mignardises','Plateau de petits fours sucrés','Assortiment de choux, tartelettes, financiers et mignardises.',3.4,10,80,'part'],
+    ['Galettes et bûches de saison','Galette des rois','Pâte feuilletée pur beurre, frangipane, fève et couronne.',4.5,4,16,'part'],
+    ['Galettes et bûches de saison','Bûche de Noël','Biscuit roulé, crème au beurre ou entremets glacé, décor de saison.',5.4,6,16,'part'],
+    ['Viennoiseries','Mini-viennoiseries','Mini-croissants, pains au chocolat et chaussons, pour brunch ou petit-déjeuner.',0.9,24,200,'piece'],
+    ['Pains spéciaux et brioches','Brioche tressée','Pâte briochée pur beurre, tressée et dorée à l’œuf.',3.0,4,12,'part'],
+    ['Salé et buffets','Pain surprise','Pain de campagne garni de canapés, assortiment de garnitures salées.',2.2,20,100,'piece']
   ];
 
   let stripeActif = false, espaceId = null, slug = null, commandes = [], produits = [], reglages = null, filtre = 'a_traiter', courante = null;
   const toast = $('#toast');
   function showToast(m){ $('#toast-text').textContent = m; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 3200); }
+  // « parts » ou « pièces » selon la création (retrouvée dans le catalogue ; « parts » si elle a été supprimée).
+  function uniteMot(produitId, pluriel){ const p = produits.find(x => x.id === produitId); return p && p.unite === 'piece' ? (pluriel ? 'pièces' : 'pièce') : (pluriel ? 'parts' : 'part'); }
   function initiales(n){ const m = (n || '').trim().split(/\s+/).filter(Boolean); return !m.length ? '?' : (m.length === 1 ? m[0].slice(0,2) : m[0][0] + m[m.length-1][0]).toUpperCase(); }
   const dateLongue = iso => new Intl.DateTimeFormat('fr-FR', { weekday:'long', day:'numeric', month:'long' }).format(new Date(iso + 'T12:00:00'));
   const lienPublic = () => `${location.origin}/commander.html?p=${slug}`;
@@ -526,8 +557,8 @@
       const prix = c.prix_final != null ? euros(c.prix_final) : euros(c.prix_estime) + ' <small>(estimé)</small>';
       return `<button type="button" class="commande" data-id="${c.id}">
         <span class="date"><b>${new Date(c.date_retrait + 'T12:00:00').getDate()}</b>${new Intl.DateTimeFormat('fr-FR', { month:'short' }).format(new Date(c.date_retrait + 'T12:00:00'))}</span>
-        <span class="infos"><strong>${echapper(c.produit_nom)}</strong> · ${c.parts} parts<br>
-          <span class="sous">${echapper(OCCASIONS[c.occasion])} · ${echapper(c.client_nom)}${c.heure_retrait ? ' · ' + String(c.heure_retrait).slice(0,5).replace(':','h') : ''}</span>
+        <span class="infos"><strong>${echapper(c.produit_nom)}</strong> · ${c.parts} ${uniteMot(c.produit_id, true)}<br>
+          <span class="sous">${echapper(c.occasion === 'autre' && c.occasion_precision ? 'Autre : ' + c.occasion_precision : OCCASIONS[c.occasion])} · ${echapper(c.client_nom)}${c.heure_retrait ? ' · ' + String(c.heure_retrait).slice(0,5).replace(':','h') : ''}</span>
           ${c.allergies ? `<span class="allergie">Allergies : ${echapper(c.allergies)}</span>` : ''}</span>
         <span class="droite"><span class="prix">${prix}</span><span>${c.surcharge ? `<span class="pastille sur">+${c.surcharge_pourcentage} % surcharge</span> ` : ''}${c.paiement_statut === 'paye' ? '<span class="pastille">Payée par carte</span> ' : ''}<span class="statut s-${c.statut}">${STATUTS[c.statut]}</span></span></span></button>`;
     }).join('');
@@ -543,7 +574,7 @@
     $('#mc-titre').textContent = `${c.produit_nom} · réf. ${c.reference}`;
     $('#mc-detail').innerHTML = `<dl class="detail">
       <dt>Retrait</dt><dd>${echapper(dateLongue(c.date_retrait))}${c.heure_retrait ? ' à ' + String(c.heure_retrait).slice(0,5).replace(':','h') : ''}</dd>
-      <dt>Occasion</dt><dd>${echapper(OCCASIONS[c.occasion])}, ${c.parts} parts</dd>
+      <dt>Événement</dt><dd>${echapper(c.occasion === 'autre' && c.occasion_precision ? 'Autre : ' + c.occasion_precision : OCCASIONS[c.occasion])}, ${c.parts} ${uniteMot(c.produit_id, true)}</dd>
       <dt>Client</dt><dd>${echapper(c.client_nom)}<br><a href="mailto:${echapper(c.client_email)}">${echapper(c.client_email)}</a>${c.client_telephone ? `<br><a href="tel:${echapper(c.client_telephone)}">${echapper(c.client_telephone)}</a>` : ''}</dd>
       ${c.message_gateau ? `<dt>Message</dt><dd>« ${echapper(c.message_gateau)} »</dd>` : ''}
       ${c.personnalisation ? `<dt>Précisions</dt><dd>${echapper(c.personnalisation)}</dd>` : ''}
@@ -564,9 +595,9 @@
 
   // ---- catalogue
   function rendreProduits(){
-    if(!produits.length){ $('#liste-produits').innerHTML = '<div class="empty-state"><h2>Aucun gâteau pour l’instant</h2><p>Ajoutez vos créations ou importez une base de gâteaux types, à ajuster ensuite.</p></div>'; return; }
+    if(!produits.length){ $('#liste-produits').innerHTML = '<div class="empty-state"><h2>Aucune création pour l’instant</h2><p>Ajoutez vos entremets, tartes, éclairs ou macarons, ou importez une base de créations types à ajuster ensuite.</p></div>'; return; }
     $('#liste-produits').innerHTML = produits.map(p => `<div class="produit${p.actif ? '' : ' inactif'}">
-      <div><strong>${echapper(p.nom)}</strong> ${p.actif ? '' : '<span class="statut s-annulee">Masqué</span>'}<br><span class="sous">${echapper(p.categorie || 'Sans catégorie')} · ${euros(p.prix_part)} la part · ${p.parts_min} à ${p.parts_max} parts</span></div>
+      <div><strong>${echapper(p.nom)}</strong> ${p.actif ? '' : '<span class="statut s-annulee">Masqué</span>'}<br><span class="sous">${echapper(p.categorie || 'Sans catégorie')} · ${euros(p.prix_part)} ${p.unite === 'piece' ? 'la pièce' : 'la part'} · ${p.parts_min} à ${p.parts_max} ${p.unite === 'piece' ? 'pièces' : 'parts'}</span></div>
       <div class="actions"><button type="button" class="btn btn-secondary" data-edit="${p.id}">Modifier</button><button type="button" class="btn btn-secondary" data-suppr="${p.id}">Supprimer</button></div></div>`).join('');
     $('#liste-produits').querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => ouvrirProduit(b.dataset.edit)));
     $('#liste-produits').querySelectorAll('[data-suppr]').forEach(b => b.addEventListener('click', async () => {
@@ -578,10 +609,31 @@
     }));
   }
   async function chargerProduits(){ const { data } = await supabase.from('gateaux_produits').select('*').order('position'); produits = data || []; rendreProduits(); }
+  // Catégorie : liste du rayon + « Autre » (champ libre).
+  $('#mp-cat').innerHTML = '<option value="">Choisir une catégorie…</option>' + CATEGORIES.map(c => `<option>${echapper(c)}</option>`).join('') + '<option value="__autre">Autre</option>';
+  $('#noms-patisserie').innerHTML = TYPES.map(t => `<option value="${echapper(t[1])}">${echapper(t[0])}</option>`).join('');
+  function majUniteLibelles(){
+    const piece = $('#mp-unite').value === 'piece';
+    $('#lbl-mp-prix').innerHTML = (piece ? 'Prix de la pièce' : 'Prix de la part') + ' (€) <span class="req">*</span>';
+    $('#lbl-mp-min').textContent = piece ? 'Pièces minimum' : 'Parts minimum'; $('#lbl-mp-max').textContent = piece ? 'Pièces maximum' : 'Parts maximum';
+  }
+  $('#mp-unite').addEventListener('change', majUniteLibelles);
+  $('#mp-cat').addEventListener('change', () => { const a = $('#mp-cat').value === '__autre'; $('#bloc-cat-autre').hidden = !a; if(a) $('#mp-cat-autre').focus(); });
+  // Choisir un nom proposé préremplit ce qui est encore vide.
+  $('#mp-nom').addEventListener('change', () => {
+    const t = TYPES.find(x => x[1].toLowerCase() === $('#mp-nom').value.trim().toLowerCase()); if(!t) return;
+    if(!$('#mp-cat').value) $('#mp-cat').value = t[0];
+    if(!$('#mp-desc').value.trim()) $('#mp-desc').value = t[2];
+    if($('#mp-prix').value === '') $('#mp-prix').value = t[3];
+    if(!$('#mp-id').value){ $('#mp-min').value = t[4]; $('#mp-max').value = t[5]; $('#mp-unite').value = t[6]; majUniteLibelles(); }
+  });
   function ouvrirProduit(id){
     const p = produits.find(x => x.id === id) || {};
-    $('#mp-titre').textContent = id ? 'Modifier le gâteau' : 'Ajouter un gâteau';
-    $('#mp-id').value = id || ''; $('#mp-nom').value = p.nom || ''; $('#mp-cat').value = p.categorie || ''; $('#mp-desc').value = p.description || '';
+    $('#mp-titre').textContent = id ? 'Modifier la création' : 'Ajouter une création';
+    $('#mp-id').value = id || ''; $('#mp-nom').value = p.nom || ''; $('#mp-desc').value = p.description || '';
+    const connue = !p.categorie || CATEGORIES.includes(p.categorie);
+    $('#mp-cat').value = connue ? (p.categorie || '') : '__autre'; $('#bloc-cat-autre').hidden = connue; $('#mp-cat-autre').value = connue ? '' : p.categorie;
+    $('#mp-unite').value = p.unite === 'piece' ? 'piece' : 'part'; majUniteLibelles();
     $('#mp-prix').value = p.prix_part ?? ''; $('#mp-min').value = p.parts_min ?? 6; $('#mp-max').value = p.parts_max ?? 30; $('#mp-photo').value = p.photo_url || '';
     $('#mp-actif').checked = id ? p.actif : true;
     $('#modal-produit').classList.add('show'); $('#mp-nom').focus();
@@ -590,11 +642,12 @@
   $('#form-produit').addEventListener('submit', async e => {
     e.preventDefault();
     const nom = $('#mp-nom').value.trim(), prix = Number($('#mp-prix').value), min = Math.max(1, Math.floor(Number($('#mp-min').value) || 1)), max = Math.floor(Number($('#mp-max').value) || 0);
-    if(nom.length < 2 || $('#mp-prix').value === '' || !(prix >= 0)){ showToast('Indiquez un nom et un prix par part.'); return; }
-    if(max < min){ showToast('Le nombre maximum de parts doit dépasser le minimum.'); return; }
+    if(nom.length < 2 || $('#mp-prix').value === '' || !(prix >= 0)){ showToast('Indiquez un nom et un prix.'); return; }
+    if(max < min){ showToast('Le maximum doit dépasser le minimum.'); return; }
     const photo = $('#mp-photo').value.trim();
     if(photo && !/^https:\/\//.test(photo)){ showToast('Le lien de la photo doit commencer par https://'); return; }
-    const ligne = { nom, categorie: $('#mp-cat').value.trim() || null, description: $('#mp-desc').value.trim() || null, prix_part: prix, parts_min: min, parts_max: max, photo_url: photo || null, actif: $('#mp-actif').checked };
+    const cat = $('#mp-cat').value === '__autre' ? $('#mp-cat-autre').value.trim() : $('#mp-cat').value;
+    const ligne = { nom, categorie: cat || null, unite: $('#mp-unite').value, description: $('#mp-desc').value.trim() || null, prix_part: prix, parts_min: min, parts_max: max, photo_url: photo || null, actif: $('#mp-actif').checked };
     const id = $('#mp-id').value;
     const { error } = id ? await supabase.from('gateaux_produits').update(ligne).eq('id', id)
       : await supabase.from('gateaux_produits').insert({ ...ligne, owner_id: espaceId, position: produits.length });
@@ -604,11 +657,11 @@
   $('#import-types').addEventListener('click', async () => {
     const existants = new Set(produits.map(p => p.nom.toLowerCase()));
     const ajout = TYPES.filter(t => !existants.has(t[1].toLowerCase()));
-    if(!ajout.length){ showToast('Tous ces gâteaux existent déjà.'); return; }
-    if(!window.confirm(`Ajouter ${ajout.length} gâteaux types ? Prix indicatifs à ajuster.`)) return;
-    const { error } = await supabase.from('gateaux_produits').insert(ajout.map((t, i) => ({ owner_id: espaceId, categorie: t[0], nom: t[1], prix_part: t[2], parts_min: t[3], parts_max: t[4], position: produits.length + i })));
+    if(!ajout.length){ showToast('Toutes ces créations existent déjà.'); return; }
+    if(!window.confirm(`Ajouter ${ajout.length} créations types (entremets, tartes, pièces montées, éclairs, macarons…) ? Prix indicatifs à ajuster.`)) return;
+    const { error } = await supabase.from('gateaux_produits').insert(ajout.map((t, i) => ({ owner_id: espaceId, categorie: t[0], nom: t[1], description: t[2], prix_part: t[3], parts_min: t[4], parts_max: t[5], unite: t[6], position: produits.length + i })));
     if(error){ showToast('L’import a échoué.'); return; }
-    showToast(`${ajout.length} gâteaux ajoutés.`); chargerProduits();
+    showToast(`${ajout.length} créations ajoutées.`); chargerProduits();
   });
 
   // ---- réglages
@@ -622,7 +675,7 @@
   const TOUS_JOURS = [1,2,3,4,5,6,0];
   function remplirReglages(){
     const r = reglages;
-    $('#g-activee').checked = r.activee;
+    $('#g-activee').checked = r.activee; $('#g-slug').value = slug || ''; $('#g-slug').disabled = DEMO;
     NOMBRES.forEach(([id, col]) => { $('#' + id).value = r[col]; });
     $('#g-debut').value = String(r.heure_retrait_debut).slice(0,5); $('#g-fin').value = String(r.heure_retrait_fin).slice(0,5);
     $('#g-adresse').value = r.adresse_retrait || ''; $('#g-message').value = r.message_accueil || '';
@@ -630,14 +683,17 @@
     $('#g-jours').innerHTML = TOUS_JOURS.map(j => `<label class="jour"><input type="checkbox" value="${j}"${(r.jours_fermes || []).includes(j) ? '' : ' checked'}> ${JOURS[j]}</label>`).join('');
     $('#aide-slug').innerHTML = DEMO ? 'Lien de la page de commande de démonstration : <a href="commander.html?p=demo-patisserie" target="_blank" rel="noopener">commander.html?p=demo-patisserie</a>'
       : (slug ? `Lien à partager : <a href="${lienPublic()}" target="_blank" rel="noopener">${lienPublic()}</a>`
-      : 'Votre page n’a pas encore d’adresse : choisissez-en une dans <a href="parametres.html?tab=reservation">Paramètres → Réservation</a> (le champ « adresse de votre page »), puis revenez ici.');
+      : 'Votre page n’a pas encore d’adresse : choisissez-en une ci-dessus.');
     if(!stripeActif) $('#aide-sur').insertAdjacentHTML('beforeend', ' <strong>Le paiement par carte (Stripe) n’est pas activé : tant qu’il ne l’est pas, ces deux paliers sont désactivés et les journées complètes restent complètes</strong> (<a href="parametres.html?tab=paiement">Paramètres → Paiement</a>).');
     $('#voir-page').style.display = $('#copier-lien').style.display = (slug || DEMO) ? '' : 'none';
     if(slug || DEMO) $('#voir-page').href = DEMO ? 'commander.html?p=demo-patisserie' : lienPublic();
   }
   $('#form-reglages').addEventListener('submit', async e => {
     e.preventDefault();
-    if($('#g-activee').checked && !slug && !DEMO){ showToast('Choisissez d’abord l’adresse de votre page (Paramètres → Réservation).'); return; }
+    const nouveauSlug = $('#g-slug').value.trim().toLowerCase();
+    if(!DEMO && nouveauSlug && !/^[a-z0-9-]{3,40}$/.test(nouveauSlug)){ showToast('L’adresse doit faire 3 à 40 caractères : lettres minuscules, chiffres et tirets.'); return; }
+    if(!DEMO && /^demo-(barber|coiffure|institut|nouveau|patisserie)$/.test(nouveauSlug)){ showToast('Cette adresse est réservée aux démonstrations.'); return; }
+    if($('#g-activee').checked && !nouveauSlug && !DEMO){ showToast('Choisissez d’abord l’adresse de votre page de commande.'); return; }
     if($('#g-debut').value >= $('#g-fin').value){ showToast('L’heure de fermeture doit suivre l’heure d’ouverture.'); return; }
     const ouverts = [...document.querySelectorAll('#g-jours input:checked')].map(i => Number(i.value));
     if(!ouverts.length){ showToast('Choisissez au moins un jour d’ouverture.'); return; }
@@ -645,9 +701,15 @@
       jours_fermes: TOUS_JOURS.filter(j => !ouverts.includes(j)), adresse_retrait: $('#g-adresse').value.trim() || null,
       message_accueil: $('#g-message').value.trim() || null, updated_at: new Date().toISOString() };
     NOMBRES.forEach(([id, col, min, max]) => { const v = Math.floor(Number($('#' + id).value)); ligne[col] = Math.min(max, Math.max(min, isNaN(v) ? DEFAUT[col] : v)); });
+    if(!DEMO && nouveauSlug && nouveauSlug !== slug){
+      const { error: errSlug } = await supabase.from('parametres_reservation').upsert({ owner_id: espaceId, slug: nouveauSlug }, { onConflict: 'owner_id' });
+      if(errSlug){ showToast(errSlug.code === '23505' ? 'Cette adresse est déjà prise, essayez une variante.' : 'L’adresse n’a pas pu être enregistrée.'); return; }
+      slug = nouveauSlug;
+    }
     const { error } = await supabase.from('parametres_gateaux').upsert(ligne);
     if(error){ showToast('L’enregistrement a échoué.'); return; }
     reglages = ligne; if(DEMO) window.DEMO_PATISSERIE.sauver();
+    if(!DEMO && slug){ $('#aide-slug').innerHTML = `Lien à partager : <a href="${lienPublic()}" target="_blank" rel="noopener">${lienPublic()}</a>`; $('#voir-page').style.display = $('#copier-lien').style.display = ''; $('#voir-page').href = lienPublic(); }
     showToast(DEMO ? 'Réglages enregistrés pour la démo (page de commande mise à jour).' : (ligne.activee && !produits.some(p => p.actif) ? 'Enregistré. Ajoutez au moins un gâteau pour ouvrir la page.' : 'Réglages enregistrés.'));
   });
   $('#copier-lien').addEventListener('click', async () => {
@@ -665,7 +727,7 @@
   $('#sidebar-logout-btn').addEventListener('click', seDeconnecter);
 
   if(DEMO){
-    document.title = 'Démo : commandes de gâteaux | Mirrio';
+    document.title = 'Démo : commandes de pâtisseries | Mirrio';
     document.querySelectorAll('.app-nav, .sidebar-nav').forEach(n => { n.innerHTML = '<a href="demo.html">Retour à la démo</a><a href="commander.html?p=demo-patisserie" class="active">Page de commande</a>'; n.style.display = 'flex'; });
     $('#page-sub').insertAdjacentHTML('afterend', '<p class="bandeau-demo">Démonstration : pâtisserie fictive « Maison Dorée ». Modifiez les réglages et le catalogue, puis ouvrez la page de commande pour voir l’effet. Rien n’est enregistré durablement. <button type="button" class="lien-reset" id="reset-demo">Remettre à zéro</button></p>');
     $('#reset-demo').addEventListener('click', () => { window.DEMO_PATISSERIE.reinitialiser(); location.reload(); });

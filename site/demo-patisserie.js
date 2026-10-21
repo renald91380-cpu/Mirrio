@@ -17,13 +17,15 @@
   };
 
   var produits = [
-    { id: 'd1', nom: 'Pièce montée de mariage', categorie: 'Pièces montées', description: 'Choux caramélisés, nougatine et fleurs en sucre, à partir de 20 parts.', prix_part: 4.2, parts_min: 20, parts_max: 120 },
-    { id: 'd2', nom: 'Wedding cake trois étages', categorie: 'Gâteaux de fête', description: 'Génoise vanille, ganache framboise, finition pâte à sucre.', prix_part: 6.5, parts_min: 25, parts_max: 100 },
-    { id: 'd3', nom: 'Fraisier', categorie: 'Entremets', description: 'Crème mousseline, fraises fraîches, pâte d’amande.', prix_part: 5.2, parts_min: 6, parts_max: 30 },
-    { id: 'd4', nom: 'Entremets chocolat noisette', categorie: 'Entremets', description: 'Croustillant praliné, mousse chocolat noir 70 %.', prix_part: 5.6, parts_min: 6, parts_max: 30 },
-    { id: 'd5', nom: 'Layer cake personnalisé', categorie: 'Gâteaux de fête', description: 'Message et décor à votre goût, parfums au choix.', prix_part: 5.9, parts_min: 8, parts_max: 40 },
-    { id: 'd6', nom: 'Plateau de petits fours sucrés', categorie: 'Petits fours', description: 'Assortiment de 12 variétés, par pièce (6 pièces = 1 part).', prix_part: 3.4, parts_min: 10, parts_max: 80 }
-  ].map(function(p, i){ p.actif = true; p.position = i; p.photo_url = null; return p; });
+    { id: 'd1', nom: 'Croquembouche de mariage', categorie: 'Pièces montées et croquembouches', description: 'Choux garnis de crème pâtissière vanille, caramel filé et nougatine, à partir de 20 parts.', prix_part: 4.2, parts_min: 20, parts_max: 120 },
+    { id: 'd2', nom: 'Wedding cake trois étages', categorie: 'Gâteaux de fête et layer cakes', description: 'Génoise vanille, ganache montée framboise, finition pâte à sucre.', prix_part: 6.5, parts_min: 25, parts_max: 100 },
+    { id: 'd3', nom: 'Fraisier', categorie: 'Entremets', description: 'Génoise, crème mousseline vanille, fraises fraîches et pâte d’amande.', prix_part: 5.2, parts_min: 6, parts_max: 30 },
+    { id: 'd4', nom: 'Entremets chocolat noisette', categorie: 'Entremets', description: 'Croustillant praliné, mousse chocolat noir 70 %, glaçage miroir.', prix_part: 5.6, parts_min: 6, parts_max: 30 },
+    { id: 'd5', nom: 'Layer cake personnalisé', categorie: 'Gâteaux de fête et layer cakes', description: 'Étages de biscuit et de crème au beurre, message et décor à votre goût.', prix_part: 5.9, parts_min: 8, parts_max: 40 },
+    { id: 'd6', nom: 'Plateau de petits fours sucrés', categorie: 'Petits fours et mignardises', description: 'Assortiment de 12 variétés : choux, tartelettes, financiers, mignardises.', prix_part: 3.4, parts_min: 10, parts_max: 80 },
+    { id: 'd7', nom: 'Éclairs et religieuses', categorie: 'Pâtisseries individuelles', description: 'Pâte à choux, crème pâtissière café, chocolat ou vanille, glaçage fondant.', prix_part: 3.2, parts_min: 12, parts_max: 120, unite: 'piece' },
+    { id: 'd8', nom: 'Macarons assortis', categorie: 'Macarons', description: 'Coques lisses et ganaches : pistache, framboise, caramel beurre salé, chocolat.', prix_part: 1.9, parts_min: 24, parts_max: 200, unite: 'piece' }
+  ].map(function(p, i){ p.actif = true; p.position = i; p.photo_url = null; p.unite = p.unite || 'part'; return p; });
 
   // Les commandes de démo gardent le catalogue d'origine, même si le catalogue est modifié ensuite dans la démo.
   var base = produits.map(function(p){ return { id: p.id, nom: p.nom, prix_part: p.prix_part }; });
@@ -94,5 +96,14 @@
   function sauver(){ try{ sessionStorage.setItem(CLE, JSON.stringify({ reglages: reglages, produits: produits })); }catch(e){} }
   function reinitialiser(){ try{ sessionStorage.removeItem(CLE); }catch(e){} }
 
-  window.DEMO_PATISSERIE = { sauver: sauver, reinitialiser: reinitialiser, nom: 'Maison Dorée (démo)', ville: 'Lyon', reglages: reglages, produits: produits, commandes: commandes, agenda: agenda, plus: plus, iso: iso };
+  var groupes = [
+    { nom: 'Cérémonies', items: { mariage: 'Mariage', anniversaire_mariage: 'Anniversaire de mariage (noces)', fiancailles: 'Fiançailles', bapteme: 'Baptême', communion: 'Communion', bar_mitsva: 'Bar ou bat-mitsva' } },
+    { nom: 'Fêtes personnelles', items: { anniversaire: 'Anniversaire', anniversaire_enfant: 'Anniversaire d’enfant', naissance: 'Naissance, baby shower', gender_reveal: 'Révélation du sexe du bébé', diplome: 'Remise de diplôme', cremaillere: 'Pendaison de crémaillère', reunion_famille: 'Repas de famille ou entre amis' } },
+    { nom: 'Vie professionnelle', items: { retraite: 'Départ en retraite', pot_depart: 'Pot de départ ou d’arrivée', entreprise: 'Événement d’entreprise' } },
+    { nom: 'Fêtes de l’année', items: { epiphanie: 'Épiphanie (galette des rois)', saint_valentin: 'Saint-Valentin', paques: 'Pâques', fete_parents: 'Fête des mères ou des pères', noel: 'Noël, fêtes de fin d’année', fete_religieuse: 'Fête religieuse (Aïd, Hanouka…)' } },
+    { nom: 'Autre', items: { autre: 'Autre (à préciser)' } }
+  ];
+  var occasions = {}; groupes.forEach(function(g){ Object.keys(g.items).forEach(function(k){ occasions[k] = g.items[k]; }); });
+
+  window.DEMO_PATISSERIE = { groupes: groupes, occasions: occasions, sauver: sauver, reinitialiser: reinitialiser, nom: 'Maison Dorée (démo)', ville: 'Lyon', reglages: reglages, produits: produits, commandes: commandes, agenda: agenda, plus: plus, iso: iso };
 })();

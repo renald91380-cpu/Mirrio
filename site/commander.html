@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="light dark">
-<title>Commander un gâteau | Mirrio</title>
+<title>Commander une pâtisserie | Mirrio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
@@ -139,8 +139,10 @@
   var esc = function(s){ var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; };
   var euros = function(n){ return new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR' }).format(n); };
   var JOURS = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
-  var ICONES = { 'Entremets':'ph-cake', 'Gâteaux de fête':'ph-cake', 'Pièces montées':'ph-confetti', 'Tartes':'ph-pie-chart', 'Petits fours':'ph-cookie' };
+  var ICONES = { 'Entremets':'ph-cake', 'Gâteaux de fête et layer cakes':'ph-cake', 'Gâteaux de fête':'ph-cake', 'Pièces montées':'ph-confetti', 'Pièces montées et croquembouches':'ph-confetti', 'Tartes et tartelettes':'ph-pie-chart', 'Tartes':'ph-pie-chart', 'Petits fours':'ph-cookie', 'Petits fours et mignardises':'ph-cookie', 'Pâtisseries individuelles':'ph-cookie', 'Macarons':'ph-cookie', 'Viennoiseries':'ph-bread', 'Pains spéciaux et brioches':'ph-bread', 'Salé et buffets':'ph-bread' };
 
+  // Unité de vente : 'part' (entremets, tartes…) ou 'piece' (éclairs, macarons, mignardises…).
+  function uni(p){ return p && p.unite === 'piece' ? { un: 'pièce', pl: 'pièces', la: 'la pièce', Pl: 'Pièces' } : { un: 'part', pl: 'parts', la: 'la part', Pl: 'Parts' }; }
   function iso(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
   function plus(isoDate, n){ var d = new Date(isoDate + 'T12:00:00'); d.setDate(d.getDate() + n); return iso(d); }
 
@@ -150,7 +152,7 @@
     var D = window.DEMO_PATISSERIE, g = D.reglages, auj = D.iso(new Date()), ag = D.agenda(auj);
     return {
       slug: 'demo-patisserie', nom: D.nom, ville: D.ville, demo: true,
-      occasions: { mariage:'Mariage', anniversaire:'Anniversaire', retraite:'Départ en retraite', communion:'Communion', bapteme:'Baptême', naissance:'Naissance', fiancailles:'Fiançailles', entreprise:'Événement d’entreprise', autre:'Autre occasion' },
+      occasions: D.occasions, groupes: D.groupes,
       produits: D.produits.filter(function(p){ return p.actif; }),
       regles: { date_min: plus(auj, g.delai_min_jours), date_max: plus(auj, g.horizon_jours), delai_min_jours: g.delai_min_jours, jours_fermes: g.jours_fermes, capacite: g.commandes_max_par_jour,
         surcharge_points: g.surcharge_points, surcharge_pourcentage: g.surcharge_pourcentage, surcharge_max: g.surcharge_max_par_jour,
@@ -172,21 +174,21 @@
 
   function rendre(d){
     etat.donnees = d;
-    document.title = 'Commander un gâteau | ' + d.nom;
+    document.title = 'Commander une pâtisserie | ' + d.nom;
     $('#nom-boutique').textContent = d.nom + (d.ville ? ' · ' + d.ville : '');
     var r = d.regles;
     var fermes = (r.jours_fermes || []).map(function(j){ return JOURS[j]; });
     main.innerHTML =
       (d.demo ? '<div class="bandeau-demo">Démo : cette commande est simulée, rien n’est envoyé ni enregistré.</div>' : '') +
-      '<h1>Commandez votre gâteau</h1>' +
-      '<p class="intro">' + esc(r.message || 'Pour un mariage, un anniversaire, un départ en retraite… choisissez un gâteau, une date de retrait, et ' + d.nom + ' vous confirme la commande.') + '</p>' +
+      '<h1>Commandez votre pâtisserie</h1>' +
+      '<p class="intro">' + esc(r.message || 'Pour un mariage, un anniversaire, un départ en retraite… choisissez une création, une date de retrait, et ' + d.nom + ' vous confirme la commande.') + '</p>' +
       '<div class="regles">' +
         '<span class="puce"><i class="ph ph-clock-countdown" aria-hidden="true"></i>À commander ' + r.delai_min_jours + ' jour' + (r.delai_min_jours > 1 ? 's' : '') + ' à l’avance</span>' +
         (fermes.length ? '<span class="puce"><i class="ph ph-door" aria-hidden="true"></i>Fermé le ' + fermes.join(', le ') + '</span>' : '') +
         (r.acompte_pourcentage ? '<span class="puce"><i class="ph ph-hand-coins" aria-hidden="true"></i>Acompte de ' + r.acompte_pourcentage + ' % à la confirmation</span>' : '') +
         (r.adresse ? '<span class="puce"><i class="ph ph-map-pin" aria-hidden="true"></i>Retrait : ' + esc(r.adresse) + '</span>' : '') +
       '</div>' +
-      '<h2 id="titre-gateaux">1. Choisissez un gâteau</h2>' +
+      '<h2 id="titre-gateaux">1. Choisissez votre création</h2>' +
       '<div class="grille" role="group" aria-labelledby="titre-gateaux">' + d.produits.map(carte).join('') + '</div>' +
       '<form class="formulaire" id="formulaire" novalidate>' +
         '<div class="bloc"><div class="resume-erreurs" id="resume-erreurs" role="alert" tabindex="-1"></div>' + champs(d) + '</div>' +
@@ -198,6 +200,7 @@
     var f = $('#formulaire');
     f.addEventListener('input', majRecap); f.addEventListener('change', majRecap);
     f.addEventListener('submit', envoyer);
+    $('#occasion').addEventListener('change', function(){ var a = this.value === 'autre'; $('#bloc-precision').hidden = !a; if(!a) erreurChamp('precision', ''); else $('#precision').focus(); });
     ['nom','email','date','occasion','parts'].forEach(function(id){ var el = $('#' + id); if(el) el.addEventListener('blur', function(){ valider(id); }); });
     etat.mois = new Date(r.date_min + 'T12:00:00'); etat.mois.setDate(1); etat.calendrierPret = true; rendreCalendrier();
     var pre = params.get('gateau'); if(pre && d.produits.some(function(p){ return p.id === pre; })) choisir(pre);
@@ -211,20 +214,22 @@
       '<span class="visuel"' + visuel + '>' + (p.photo_url ? '' : '<i class="ph ' + (ICONES[p.categorie] || 'ph-cake') + '" aria-hidden="true"></i>') + '</span>' +
       '<span class="corps">' + (p.categorie ? '<span class="cat">' + esc(p.categorie) + '</span>' : '') + '<strong>' + esc(p.nom) + '</strong>' +
       (p.description ? '<span class="desc">' + esc(p.description) + '</span>' : '') +
-      '<span class="prix" style="display:block">' + euros(p.prix_part) + ' la part · de ' + p.parts_min + ' à ' + p.parts_max + ' parts</span></span></button>';
+      '<span class="prix" style="display:block">' + euros(p.prix_part) + ' ' + uni(p).la + ' · de ' + p.parts_min + ' à ' + p.parts_max + ' ' + uni(p).pl + '</span></span></button>';
   }
 
   function champs(d){
     var r = d.regles;
-    var occ = Object.keys(d.occasions).map(function(k){ return '<option value="' + k + '">' + esc(d.occasions[k]) + '</option>'; }).join('');
+    var optsOcc = function(items){ return Object.keys(items).map(function(k){ return '<option value="' + k + '">' + esc(items[k]) + '</option>'; }).join(''); };
+    var occ = (d.groupes || [{ nom: 'Autre', items: d.occasions }]).map(function(g){ return g.nom === 'Autre' ? optsOcc(g.items) : '<optgroup label="' + esc(g.nom) + '">' + optsOcc(g.items) + '</optgroup>'; }).join('');
     var allerg = ['Gluten','Lait','Œufs','Fruits à coque','Arachides','Alcool'].map(function(a){ return '<label><input type="checkbox" name="allergene" value="' + a + '">' + a + '</label>'; }).join('');
     return '<h2>2. L’occasion et le retrait</h2><div class="deux">' +
-      '<div class="champ"><label for="occasion">Occasion</label><select id="occasion" required aria-describedby="err-occasion"><option value="">Choisir…</option>' + occ + '</select><div class="erreur" id="err-occasion"></div></div>' +
-      '<div class="champ"><label for="parts">Nombre de parts</label><input type="number" id="parts" inputmode="numeric" min="1" step="1" aria-describedby="aide-parts err-parts"><div class="aide" id="aide-parts">Choisissez d’abord un gâteau.</div><div class="erreur" id="err-parts"></div></div>' +
+      '<div class="champ"><label for="occasion">Événement</label><select id="occasion" required aria-describedby="err-occasion"><option value="">Choisir un événement…</option>' + occ + '</select><div class="erreur" id="err-occasion"></div></div>' +
+      '<div class="champ"><label for="parts" id="lbl-parts">Nombre de parts</label><input type="number" id="parts" inputmode="numeric" min="1" step="1" aria-describedby="aide-parts err-parts"><div class="aide" id="aide-parts">Choisissez d’abord une création.</div><div class="erreur" id="err-parts"></div></div>' +
       '<div class="champ" style="grid-column:1 / -1"><span class="lbl" id="lbl-date" style="font-weight:600;font-size:14px;display:block;margin-bottom:6px">Date de retrait</span><input type="hidden" id="date"><div class="cal" id="calendrier" role="group" aria-labelledby="lbl-date"></div><div class="msg-date" id="msg-date" role="status" aria-live="polite"></div><div class="erreur" id="err-date"></div></div>' +
       '<div class="champ"><label for="heure">Heure souhaitée <span style="font-weight:400;color:var(--muted)">(facultatif)</span></label><input type="time" id="heure" min="' + r.heure_debut + '" max="' + r.heure_fin + '" style="width:100%;min-height:48px;padding:12px 16px;border-radius:14px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);font:400 16px Geist,system-ui,sans-serif"><div class="aide">Entre ' + r.heure_debut.replace(':','h') + ' et ' + r.heure_fin.replace(':','h') + '.</div></div></div>' +
+      '<div class="champ" id="bloc-precision" hidden><label for="precision">Précisez l’événement</label><input type="text" id="precision" maxlength="80" placeholder="Ex. : fête de quartier, soutenance de thèse…" aria-describedby="err-precision"><div class="erreur" id="err-precision"></div></div>' +
       '<h2 style="margin-top:8px">3. Personnalisation</h2>' +
-      '<div class="champ"><label for="message">Message sur le gâteau <span style="font-weight:400;color:var(--muted)">(facultatif)</span></label><input type="text" id="message" maxlength="80" placeholder="Joyeux anniversaire Camille !"></div>' +
+      '<div class="champ"><label for="message">Message sur la pâtisserie <span style="font-weight:400;color:var(--muted)">(facultatif)</span></label><input type="text" id="message" maxlength="80" placeholder="Joyeux anniversaire Camille !"></div>' +
       '<div class="champ"><label for="precisions">Précisions <span style="font-weight:400;color:var(--muted)">(parfums, couleurs, thème…)</span></label><textarea id="precisions" maxlength="600"></textarea></div>' +
       '<fieldset class="champ"><legend>Allergies ou régimes à respecter</legend><div class="allergenes">' + allerg + '</div><div class="aide">Précisez le reste dans le champ ci-dessus. Le pâtissier vous recontacte si besoin.</div></fieldset>' +
       '<h2>4. Vos coordonnées</h2><div class="deux">' +
@@ -240,7 +245,8 @@
     main.querySelectorAll('.gateau').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.id === id)); });
     var parts = $('#parts'); parts.min = p.parts_min; parts.max = p.parts_max;
     if(!parts.value || +parts.value < p.parts_min || +parts.value > p.parts_max) parts.value = p.parts_min;
-    $('#aide-parts').textContent = 'De ' + p.parts_min + ' à ' + p.parts_max + ' parts.';
+    $('#aide-parts').textContent = 'De ' + p.parts_min + ' à ' + p.parts_max + ' ' + uni(p).pl + '.';
+    $('#lbl-parts').textContent = 'Nombre de ' + uni(p).pl;
     majRecap();
   }
 
@@ -280,8 +286,8 @@
   function pctCourant(){ var v = ($('#date') || {}).value; return v ? pctDe(etatJour(v)) : 0; }
   function prixAffiche(base){ return enSurcharge() ? Math.round(base * (100 + pctCourant())) / 100 : base; }
   function listeOccasions(l){
-    var un = { mariage:'un mariage', anniversaire:'un anniversaire', communion:'une communion', 'gros gâteau':'un gros gâteau' };
-    var plu = { mariage:'mariages', anniversaire:'anniversaires', communion:'communions', 'gros gâteau':'gros gâteaux' };
+    var un = { mariage:'un mariage', anniversaire:'un anniversaire', anniversaire_enfant:'un anniversaire d’enfant', communion:'une communion', bapteme:'un baptême', retraite:'un départ en retraite', entreprise:'un événement d’entreprise', 'gros gâteau':'une grosse pièce' };
+    var plu = { mariage:'mariages', anniversaire:'anniversaires', anniversaire_enfant:'anniversaires d’enfant', communion:'communions', bapteme:'baptêmes', retraite:'départs en retraite', entreprise:'événements d’entreprise', 'gros gâteau':'grosses pièces' };
     var nb = {}, ordre = [];
     l.forEach(function(o){ if(!nb[o]){ nb[o] = 0; ordre.push(o); } nb[o]++; });
     var t = ordre.map(function(o){ return nb[o] === 1 ? (un[o] || 'une commande') : (nb[o] === 2 ? 'deux ' : 'trois ') + (plu[o] || 'commandes'); });
@@ -378,7 +384,7 @@
 
   function majRecap(){
     var p = etat.produit, parts = +($('#parts') || {}).value, date = ($('#date') || {}).value;
-    var lignes = [['Gâteau', p ? esc(p.nom) : '–'], ['Parts', parts > 0 ? parts : '–'], ['Retrait', date ? esc(jourLong(date)) + (($('#heure') || {}).value ? ' à ' + $('#heure').value.replace(':','h') : '') : '–']];
+    var lignes = [['Création', p ? esc(p.nom) : '–'], [uni(p).Pl, parts > 0 ? parts : '–'], ['Retrait', date ? esc(jourLong(date)) + (($('#heure') || {}).value ? ' à ' + $('#heure').value.replace(':','h') : '') : '–']];
     $('#recap').innerHTML = lignes.map(function(l){ return '<dt>' + l[0] + '</dt><dd>' + l[1] + '</dd>'; }).join('');
     if(etat.calendrierPret && (document.activeElement || {}).id !== 'date'){ var cle = chargeCourante() + '|' + ($('#date').value || ''); if(cle !== etat.cleCal){ etat.cleCal = cle; rendreCalendrier(); if($('#date').value) messageDate($('#date').value); } }
     var baseTotal = p && parts >= p.parts_min && parts <= p.parts_max ? Math.round(parts * p.prix_part * 100) / 100 : null;
@@ -400,10 +406,11 @@
     var r = etat.donnees.regles, v = ($('#' + id) || {}).value || '';
     if(id === 'nom') return erreurChamp(id, v.trim().length < 2 ? 'Indiquez votre nom.' : '');
     if(id === 'email') return erreurChamp(id, /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.trim()) ? '' : 'Indiquez une adresse email valide.');
-    if(id === 'occasion') return erreurChamp(id, v ? '' : 'Choisissez une occasion.');
+    if(id === 'occasion') return erreurChamp(id, v ? '' : 'Choisissez un événement dans la liste.');
+    if(id === 'precision') return erreurChamp(id, ($('#occasion').value !== 'autre' || v.trim().length >= 3) ? '' : 'Précisez l’événement (3 caractères minimum).');
     if(id === 'parts'){
-      var p = etat.produit; if(!p) return erreurChamp(id, 'Choisissez d’abord un gâteau.');
-      var n = +v; return erreurChamp(id, n >= p.parts_min && n <= p.parts_max && n % 1 === 0 ? '' : 'Entre ' + p.parts_min + ' et ' + p.parts_max + ' parts.');
+      var p = etat.produit; if(!p) return erreurChamp(id, 'Choisissez d’abord une création.');
+      var n = +v; return erreurChamp(id, n >= p.parts_min && n <= p.parts_max && n % 1 === 0 ? '' : 'Entre ' + p.parts_min + ' et ' + p.parts_max + ' ' + uni(p).pl + '.');
     }
     if(id === 'date'){
       if(!v) return erreurChamp(id, 'Choisissez une date de retrait dans le calendrier.');
@@ -416,13 +423,13 @@
 
   function envoyer(e){
     e.preventDefault();
-    var ids = ['occasion','parts','date','nom','email'];
+    var ids = ['occasion','parts','date','nom','email'].concat($('#occasion').value === 'autre' ? ['precision'] : []);
     ids.forEach(valider);
     var resume = $('#resume-erreurs');
     var manque;
     if(etat.produit && enSurcharge() && !accepte()){ erreurChamp('date', 'Validez le supplément de ' + pctCourant() + ' % et le paiement intégral par carte pour réserver cette date.'); }
     manque = ids.filter(function(i){ return MESSAGES[i]; });
-    if(!etat.produit){ resume.innerHTML = 'Choisissez d’abord un gâteau, plus haut sur la page.'; resume.classList.add('visible'); resume.focus(); return; }
+    if(!etat.produit){ resume.innerHTML = 'Choisissez d’abord une création, plus haut sur la page.'; resume.classList.add('visible'); resume.focus(); return; }
     if(manque.length){
       resume.innerHTML = 'Quelques champs sont à corriger :<ul>' + manque.map(function(i){ return '<li><a href="#' + i + '">' + esc(MESSAGES[i]) + '</a></li>'; }).join('') + '</ul>';
       resume.classList.add('visible'); resume.focus(); return;
@@ -430,7 +437,7 @@
     resume.classList.remove('visible');
     var allerg = Array.prototype.map.call(document.querySelectorAll('input[name=allergene]:checked'), function(c){ return c.value; }).join(', ');
     var corps = {
-      p: slug, produit_id: etat.produit.id, occasion: $('#occasion').value, parts: +$('#parts').value, date_retrait: $('#date').value,
+      p: slug, produit_id: etat.produit.id, occasion: $('#occasion').value, occasion_precision: $('#precision').value, parts: +$('#parts').value, date_retrait: $('#date').value,
       heure_retrait: $('#heure').value, message_gateau: $('#message').value, personnalisation: $('#precisions').value,
       allergies: allerg, accepte_surcharge: enSurcharge() && accepte(), nom: $('#nom').value, email: $('#email').value, telephone: $('#tel').value, site: $('#site').value
     };

@@ -374,6 +374,7 @@
     position:absolute; width:1px; height:1px; padding:0; margin:-1px;
     overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
   }
+  .cache-pat{ display:none !important; }
 </style>
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#1C2333">
@@ -836,7 +837,12 @@
 
       <!-- =========================== PRESTATIONS =========================== -->
       <div class="panel" role="tabpanel" id="panel-prestations" aria-labelledby="tab-prestations" tabindex="0" hidden>
-        <div class="card">
+        <div class="card" id="bloc-patisserie" hidden>
+          <h2>Vos créations de pâtisserie</h2>
+          <p class="card-sub">Entremets, tartes, pièces montées, éclairs, macarons… : votre catalogue se gère dans l'onglet <strong>Commandes</strong>, avec le prix à la part ou à la pièce, le nombre minimum et maximum, les catégories du rayon et des noms de créations prêts à l'emploi. Les réglages de vos jours et heures d'ouverture, de capacité et de majoration s'y trouvent aussi.</p>
+          <a class="btn btn-primary" href="commandes.html">Ouvrir Commandes → Catalogue</a>
+        </div>
+        <div class="card" data-prestations-salon>
           <h2>Vos prestations</h2>
           <p class="card-sub">Saisissez une fois « Séance individuelle 60 min — 60 € », et retrouvez-la en un clic à la création d'un rendez-vous comme d'une ligne de devis. C'est ici que se gagne le plus de temps au quotidien.</p>
 
@@ -1391,6 +1397,7 @@
     document.getElementById('tva-fields').style.display = facturation.assujetti_tva ? 'block' : 'none';
     majLogoApercu();
     majVocabDemo();
+    adapterMetier();
     majExemplesNumero();
     monterJoursReservation();
     monterJoursCreux();
@@ -1469,6 +1476,7 @@
       if(col === 'metier' || col === 'terme_singulier' || col === 'terme_pluriel'){
         majVocabDemo();
         if(col === 'metier' && typeof majCatalogueType === 'function') majCatalogueType();
+        if(col === 'metier') adapterMetier();
       }
       if(col === 'prefixe_devis' || col === 'prefixe_facture') majExemplesNumero();
       if(col === 'slug' || col === 'activee') majApercuReservation();
@@ -1570,6 +1578,15 @@
     setFieldError('siret', v && !/^\d{14}$/.test(v) ? 'Le numéro SIRET doit contenir 14 chiffres.' : '');
   });
 
+  // Pâtisserie : pas de prestations à durée ni de réservation de créneaux. Le catalogue (créations, prix à la part ou à la pièce,
+  // parts minimum et maximum) et l'adresse de la page vivent dans Commandes.
+  function adapterMetier(){
+    const pat = profil.metier === 'patisserie';
+    ['agenda', 'reservation'].forEach(k => document.getElementById('tab-' + k).classList.toggle('cache-pat', pat));
+    document.getElementById('tab-prestations').textContent = pat ? 'Créations' : 'Prestations';
+    document.getElementById('bloc-patisserie').hidden = !pat;
+    document.querySelectorAll('[data-prestations-salon]').forEach(el => el.classList.toggle('cache-pat', pat));
+  }
   function majVocabDemo(){
     const v = vocabulaire(profil);
     document.getElementById('vocab-demo').textContent = `Vos ${v.pluriel}`;
