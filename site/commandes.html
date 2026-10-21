@@ -285,6 +285,9 @@
   .droite{ display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
   .prix{ font-weight:700; } .prix small{ font-weight:400; color:var(--slate); }
   .statut{ font-size:11.5px; font-weight:700; padding:3px 10px; border-radius:99px; white-space:nowrap; }
+  .s-a_payer{ background:rgba(139,143,152,.16); color:var(--slate); }
+  .pastille{ font-size:11.5px; font-weight:700; padding:3px 10px; border-radius:99px; background:rgba(62,124,116,.14); color:var(--teal); white-space:nowrap; }
+  .pastille.sur{ background:rgba(226,166,61,.2); color:#8A6431; }
   .s-nouvelle{ background:rgba(226,166,61,.2); color:#8A6431; } .s-confirmee{ background:rgba(62,124,116,.14); color:var(--teal); }
   .s-prete{ background:rgba(62,124,116,.24); color:var(--teal); } .s-retiree{ background:rgba(139,143,152,.16); color:var(--slate); } .s-annulee{ background:rgba(181,83,63,.12); color:var(--brick); }
   @media(max-width:560px){ .commande{ grid-template-columns:52px 1fr; } .droite{ grid-column:1 / -1; flex-direction:row; justify-content:space-between; align-items:center; } }
@@ -342,6 +345,8 @@
           <div class="grille-champs">
             <div class="field"><label for="g-delai">Délai minimum (jours)</label><input type="number" id="g-delai" min="0" max="60"></div>
             <div class="field"><label for="g-max">Charge maximale par jour (points)</label><input type="number" id="g-max" min="1" max="100" aria-describedby="aide-charge"><div class="hint" id="aide-charge" style="margin:4px 0 0">Anniversaire = 1, gros gâteau (plus de 25 parts) = 2, mariage = 3. Avec 5, un mariage et un anniversaire tiennent dans la journée, pas deux mariages.</div></div>
+            <div class="field"><label for="g-sur">Marge de surcharge (points)</label><input type="number" id="g-sur" min="0" max="10" aria-describedby="aide-sur"><div class="hint" id="aide-sur" style="margin:4px 0 0">Charge acceptée AU-DELÀ de la capacité, sur une journée déjà chargée. 0 = jamais. Ces commandes sont majorées et payées en intégralité par carte, sans acompte.</div></div>
+            <div class="field"><label for="g-surpct">Majoration en surcharge (%)</label><input type="number" id="g-surpct" min="0" max="100"></div>
             <div class="field"><label for="g-horizon">Prise de commande jusqu’à (jours)</label><input type="number" id="g-horizon" min="7" max="365"></div>
             <div class="field"><label for="g-acompte">Acompte demandé (%)</label><input type="number" id="g-acompte" min="0" max="100"></div>
             <div class="field"><label for="g-debut">Retrait à partir de</label><input type="time" id="g-debut"></div>
@@ -413,7 +418,7 @@
   const echapper = s => { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; };
   const euros = n => new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR' }).format(n);
   const OCCASIONS = { mariage:'Mariage', anniversaire:'Anniversaire', retraite:'Départ en retraite', communion:'Communion', bapteme:'Baptême', naissance:'Naissance', fiancailles:'Fiançailles', entreprise:'Événement d’entreprise', autre:'Autre occasion' };
-  const STATUTS = { nouvelle:'Nouvelle demande', confirmee:'Confirmée', prete:'Prête', retiree:'Retirée', annulee:'Annulée' };
+  const STATUTS = { a_payer:'Paiement en attente', nouvelle:'Nouvelle demande', confirmee:'Confirmée', prete:'Prête', retiree:'Retirée', annulee:'Annulée' };
   const JOURS = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
   const TYPES = [
     ['Entremets','Fraisier',5.2,6,30], ['Entremets','Entremets chocolat noisette',5.6,6,30], ['Entremets','Framboisier',5.4,6,30],
@@ -421,7 +426,7 @@
     ['Pièces montées','Pièce montée de choux',4.2,20,120], ['Tartes','Tarte aux fruits de saison',4.0,6,16], ['Petits fours','Plateau de petits fours sucrés',3.4,10,80]
   ];
 
-  let espaceId = null, slug = null, commandes = [], produits = [], reglages = null, filtre = 'a_traiter', courante = null;
+  let stripeActif = false, espaceId = null, slug = null, commandes = [], produits = [], reglages = null, filtre = 'a_traiter', courante = null;
   const toast = $('#toast');
   function showToast(m){ $('#toast-text').textContent = m; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 3200); }
   function initiales(n){ const m = (n || '').trim().split(/\s+/).filter(Boolean); return !m.length ? '?' : (m.length === 1 ? m[0].slice(0,2) : m[0][0] + m[m.length-1][0]).toUpperCase(); }
@@ -458,7 +463,7 @@
         <span class="infos"><strong>${echapper(c.produit_nom)}</strong> · ${c.parts} parts<br>
           <span class="sous">${echapper(OCCASIONS[c.occasion])} · ${echapper(c.client_nom)}${c.heure_retrait ? ' · ' + String(c.heure_retrait).slice(0,5).replace(':','h') : ''}</span>
           ${c.allergies ? `<span class="allergie">Allergies : ${echapper(c.allergies)}</span>` : ''}</span>
-        <span class="droite"><span class="prix">${prix}</span><span class="statut s-${c.statut}">${STATUTS[c.statut]}</span></span></button>`;
+        <span class="droite"><span class="prix">${prix}</span><span>${c.surcharge ? `<span class="pastille sur">+${c.surcharge_pourcentage} % surcharge</span> ` : ''}${c.paiement_statut === 'paye' ? '<span class="pastille">Payée par carte</span> ' : ''}<span class="statut s-${c.statut}">${STATUTS[c.statut]}</span></span></span></button>`;
     }).join('');
     $('#liste-commandes').querySelectorAll('.commande').forEach(b => b.addEventListener('click', () => ouvrirCommande(b.dataset.id)));
   }
@@ -477,6 +482,7 @@
       ${c.message_gateau ? `<dt>Message</dt><dd>« ${echapper(c.message_gateau)} »</dd>` : ''}
       ${c.personnalisation ? `<dt>Précisions</dt><dd>${echapper(c.personnalisation)}</dd>` : ''}
       ${c.allergies ? `<dt>Allergies</dt><dd><strong>${echapper(c.allergies)}</strong></dd>` : ''}
+      ${c.surcharge ? `<dt>Surcharge</dt><dd>Journée chargée : +${c.surcharge_pourcentage} %, ${c.paiement_statut === 'paye' ? `payée en intégralité par carte (${euros(c.paye_montant)})` : 'règlement intégral par carte en attente'}</dd>` : ''}
       <dt>Estimation</dt><dd>${euros(c.prix_estime)}${c.acompte_pourcentage ? ` · acompte ${c.acompte_pourcentage} % = ${euros((c.prix_final ?? c.prix_estime) * c.acompte_pourcentage / 100)}` : ''}</dd></dl>`;
     $('#mc-statut').innerHTML = Object.entries(STATUTS).map(([k, n]) => `<option value="${k}"${k === c.statut ? ' selected' : ''}>${n}</option>`).join('');
     $('#mc-prix').value = c.prix_final ?? ''; $('#mc-note').value = c.note_patissier || '';
@@ -540,15 +546,16 @@
   });
 
   // ---- réglages
-  const DEFAUT = { activee:false, delai_min_jours:3, horizon_jours:120, commandes_max_par_jour:5, jours_fermes:[1], heure_retrait_debut:'08:00', heure_retrait_fin:'18:00', acompte_pourcentage:30, adresse_retrait:'', message_accueil:'' };
+  const DEFAUT = { activee:false, delai_min_jours:3, horizon_jours:120, commandes_max_par_jour:5, surcharge_points:2, surcharge_pourcentage:15, jours_fermes:[1], heure_retrait_debut:'08:00', heure_retrait_fin:'18:00', acompte_pourcentage:30, adresse_retrait:'', message_accueil:'' };
   function remplirReglages(){
     const r = reglages;
-    $('#g-activee').checked = r.activee; $('#g-delai').value = r.delai_min_jours; $('#g-max').value = r.commandes_max_par_jour; $('#g-horizon').value = r.horizon_jours;
+    $('#g-activee').checked = r.activee; $('#g-delai').value = r.delai_min_jours; $('#g-max').value = r.commandes_max_par_jour; $('#g-horizon').value = r.horizon_jours; $('#g-sur').value = r.surcharge_points; $('#g-surpct').value = r.surcharge_pourcentage;
     $('#g-acompte').value = r.acompte_pourcentage; $('#g-debut').value = String(r.heure_retrait_debut).slice(0,5); $('#g-fin').value = String(r.heure_retrait_fin).slice(0,5);
     $('#g-adresse').value = r.adresse_retrait || ''; $('#g-message').value = r.message_accueil || '';
     $('#g-jours').innerHTML = [1,2,3,4,5,6,0].map(j => `<label class="jour"><input type="checkbox" value="${j}"${(r.jours_fermes || []).includes(j) ? ' checked' : ''}> ${JOURS[j]}</label>`).join('');
     $('#aide-slug').innerHTML = slug ? `Lien à partager : <a href="${lienPublic()}" target="_blank" rel="noopener">${lienPublic()}</a>`
       : 'Votre page n’a pas encore d’adresse : choisissez-en une dans <a href="parametres.html?tab=reservation">Paramètres → Réservation</a> (le champ « adresse de votre page »), puis revenez ici.';
+    $('#aide-sur').insertAdjacentHTML('beforeend', stripeActif ? '' : ' <strong>Le paiement par carte (Stripe) n’est pas activé : tant qu’il ne l’est pas, la surcharge est désactivée et ces journées restent complètes</strong> (<a href="parametres.html?tab=paiement">Paramètres → Paiement</a>).');
     $('#voir-page').style.display = $('#copier-lien').style.display = slug ? '' : 'none';
     if(slug) $('#voir-page').href = lienPublic();
   }
@@ -558,7 +565,7 @@
     if($('#g-activee').checked && !slug){ showToast('Choisissez d’abord l’adresse de votre page (Paramètres → Réservation).'); return; }
     if($('#g-debut').value >= $('#g-fin').value){ showToast('L’heure de fin de retrait doit suivre l’heure de début.'); return; }
     const ligne = { owner_id: espaceId, activee: $('#g-activee').checked, delai_min_jours: n('#g-delai', 0, 60), horizon_jours: n('#g-horizon', 7, 365),
-      commandes_max_par_jour: n('#g-max', 1, 100), acompte_pourcentage: n('#g-acompte', 0, 100), heure_retrait_debut: $('#g-debut').value, heure_retrait_fin: $('#g-fin').value,
+      commandes_max_par_jour: n('#g-max', 1, 100), surcharge_points: Math.min(10, Math.max(0, Math.floor(Number($('#g-sur').value) || 0))), surcharge_pourcentage: n('#g-surpct', 0, 100), acompte_pourcentage: n('#g-acompte', 0, 100), heure_retrait_debut: $('#g-debut').value, heure_retrait_fin: $('#g-fin').value,
       jours_fermes: [...document.querySelectorAll('#g-jours input:checked')].map(i => Number(i.value)), adresse_retrait: $('#g-adresse').value.trim() || null,
       message_accueil: $('#g-message').value.trim() || null, updated_at: new Date().toISOString() };
     const { error } = await supabase.from('parametres_gateaux').upsert(ligne);
@@ -594,6 +601,8 @@
       supabase.from('parametres_gateaux').select('*').maybeSingle()
     ]);
     if(errG){ $('#loading-state').textContent = 'La migration schema-v27 n’a pas encore été exécutée : les commandes de gâteaux ne sont pas disponibles.'; return; }
+    const { data: pay } = await supabase.from('parametres_paiement_public').select('stripe_actif').maybeSingle();
+    stripeActif = !!pay?.stripe_actif;
     slug = rr?.slug || null; reglages = { ...DEFAUT, ...(rg || {}) };
     await Promise.all([chargerCommandes(), chargerProduits()]);
     remplirReglages();

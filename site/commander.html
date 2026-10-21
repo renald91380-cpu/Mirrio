@@ -90,6 +90,11 @@
   .cal-j[disabled]{ background:transparent; color:var(--muted); opacity:.45; cursor:default; }
   .cal-j.charge::after{ content:''; position:absolute; bottom:6px; left:50%; width:6px; height:6px; margin-left:-3px; border-radius:50%; background:var(--accent); }
   .cal-j.non{ background:repeating-linear-gradient(135deg, color-mix(in srgb, var(--ko) 16%, var(--surface)) 0 6px, var(--surface) 6px 12px); color:var(--ko); }
+  .cal-j.surcharge{ background:color-mix(in srgb, var(--accent) 22%, var(--surface)); border-color:color-mix(in srgb, var(--accent) 60%, transparent); }
+  .cal-j .plus{ position:absolute; bottom:3px; left:0; right:0; font-size:9.5px; font-weight:700; letter-spacing:0; }
+  .cal-legende i.s{ background:color-mix(in srgb, var(--accent) 30%, var(--surface)); border:1px solid var(--accent); }
+  .accord{ display:flex; gap:10px; align-items:flex-start; margin-top:12px; font-weight:500; font-size:14px; cursor:pointer; }
+  .accord input{ width:20px; height:20px; accent-color:#E2A63D; flex-shrink:0; margin-top:2px; }
   .cal-j[aria-pressed="true"]{ background:var(--accent); color:#101216; border-color:var(--accent); }
   .cal-j[aria-pressed="true"]::after{ background:#101216; }
   .cal-legende{ display:flex; flex-wrap:wrap; gap:6px 16px; margin-top:12px; font-size:12.5px; color:var(--muted); }
@@ -164,7 +169,7 @@
         { id:'d5', nom:'Layer cake personnalisé', categorie:'Gâteaux de fête', description:'Message et décor à votre goût, parfums au choix.', prix_part:5.9, parts_min:8, parts_max:40 },
         { id:'d6', nom:'Plateau de petits fours sucrés', categorie:'Petits fours', description:'Assortiment de 12 variétés, par pièce (6 pièces = 1 part).', prix_part:3.4, parts_min:10, parts_max:80 }
       ],
-      regles: { date_min: plus(auj, 3), date_max: plus(auj, 120), delai_min_jours: 3, jours_fermes: [1], capacite: 5,
+      regles: { date_min: plus(auj, 3), date_max: plus(auj, 120), delai_min_jours: 3, jours_fermes: [1], capacite: 5, surcharge_points: 2, surcharge_pourcentage: 15,
         charges: DEMO_CHARGES(auj), details: DEMO_DETAILS(auj),
         heure_debut:'08:00', heure_fin:'18:00', acompte_pourcentage: 30, adresse:'12 rue de la République, Lyon 2e', message:'Tout est fait maison, la veille ou le matin même du retrait.' }
     };
@@ -199,7 +204,7 @@
       '<form class="formulaire" id="formulaire" novalidate>' +
         '<div class="bloc"><div class="resume-erreurs" id="resume-erreurs" role="alert" tabindex="-1"></div>' + champs(d) + '</div>' +
         '<aside class="bloc recap" aria-live="polite"><h2>Votre demande</h2><dl id="recap"></dl><div class="total"><span>Estimation</span><span id="total">–</span></div>' +
-          '<p class="note">Ce n’est pas encore une commande ferme : ' + esc(d.nom) + ' vérifie la faisabilité et vous confirme le prix final' + (r.acompte_pourcentage ? ', avec un acompte de ' + r.acompte_pourcentage + ' %' : '') + '.</p>' +
+          '<p class="note" id="note-recap" data-normal="' + esc('Ce n’est pas encore une commande ferme : ' + d.nom + ' vérifie la faisabilité et vous confirme le prix final' + (r.acompte_pourcentage ? ', avec un acompte de ' + r.acompte_pourcentage + ' %' : '') + '.') + '">Ce n’est pas encore une commande ferme : ' + esc(d.nom) + ' vérifie la faisabilité et vous confirme le prix final' + (r.acompte_pourcentage ? ', avec un acompte de ' + r.acompte_pourcentage + ' %' : '') + '.</p>' +
           '<button class="btn" type="submit" id="envoyer"><i class="ph ph-paper-plane-tilt" aria-hidden="true"></i>Envoyer ma demande</button></aside>' +
       '</form>';
     main.querySelectorAll('.gateau').forEach(function(b){ b.addEventListener('click', function(){ choisir(b.dataset.id); }); });
@@ -260,17 +265,28 @@
   function chargeCourante(){ return charge(($('#occasion') || {}).value, +($('#parts') || {}).value || 0, etat.donnees.regles.capacite); }
   function jourFerme(r, v){ return (r.jours_fermes || []).indexOf(new Date(v + 'T12:00:00').getDay()) >= 0; }
   function horsPlage(r, v){ return v < r.date_min || v > r.date_max; }
-  function jourLibre(v){
+  // 'normal', 'surcharge' (journée déjà chargée mais possible : +X % et règlement intégral par carte) ou 'impossible'.
+  function etatJour(v){
     var r = etat.donnees.regles;
-    return !horsPlage(r, v) && !jourFerme(r, v) && (r.charges[v] || 0) + chargeCourante() <= r.capacite;
+    if(horsPlage(r, v) || jourFerme(r, v)) return 'impossible';
+    var deja = r.charges[v] || 0, total = deja + chargeCourante();
+    if(total <= r.capacite) return 'normal';
+    if(deja > 0 && r.surcharge_points > 0 && total <= r.capacite + r.surcharge_points) return 'surcharge';
+    return 'impossible';
   }
+  function jourLibre(v){ return etatJour(v) !== 'impossible'; }
   function alternatives(v){
     var avant = null, apres = null;
     for(var i = 1; i <= 7 && (!avant || !apres); i++){
-      if(!avant && jourLibre(plus(v, -i))) avant = plus(v, -i);
-      if(!apres && jourLibre(plus(v, i))) apres = plus(v, i);
+      if(!avant && etatJour(plus(v, -i)) === 'normal') avant = plus(v, -i);
+      if(!apres && etatJour(plus(v, i)) === 'normal') apres = plus(v, i);
     }
     return { avant: avant, apres: apres };
+  }
+  function enSurcharge(){ var v = ($('#date') || {}).value; return !!v && etatJour(v) === 'surcharge'; }
+  function prixAffiche(base){
+    var r = etat.donnees.regles;
+    return enSurcharge() ? Math.round(base * (100 + r.surcharge_pourcentage)) / 100 : base;
   }
   function listeOccasions(l){
     var noms = { mariage:'un mariage', anniversaire:'un anniversaire', communion:'une communion', 'gros gâteau':'un gros gâteau' };
@@ -293,11 +309,12 @@
       var v = iso(new Date(m.getFullYear(), m.getMonth(), j)), cls = 'cal-j', dis = false, etatTxt = 'disponible';
       if(horsPlage(r, v)){ dis = true; etatTxt = 'hors délai'; }
       else if(jourFerme(r, v)){ dis = true; etatTxt = 'fermé'; }
-      else if(!jourLibre(v)){ cls += ' non'; etatTxt = 'indisponible pour cette commande'; }
+      else if(etatJour(v) === 'impossible'){ cls += ' non'; etatTxt = 'indisponible pour cette commande'; }
+      else if(etatJour(v) === 'surcharge'){ cls += ' surcharge'; etatTxt = 'possible en surcharge, plus ' + r.surcharge_pourcentage + ' pour cent, paiement intégral par carte'; }
       else if(r.charges[v]){ cls += ' charge'; etatTxt = 'déjà chargé, mais possible'; }
-      h += '<button type="button" class="' + cls + '" data-d="' + v + '"' + (dis ? ' disabled' : '') + ' aria-pressed="' + (sel === v) + '" aria-label="' + esc(jourLong(v) + ', ' + etatTxt) + '">' + j + '</button>';
+      h += '<button type="button" class="' + cls + '" data-d="' + v + '"' + (dis ? ' disabled' : '') + ' aria-pressed="' + (sel === v) + '" aria-label="' + esc(jourLong(v) + ', ' + etatTxt) + '">' + j + (cls.indexOf('surcharge') >= 0 ? '<small class="plus">+' + r.surcharge_pourcentage + '%</small>' : '') + '</button>';
     }
-    h += '</div><div class="cal-legende"><span><i></i>Disponible</span><span><i class="c"></i>Déjà chargé, possible</span><span><i class="n"></i>Impossible pour cette commande</span></div>';
+    h += '</div><div class="cal-legende"><span><i></i>Disponible</span><span><i class="c"></i>Déjà chargé, possible</span><span><i class="s"></i>Surcharge : +' + r.surcharge_pourcentage + ' %, carte</span><span><i class="n"></i>Impossible pour cette commande</span></div>';
     $('#calendrier').innerHTML = h;
     $('#cal-prec').addEventListener('click', function(){ etat.mois = new Date(m.getFullYear(), m.getMonth() - 1, 1); rendreCalendrier(); });
     $('#cal-suiv').addEventListener('click', function(){ etat.mois = new Date(m.getFullYear(), m.getMonth() + 1, 1); rendreCalendrier(); });
@@ -308,9 +325,22 @@
     var r = etat.donnees.regles, box = $('#msg-date'), nom = esc(etat.donnees.nom);
     box.className = 'msg-date'; box.innerHTML = '';
     if(!v) return;
-    if(jourLibre(v)){
+    var et = etatJour(v);
+    if(et === 'normal'){
       box.className = 'msg-date ok';
       box.textContent = (r.charges[v] ? 'Cette date est possible, même si la pâtisserie a déjà des commandes ce jour-là.' : 'Cette date est disponible.');
+      return;
+    }
+    if(et === 'surcharge'){
+      var altS = alternatives(v), base = etat.produit ? Math.round((+$('#parts').value || 0) * etat.produit.prix_part * 100) / 100 : 0;
+      var det = r.details && r.details[v] ? nom + ' a déjà ' + listeOccasions(r.details[v]) + ' ce jour-là.' : 'La pâtisserie a déjà des commandes ce jour-là.';
+      box.className = 'msg-date';
+      box.innerHTML = '<strong>Journée très chargée : possible en surcharge.</strong> ' + det + ' La commande reste faisable avec <strong>un supplément de ' + r.surcharge_pourcentage + ' %</strong>' +
+        (base ? ' (' + euros(base) + ' devient <strong>' + euros(prixAffiche(base)) + '</strong>)' : '') + ' et un <strong>règlement intégral par carte dès maintenant</strong>, sans acompte.' +
+        '<label class="accord"><input type="checkbox" id="accepte-surcharge"> J’accepte le supplément de ' + r.surcharge_pourcentage + ' % et le paiement intégral par carte à la commande.</label>' +
+        ((altS.avant || altS.apres) ? '<div style="margin-top:10px">Pour éviter le supplément :</div><div class="alts">' + (altS.avant ? '<button type="button" data-d="' + altS.avant + '">Juste avant : ' + esc(jourLong(altS.avant)) + '</button>' : '') + (altS.apres ? '<button type="button" data-d="' + altS.apres + '">Juste après : ' + esc(jourLong(altS.apres)) + '</button>' : '') + '</div>' : '');
+      box.querySelectorAll('button').forEach(function(b){ b.addEventListener('click', function(){ choisirDate(b.dataset.d); }); });
+      var ck = $('#accepte-surcharge'); if(ck) ck.addEventListener('change', function(){ erreurChamp('date', ''); });
       return;
     }
     var detail = r.details && r.details[v] ? nom + ' a déjà ' + listeOccasions(r.details[v]) + ' à préparer ce jour-là.' : 'La journée est déjà chargée pour une commande de cette taille.';
@@ -342,7 +372,12 @@
     var lignes = [['Gâteau', p ? esc(p.nom) : '–'], ['Parts', parts > 0 ? parts : '–'], ['Retrait', date ? esc(jourLong(date)) + (($('#heure') || {}).value ? ' à ' + $('#heure').value.replace(':','h') : '') : '–']];
     $('#recap').innerHTML = lignes.map(function(l){ return '<dt>' + l[0] + '</dt><dd>' + l[1] + '</dd>'; }).join('');
     if(etat.calendrierPret && (document.activeElement || {}).id !== 'date'){ var cle = chargeCourante() + '|' + ($('#date').value || ''); if(cle !== etat.cleCal){ etat.cleCal = cle; rendreCalendrier(); if($('#date').value) messageDate($('#date').value); } }
-    $('#total').textContent = p && parts >= p.parts_min && parts <= p.parts_max ? euros(Math.round(parts * p.prix_part * 100) / 100) : '–';
+    var baseTotal = p && parts >= p.parts_min && parts <= p.parts_max ? Math.round(parts * p.prix_part * 100) / 100 : null;
+    $('#total').textContent = baseTotal != null ? euros(prixAffiche(baseTotal)) : '–';
+    var surch = enSurcharge(), rr = etat.donnees.regles;
+    $('#recap').innerHTML += surch && baseTotal != null ? '<dt>Supplément</dt><dd>+' + rr.surcharge_pourcentage + ' % (' + euros(prixAffiche(baseTotal) - baseTotal) + ')</dd><dt>Règlement</dt><dd>Intégral par carte</dd>' : '';
+    var nt = $('#note-recap'); if(nt) nt.textContent = surch ? 'Journée en surcharge : le règlement intégral par carte se fait tout de suite, sans acompte. La commande est confirmée à la réception du paiement.' : nt.dataset.normal;
+    var bt = $('#envoyer'); if(bt && !bt.disabled) bt.innerHTML = surch ? '<i class="ph ph-credit-card" aria-hidden="true"></i>Payer ' + (baseTotal != null ? euros(prixAffiche(baseTotal)) : '') + ' par carte' : '<i class="ph ph-paper-plane-tilt" aria-hidden="true"></i>Envoyer ma demande';
   }
 
   var MESSAGES = {};
@@ -375,7 +410,9 @@
     var ids = ['occasion','parts','date','nom','email'];
     ids.forEach(valider);
     var resume = $('#resume-erreurs');
-    var manque = ids.filter(function(i){ return MESSAGES[i]; });
+    var manque;
+    if(etat.produit && enSurcharge() && !($('#accepte-surcharge') || {}).checked){ erreurChamp('date', 'Cochez l’acceptation du supplément et du paiement intégral par carte.'); }
+    manque = ids.filter(function(i){ return MESSAGES[i]; });
     if(!etat.produit){ resume.innerHTML = 'Choisissez d’abord un gâteau, plus haut sur la page.'; resume.classList.add('visible'); resume.focus(); return; }
     if(manque.length){
       resume.innerHTML = 'Quelques champs sont à corriger :<ul>' + manque.map(function(i){ return '<li><a href="#' + i + '">' + esc(MESSAGES[i]) + '</a></li>'; }).join('') + '</ul>';
@@ -386,18 +423,20 @@
     var corps = {
       p: slug, produit_id: etat.produit.id, occasion: $('#occasion').value, parts: +$('#parts').value, date_retrait: $('#date').value,
       heure_retrait: $('#heure').value, message_gateau: $('#message').value, personnalisation: $('#precisions').value,
-      allergies: allerg, nom: $('#nom').value, email: $('#email').value, telephone: $('#tel').value, site: $('#site').value
+      allergies: allerg, accepte_surcharge: enSurcharge() && !!($('#accepte-surcharge') || {}).checked, nom: $('#nom').value, email: $('#email').value, telephone: $('#tel').value, site: $('#site').value
     };
     var btn = $('#envoyer'); btn.disabled = true; btn.textContent = 'Envoi…';
     var fin = function(j){ confirmer(j); };
     if(DEMO){
       var ref = 'DEMO' + Math.floor(1000 + Math.random() * 9000);
+      if(enSurcharge()) return setTimeout(function(){ location.href = 'paiement-merci.html?statut=succes&gateau=1&demo=1&p=demo-patisserie'; }, 500);
       return setTimeout(function(){ fin({ reference: ref, prix_estime: Math.round(corps.parts * etat.produit.prix_part * 100) / 100, quand: jourLong(corps.date_retrait) }); }, 500);
     }
     fetch('/api/gateaux', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(corps) })
       .then(function(r){ return r.json().then(function(j){ return { ok: r.ok, j: j }; }); })
       .then(function(x){
         if(!x.ok) throw new Error(x.j.error || 'Envoi impossible.');
+        if(x.j.url){ location.href = x.j.url; return; }              // surcharge : paiement intégral par carte (Stripe)
         fin(x.j);
       })
       .catch(function(err){

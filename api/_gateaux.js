@@ -81,27 +81,67 @@ function charge(occasion, parts, capacite){
 
 // Charge déjà engagée par date (commandes non annulées) sur [debut, fin].
 async function chargesParDate(id, cfg, debut, fin){
-  const lignes = await get(`gateaux_commandes?owner_id=eq.${id}&statut=neq.annulee&date_retrait=gte.${debut}&date_retrait=lte.${fin}&select=date_retrait,occasion,parts`);
+  // Une commande « à payer » réserve la place 40 minutes (le temps du paiement Stripe), pas davantage.
+  const il40 = new Date(Date.now() - 40 * 60 * 1000).toISOString();
+  const lignes = await get(`gateaux_commandes?owner_id=eq.${id}&date_retrait=gte.${debut}&date_retrait=lte.${fin}&or=(statut.in.(nouvelle,confirmee,prete,retiree),and(statut.eq.a_payer,created_at.gt.${il40}))&select=date_retrait,occasion,parts`);
   const n = {};
   lignes.forEach(l => { n[l.date_retrait] = (n[l.date_retrait] || 0) + charge(l.occasion, l.parts, cfg.commandes_max_par_jour); });
   return n;
 }
 
-// Une date peut-elle accueillir une commande de cette charge ?
-function dateLibre(iso, cfg, n, c, aujourdhui){
-  if(iso < ajouterJours(aujourdhui, cfg.delai_min_jours) || iso > ajouterJours(aujourdhui, cfg.horizon_jours)) return false;
-  if((cfg.jours_fermes || []).includes(jourSemaine(iso))) return false;
-  return (n[iso] || 0) + c <= cfg.commandes_max_par_jour;
+// État d'une date pour une commande de charge `c` : 'normal', 'surcharge' ou 'impossible'.
+//  - normal    : la charge totale tient dans la capacité du jour ;
+//  - surcharge : la journée a déjà des commandes, la nouvelle tient dans la marge `surcharge_points`
+//                (majoration + règlement intégral par carte), seulement si le paiement par carte est actif ;
+//  - impossible : fermé, hors délai, ou au-delà de la marge.
+function etatDate(iso, cfg, n, c, aujourdhui, carteActive){
+  if(iso < ajouterJours(aujourdhui, cfg.delai_min_jours) || iso > ajouterJours(aujourdhui, cfg.horizon_jours)) return 'impossible';
+  if((cfg.jours_fermes || []).includes(jourSemaine(iso))) return 'impossible';
+  const deja = n[iso] || 0, total = deja + c;
+  if(total <= cfg.commandes_max_par_jour) return 'normal';
+  if(carteActive && deja > 0 && cfg.surcharge_points > 0 && total <= cfg.commandes_max_par_jour + cfg.surcharge_points) return 'surcharge';
+  return 'impossible';
 }
 
-// Dates proches possibles : la plus proche avant et la plus proche après, dans une semaine.
+// Dates proches SANS surcharge : la plus proche avant et la plus proche après, dans une semaine.
 function alternatives(iso, cfg, n, c, aujourdhui){
   let avant = null, apres = null;
   for(let i = 1; i <= 7 && (!avant || !apres); i++){
-    if(!avant && dateLibre(ajouterJours(iso, -i), cfg, n, c, aujourdhui)) avant = ajouterJours(iso, -i);
-    if(!apres && dateLibre(ajouterJours(iso, i), cfg, n, c, aujourdhui)) apres = ajouterJours(iso, i);
+    if(!avant && etatDate(ajouterJours(iso, -i), cfg, n, c, aujourdhui, false) === 'normal') avant = ajouterJours(iso, -i);
+    if(!apres && etatDate(ajouterJours(iso, i), cfg, n, c, aujourdhui, false) === 'normal') apres = ajouterJours(iso, i);
   }
   return { avant, apres };
+}
+
+// Paiement par carte du salon (clés Stripe propres, voir §3.21).
+async function stripeDuSalon(id){
+  const [pay] = await get(`parametres_paiement?owner_id=eq.${id}&select=stripe_actif,stripe_secret_key`).catch(() => []);
+  return pay && pay.stripe_actif && pay.stripe_secret_key ? pay.stripe_secret_key : null;
+}
+
+function aplatir(objet, prefixe = ''){
+  const paires = [];
+  for(const [cle, v] of Object.entries(objet)){
+    const nom = prefixe ? `${prefixe}[${cle}]` : cle;
+    if(v === undefined || v === null) continue;
+    if(typeof v === 'object' && !Array.isArray(v)) paires.push(...aplatir(v, nom));
+    else if(Array.isArray(v)) v.forEach((x, i) => paires.push(...aplatir({ [i]: x }, nom)));
+    else paires.push(`${encodeURIComponent(nom)}=${encodeURIComponent(v)}`);
+  }
+  return paires;
+}
+async function creerSessionStripe(cle, params){
+  const r = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+    method: 'POST', headers: { Authorization: `Bearer ${cle}`, 'Content-Type': 'application/x-www-form-urlencoded' }, body: aplatir(params).join('&')
+  });
+  const data = await r.json();
+  if(!r.ok) throw new Error(`Stripe ${r.status}`);
+  return data;
+}
+async function modifier(chemin, corps){
+  await fetch(`${SUPABASE_URL}/rest/v1/${chemin}`, {
+    method: 'PATCH', headers: { ...entetes, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify(corps)
+  });
 }
 
 async function envoyer({ to, replyTo, subject, html }){
@@ -129,9 +169,10 @@ export default async function handler(req, res){
       if(!p) return json(res, 404, { error: 'Les commandes en ligne ne sont pas ouvertes ici.' });
       const aujourdhui = aujourdhuiParis();
       const fin = ajouterJours(aujourdhui, p.cfg.horizon_jours);
-      const [produits, charges] = await Promise.all([
+      const [produits, charges, carte] = await Promise.all([
         get(`gateaux_produits?owner_id=eq.${p.id}&actif=eq.true&select=id,nom,description,categorie,photo_url,prix_part,parts_min,parts_max&order=position`),
-        chargesParDate(p.id, p.cfg, aujourdhui, fin)
+        chargesParDate(p.id, p.cfg, aujourdhui, fin),
+        stripeDuSalon(p.id).then(Boolean)
       ]);
       if(!produits.length) return json(res, 404, { error: 'Les commandes en ligne ne sont pas ouvertes ici.' });
       const c = p.cfg;
@@ -142,6 +183,7 @@ export default async function handler(req, res){
         regles: {
           date_min: ajouterJours(aujourdhui, c.delai_min_jours), date_max: fin, delai_min_jours: c.delai_min_jours,
           jours_fermes: c.jours_fermes, charges, capacite: c.commandes_max_par_jour,
+          surcharge_points: carte ? c.surcharge_points : 0, surcharge_pourcentage: c.surcharge_pourcentage,
           heure_debut: String(c.heure_retrait_debut).slice(0, 5), heure_fin: String(c.heure_retrait_fin).slice(0, 5),
           acompte_pourcentage: c.acompte_pourcentage, adresse: c.adresse_retrait, message: c.message_accueil
         }
@@ -176,18 +218,21 @@ export default async function handler(req, res){
     if(date > ajouterJours(aujourdhui, c.horizon_jours)) return json(res, 400, { error: 'Cette date est trop lointaine.' });
     if((c.jours_fermes || []).includes(jourSemaine(date))) return json(res, 400, { error: 'La pâtisserie est fermée ce jour-là.' });
     const aCharge = charge(b.occasion, parts, c.commandes_max_par_jour);
-    const debutFenetre = ajouterJours(date, -7), finFenetre = ajouterJours(date, 7);
-    const n = await chargesParDate(p.id, c, debutFenetre, finFenetre);
-    if(!dateLibre(date, c, n, aCharge, aujourdhui)){
+    const n = await chargesParDate(p.id, c, ajouterJours(date, -7), ajouterJours(date, 7));
+    const cleStripe = await stripeDuSalon(p.id);
+    const etat = etatDate(date, c, n, aCharge, aujourdhui, !!cleStripe);
+    if(etat === 'impossible'){
       const alt = alternatives(date, c, n, aCharge, aujourdhui);
-      const phrase = d => dateLongue(d);
       return json(res, 409, {
         error: alt.avant || alt.apres
-          ? `La pâtisserie ne peut pas honorer cette commande ce jour-là. Dates proches possibles : ${[alt.avant && phrase(alt.avant), alt.apres && phrase(alt.apres)].filter(Boolean).join(' ou ')}.`
+          ? `La pâtisserie ne peut pas honorer cette commande ce jour-là. Dates proches possibles : ${[alt.avant && dateLongue(alt.avant), alt.apres && dateLongue(alt.apres)].filter(Boolean).join(' ou ')}.`
           : 'La pâtisserie ne peut pas honorer cette commande à cette date ni dans la semaine autour. Essayez une date plus éloignée ou contactez-la directement.',
         alternatives: alt
       });
     }
+    const surcharge = etat === 'surcharge';
+    if(surcharge && b.accepte_surcharge !== true)
+      return json(res, 409, { error: `Cette journée est très chargée : la commande n’est possible qu’avec un supplément de ${c.surcharge_pourcentage} % et un règlement intégral par carte. Cochez la case d’acceptation pour continuer.` });
 
     let heure = String(b.heure_retrait || '');
     if(heure && !/^\d{2}:\d{2}$/.test(heure)) heure = '';
@@ -197,14 +242,40 @@ export default async function handler(req, res){
     if(nom.length < 2) return json(res, 400, { error: 'Indiquez votre nom.' });
     if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json(res, 400, { error: 'Indiquez une adresse email valide.' });
 
-    const prixEstime = Math.round(parts * Number(produit.prix_part) * 100) / 100;
+    const prixBase = Math.round(parts * Number(produit.prix_part) * 100) / 100;
+    const prixEstime = surcharge ? Math.round(prixBase * (100 + c.surcharge_pourcentage)) / 100 : prixBase;
     const commande = await inserer('gateaux_commandes', {
       owner_id: p.id, produit_id: produit.id, produit_nom: produit.nom, occasion: b.occasion, parts,
       personnalisation: propre(b.personnalisation, 600) || null, message_gateau: propre(b.message_gateau, 80) || null,
       allergies: propre(b.allergies, 300) || null, date_retrait: date, heure_retrait: heure || null,
       client_nom: nom, client_email: email, client_telephone: propre(b.telephone, 30) || null,
-      prix_estime: prixEstime, acompte_pourcentage: c.acompte_pourcentage
+      prix_estime: prixEstime, acompte_pourcentage: surcharge ? 0 : c.acompte_pourcentage,
+      ...(surcharge ? { statut: 'a_payer', surcharge: true, surcharge_pourcentage: c.surcharge_pourcentage, paiement_statut: 'en_attente' } : {})
     });
+
+    // Surcharge : règlement intégral par carte AVANT toute confirmation (le webhook Stripe confirme).
+    if(surcharge){
+      const nomBoutique = p.profil.business_name || p.profil.full_name || 'la pâtisserie';
+      const origine = `https://${req.headers.host}`;
+      try{
+        const session = await creerSessionStripe(cleStripe, {
+          mode: 'payment', payment_method_types: ['card'],
+          line_items: [{ quantity: 1, price_data: { currency: 'eur', unit_amount: Math.round(prixEstime * 100),
+            product_data: { name: `${produit.nom}, ${parts} parts, chez ${nomBoutique}`,
+              description: `Retrait le ${dateLongue(date)}. Journée très chargée : supplément de ${c.surcharge_pourcentage} % inclus, règlement intégral à la commande.` } } }],
+          customer_email: email,
+          expires_at: Math.floor(Date.now() / 1000) + 31 * 60,
+          success_url: `${origine}/paiement-merci.html?statut=succes&gateau=1`,
+          cancel_url: `${origine}/paiement-merci.html?statut=annule&gateau=1&p=${slug}`,
+          metadata: { commande_gateau_id: commande.id, owner_id: p.id }
+        });
+        await modifier(`gateaux_commandes?id=eq.${commande.id}`, { paiement_reference: session.id });
+        return json(res, 200, { ok: true, url: session.url, reference: commande.reference, prix_estime: prixEstime });
+      }catch(e){
+        await modifier(`gateaux_commandes?id=eq.${commande.id}`, { statut: 'annulee', paiement_statut: 'echoue' }).catch(() => {});
+        return json(res, 502, { error: 'La création du paiement a échoué. Réessayez.' });
+      }
+    }
 
     const nomBoutique = p.profil.business_name || p.profil.full_name || 'la pâtisserie';
     const quand = dateLongue(date) + (heure ? ` à ${heure.replace(':', 'h')}` : '');

@@ -533,6 +533,53 @@ async function traiterConfirmationReservation({ rdv, session, ownerId, stripeSec
   return json(res, 200, { recu: true });
 }
 
+// Commande de gâteau en surcharge (api/_gateaux.js) : règlement intégral par carte, la confirmation vient d'ici.
+// Idempotent : le PATCH conditionnel ne passe qu'une fois (`paiement_statut=en_attente`).
+async function traiterPaiementGateau({ commandeId, ownerId, session, expire, res }){
+  const filtre = `gateaux_commandes?id=eq.${commandeId}&owner_id=eq.${ownerId}&paiement_statut=eq.en_attente`;
+  if(expire){
+    try{ await supabasePatchConditionnel(filtre, { statut: 'annulee', paiement_statut: 'echoue' }); }catch(e){ /* Stripe réessaiera */ }
+    return json(res, 200, { recu: true });
+  }
+  if(session.payment_status !== 'paid') return json(res, 200, { recu: true, ignore: 'paiement non finalisé' });
+  let lignes;
+  try{
+    lignes = await supabasePatchConditionnel(filtre, {
+      statut: 'confirmee', paiement_statut: 'paye', paye_le: new Date().toISOString(),
+      paye_montant: Math.round(Number(session.amount_total) || 0) / 100
+    });
+  }catch(e){
+    return json(res, 500, { error: 'Erreur temporaire.' });            // Stripe réessaiera
+  }
+  const c = lignes[0];
+  if(!c) return json(res, 200, { recu: true, ignore: 'déjà traité' });
+  try{
+    const [profils, facs] = await Promise.all([
+      supabaseGet(`profiles?id=eq.${ownerId}&select=business_name,full_name`),
+      supabaseGet(`parametres_facturation?owner_id=eq.${ownerId}&select=emetteur_email`)
+    ]);
+    const boutique = profils[0]?.business_name || profils[0]?.full_name || 'la pâtisserie';
+    const quand = new Intl.DateTimeFormat('fr-FR', { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(c.date_retrait + 'T12:00:00Z'))
+      + (c.heure_retrait ? ` à ${String(c.heure_retrait).slice(0, 5).replace(':', 'h')}` : '');
+    await envoyerEmail({
+      to: c.client_email, replyTo: facs[0]?.emetteur_email,
+      subject: `Commande confirmée et payée, ${boutique} (réf. ${c.reference})`,
+      html: gabaritSimple({ titre: 'Votre commande est confirmée', paragraphes: [
+        `${echapperHtml(boutique)} a bien reçu votre paiement de <strong>${formaterEuros(c.paye_montant)}</strong> pour <strong>${echapperHtml(c.produit_nom)}</strong> (${c.parts} parts).`,
+        `Retrait : <strong>${echapperHtml(quand)}</strong>. La journée étant très chargée, un supplément de ${c.surcharge_pourcentage} % a été appliqué et la commande a été réglée en intégralité par carte.`,
+        `Référence : <strong>${echapperHtml(c.reference)}</strong>.` ] })
+    });
+    if(facs[0]?.emetteur_email) await envoyerEmail({
+      to: facs[0].emetteur_email, replyTo: c.client_email,
+      subject: `Commande payée en surcharge : ${c.produit_nom}, ${quand}`,
+      html: gabaritSimple({ titre: 'Commande payée d’avance', paragraphes: [
+        `<strong>${echapperHtml(c.client_nom)}</strong> a réglé <strong>${formaterEuros(c.paye_montant)}</strong> par carte (supplément de ${c.surcharge_pourcentage} % inclus) pour <strong>${echapperHtml(c.produit_nom)}</strong>, ${c.parts} parts, retrait ${echapperHtml(quand)}.`,
+        ...(c.allergies ? [`<strong>Allergies :</strong> ${echapperHtml(c.allergies)}`] : []) ] })
+    });
+  }catch(e){ /* best-effort : la commande est confirmée quoi qu'il arrive */ }
+  return json(res, 200, { recu: true });
+}
+
 export default async function handler(req, res){
   if(req.method !== 'POST'){
     return json(res, 405, { error: 'Method Not Allowed' });
@@ -593,6 +640,10 @@ export default async function handler(req, res){
   const rendezVousId = session?.metadata?.rendez_vous_id;
   const documentId = session?.metadata?.document_id;
   const ownerIdSession = session?.metadata?.owner_id;
+  const commandeGateauId = session?.metadata?.commande_gateau_id;
+  if(commandeGateauId && ownerIdSession === ownerId){
+    return traiterPaiementGateau({ commandeId: commandeGateauId, ownerId, session, expire: event.type === 'checkout.session.expired', res });
+  }
   if((!rendezVousId && !documentId) || !ownerIdSession){
     return json(res, 200, { recu: true, ignore: 'métadonnées absentes' });
   }

@@ -58,6 +58,12 @@
     annule: { classe: 'annule', icone: KO, titre: 'Paiement annulé',
       texte: "Vous avez annulé le paiement : rien n'a été débité. Vous pouvez revenir en arrière et réessayer si besoin." }
   };
+  if(params.get('gateau') === '1'){
+    contenus = { succes: { classe: 'succes', icone: OK, titre: 'Commande payée',
+        texte: 'Merci ! Votre paiement est bien reçu et votre commande de gâteau est confirmée. Un email de confirmation avec la référence et le retrait vous arrive dans un instant.' },
+      annule: { classe: 'annule', icone: KO, titre: 'Paiement annulé',
+        texte: "Vous avez annulé le paiement : rien n'a été débité et la commande n'est pas enregistrée. Vous pouvez recommencer, ou choisir une date moins chargée pour éviter le supplément." } };
+  }
   var c = contenus[statut] || { classe: 'annule', icone: KO, titre: 'Statut inconnu',
     texte: "Nous n'avons pas pu déterminer le statut de ce paiement. Contactez directement votre salon si vous avez un doute." };
 
@@ -65,7 +71,8 @@
     (demo ? '<div class="demo">Démo : ce paiement est simulé, aucune carte n\'est débitée et aucune donnée n\'est enregistrée.</div>' : '') +
     (demo ? '<div class="actions"><a class="btn" href="demo.html">Retour à la démo</a><a class="btn discret" id="rejouer" href="demo.html">Réserver à nouveau</a></div>' : '');
   var salon = (params.get('p') || '').replace(/[^a-z0-9-]/g, '');
-  var rej = document.getElementById('rejouer'); if(rej && salon) rej.href = 'reservation.html?p=' + salon;
+  var gateau = params.get('gateau') === '1';
+  var rej = document.getElementById('rejouer'); if(rej && salon) rej.href = (gateau ? 'commander.html?p=' : 'reservation.html?p=') + salon;
   if(salon === 'demo-nouveau'){ var ret = carte.querySelector('a.btn[href="demo.html"]'); if(ret){ ret.href = 'demo-creation.html'; ret.textContent = 'Retour à la simulation'; } }
   carte.querySelector('h1').textContent = c.titre;
   carte.querySelector('p').textContent = c.texte;
