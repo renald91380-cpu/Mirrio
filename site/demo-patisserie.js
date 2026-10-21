@@ -25,7 +25,7 @@
     { id: 'd6', nom: 'Plateau de petits fours sucrés', categorie: 'Petits fours et mignardises', description: 'Assortiment de 12 variétés : choux, tartelettes, financiers, mignardises.', prix_part: 3.4, parts_min: 10, parts_max: 80 },
     { id: 'd7', nom: 'Éclairs et religieuses', categorie: 'Pâtisseries individuelles', description: 'Pâte à choux, crème pâtissière café, chocolat ou vanille, glaçage fondant.', prix_part: 3.2, parts_min: 12, parts_max: 120, unite: 'piece' },
     { id: 'd8', nom: 'Macarons assortis', categorie: 'Macarons', description: 'Coques lisses et ganaches : pistache, framboise, caramel beurre salé, chocolat.', prix_part: 1.9, parts_min: 24, parts_max: 200, unite: 'piece' }
-  ].map(function(p, i){ p.actif = true; p.position = i; p.photo_url = null; p.unite = p.unite || 'part'; return p; });
+  ].map(function(p, i){ p.actif = true; p.position = i; p.photo_url = 'img/gateaux/' + p.id + '.webp'; p.unite = p.unite || 'part'; return p; });
 
   // Les commandes de démo gardent le catalogue d'origine, même si le catalogue est modifié ensuite dans la démo.
   var base = produits.map(function(p){ return { id: p.id, nom: p.nom, prix_part: p.prix_part }; });
@@ -96,6 +96,66 @@
   function sauver(){ try{ sessionStorage.setItem(CLE, JSON.stringify({ reglages: reglages, produits: produits })); }catch(e){} }
   function reinitialiser(){ try{ sessionStorage.removeItem(CLE); }catch(e){} }
 
+  // Photos réelles et libres de droits (Wikimedia Commons), hébergées dans img/gateaux/ ; crédits affichés dans la démo.
+  var credits = [
+    {
+      "id": "d1",
+      "titre": "Croquembouche wedding cake",
+      "auteur": "Eric Baker",
+      "licence": "CC BY-SA 3.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Croquembouche_wedding_cake.jpg"
+    },
+    {
+      "id": "d2",
+      "titre": "Cake at a wedding in Indianapolis - 2006-10-14",
+      "auteur": "markjhandel",
+      "licence": "CC BY 2.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Cake_at_a_wedding_in_Indianapolis_-_2006-10-14.jpg"
+    },
+    {
+      "id": "d3",
+      "titre": "France gateau fraisier",
+      "auteur": "SUBARUsti2020hk",
+      "licence": "CC BY-SA 4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:France_gateau_fraisier.jpg"
+    },
+    {
+      "id": "d4",
+      "titre": "Chocolate cake in Tokyo",
+      "auteur": "Syced",
+      "licence": "CC0",
+      "page": "https://commons.wikimedia.org/wiki/File:Chocolate_cake_in_Tokyo.jpg"
+    },
+    {
+      "id": "d5",
+      "titre": "Three layer gourmet birthday cake",
+      "auteur": "Vernice Karbe",
+      "licence": "CC BY-SA 4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Three_layer_gourmet_birthday_cake.jpg"
+    },
+    {
+      "id": "d6",
+      "titre": "Petit Four Juni 2012",
+      "auteur": "4028mdk09",
+      "licence": "CC BY-SA 3.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Petit_Four_Juni_2012.JPG"
+    },
+    {
+      "id": "d7",
+      "titre": "Éclairs et gâteaux",
+      "auteur": "Thomon",
+      "licence": "CC BY-SA 4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:%C3%89clairs_et_g%C3%A2teaux.jpg"
+    },
+    {
+      "id": "d8",
+      "titre": "Des macarons de chez Bouillet (mars 2023)",
+      "auteur": "Benoît Prieur",
+      "licence": "CC0",
+      "page": "https://commons.wikimedia.org/wiki/File:Des_macarons_de_chez_Bouillet_(mars_2023).jpg"
+    }
+  ];
+
   var groupes = [
     { nom: 'Cérémonies', items: { mariage: 'Mariage', anniversaire_mariage: 'Anniversaire de mariage (noces)', fiancailles: 'Fiançailles', bapteme: 'Baptême', communion: 'Communion', bar_mitsva: 'Bar ou bat-mitsva' } },
     { nom: 'Fêtes personnelles', items: { anniversaire: 'Anniversaire', anniversaire_enfant: 'Anniversaire d’enfant', naissance: 'Naissance, baby shower', gender_reveal: 'Révélation du sexe du bébé', diplome: 'Remise de diplôme', cremaillere: 'Pendaison de crémaillère', reunion_famille: 'Repas de famille ou entre amis' } },
@@ -105,5 +165,5 @@
   ];
   var occasions = {}; groupes.forEach(function(g){ Object.keys(g.items).forEach(function(k){ occasions[k] = g.items[k]; }); });
 
-  window.DEMO_PATISSERIE = { groupes: groupes, occasions: occasions, sauver: sauver, reinitialiser: reinitialiser, nom: 'Maison Dorée (démo)', ville: 'Lyon', reglages: reglages, produits: produits, commandes: commandes, agenda: agenda, plus: plus, iso: iso };
+  window.DEMO_PATISSERIE = { credits: credits, groupes: groupes, occasions: occasions, sauver: sauver, reinitialiser: reinitialiser, nom: 'Maison Dorée (démo)', ville: 'Lyon', reglages: reglages, produits: produits, commandes: commandes, agenda: agenda, plus: plus, iso: iso };
 })();

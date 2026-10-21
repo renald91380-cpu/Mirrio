@@ -119,6 +119,8 @@
   .duo-emblemes img{ width:148px; height:148px; border-radius:50%; object-fit:cover; border:3px solid var(--surface); box-shadow:var(--ombre); background:var(--surface); }
   .duo-emblemes img + img{ margin-left:-34px; }
   @media(max-width:600px){ .duo-emblemes{ order:-1; margin:0 auto; } .duo-emblemes img{ width:112px; height:112px; } .duo-emblemes img + img{ margin-left:-26px; } }
+  .credits-photos{ margin-top:30px; font-size:12.5px; color:var(--muted); }
+  .credits-photos a{ text-decoration:underline; }
   .vide{ text-align:center; padding:60px 20px; color:var(--muted); }
   @media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
 </style>
@@ -210,6 +212,7 @@
     $('#occasion').addEventListener('change', function(){ var a = this.value === 'autre'; $('#bloc-precision').hidden = !a; if(!a) erreurChamp('precision', ''); else $('#precision').focus(); });
     ['nom','email','date','occasion','parts'].forEach(function(id){ var el = $('#' + id); if(el) el.addEventListener('blur', function(){ valider(id); }); });
     etat.mois = new Date(r.date_min + 'T12:00:00'); etat.mois.setDate(1); etat.calendrierPret = true; rendreCalendrier();
+    if(d.demo && window.DEMO_PATISSERIE.credits) main.insertAdjacentHTML('beforeend', '<p class="credits-photos">Photos d’illustration (Wikimedia Commons) : ' + window.DEMO_PATISSERIE.credits.map(function(c){ return '<a href="' + esc(c.page) + '" target="_blank" rel="noopener">' + esc(c.titre) + '</a>, ' + esc(c.auteur) + ' (' + esc(c.licence) + ')'; }).join(' · ') + '.</p>');
     var pre = params.get('gateau'); if(pre && d.produits.some(function(p){ return p.id === pre; })) choisir(pre);
     majRecap();
   }
