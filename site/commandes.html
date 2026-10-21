@@ -392,8 +392,15 @@
             </div>
           </fieldset>
 
-          <fieldset class="groupe"><legend>Acompte (jours normaux)</legend>
-            <div class="grille-champs"><div class="field"><label for="g-acompte">Acompte demandé (%)</label><input type="number" id="g-acompte" min="0" max="100"></div></div>
+          <fieldset class="groupe"><legend>Règlement à la commande (jours normaux)</legend>
+            <div class="field"><span class="lbl" id="lbl-mode">Ce que le client règle en commandant</span>
+              <div class="jours" role="radiogroup" aria-labelledby="lbl-mode">
+                <label class="jour"><input type="radio" name="g-mode" value="pct" id="g-mode-pct"> Un acompte</label>
+                <label class="jour"><input type="radio" name="g-mode" value="integral" id="g-mode-int"> 100 % du prix</label>
+              </div>
+            </div>
+            <div class="grille-champs" id="bloc-acompte"><div class="field"><label for="g-acompte">Acompte demandé (% du prix)</label><input type="number" id="g-acompte" min="0" max="100"></div></div>
+            <p class="hint" id="aide-mode">Quand le paiement par carte (Stripe) est activé, ce montant est encaissé par carte à la commande et la commande est confirmée à la réception du paiement ; le reste se règle au retrait. Sans Stripe, il est seulement annoncé au client et encaissé par vos soins. Pour les journées en surcharge ou en date exception, c’est toujours 100 % par carte.</p>
           </fieldset>
           <div class="modal-actions"><button class="btn btn-primary" type="submit">Enregistrer</button></div>
         </form>
@@ -542,6 +549,7 @@
   const toast = $('#toast');
   function showToast(m){ $('#toast-text').textContent = m; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 3200); }
   // « parts » ou « pièces » selon la création (retrouvée dans le catalogue ; « parts » si elle a été supprimée).
+  const resteDu = c => Math.max(0, Math.round(((Number(c.prix_final ?? c.prix_estime) || 0) - (Number(c.paye_montant) || 0)) * 100) / 100);
   function uniteMot(produitId, pluriel){ const p = produits.find(x => x.id === produitId); return p && p.unite === 'piece' ? (pluriel ? 'pièces' : 'pièce') : (pluriel ? 'parts' : 'part'); }
   function initiales(n){ const m = (n || '').trim().split(/\s+/).filter(Boolean); return !m.length ? '?' : (m.length === 1 ? m[0].slice(0,2) : m[0][0] + m[m.length-1][0]).toUpperCase(); }
   const dateLongue = iso => new Intl.DateTimeFormat('fr-FR', { weekday:'long', day:'numeric', month:'long' }).format(new Date(iso + 'T12:00:00'));
@@ -577,7 +585,7 @@
         <span class="infos"><strong>${echapper(c.produit_nom)}</strong> · ${c.parts} ${uniteMot(c.produit_id, true)}<br>
           <span class="sous">${echapper(c.occasion === 'autre' && c.occasion_precision ? 'Autre : ' + c.occasion_precision : OCCASIONS[c.occasion])} · ${echapper(c.client_nom)}${c.heure_retrait ? ' · ' + String(c.heure_retrait).slice(0,5).replace(':','h') : ''}</span>
           ${c.allergies ? `<span class="allergie">Allergies : ${echapper(c.allergies)}</span>` : ''}</span>
-        <span class="droite"><span class="prix">${prix}</span><span>${c.surcharge ? `<span class="pastille sur">+${c.surcharge_pourcentage} % surcharge</span> ` : ''}${c.paiement_statut === 'paye' ? '<span class="pastille">Payée par carte</span> ' : ''}<span class="statut s-${c.statut}">${STATUTS[c.statut]}</span></span></span></button>`;
+        <span class="droite"><span class="prix">${prix}</span><span>${c.surcharge ? `<span class="pastille sur">+${c.surcharge_pourcentage} % surcharge</span> ` : ''}${c.paiement_statut === 'paye' ? (resteDu(c) > 0 ? `<span class="pastille">Acompte payé · reste ${euros(resteDu(c))}</span> ` : '<span class="pastille">Payée par carte</span> ') : ''}<span class="statut s-${c.statut}">${STATUTS[c.statut]}</span></span></span></button>`;
     }).join('');
     $('#liste-commandes').querySelectorAll('.commande').forEach(b => b.addEventListener('click', () => ouvrirCommande(b.dataset.id)));
   }
@@ -597,7 +605,8 @@
       ${c.personnalisation ? `<dt>Précisions</dt><dd>${echapper(c.personnalisation)}</dd>` : ''}
       ${c.allergies ? `<dt>Allergies</dt><dd><strong>${echapper(c.allergies)}</strong></dd>` : ''}
       ${c.surcharge ? `<dt>Surcharge</dt><dd>Journée chargée : +${c.surcharge_pourcentage} %, ${c.paiement_statut === 'paye' ? `payée en intégralité par carte (${euros(c.paye_montant)})` : 'règlement intégral par carte en attente'}</dd>` : ''}
-      <dt>Estimation</dt><dd>${euros(c.prix_estime)}${c.acompte_pourcentage ? ` · acompte ${c.acompte_pourcentage} % = ${euros((c.prix_final ?? c.prix_estime) * c.acompte_pourcentage / 100)}` : ''}</dd></dl>`;
+      ${c.paiement_statut === 'paye' ? `<dt>Paiement</dt><dd>${euros(c.paye_montant)} reçus par carte${resteDu(c) > 0 ? `, reste ${euros(resteDu(c))} à encaisser au retrait` : ' : commande réglée en intégralité'}</dd>` : ''}
+      <dt>Estimation</dt><dd>${euros(c.prix_estime)}${c.paiement_statut !== 'paye' && c.acompte_pourcentage ? (c.acompte_pourcentage >= 100 ? ' · règlement intégral demandé à la commande' : ` · acompte ${c.acompte_pourcentage} % = ${euros((c.prix_final ?? c.prix_estime) * c.acompte_pourcentage / 100)}`) : ''}</dd></dl>`;
     $('#mc-statut').innerHTML = Object.entries(STATUTS).map(([k, n]) => `<option value="${k}"${k === c.statut ? ' selected' : ''}>${n}</option>`).join('');
     $('#mc-prix').value = c.prix_final ?? ''; $('#mc-note').value = c.note_patissier || '';
     $('#modal-commande').classList.add('show'); $('#mc-statut').focus();
@@ -731,7 +740,7 @@
   });
 
   // ---- réglages
-  const DEFAUT = { activee:false, delai_min_jours:3, horizon_jours:120, commandes_max_par_jour:5, poids_standard:1, poids_gros:2, seuil_gros_parts:25, poids_mariage:3,
+  const DEFAUT = { acompte_integral:false, activee:false, delai_min_jours:3, horizon_jours:120, commandes_max_par_jour:5, poids_standard:1, poids_gros:2, seuil_gros_parts:25, poids_mariage:3,
     surcharge_points:2, surcharge_pourcentage:15, surcharge_max_par_jour:1, exception_points:3, exception_pourcentage:30, exception_max_par_jour:1,
     jours_fermes:[1], heure_retrait_debut:'08:00', heure_retrait_fin:'18:00', acompte_pourcentage:30, adresse_retrait:'', message_accueil:'' };
   // [champ du formulaire, colonne, minimum, maximum]
@@ -739,8 +748,11 @@
     ['g-pgros','poids_gros',1,10], ['g-seuil','seuil_gros_parts',1,500], ['g-pmar','poids_mariage',1,10], ['g-sur','surcharge_points',0,10], ['g-surpct','surcharge_pourcentage',0,100],
     ['g-surmax','surcharge_max_par_jour',0,5], ['g-exc','exception_points',0,10], ['g-excpct','exception_pourcentage',0,100], ['g-excmax','exception_max_par_jour',0,5], ['g-acompte','acompte_pourcentage',0,100]];
   const TOUS_JOURS = [1,2,3,4,5,6,0];
+  function majModeAcompte(){ const integral = $('#g-mode-int').checked; $('#g-acompte').disabled = integral; $('#bloc-acompte').style.opacity = integral ? '.5' : ''; }
+  document.querySelectorAll('input[name=g-mode]').forEach(r => r.addEventListener('change', majModeAcompte));
   function remplirReglages(){
     const r = reglages;
+    $('#g-mode-int').checked = !!r.acompte_integral; $('#g-mode-pct').checked = !r.acompte_integral; majModeAcompte();
     $('#g-activee').checked = r.activee; $('#g-slug').value = slug || ''; $('#g-slug').disabled = DEMO;
     NOMBRES.forEach(([id, col]) => { $('#' + id).value = r[col]; });
     $('#g-debut').value = String(r.heure_retrait_debut).slice(0,5); $('#g-fin').value = String(r.heure_retrait_fin).slice(0,5);
@@ -764,7 +776,7 @@
     const ouverts = [...document.querySelectorAll('#g-jours input:checked')].map(i => Number(i.value));
     if(!ouverts.length){ showToast('Choisissez au moins un jour d’ouverture.'); return; }
     const ligne = { owner_id: espaceId, activee: $('#g-activee').checked, heure_retrait_debut: $('#g-debut').value, heure_retrait_fin: $('#g-fin').value,
-      jours_fermes: TOUS_JOURS.filter(j => !ouverts.includes(j)), adresse_retrait: $('#g-adresse').value.trim() || null,
+      acompte_integral: $('#g-mode-int').checked, jours_fermes: TOUS_JOURS.filter(j => !ouverts.includes(j)), adresse_retrait: $('#g-adresse').value.trim() || null,
       message_accueil: $('#g-message').value.trim() || null, updated_at: new Date().toISOString() };
     NOMBRES.forEach(([id, col, min, max]) => { const v = Math.floor(Number($('#' + id).value)); ligne[col] = Math.min(max, Math.max(min, isNaN(v) ? DEFAUT[col] : v)); });
     if(!DEMO && nouveauSlug && nouveauSlug !== slug){

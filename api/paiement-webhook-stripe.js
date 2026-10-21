@@ -553,6 +553,9 @@ async function traiterPaiementGateau({ commandeId, ownerId, session, expire, res
   }
   const c = lignes[0];
   if(!c) return json(res, 200, { recu: true, ignore: 'déjà traité' });
+  const reste = Math.max(0, Math.round(((Number(c.prix_final ?? c.prix_estime) || 0) - (Number(c.paye_montant) || 0)) * 100) / 100);
+  let unite = 'parts';
+  try{ const [pr] = c.produit_id ? await supabaseGet(`gateaux_produits?id=eq.${c.produit_id}&select=unite`) : []; if(pr?.unite === 'piece') unite = 'pièces'; }catch(e){ /* colonne absente : parts */ }
   try{
     const [profils, facs] = await Promise.all([
       supabaseGet(`profiles?id=eq.${ownerId}&select=business_name,full_name`),
@@ -565,15 +568,15 @@ async function traiterPaiementGateau({ commandeId, ownerId, session, expire, res
       to: c.client_email, replyTo: facs[0]?.emetteur_email,
       subject: `Commande confirmée et payée, ${boutique} (réf. ${c.reference})`,
       html: gabaritSimple({ titre: 'Votre commande est confirmée', paragraphes: [
-        `${echapperHtml(boutique)} a bien reçu votre paiement de <strong>${formaterEuros(c.paye_montant)}</strong> pour <strong>${echapperHtml(c.produit_nom)}</strong> (${c.parts} parts).`,
-        `Retrait : <strong>${echapperHtml(quand)}</strong>. La journée étant très chargée, un supplément de ${c.surcharge_pourcentage} % a été appliqué et la commande a été réglée en intégralité par carte.`,
+        `${echapperHtml(boutique)} a bien reçu ${reste > 0 ? 'votre acompte' : 'votre paiement'} de <strong>${formaterEuros(c.paye_montant)}</strong> pour <strong>${echapperHtml(c.produit_nom)}</strong> (${c.parts} ${unite}).`,
+        `Retrait : <strong>${echapperHtml(quand)}</strong>. ${c.surcharge ? `La journée étant très chargée, un supplément de ${c.surcharge_pourcentage} % a été appliqué et la commande a été réglée en intégralité par carte.` : (reste > 0 ? `Reste à régler au retrait : <strong>${formaterEuros(reste)}</strong> (prix final confirmé par la pâtisserie).` : 'Votre commande est réglée en intégralité.')}`,
         `Référence : <strong>${echapperHtml(c.reference)}</strong>.` ] })
     });
     if(facs[0]?.emetteur_email) await envoyerEmail({
       to: facs[0].emetteur_email, replyTo: c.client_email,
-      subject: `Commande payée en surcharge : ${c.produit_nom}, ${quand}`,
-      html: gabaritSimple({ titre: 'Commande payée d’avance', paragraphes: [
-        `<strong>${echapperHtml(c.client_nom)}</strong> a réglé <strong>${formaterEuros(c.paye_montant)}</strong> par carte (supplément de ${c.surcharge_pourcentage} % inclus) pour <strong>${echapperHtml(c.produit_nom)}</strong>, ${c.parts} parts, retrait ${echapperHtml(quand)}.`,
+      subject: `${c.surcharge ? 'Commande payée en surcharge' : (reste > 0 ? 'Acompte reçu' : 'Commande payée')} : ${c.produit_nom}, ${quand}`,
+      html: gabaritSimple({ titre: reste > 0 ? 'Acompte reçu' : 'Commande payée d’avance', paragraphes: [
+        `<strong>${echapperHtml(c.client_nom)}</strong> a réglé <strong>${formaterEuros(c.paye_montant)}</strong> par carte${c.surcharge ? ` (supplément de ${c.surcharge_pourcentage} % inclus)` : ''} pour <strong>${echapperHtml(c.produit_nom)}</strong>, ${c.parts} ${unite}, retrait ${echapperHtml(quand)}.${reste > 0 ? ` Reste à encaisser au retrait : ${formaterEuros(reste)}.` : ''}`,
         ...(c.allergies ? [`<strong>Allergies :</strong> ${echapperHtml(c.allergies)}`] : []) ] })
     });
   }catch(e){ /* best-effort : la commande est confirmée quoi qu'il arrive */ }

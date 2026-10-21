@@ -160,7 +160,7 @@
         poids: { standard: g.poids_standard, gros: g.poids_gros, seuil_gros_parts: g.seuil_gros_parts, mariage: g.poids_mariage },
         charges: ag.charges, details: ag.details, niveaux: ag.niveaux,
         heure_debut: String(g.heure_retrait_debut).slice(0, 5), heure_fin: String(g.heure_retrait_fin).slice(0, 5),
-        acompte_pourcentage: g.acompte_pourcentage, adresse: g.adresse_retrait, message: g.message_accueil }
+        acompte_pourcentage: g.acompte_integral ? 100 : g.acompte_pourcentage, acompte_integral: !!g.acompte_integral, paiement_carte: true, adresse: g.adresse_retrait, message: g.message_accueil }
     };
   }
 
@@ -185,7 +185,7 @@
       '<div class="regles">' +
         '<span class="puce"><i class="ph ph-clock-countdown" aria-hidden="true"></i>À commander ' + r.delai_min_jours + ' jour' + (r.delai_min_jours > 1 ? 's' : '') + ' à l’avance</span>' +
         (fermes.length ? '<span class="puce"><i class="ph ph-door" aria-hidden="true"></i>Fermé le ' + fermes.join(', le ') + '</span>' : '') +
-        (r.acompte_pourcentage ? '<span class="puce"><i class="ph ph-hand-coins" aria-hidden="true"></i>Acompte de ' + r.acompte_pourcentage + ' % à la confirmation</span>' : '') +
+        (r.acompte_pourcentage ? '<span class="puce"><i class="ph ph-hand-coins" aria-hidden="true"></i>' + (r.acompte_integral ? 'Règlement intégral' : 'Acompte de ' + r.acompte_pourcentage + ' %') + (r.paiement_carte ? ' par carte à la commande' : ' à la confirmation') + '</span>' : '') +
         (r.adresse ? '<span class="puce"><i class="ph ph-map-pin" aria-hidden="true"></i>Retrait : ' + esc(r.adresse) + '</span>' : '') +
       '</div>' +
       '<h2 id="titre-gateaux">1. Choisissez votre création</h2>' +
@@ -193,7 +193,7 @@
       '<form class="formulaire" id="formulaire" novalidate>' +
         '<div class="bloc"><div class="resume-erreurs" id="resume-erreurs" role="alert" tabindex="-1"></div>' + champs(d) + '</div>' +
         '<aside class="bloc recap" aria-live="polite"><h2>Votre demande</h2><dl id="recap"></dl><div class="total"><span>Estimation</span><span id="total">–</span></div>' +
-          '<p class="note" id="note-recap" data-normal="' + esc('Ce n’est pas encore une commande ferme : ' + d.nom + ' vérifie la faisabilité et vous confirme le prix final' + (r.acompte_pourcentage ? ', avec un acompte de ' + r.acompte_pourcentage + ' %' : '') + '.') + '">Ce n’est pas encore une commande ferme : ' + esc(d.nom) + ' vérifie la faisabilité et vous confirme le prix final' + (r.acompte_pourcentage ? ', avec un acompte de ' + r.acompte_pourcentage + ' %' : '') + '.</p>' +
+          '<p class="note" id="note-recap" data-normal="' + esc(noteNormale(d)) + '">' + esc(noteNormale(d)) + '</p>' +
           '<button class="btn" type="submit" id="envoyer"><i class="ph ph-paper-plane-tilt" aria-hidden="true"></i>Envoyer ma demande</button></aside>' +
       '</form>';
     main.querySelectorAll('.gateau').forEach(function(b){ b.addEventListener('click', function(){ choisir(b.dataset.id); }); });
@@ -207,6 +207,13 @@
     majRecap();
   }
 
+  function noteNormale(d){
+    var r = d.regles;
+    if(r.paiement_carte && r.acompte_pourcentage) return r.acompte_integral
+      ? 'Vous réglez 100 % du prix par carte à la commande. Elle est confirmée à la réception du paiement.'
+      : 'Vous réglez un acompte de ' + r.acompte_pourcentage + ' % par carte à la commande, le reste au retrait. Elle est confirmée à la réception du paiement.';
+    return 'Ce n’est pas encore une commande ferme : ' + d.nom + ' vérifie la faisabilité et vous confirme le prix final' + (r.acompte_integral ? ', puis demande le règlement intégral' : (r.acompte_pourcentage ? ', avec un acompte de ' + r.acompte_pourcentage + ' %' : '')) + '.';
+  }
   function carte(p){
     var visuel = p.photo_url ? ' style="background-image:url(\'' + esc(p.photo_url) + '\')"' : '';
     return '<button type="button" class="gateau" data-id="' + esc(p.id) + '" aria-pressed="false">' +
@@ -283,6 +290,14 @@
   }
   // Surcharge ou date « exception » : supplément + règlement intégral par carte.
   function enSurcharge(){ var v = ($('#date') || {}).value, et = v ? etatJour(v) : ''; return et === 'surcharge' || et === 'exception'; }
+  // Montant à régler tout de suite : 100 % en surcharge / exception, sinon l'acompte (ou 100 % si la pâtisserie l'exige), par carte quand c'est actif.
+  function dueMaintenant(base){
+    if(base == null) return 0;
+    var r = etat.donnees.regles, total = prixAffiche(base);
+    if(enSurcharge()) return total;
+    if(!r.paiement_carte || !r.acompte_pourcentage) return 0;
+    return Math.round(total * r.acompte_pourcentage) / 100;
+  }
   function pctCourant(){ var v = ($('#date') || {}).value; return v ? pctDe(etatJour(v)) : 0; }
   function prixAffiche(base){ return enSurcharge() ? Math.round(base * (100 + pctCourant())) / 100 : base; }
   function listeOccasions(l){
@@ -390,9 +405,11 @@
     var baseTotal = p && parts >= p.parts_min && parts <= p.parts_max ? Math.round(parts * p.prix_part * 100) / 100 : null;
     $('#total').textContent = baseTotal != null ? euros(prixAffiche(baseTotal)) : '–';
     var surch = enSurcharge(), rr = etat.donnees.regles;
-    $('#recap').innerHTML += surch && baseTotal != null ? '<dt>Supplément</dt><dd>+' + pctCourant() + ' % (' + euros(prixAffiche(baseTotal) - baseTotal) + ')</dd><dt>Règlement</dt><dd>Intégral par carte</dd>' : '';
+    var du = dueMaintenant(baseTotal);
+    $('#recap').innerHTML += surch && baseTotal != null ? '<dt>Supplément</dt><dd>+' + pctCourant() + ' % (' + euros(prixAffiche(baseTotal) - baseTotal) + ')</dd><dt>Règlement</dt><dd>Intégral par carte</dd>'
+      : (du > 0 && baseTotal != null ? '<dt>À payer maintenant</dt><dd>' + euros(du) + '</dd>' + (du < prixAffiche(baseTotal) ? '<dt>Reste au retrait</dt><dd>' + euros(Math.round((prixAffiche(baseTotal) - du) * 100) / 100) + '</dd>' : '') : '');
     var nt = $('#note-recap'); if(nt) nt.textContent = surch ? 'Journée très chargée : le règlement intégral par carte se fait tout de suite, sans acompte. La commande est confirmée à la réception du paiement.' : nt.dataset.normal;
-    var bt = $('#envoyer'); if(bt && !bt.disabled) bt.innerHTML = surch ? '<i class="ph ph-credit-card" aria-hidden="true"></i>Payer ' + (baseTotal != null ? euros(prixAffiche(baseTotal)) : '') + ' par carte' : '<i class="ph ph-paper-plane-tilt" aria-hidden="true"></i>Envoyer ma demande';
+    var bt = $('#envoyer'); if(bt && !bt.disabled) bt.innerHTML = du > 0 ? '<i class="ph ph-credit-card" aria-hidden="true"></i>Payer ' + euros(du) + ' par carte' : '<i class="ph ph-paper-plane-tilt" aria-hidden="true"></i>Envoyer ma demande';
   }
 
   var MESSAGES = {};
@@ -445,7 +462,7 @@
     var fin = function(j){ confirmer(j); };
     if(DEMO){
       var ref = 'DEMO' + Math.floor(1000 + Math.random() * 9000);
-      if(enSurcharge()) return setTimeout(function(){ location.href = 'paiement-merci.html?statut=succes&gateau=1&demo=1&p=demo-patisserie'; }, 500);
+      if(dueMaintenant(Math.round(corps.parts * etat.produit.prix_part * 100) / 100) > 0) return setTimeout(function(){ location.href = 'paiement-merci.html?statut=succes&gateau=1&demo=1&p=demo-patisserie'; }, 500);
       return setTimeout(function(){ fin({ reference: ref, prix_estime: Math.round(corps.parts * etat.produit.prix_part * 100) / 100, quand: jourLong(corps.date_retrait) }); }, 500);
     }
     fetch('/api/gateaux', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(corps) })
@@ -465,7 +482,7 @@
     var d = etat.donnees;
     main.innerHTML = '<div class="bloc confirmation"><div class="rond"><i class="ph ph-check" aria-hidden="true"></i></div><h1 tabindex="-1" id="titre-ok" style="font-size:32px">Demande envoyée</h1>' +
       '<p>' + esc(d.nom) + ' a bien reçu votre demande pour <strong>' + esc(etat.produit.nom) + '</strong>, retrait le ' + esc(j.quand) + '.</p>' +
-      '<div class="ref">' + esc(j.reference) + '</div><p>Estimation : <strong>' + euros(j.prix_estime) + '</strong>. La pâtisserie vous écrit pour confirmer la faisabilité et le prix final' + (d.regles.acompte_pourcentage ? ' (acompte de ' + d.regles.acompte_pourcentage + ' %)' : '') + '.</p>' +
+      '<div class="ref">' + esc(j.reference) + '</div><p>Estimation : <strong>' + euros(j.prix_estime) + '</strong>. La pâtisserie vous écrit pour confirmer la faisabilité et le prix final' + (d.regles.acompte_integral ? ', puis demander le règlement intégral' : (d.regles.acompte_pourcentage ? ' (acompte de ' + d.regles.acompte_pourcentage + ' %)' : '')) + '.</p>' +
       (d.demo ? '<p><a href="demo.html">Retour à la démo</a></p>' : '<p>Un email récapitulatif vient de vous être envoyé.</p>') + '</div>';
     var t = $('#titre-ok'); if(t) t.focus(); window.scrollTo({ top: 0 });
   }

@@ -203,7 +203,7 @@ export default async function handler(req, res){
           surcharge_max: c.surcharge_max_par_jour, exception_max: c.exception_max_par_jour,
           poids: { standard: c.poids_standard, gros: c.poids_gros, seuil_gros_parts: c.seuil_gros_parts, mariage: c.poids_mariage },
           heure_debut: String(c.heure_retrait_debut).slice(0, 5), heure_fin: String(c.heure_retrait_fin).slice(0, 5),
-          acompte_pourcentage: c.acompte_pourcentage, adresse: c.adresse_retrait, message: c.message_accueil
+          acompte_pourcentage: c.acompte_integral ? 100 : c.acompte_pourcentage, acompte_integral: !!c.acompte_integral, paiement_carte: carte, adresse: c.adresse_retrait, message: c.message_accueil
         }
       });
     }
@@ -265,25 +265,32 @@ export default async function handler(req, res){
 
     const prixBase = Math.round(parts * Number(produit.prix_part) * 100) / 100;
     const prixEstime = surcharge ? Math.round(prixBase * (100 + pctMajoration)) / 100 : prixBase;
+    // Règlement à la commande, au choix de la pâtisserie : 100 % du prix, ou un acompte en %. Encaissé par carte quand Stripe est actif ;
+    // sinon c'est annoncé au client et encaissé hors Mirrio. Surcharge et date exception : toujours 100 %, par carte.
+    const pctAcompte = c.acompte_integral ? 100 : c.acompte_pourcentage;
+    const dueMaintenant = surcharge ? prixEstime : Math.round(prixEstime * pctAcompte) / 100;
+    const aPayer = surcharge || (!!cleStripe && dueMaintenant > 0);
     const commande = await inserer('gateaux_commandes', {
       owner_id: p.id, produit_id: produit.id, produit_nom: produit.nom, occasion: b.occasion, occasion_precision: precision || null, parts,
       personnalisation: propre(b.personnalisation, 600) || null, message_gateau: propre(b.message_gateau, 80) || null,
       allergies: propre(b.allergies, 300) || null, date_retrait: date, heure_retrait: heure || null,
       client_nom: nom, client_email: email, client_telephone: propre(b.telephone, 30) || null,
-      prix_estime: prixEstime, acompte_pourcentage: surcharge ? 0 : c.acompte_pourcentage,
-      ...(surcharge ? { statut: 'a_payer', surcharge: true, niveau_charge: etat, surcharge_pourcentage: pctMajoration, paiement_statut: 'en_attente' } : {})
+      prix_estime: prixEstime, acompte_pourcentage: surcharge ? 0 : pctAcompte,
+      ...(aPayer ? { statut: 'a_payer', paiement_statut: 'en_attente' } : {}),
+      ...(surcharge ? { surcharge: true, niveau_charge: etat, surcharge_pourcentage: pctMajoration } : {})
     });
 
-    // Surcharge : règlement intégral par carte AVANT toute confirmation (le webhook Stripe confirme).
-    if(surcharge){
+    // Paiement par carte AVANT toute confirmation (le webhook Stripe confirme) : surcharge, exception, ou acompte / règlement intégral.
+    if(aPayer){
       const nomBoutique = p.profil.business_name || p.profil.full_name || 'la pâtisserie';
       const origine = `https://${req.headers.host}`;
       try{
         const session = await creerSessionStripe(cleStripe, {
           mode: 'payment', payment_method_types: ['card'],
-          line_items: [{ quantity: 1, price_data: { currency: 'eur', unit_amount: Math.round(prixEstime * 100),
-            product_data: { name: `${produit.nom}, ${parts} parts, chez ${nomBoutique}`,
-              description: `Retrait le ${dateLongue(date)}. Journée très chargée : supplément de ${pctMajoration} % inclus, règlement intégral à la commande.` } } }],
+          line_items: [{ quantity: 1, price_data: { currency: 'eur', unit_amount: Math.round(dueMaintenant * 100),
+            product_data: { name: `${surcharge || pctAcompte >= 100 ? 'Règlement intégral' : `Acompte de ${pctAcompte} %`} : ${produit.nom}, ${parts} ${produit.unite === 'piece' ? 'pièces' : 'parts'}, chez ${nomBoutique}`,
+              description: surcharge ? `Retrait le ${dateLongue(date)}. Journée très chargée : supplément de ${pctMajoration} % inclus, règlement intégral à la commande.`
+                : `Retrait le ${dateLongue(date)}.${pctAcompte >= 100 ? '' : ` Reste ${euros(Math.round((prixEstime - dueMaintenant) * 100) / 100)} à régler au retrait (prix final confirmé par la pâtisserie).`}` } } }],
           customer_email: email,
           expires_at: Math.floor(Date.now() / 1000) + 31 * 60,
           success_url: `${origine}/paiement-merci.html?statut=succes&gateau=1`,
@@ -291,7 +298,7 @@ export default async function handler(req, res){
           metadata: { commande_gateau_id: commande.id, owner_id: p.id }
         });
         await modifier(`gateaux_commandes?id=eq.${commande.id}`, { paiement_reference: session.id });
-        return json(res, 200, { ok: true, url: session.url, reference: commande.reference, prix_estime: prixEstime });
+        return json(res, 200, { ok: true, url: session.url, reference: commande.reference, prix_estime: prixEstime, du_maintenant: dueMaintenant });
       }catch(e){
         await modifier(`gateaux_commandes?id=eq.${commande.id}`, { statut: 'annulee', paiement_statut: 'echoue' }).catch(() => {});
         return json(res, 502, { error: 'La création du paiement a échoué. Réessayez.' });
@@ -306,7 +313,7 @@ export default async function handler(req, res){
         html: gabarit('Votre demande est bien reçue', [
           `${echapper(nomBoutique)} a reçu votre demande pour <strong>${echapper(produit.nom)}</strong> (${parts} ${produit.unite === 'piece' ? 'pièces' : 'parts'}, ${echapper(precision || OCCASIONS[b.occasion].toLowerCase())}).`,
           `Retrait souhaité : <strong>${echapper(quand)}</strong>${c.adresse_retrait ? `, ${echapper(c.adresse_retrait)}` : ''}.`,
-          `Prix estimé : <strong>${euros(prixEstime)}</strong>. Ce n’est pas encore une commande ferme : la pâtisserie vous confirme la faisabilité et le prix final${c.acompte_pourcentage ? `, avec un acompte de ${c.acompte_pourcentage} %` : ''}.`,
+          `Prix estimé : <strong>${euros(prixEstime)}</strong>. Ce n’est pas encore une commande ferme : la pâtisserie vous confirme la faisabilité et le prix final${pctAcompte >= 100 ? ', puis le règlement intégral est demandé' : (pctAcompte ? `, avec un acompte de ${pctAcompte} %` : '')}.`,
           `Référence : <strong>${echapper(commande.reference)}</strong>. Vous pouvez répondre à cet email pour toute précision.`
         ])
       });

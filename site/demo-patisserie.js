@@ -12,7 +12,7 @@
     surcharge_points: 2, surcharge_pourcentage: 15, surcharge_max_par_jour: 1,
     exception_points: 3, exception_pourcentage: 30, exception_max_par_jour: 1,
     poids_standard: 1, poids_gros: 2, seuil_gros_parts: 25, poids_mariage: 3,
-    jours_fermes: [1], heure_retrait_debut: '08:00', heure_retrait_fin: '18:00', acompte_pourcentage: 30,
+    jours_fermes: [1], heure_retrait_debut: '08:00', heure_retrait_fin: '18:00', acompte_pourcentage: 30, acompte_integral: false,
     adresse_retrait: '12 rue de la République, Lyon 2e', message_accueil: 'Tout est fait maison, la veille ou le matin même du retrait.'
   };
 
@@ -65,7 +65,7 @@
         produit_nom: produitBase(s[1]).nom, occasion: s[2], parts: s[3],
         date_retrait: plus(d0, s[0]), heure_retrait: extra.heure || null, client_nom: s[4],
         client_email: s[4].toLowerCase().replace(/[^a-z]+/g, '.').replace(/^\.|\.$/g, '') + '@exemple.fr', client_telephone: '06 12 34 56 7' + (i % 10),
-        statut: s[5], prix_estime: total, prix_final: s[5] === 'confirmee' ? total : null, acompte_pourcentage: pct ? 0 : reglages.acompte_pourcentage,
+        statut: s[5], prix_estime: total, prix_final: s[5] === 'confirmee' ? total : null, acompte_pourcentage: pct ? 0 : (reglages.acompte_integral ? 100 : reglages.acompte_pourcentage),
         surcharge: !!pct, surcharge_pourcentage: pct || null, niveau_charge: extra.niveau || null,
         paiement_statut: pct ? 'paye' : null, paye_montant: pct ? total : null,
         message_gateau: extra.message || null, allergies: extra.allergies || null, personnalisation: null, note_patissier: extra.note || null
