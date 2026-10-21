@@ -58,6 +58,10 @@
     {
       "source": "/api/mon-espace",
       "destination": "/api/reservation-disponibilites?action=client"
+    },
+    {
+      "source": "/api/gateaux",
+      "destination": "/api/reservation-disponibilites?action=gateaux"
     }
   ]
 }

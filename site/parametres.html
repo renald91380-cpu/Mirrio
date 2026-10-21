@@ -488,6 +488,7 @@
                 <option value="barbier">Barbier</option>
                 <option value="massage">Masseur·euse / spa</option>
                 <option value="onglerie">Prothésiste ongulaire</option>
+                <option value="patisserie">Pâtissier·ère / boulanger·ère</option>
               </select>
             </div>
             <div class="field">
@@ -841,7 +842,7 @@
 
           <div class="note-box" id="catalogue-type" style="display:none; margin-bottom:16px; display:none; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;">
             <span id="catalogue-type-texte"></span>
-            <button class="btn btn-outline btn-sm" type="button" id="catalogue-type-btn" style="flex-shrink:0;">Importer le catalogue type</button>
+            <span style="display:flex; gap:8px; flex-wrap:wrap; flex-shrink:0;"><button class="btn btn-outline btn-sm" type="button" id="catalogue-type-btn">Importer le catalogue type</button><button class="btn btn-outline btn-sm" type="button" id="catalogue-afro-btn" style="display:none;">Importer le catalogue coiffure afro</button></span>
           </div>
 
           <div class="prest-list" id="prest-list"></div>
@@ -1013,6 +1014,13 @@
             <textarea id="resa-desc-annuaire" data-bind="reservation.description_annuaire" maxlength="300" rows="3" placeholder="Salon de coiffure mixte, spécialiste coloration…"></textarea>
           </div>
 
+          <div class="field" id="resa-styles-bloc" style="margin-bottom:6px;">
+            <label style="display:flex; align-items:center; gap:10px; margin:0;">
+              <input type="checkbox" id="resa-style-afro" style="width:20px; height:20px;">
+              Salon spécialisé coiffure afro (tresses, locks, tissages, soins texturés)
+            </label>
+            <div class="hint">Votre fiche affichera le badge « Coiffure afro » et apparaîtra quand on filtre l'annuaire par ce style. Vous pouvez garder vos autres prestations : un salon peut être mixte et proposer le style afro en plus.</div>
+          </div>
           <div class="field">
             <label for="resa-photos">Photos (liens https, un par ligne, 6 maximum)</label>
             <textarea id="resa-photos" rows="3" placeholder="https://…/salon-1.jpg"></textarea>
@@ -1387,6 +1395,7 @@
     monterJoursReservation();
     monterJoursCreux();
     photosEl.value = (reservation.photos || []).join('\n');
+    document.getElementById('resa-style-afro').checked = (reservation.styles || []).includes('afro');
     majGeoAffichage();
     majApercuReservation();
     majApercuPaiement();
@@ -1411,6 +1420,12 @@
   const photosEl = document.getElementById('resa-photos');
   photosEl.addEventListener('input', ()=>{
     reservation.photos = photosEl.value.split('\n').map(l=>l.trim()).filter(l=>/^https:\/\//i.test(l)).slice(0,6);
+    majBarre();
+  });
+  document.getElementById('resa-style-afro').addEventListener('change', e=>{
+    const set = new Set(reservation.styles || []);
+    if(e.target.checked) set.add('afro'); else set.delete('afro');
+    reservation.styles = [...set];
     majBarre();
   });
   // Géocodage via Nominatim (OpenStreetMap), déclenché à la demande depuis le navigateur.
@@ -1911,6 +1926,14 @@
       ['Barbe','Taille de barbe et contours','homme',18,20], ['Barbe','Rasage traditionnel serviette chaude','homme',28,30], ['Formules','Coupe + barbe','homme',40,50],
       ['Formules','Coupe + barbe + soin visage','homme',58,70], ['Soins','Soin visage homme','homme',35,30], ['Soins','Coloration barbe / cheveux','homme',25,30]
     ],
+    afro: [
+      ['Tresses','Tresses collées (cornrows)','mixte',45,90], ['Tresses','Tresses africaines / box braids','femme',120,300], ['Tresses','Knotless braids','femme',150,360],
+      ['Tresses','Fulani braids','femme',110,240], ['Tresses','Tresses enfant','mixte',55,150], ['Twists','Vanilles / twists','femme',90,180], ['Twists','Twists sur cheveux naturels','femme',70,150],
+      ['Locks','Départ de locks','mixte',140,240], ['Locks','Entretien / reprise des racines de locks','mixte',60,120], ['Locks','Retwist + coiffage','mixte',50,90],
+      ['Tissage','Pose de tissage (tissage fermé)','femme',150,180], ['Tissage','Pose de closure / frontal (lace)','femme',130,150], ['Tissage','Pose de perruque (lace wig) et mise en forme','femme',70,90],
+      ['Soins','Shampoing, soin hydratant et brushing','femme',55,90], ['Soins','Soin protéiné / reconstructeur','mixte',35,45], ['Soins','Défrisage (racines)','femme',65,90],
+      ['Coupe & coiffage','Coupe afro / dégradé sur cheveux texturés','homme',28,35], ['Coupe & coiffage','Coupe + coiffage femme (cheveux naturels)','femme',60,75], ['Coupe & coiffage','Barrel twists / coiffure de cérémonie','mixte',80,90]
+    ],
     esthetique: [
       ['Soins du visage','Nettoyage de peau','mixte',55,60], ['Soins du visage','Soin hydratant éclat','femme',65,60], ['Soins du visage','Soin visage homme','homme',55,60],
       ['Épilation','Sourcils','femme',12,15], ['Épilation','Lèvre / menton','femme',9,10], ['Épilation','Aisselles','femme',12,15], ['Épilation','Maillot','femme',20,20],
@@ -1939,9 +1962,9 @@
     boite.style.display = 'flex';
     document.getElementById('catalogue-type-texte').textContent =
       `Gagnez du temps : importez ${cat.length} prestations types (${NOM_CATALOGUE[profil.metier]}, pour femmes et hommes), avec prix et durées à ajuster ensuite. Celles que vous avez déjà ne sont pas dupliquées.`;
+    document.getElementById('catalogue-afro-btn').style.display = profil.metier === 'coiffure' ? '' : 'none';
   }
-  document.getElementById('catalogue-type-btn').addEventListener('click', async ()=>{
-    const cat = CATALOGUES[profil.metier];
+  async function importerCatalogue(cat){
     if(!cat) return;
     const existants = new Set(prestations.map(p => p.libelle.toLowerCase()));
     const aAjouter = cat.filter(c => !existants.has(c[1].toLowerCase()));
@@ -1956,7 +1979,9 @@
     if(error){ showToast("L'import a échoué.", true); return; }
     showToast(`${aAjouter.length} prestations ajoutées.`);
     await chargerPrestations();
-  });
+  }
+  document.getElementById('catalogue-type-btn').addEventListener('click', ()=> importerCatalogue(CATALOGUES[profil.metier]));
+  document.getElementById('catalogue-afro-btn').addEventListener('click', ()=> importerCatalogue(CATALOGUES.afro));
 
   async function chargerPrestations(){
     const { data } = await supabase.from('prestations').select('*').order('position');

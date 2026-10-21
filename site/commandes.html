@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+  // Applique le style d'interface mis en cache AVANT le premier rendu, pour
+  // éviter un flash de l'identité par défaut (Atelier, nav du haut) au clic
+  // sur un lien de nav : appliquerThemeEnCache() dans theme.js fait la même
+  // chose, mais trop tard — ce script module est différé et ne s'exécute
+  // qu'après que le navigateur a déjà peint le DOM. Doublon volontaire et
+  // minimal (un seul attribut), pas une dépendance vers theme.js.
+  (function(){
+    try{
+      var b = JSON.parse(sessionStorage.getItem('cadence:brand'));
+      if(b && b.style_interface) document.documentElement.setAttribute('data-style', b.style_interface);
+    }catch(e){}
+  })();
+</script>
+<title>Commandes de gâteaux | Mirrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="chrome.css">
+<style>
+  :root{
+    --ink:#1C2333;
+    --ink-soft:#2A3346;
+    --parchment:#F5F1E7;
+    --parchment-dim:#EAE4D4;
+    --slate:#8B8F98;
+    --amber:#E2A63D;
+    --amber-soft:#f0c98a;
+    --teal:#3E7C74;
+    --brick:#B5533F;
+    --display:'Fraunces', Georgia, serif;
+    --body:'Inter', Arial, sans-serif;
+    --mono:'IBM Plex Mono', 'Courier New', monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:var(--body);
+    background:var(--parchment);
+    color:var(--ink);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  img,svg{display:block;}
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit;}
+
+  .logo{
+    font-family:var(--display); font-weight:700; font-size:20px;
+    display:flex; align-items:baseline; gap:2px;
+  }
+  .logo .dot{ color:var(--amber); animation:pulseDot 1.6s ease-in-out infinite; }
+  @keyframes pulseDot{
+    0%, 70%, 100%{ transform:scale(1); opacity:0.3; }
+    35%{ transform:scale(1.9); opacity:1; background:var(--amber); }
+  }
+  @media (prefers-reduced-motion: reduce){ .logo .dot{ animation:none !important; opacity:0.6 !important; } }
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    padding:12px 20px; border-radius:6px; font-weight:600; font-size:14.5px;
+    border:none; cursor:pointer; min-height:44px;
+    transition:transform .15s ease, box-shadow .15s ease, background .15s ease, opacity .15s ease;
+  }
+  .btn-primary{ background:var(--amber); color:var(--ink); }
+  .btn-primary:hover{ transform:translateY(-1px); box-shadow:0 8px 18px rgba(226,166,61,0.28); }
+  .btn-ghost{ background:transparent; color:var(--parchment); border:1px solid rgba(245,241,231,0.28); }
+  .btn-ghost:hover{ border-color:rgba(245,241,231,0.6); }
+  .btn-text{ background:transparent; color:var(--ink); padding:10px 14px; }
+  .btn-text:hover{ background:rgba(28,35,51,0.06); }
+  .btn:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, button:focus-visible{
+    outline:2px solid var(--teal); outline-offset:2px;
+  }
+
+  /* ---------- Coquille ----------
+     La forme du chrome (nav du haut ou menu latéral, et laquelle des 4
+     identités visuelles) est entièrement pilotée par chrome.css via
+     [data-style] sur <html> — voir ce fichier pour Atelier/Nocturne/Clair/
+     Repère. Cet écran contient les DEUX chromes possibles ; chrome.css
+     n'affiche que celui qui correspond au style choisi dans Paramètres. */
+  .app-header{
+    background:var(--ink); color:var(--parchment);
+    padding:16px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px;
+  }
+  .app-header-left{ display:flex; align-items:center; gap:28px; }
+  .app-nav{ display:none; gap:20px; font-size:14px; font-weight:500; overflow-x:auto; }
+  @media(min-width:640px){ .app-nav{ display:flex; } }
+  .app-nav a{ color:rgba(245,241,231,0.6); padding:6px 0; border-bottom:2px solid transparent; white-space:nowrap; text-decoration:none; }
+  .app-nav a:hover{ color:var(--parchment); }
+  .app-nav a.active{ color:var(--parchment); border-bottom-color:var(--amber); }
+  .app-header-right{ display:flex; align-items:center; gap:16px; }
+  .user-name{ font-size:13px; color:rgba(245,241,231,0.55); display:none; }
+  @media(min-width:640px){ .user-name{ display:block; } }
+  .btn-icon{ width:38px; height:38px; padding:0; min-height:0; flex-shrink:0; }
+  .btn-icon svg{ width:17px; height:17px; }
+
+  .app-content{ flex:1; min-width:0; padding:28px 24px 60px; }
+  .content-topbar{
+    display:flex; align-items:flex-start; justify-content:space-between; gap:16px;
+    margin-bottom:22px; flex-wrap:wrap;
+  }
+  .content-title{ font-family:var(--display); font-weight:700; font-size:26px; margin-bottom:5px; }
+  .content-topbar p{ font-size:13.5px; color:rgba(28,35,51,0.6); }
+  .content-actions{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .search-input{
+    font-family:inherit; font-size:13.5px; border:1px solid rgba(28,35,51,0.18); background:#fff;
+    border-radius:8px; padding:10px 13px; width:210px; max-width:100%; color:var(--ink); min-height:40px;
+  }
+  .search-input:focus{ outline:none; border-color:var(--teal); box-shadow:0 0 0 3px rgba(62,124,116,0.15); }
+  .search-input::placeholder{ color:var(--slate); }
+
+  /* ---------- Cartes indicateurs ---------- */
+  .stats-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:22px; }
+  .stat-card{ background:#fff; border:1px solid rgba(28,35,51,0.09); border-radius:11px; padding:15px 17px; }
+  .stat-card b{ font-family:var(--display); font-size:24px; display:block; margin-bottom:2px; }
+  .stat-card span{ font-size:11.5px; color:var(--slate); }
+  @media(max-width:560px){ .stats-row{ grid-template-columns:1fr 1fr; } }
+  @media(max-width:380px){ .stats-row{ grid-template-columns:1fr; } }
+
+  /* ---------- Table clients ---------- */
+  .table-card{ background:#fff; border:1px solid rgba(28,35,51,0.09); border-radius:12px; overflow:hidden; overflow-x:auto; }
+  .clients-table{ width:100%; border-collapse:collapse; font-size:13.5px; min-width:660px; }
+  .clients-table th{
+    text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em;
+    color:var(--slate); padding:12px 16px; border-bottom:1px solid rgba(28,35,51,0.09);
+  }
+  .clients-table td{ padding:13px 16px; border-bottom:1px solid rgba(28,35,51,0.05); vertical-align:middle; }
+  .clients-table tbody tr{ cursor:pointer; }
+  .clients-table tbody tr:hover{ background:rgba(28,35,51,0.025); }
+  .clients-table tbody tr:last-child td{ border-bottom:none; }
+  .row-nom{ display:flex; align-items:center; gap:10px; font-weight:600; }
+  .row-avatar{
+    width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:10.5px; font-weight:700; color:#fff; flex-shrink:0;
+  }
+  .row-mono{ font-family:var(--mono); font-size:12.5px; color:#4a4f5c; }
+  .row-pill{ font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:20px; letter-spacing:.02em; display:inline-block; white-space:nowrap; }
+  .row-pill.venir{ background:rgba(62,124,116,0.14); color:var(--teal); }
+  .row-pill.aucun{ background:rgba(139,143,152,0.14); color:var(--slate); }
+  .row-actions{ display:flex; gap:2px; justify-content:flex-end; }
+  .icon-btn{
+    width:36px; height:36px; border-radius:7px; border:none; background:transparent;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--slate);
+  }
+  .icon-btn:hover{ background:rgba(28,35,51,0.06); color:var(--ink); }
+  .icon-btn.danger:hover{ background:rgba(181,83,63,0.1); color:var(--brick); }
+
+  /* ---------- Empty / loading ---------- */
+  .empty-state{
+    text-align:center; padding:72px 20px; background:#fff;
+    border:1px dashed rgba(28,35,51,0.18); border-radius:14px;
+  }
+  .empty-state .icon{
+    width:52px; height:52px; border-radius:50%; background:var(--parchment-dim);
+    display:flex; align-items:center; justify-content:center; margin:0 auto 20px;
+  }
+  .empty-state .icon svg{ stroke:var(--slate); }
+  .empty-state h2{ font-family:var(--display); font-size:20px; margin-bottom:8px; }
+  .empty-state p{ font-size:14px; color:rgba(28,35,51,0.55); margin-bottom:24px; }
+
+  .loading-state{ text-align:center; padding:72px 20px; color:rgba(28,35,51,0.5); font-size:14px; }
+
+  /* ---------- Modal ---------- */
+  .modal-overlay{
+    display:none; position:fixed; inset:0; background:rgba(28,35,51,0.5);
+    align-items:center; justify-content:center; padding:20px; z-index:100;
+  }
+  .modal-overlay.show{ display:flex; }
+  .modal{
+    background:var(--parchment); border-radius:14px; padding:32px; width:100%; max-width:460px;
+    max-height:90vh; overflow-y:auto;
+  }
+  .modal h2{ font-family:var(--display); font-size:22px; font-weight:700; margin-bottom:22px; }
+
+  form{ display:flex; flex-direction:column; gap:18px; }
+  .field label{ display:flex; font-size:13.5px; font-weight:600; margin-bottom:7px; gap:4px; }
+  .field .req{ color:var(--brick); }
+  .field input, .field textarea{
+    width:100%; padding:12px 14px; font-size:15px; font-family:var(--body);
+    background:#fff; border:1px solid rgba(28,35,51,0.2); border-radius:7px; color:var(--ink);
+  }
+  .field input{ min-height:46px; }
+  .field textarea{ min-height:90px; resize:vertical; }
+  .field input:focus, .field textarea:focus{
+    outline:none; border-color:var(--teal); box-shadow:0 0 0 3px rgba(62,124,116,0.15);
+  }
+  .field input[aria-invalid="true"]{ border-color:var(--brick); }
+  .error{
+    font-size:12.5px; color:var(--brick); margin-top:6px; display:none; align-items:flex-start; gap:6px;
+  }
+  .error.show{ display:flex; }
+  .error svg{ flex-shrink:0; margin-top:1px; stroke:var(--brick); }
+
+  .modal-actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:6px; }
+  .modal-actions .btn-primary{ background:var(--amber); color:var(--ink); }
+  .modal-actions .btn-secondary{ background:var(--parchment-dim); color:var(--ink); }
+  .modal-actions .btn-secondary:hover{ background:#e2dbc7; }
+
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--ink); color:var(--parchment); padding:14px 22px; border-radius:8px;
+    font-size:14px; opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease;
+    z-index:200; display:flex; align-items:center; gap:10px;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  .toast svg{ stroke:var(--teal); flex-shrink:0; }
+</style>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#1C2333">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mirrio">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<script src="/pwa.js" defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-header-left">
+    <span class="logo">Mirrio<span class="dot">.</span></span>
+    <nav class="app-nav">
+      <a href="dashboard.html">Tableau de bord</a>
+      <a href="clients.html">Clients</a>
+      <a href="agenda.html">Agenda</a>
+      <a href="devis-factures.html">Comptabilité</a>
+      <a href="parametres.html">Paramètres</a>
+    </nav>
+  </div>
+  <div class="app-header-right">
+    <span class="user-name" id="user-name"></span>
+    <button class="btn btn-ghost btn-icon" id="logout-btn" type="button" aria-label="Se déconnecter" title="Se déconnecter">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </button>
+  </div>
+</header>
+
+<div class="app-shell">
+  <aside class="app-sidebar">
+    <div class="logo">Mirrio<span class="dot">.</span></div>
+    <div class="logo-badge" aria-hidden="true"></div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg><span class="nav-label">Tableau de bord</span></a>
+      <a href="clients.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path></svg><span class="nav-label">Clients</span></a>
+      <a href="agenda.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg><span class="nav-label">Agenda</span></a>
+      <a href="devis-factures.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg><span class="nav-label">Comptabilité</span></a>
+      <a href="parametres.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg><span class="nav-label">Paramètres</span></a>
+    </nav>
+    <div class="sidebar-spacer"></div>
+    <div class="sidebar-user">
+      <span class="sidebar-avatar" id="sidebar-avatar">–</span>
+      <div class="sidebar-user-text">
+        <div class="name" id="sidebar-name">…</div>
+        <div class="email" id="sidebar-email"></div>
+      </div>
+      <button class="icon-btn" id="sidebar-logout-btn" type="button" aria-label="Se déconnecter" title="Se déconnecter">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </aside>
+
+
+<style>
+  .onglets{ display:flex; gap:6px; margin:0 0 20px; border-bottom:1px solid rgba(28,35,51,.1); overflow-x:auto; }
+  .onglets button{ background:none; border:0; padding:12px 16px; font:600 14.5px var(--body); color:var(--slate); cursor:pointer; border-bottom:3px solid transparent; min-height:44px; white-space:nowrap; }
+  .onglets button[aria-selected="true"]{ color:var(--ink); border-bottom-color:var(--amber); }
+  .compte{ display:inline-block; min-width:20px; padding:0 6px; border-radius:99px; background:var(--amber); color:#101216; font-size:12px; text-align:center; }
+  .compte:empty{ display:none; }
+  .filtres{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+  .filtre{ border:1.5px solid rgba(28,35,51,.14); background:#fff; border-radius:99px; padding:8px 16px; font:500 14px var(--body); cursor:pointer; min-height:44px; }
+  .filtre[aria-pressed="true"]{ border-color:var(--amber); background:rgba(226,166,61,.14); }
+  .commande{ display:grid; grid-template-columns:64px 1fr auto; gap:16px; align-items:center; width:100%; text-align:left; background:#fff; border:1px solid rgba(28,35,51,.09); border-radius:16px; padding:14px 18px; margin-bottom:10px; cursor:pointer; font:inherit; color:inherit; }
+  .commande:hover{ border-color:var(--amber); }
+  .commande .date{ display:flex; flex-direction:column; align-items:center; background:var(--parchment-dim); border-radius:12px; padding:8px 0; font-size:12px; text-transform:uppercase; }
+  .commande .date b{ font-family:var(--display); font-size:24px; line-height:1; }
+  .sous{ font-size:13px; color:var(--slate); }
+  .allergie{ display:block; margin-top:4px; font-size:12.5px; font-weight:600; color:var(--brick); }
+  .droite{ display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
+  .prix{ font-weight:700; } .prix small{ font-weight:400; color:var(--slate); }
+  .statut{ font-size:11.5px; font-weight:700; padding:3px 10px; border-radius:99px; white-space:nowrap; }
+  .s-nouvelle{ background:rgba(226,166,61,.2); color:#8A6431; } .s-confirmee{ background:rgba(62,124,116,.14); color:var(--teal); }
+  .s-prete{ background:rgba(62,124,116,.24); color:var(--teal); } .s-retiree{ background:rgba(139,143,152,.16); color:var(--slate); } .s-annulee{ background:rgba(181,83,63,.12); color:var(--brick); }
+  @media(max-width:560px){ .commande{ grid-template-columns:52px 1fr; } .droite{ grid-column:1 / -1; flex-direction:row; justify-content:space-between; align-items:center; } }
+  .barre-actions{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+  .produit{ display:flex; justify-content:space-between; gap:14px; align-items:center; background:#fff; border:1px solid rgba(28,35,51,.09); border-radius:16px; padding:14px 18px; margin-bottom:10px; flex-wrap:wrap; }
+  .produit.inactif{ opacity:.65; } .produit .actions{ display:flex; gap:8px; }
+  .carte-form{ background:#fff; border:1px solid rgba(28,35,51,.09); border-radius:16px; padding:24px; max-width:760px; }
+  .grille-champs{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-bottom:16px; }
+  .interrupteur{ display:flex; align-items:center; gap:10px; font-weight:600; margin-bottom:6px; }
+  .interrupteur input{ width:20px; height:20px; }
+  .hint{ font-size:13px; color:var(--slate); margin:6px 0 18px; }
+  fieldset.field{ border:0; margin-bottom:16px; } fieldset legend{ font-size:13.5px; font-weight:600; margin-bottom:8px; }
+  .jours{ display:flex; flex-wrap:wrap; gap:8px; } .jour{ display:inline-flex !important; align-items:center; gap:6px; padding:8px 14px; border:1.5px solid rgba(28,35,51,.14); border-radius:99px; margin:0 !important; font-weight:500 !important; cursor:pointer; min-height:44px; }
+  .field select{ width:100%; min-height:46px; padding:10px 14px; font-size:15px; font-family:var(--body); background:#fff; border:1px solid rgba(28,35,51,.2); border-radius:7px; }
+  .detail{ display:grid; grid-template-columns:auto 1fr; gap:8px 16px; font-size:14px; margin-bottom:20px; } .detail dt{ color:var(--slate); }
+  [hidden]{ display:none !important; }
+</style>
+  <main class="app-content">
+    <div class="content-topbar">
+      <div>
+        <h1 class="content-title">Commandes de gâteaux</h1>
+        <p id="page-sub">Mariages, anniversaires, départs en retraite : vos clients commandent en ligne, vous confirmez.</p>
+      </div>
+      <div class="content-actions">
+        <button class="btn btn-secondary" id="copier-lien" type="button">Copier le lien de commande</button>
+        <a class="btn btn-primary" id="voir-page" href="#" target="_blank" rel="noopener">Voir la page</a>
+      </div>
+    </div>
+
+    <div id="loading-state" class="loading-state">Chargement…</div>
+    <div id="contenu" style="display:none;">
+      <div class="onglets" role="tablist" aria-label="Sections">
+        <button role="tab" id="t-commandes" aria-selected="true" aria-controls="p-commandes" data-p="commandes">Commandes <span class="compte" id="compte-nouvelles"></span></button>
+        <button role="tab" id="t-catalogue" aria-selected="false" aria-controls="p-catalogue" data-p="catalogue" tabindex="-1">Catalogue</button>
+        <button role="tab" id="t-reglages" aria-selected="false" aria-controls="p-reglages" data-p="reglages" tabindex="-1">Réglages</button>
+      </div>
+
+      <section id="p-commandes" role="tabpanel" aria-labelledby="t-commandes">
+        <div class="filtres" id="filtres" role="group" aria-label="Filtrer par statut"></div>
+        <div id="liste-commandes"></div>
+      </section>
+
+      <section id="p-catalogue" role="tabpanel" aria-labelledby="t-catalogue" hidden>
+        <div class="barre-actions">
+          <button class="btn btn-primary" id="ajout-produit" type="button">Ajouter un gâteau</button>
+          <button class="btn btn-secondary" id="import-types" type="button">Importer des gâteaux types</button>
+        </div>
+        <div id="liste-produits"></div>
+      </section>
+
+      <section id="p-reglages" role="tabpanel" aria-labelledby="t-reglages" hidden>
+        <form id="form-reglages" class="carte-form" novalidate>
+          <label class="interrupteur"><input type="checkbox" id="g-activee"> Ouvrir les commandes en ligne</label>
+          <p class="hint" id="aide-slug"></p>
+          <div class="grille-champs">
+            <div class="field"><label for="g-delai">Délai minimum (jours)</label><input type="number" id="g-delai" min="0" max="60"></div>
+            <div class="field"><label for="g-max">Commandes maximum par jour</label><input type="number" id="g-max" min="1" max="100"></div>
+            <div class="field"><label for="g-horizon">Prise de commande jusqu’à (jours)</label><input type="number" id="g-horizon" min="7" max="365"></div>
+            <div class="field"><label for="g-acompte">Acompte demandé (%)</label><input type="number" id="g-acompte" min="0" max="100"></div>
+            <div class="field"><label for="g-debut">Retrait à partir de</label><input type="time" id="g-debut"></div>
+            <div class="field"><label for="g-fin">Retrait jusqu’à</label><input type="time" id="g-fin"></div>
+          </div>
+          <fieldset class="field"><legend>Jours de fermeture</legend><div class="jours" id="g-jours"></div></fieldset>
+          <div class="field"><label for="g-adresse">Adresse de retrait</label><input type="text" id="g-adresse" maxlength="200"></div>
+          <div class="field"><label for="g-message">Message d’accueil</label><textarea id="g-message" maxlength="400" placeholder="Tout est fait maison, sur commande…"></textarea></div>
+          <div class="modal-actions"><button class="btn btn-primary" type="submit">Enregistrer</button></div>
+        </form>
+      </section>
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="modal-commande" role="dialog" aria-modal="true" aria-labelledby="mc-titre">
+  <div class="modal">
+    <h2 id="mc-titre">Commande</h2>
+    <div id="mc-detail"></div>
+    <form id="form-commande" novalidate>
+      <div class="grille-champs">
+        <div class="field"><label for="mc-statut">Statut</label><select id="mc-statut"></select></div>
+        <div class="field"><label for="mc-prix">Prix final (€)</label><input type="number" id="mc-prix" min="0" step="0.01"></div>
+      </div>
+      <div class="field"><label for="mc-note">Note interne</label><textarea id="mc-note" maxlength="600"></textarea></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-fermer>Fermer</button>
+        <button type="submit" class="btn btn-primary">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-produit" role="dialog" aria-modal="true" aria-labelledby="mp-titre">
+  <div class="modal">
+    <h2 id="mp-titre">Gâteau</h2>
+    <form id="form-produit" novalidate>
+      <input type="hidden" id="mp-id">
+      <div class="field"><label for="mp-nom">Nom <span class="req">*</span></label><input type="text" id="mp-nom" maxlength="80"></div>
+      <div class="field"><label for="mp-cat">Catégorie</label><input type="text" id="mp-cat" maxlength="40" list="cats" placeholder="Entremets, Gâteaux de fête…"><datalist id="cats"><option>Entremets</option><option>Gâteaux de fête</option><option>Pièces montées</option><option>Tartes</option><option>Petits fours</option></datalist></div>
+      <div class="field"><label for="mp-desc">Description</label><textarea id="mp-desc" maxlength="300"></textarea></div>
+      <div class="grille-champs">
+        <div class="field"><label for="mp-prix">Prix de la part (€) <span class="req">*</span></label><input type="number" id="mp-prix" min="0" step="0.05"></div>
+        <div class="field"><label for="mp-min">Parts minimum</label><input type="number" id="mp-min" min="1" value="6"></div>
+        <div class="field"><label for="mp-max">Parts maximum</label><input type="number" id="mp-max" min="1" value="30"></div>
+      </div>
+      <div class="field"><label for="mp-photo">Photo (lien https)</label><input type="url" id="mp-photo" placeholder="https://…"></div>
+      <label class="interrupteur"><input type="checkbox" id="mp-actif" checked> Proposé à la commande</label>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-fermer>Annuler</button>
+        <button type="submit" class="btn btn-primary">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+  <span id="toast-text"></span>
+</div>
+
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+  import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
+  import { initTheme, viderCacheBrand, idEspaceActif, formaterNomAffichage, prenomConnecte } from './theme.js';
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const $ = (s, r) => (r || document).querySelector(s);
+  const echapper = s => { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; };
+  const euros = n => new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR' }).format(n);
+  const OCCASIONS = { mariage:'Mariage', anniversaire:'Anniversaire', retraite:'Départ en retraite', communion:'Communion', bapteme:'Baptême', naissance:'Naissance', fiancailles:'Fiançailles', entreprise:'Événement d’entreprise', autre:'Autre occasion' };
+  const STATUTS = { nouvelle:'Nouvelle demande', confirmee:'Confirmée', prete:'Prête', retiree:'Retirée', annulee:'Annulée' };
+  const JOURS = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+  const TYPES = [
+    ['Entremets','Fraisier',5.2,6,30], ['Entremets','Entremets chocolat noisette',5.6,6,30], ['Entremets','Framboisier',5.4,6,30],
+    ['Gâteaux de fête','Layer cake personnalisé',5.9,8,40], ['Gâteaux de fête','Gâteau d’anniversaire enfant',4.8,8,30], ['Gâteaux de fête','Wedding cake',6.5,25,100],
+    ['Pièces montées','Pièce montée de choux',4.2,20,120], ['Tartes','Tarte aux fruits de saison',4.0,6,16], ['Petits fours','Plateau de petits fours sucrés',3.4,10,80]
+  ];
+
+  let espaceId = null, slug = null, commandes = [], produits = [], reglages = null, filtre = 'a_traiter', courante = null;
+  const toast = $('#toast');
+  function showToast(m){ $('#toast-text').textContent = m; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 3200); }
+  function initiales(n){ const m = (n || '').trim().split(/\s+/).filter(Boolean); return !m.length ? '?' : (m.length === 1 ? m[0].slice(0,2) : m[0][0] + m[m.length-1][0]).toUpperCase(); }
+  const dateLongue = iso => new Intl.DateTimeFormat('fr-FR', { weekday:'long', day:'numeric', month:'long' }).format(new Date(iso + 'T12:00:00'));
+  const lienPublic = () => `${location.origin}/commander.html?p=${slug}`;
+
+  // ---- onglets
+  document.querySelectorAll('[role=tab]').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('[role=tab]').forEach(x => { const on = x === t; x.setAttribute('aria-selected', on); x.tabIndex = on ? 0 : -1; $('#p-' + x.dataset.p).hidden = !on; });
+  }));
+
+  // ---- commandes
+  const GROUPES = {
+    a_traiter: ['Nouvelles', c => c.statut === 'nouvelle'],
+    a_venir: ['À préparer', c => ['confirmee','prete'].includes(c.statut)],
+    retirees: ['Retirées', c => c.statut === 'retiree'],
+    annulees: ['Annulées', c => c.statut === 'annulee'],
+    toutes: ['Toutes', () => true]
+  };
+  function rendreFiltres(){
+    $('#filtres').innerHTML = Object.entries(GROUPES).map(([k, [nom, f]]) =>
+      `<button type="button" class="filtre" data-f="${k}" aria-pressed="${k === filtre}">${nom} <b>${commandes.filter(f).length}</b></button>`).join('');
+    $('#filtres').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { filtre = b.dataset.f; rendreFiltres(); rendreCommandes(); }));
+    const n = commandes.filter(GROUPES.a_traiter[1]).length;
+    $('#compte-nouvelles').textContent = n ? n : '';
+  }
+  function rendreCommandes(){
+    const liste = commandes.filter(GROUPES[filtre][1]);
+    if(!liste.length){ $('#liste-commandes').innerHTML = `<div class="empty-state"><h2>Rien ici pour l’instant</h2><p>${slug ? 'Partagez votre lien de commande sur votre page, vos réseaux ou en boutique.' : 'Définissez d’abord l’adresse de votre page dans Paramètres → Réservation.'}</p></div>`; return; }
+    $('#liste-commandes').innerHTML = liste.map(c => {
+      const prix = c.prix_final != null ? euros(c.prix_final) : euros(c.prix_estime) + ' <small>(estimé)</small>';
+      return `<button type="button" class="commande" data-id="${c.id}">
+        <span class="date"><b>${new Date(c.date_retrait + 'T12:00:00').getDate()}</b>${new Intl.DateTimeFormat('fr-FR', { month:'short' }).format(new Date(c.date_retrait + 'T12:00:00'))}</span>
+        <span class="infos"><strong>${echapper(c.produit_nom)}</strong> · ${c.parts} parts<br>
+          <span class="sous">${echapper(OCCASIONS[c.occasion])} · ${echapper(c.client_nom)}${c.heure_retrait ? ' · ' + String(c.heure_retrait).slice(0,5).replace(':','h') : ''}</span>
+          ${c.allergies ? `<span class="allergie">Allergies : ${echapper(c.allergies)}</span>` : ''}</span>
+        <span class="droite"><span class="prix">${prix}</span><span class="statut s-${c.statut}">${STATUTS[c.statut]}</span></span></button>`;
+    }).join('');
+    $('#liste-commandes').querySelectorAll('.commande').forEach(b => b.addEventListener('click', () => ouvrirCommande(b.dataset.id)));
+  }
+  async function chargerCommandes(){
+    const { data } = await supabase.from('gateaux_commandes').select('*').order('date_retrait');
+    commandes = data || [];
+    rendreFiltres(); rendreCommandes();
+  }
+  function ouvrirCommande(id){
+    const c = commandes.find(x => x.id === id); if(!c) return; courante = c;
+    $('#mc-titre').textContent = `${c.produit_nom} · réf. ${c.reference}`;
+    $('#mc-detail').innerHTML = `<dl class="detail">
+      <dt>Retrait</dt><dd>${echapper(dateLongue(c.date_retrait))}${c.heure_retrait ? ' à ' + String(c.heure_retrait).slice(0,5).replace(':','h') : ''}</dd>
+      <dt>Occasion</dt><dd>${echapper(OCCASIONS[c.occasion])}, ${c.parts} parts</dd>
+      <dt>Client</dt><dd>${echapper(c.client_nom)}<br><a href="mailto:${echapper(c.client_email)}">${echapper(c.client_email)}</a>${c.client_telephone ? `<br><a href="tel:${echapper(c.client_telephone)}">${echapper(c.client_telephone)}</a>` : ''}</dd>
+      ${c.message_gateau ? `<dt>Message</dt><dd>« ${echapper(c.message_gateau)} »</dd>` : ''}
+      ${c.personnalisation ? `<dt>Précisions</dt><dd>${echapper(c.personnalisation)}</dd>` : ''}
+      ${c.allergies ? `<dt>Allergies</dt><dd><strong>${echapper(c.allergies)}</strong></dd>` : ''}
+      <dt>Estimation</dt><dd>${euros(c.prix_estime)}${c.acompte_pourcentage ? ` · acompte ${c.acompte_pourcentage} % = ${euros((c.prix_final ?? c.prix_estime) * c.acompte_pourcentage / 100)}` : ''}</dd></dl>`;
+    $('#mc-statut').innerHTML = Object.entries(STATUTS).map(([k, n]) => `<option value="${k}"${k === c.statut ? ' selected' : ''}>${n}</option>`).join('');
+    $('#mc-prix').value = c.prix_final ?? ''; $('#mc-note').value = c.note_patissier || '';
+    $('#modal-commande').classList.add('show'); $('#mc-statut').focus();
+  }
+  $('#form-commande').addEventListener('submit', async e => {
+    e.preventDefault();
+    const prix = $('#mc-prix').value === '' ? null : Number($('#mc-prix').value);
+    const { error } = await supabase.from('gateaux_commandes').update({ statut: $('#mc-statut').value, prix_final: prix, note_patissier: $('#mc-note').value.trim() || null }).eq('id', courante.id);
+    if(error){ showToast('L’enregistrement a échoué.'); return; }
+    fermer(); showToast('Commande mise à jour.'); chargerCommandes();
+  });
+
+  // ---- catalogue
+  function rendreProduits(){
+    if(!produits.length){ $('#liste-produits').innerHTML = '<div class="empty-state"><h2>Aucun gâteau pour l’instant</h2><p>Ajoutez vos créations ou importez une base de gâteaux types, à ajuster ensuite.</p></div>'; return; }
+    $('#liste-produits').innerHTML = produits.map(p => `<div class="produit${p.actif ? '' : ' inactif'}">
+      <div><strong>${echapper(p.nom)}</strong> ${p.actif ? '' : '<span class="statut s-annulee">Masqué</span>'}<br><span class="sous">${echapper(p.categorie || 'Sans catégorie')} · ${euros(p.prix_part)} la part · ${p.parts_min} à ${p.parts_max} parts</span></div>
+      <div class="actions"><button type="button" class="btn btn-secondary" data-edit="${p.id}">Modifier</button><button type="button" class="btn btn-secondary" data-suppr="${p.id}">Supprimer</button></div></div>`).join('');
+    $('#liste-produits').querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => ouvrirProduit(b.dataset.edit)));
+    $('#liste-produits').querySelectorAll('[data-suppr]').forEach(b => b.addEventListener('click', async () => {
+      const p = produits.find(x => x.id === b.dataset.suppr);
+      if(!window.confirm(`Supprimer « ${p.nom} » ? Les commandes déjà reçues restent visibles.`)) return;
+      const { error } = await supabase.from('gateaux_produits').delete().eq('id', p.id);
+      if(error){ showToast('La suppression a échoué.'); return; }
+      showToast('Gâteau supprimé.'); chargerProduits();
+    }));
+  }
+  async function chargerProduits(){ const { data } = await supabase.from('gateaux_produits').select('*').order('position'); produits = data || []; rendreProduits(); }
+  function ouvrirProduit(id){
+    const p = produits.find(x => x.id === id) || {};
+    $('#mp-titre').textContent = id ? 'Modifier le gâteau' : 'Ajouter un gâteau';
+    $('#mp-id').value = id || ''; $('#mp-nom').value = p.nom || ''; $('#mp-cat').value = p.categorie || ''; $('#mp-desc').value = p.description || '';
+    $('#mp-prix').value = p.prix_part ?? ''; $('#mp-min').value = p.parts_min ?? 6; $('#mp-max').value = p.parts_max ?? 30; $('#mp-photo').value = p.photo_url || '';
+    $('#mp-actif').checked = id ? p.actif : true;
+    $('#modal-produit').classList.add('show'); $('#mp-nom').focus();
+  }
+  $('#ajout-produit').addEventListener('click', () => ouvrirProduit(null));
+  $('#form-produit').addEventListener('submit', async e => {
+    e.preventDefault();
+    const nom = $('#mp-nom').value.trim(), prix = Number($('#mp-prix').value), min = Math.max(1, Math.floor(Number($('#mp-min').value) || 1)), max = Math.floor(Number($('#mp-max').value) || 0);
+    if(nom.length < 2 || $('#mp-prix').value === '' || !(prix >= 0)){ showToast('Indiquez un nom et un prix par part.'); return; }
+    if(max < min){ showToast('Le nombre maximum de parts doit dépasser le minimum.'); return; }
+    const photo = $('#mp-photo').value.trim();
+    if(photo && !/^https:\/\//.test(photo)){ showToast('Le lien de la photo doit commencer par https://'); return; }
+    const ligne = { nom, categorie: $('#mp-cat').value.trim() || null, description: $('#mp-desc').value.trim() || null, prix_part: prix, parts_min: min, parts_max: max, photo_url: photo || null, actif: $('#mp-actif').checked };
+    const id = $('#mp-id').value;
+    const { error } = id ? await supabase.from('gateaux_produits').update(ligne).eq('id', id)
+      : await supabase.from('gateaux_produits').insert({ ...ligne, owner_id: espaceId, position: produits.length });
+    if(error){ showToast('L’enregistrement a échoué.'); return; }
+    fermer(); showToast(id ? 'Gâteau mis à jour.' : 'Gâteau ajouté.'); chargerProduits();
+  });
+  $('#import-types').addEventListener('click', async () => {
+    const existants = new Set(produits.map(p => p.nom.toLowerCase()));
+    const ajout = TYPES.filter(t => !existants.has(t[1].toLowerCase()));
+    if(!ajout.length){ showToast('Tous ces gâteaux existent déjà.'); return; }
+    if(!window.confirm(`Ajouter ${ajout.length} gâteaux types ? Prix indicatifs à ajuster.`)) return;
+    const { error } = await supabase.from('gateaux_produits').insert(ajout.map((t, i) => ({ owner_id: espaceId, categorie: t[0], nom: t[1], prix_part: t[2], parts_min: t[3], parts_max: t[4], position: produits.length + i })));
+    if(error){ showToast('L’import a échoué.'); return; }
+    showToast(`${ajout.length} gâteaux ajoutés.`); chargerProduits();
+  });
+
+  // ---- réglages
+  const DEFAUT = { activee:false, delai_min_jours:3, horizon_jours:120, commandes_max_par_jour:5, jours_fermes:[1], heure_retrait_debut:'08:00', heure_retrait_fin:'18:00', acompte_pourcentage:30, adresse_retrait:'', message_accueil:'' };
+  function remplirReglages(){
+    const r = reglages;
+    $('#g-activee').checked = r.activee; $('#g-delai').value = r.delai_min_jours; $('#g-max').value = r.commandes_max_par_jour; $('#g-horizon').value = r.horizon_jours;
+    $('#g-acompte').value = r.acompte_pourcentage; $('#g-debut').value = String(r.heure_retrait_debut).slice(0,5); $('#g-fin').value = String(r.heure_retrait_fin).slice(0,5);
+    $('#g-adresse').value = r.adresse_retrait || ''; $('#g-message').value = r.message_accueil || '';
+    $('#g-jours').innerHTML = [1,2,3,4,5,6,0].map(j => `<label class="jour"><input type="checkbox" value="${j}"${(r.jours_fermes || []).includes(j) ? ' checked' : ''}> ${JOURS[j]}</label>`).join('');
+    $('#aide-slug').innerHTML = slug ? `Lien à partager : <a href="${lienPublic()}" target="_blank" rel="noopener">${lienPublic()}</a>`
+      : 'Votre page n’a pas encore d’adresse : choisissez-en une dans <a href="parametres.html?tab=reservation">Paramètres → Réservation</a> (le champ « adresse de votre page »), puis revenez ici.';
+    $('#voir-page').style.display = $('#copier-lien').style.display = slug ? '' : 'none';
+    if(slug) $('#voir-page').href = lienPublic();
+  }
+  $('#form-reglages').addEventListener('submit', async e => {
+    e.preventDefault();
+    const n = (id, min, max) => Math.min(max, Math.max(min, Math.floor(Number($(id).value) || min)));
+    if($('#g-activee').checked && !slug){ showToast('Choisissez d’abord l’adresse de votre page (Paramètres → Réservation).'); return; }
+    if($('#g-debut').value >= $('#g-fin').value){ showToast('L’heure de fin de retrait doit suivre l’heure de début.'); return; }
+    const ligne = { owner_id: espaceId, activee: $('#g-activee').checked, delai_min_jours: n('#g-delai', 0, 60), horizon_jours: n('#g-horizon', 7, 365),
+      commandes_max_par_jour: n('#g-max', 1, 100), acompte_pourcentage: n('#g-acompte', 0, 100), heure_retrait_debut: $('#g-debut').value, heure_retrait_fin: $('#g-fin').value,
+      jours_fermes: [...document.querySelectorAll('#g-jours input:checked')].map(i => Number(i.value)), adresse_retrait: $('#g-adresse').value.trim() || null,
+      message_accueil: $('#g-message').value.trim() || null, updated_at: new Date().toISOString() };
+    const { error } = await supabase.from('parametres_gateaux').upsert(ligne);
+    if(error){ showToast('L’enregistrement a échoué.'); return; }
+    reglages = ligne; showToast(ligne.activee && !produits.some(p => p.actif) ? 'Enregistré. Ajoutez au moins un gâteau pour ouvrir la page.' : 'Réglages enregistrés.');
+  });
+  $('#copier-lien').addEventListener('click', async () => {
+    try{ await navigator.clipboard.writeText(lienPublic()); showToast('Lien copié.'); }catch(e){ showToast('Copie impossible, sélectionnez le lien dans Réglages.'); }
+  });
+
+  // ---- modales, session
+  function fermer(){ document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('show')); }
+  document.querySelectorAll('[data-fermer]').forEach(b => b.addEventListener('click', fermer));
+  document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if(e.target === m) fermer(); }));
+  document.addEventListener('keydown', e => { if(e.key === 'Escape') fermer(); });
+
+  async function seDeconnecter(){ viderCacheBrand(); await supabase.auth.signOut(); location.href = 'login.html'; }
+  $('#logout-btn').addEventListener('click', seDeconnecter);
+  $('#sidebar-logout-btn').addEventListener('click', seDeconnecter);
+
+  (async function init(){
+    const { data } = await supabase.auth.getSession();
+    if(!data.session){ location.href = 'login.html'; return; }
+    const session = data.session;
+    $('#sidebar-email').textContent = session.user.email;
+    $('#user-name').textContent = await prenomConnecte(supabase, session);
+    const brand = await initTheme(supabase, 'commandes');
+    const nom = brand.business_name && brand.business_name !== 'Mirrio' ? brand.business_name : (brand.full_name ? formaterNomAffichage(brand.full_name) : session.user.email);
+    $('#sidebar-name').textContent = nom; $('#sidebar-avatar').textContent = initiales(nom);
+    espaceId = await idEspaceActif(supabase);
+    const [{ data: rr }, { data: rg, error: errG }] = await Promise.all([
+      supabase.from('parametres_reservation').select('slug').maybeSingle(),
+      supabase.from('parametres_gateaux').select('*').maybeSingle()
+    ]);
+    if(errG){ $('#loading-state').textContent = 'La migration schema-v27 n’a pas encore été exécutée : les commandes de gâteaux ne sont pas disponibles.'; return; }
+    slug = rr?.slug || null; reglages = { ...DEFAUT, ...(rg || {}) };
+    await Promise.all([chargerCommandes(), chargerProduits()]);
+    remplirReglages();
+    $('#loading-state').style.display = 'none'; $('#contenu').style.display = 'block';
+  })();
+</script>
+
+</body>
+</html>

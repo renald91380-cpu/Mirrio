@@ -182,7 +182,7 @@
       <button type="button" data-min="60" data-max="100" aria-pressed="false">60 à 100 €</button>
       <button type="button" data-min="100" data-max="" aria-pressed="false">Plus de 100 €</button>
     </div>
-    <div class="puces"><button type="button" id="promo-btn" aria-pressed="false"><i class="ph ph-tag" aria-hidden="true"></i>Prix réduits (heures creuses)</button></div>
+    <div class="puces"><button type="button" id="promo-btn" aria-pressed="false"><i class="ph ph-tag" aria-hidden="true"></i>Prix réduits (heures creuses)</button><button type="button" id="afro-btn" aria-pressed="false"><i class="ph ph-sparkle" aria-hidden="true"></i>Coiffure afro</button></div>
     <div class="champs"><label for="bmin">De</label><input type="number" id="bmin" min="0" step="5" inputmode="numeric" placeholder="0"><label for="bmax">à</label><input type="number" id="bmax" min="0" step="5" inputmode="numeric" placeholder="∞"><span class="eur">€</span></div>
   </div>
 </section>
@@ -271,7 +271,8 @@
     const p = new URLSearchParams();
     const vals = { q:document.getElementById('q').value.trim(), ville:document.getElementById('ville').value.trim(), public:document.getElementById('public').value, metier,
       budget_min:document.getElementById('bmin').value.trim(), budget_max:document.getElementById('bmax').value.trim(),
-      promo: document.getElementById('promo-btn').getAttribute('aria-pressed') === 'true' ? '1' : '' };
+      promo: document.getElementById('promo-btn').getAttribute('aria-pressed') === 'true' ? '1' : '',
+      style: document.getElementById('afro-btn').getAttribute('aria-pressed') === 'true' ? 'afro' : '' };
     Object.entries(vals).forEach(([k, v]) => { if(v) p.set(k, v); });
     // L'adresse garde le mode démo (demo.html) quand on recherche.
     const url = new URLSearchParams(p); if(new URLSearchParams(location.search).get('demo') === '1') url.set('demo', '1');
@@ -299,7 +300,7 @@
           <div class="contenu">
             <h3>${esc(x.nom)}</h3>
             <div class="meta">${esc(LIB[x.metier] || 'Autre')}${x.ville ? ', ' + esc(x.ville) : ''}</div>
-            ${pub.length ? `<div class="etiquettes">${pub.map(q => `<span>${q === 'femme' ? 'Femme' : 'Homme'}</span>`).join('')}</div>` : ''}
+            ${pub.length || (x.styles || []).length ? `<div class="etiquettes">${pub.map(q => `<span>${q === 'femme' ? 'Femme' : 'Homme'}</span>`).join('')}${(x.styles || []).includes('afro') ? '<span>Coiffure afro</span>' : ''}</div>` : ''}
             ${x.correspondance ? `<div class="correspondance"><i class="ph ph-tag" aria-hidden="true"></i>${esc(x.correspondance.libelle)} : ${Number(x.correspondance.prix).toFixed(0)} €${x.correspondance.nb > 1 ? ` (+${x.correspondance.nb - 1})` : ''}</div>` : ''}
             <p class="desc">${esc(x.description || '')}</p>
             <div class="bas"><span class="prix">${x.prix_a_partir_de != null ? (x.prix_max && x.prix_max > x.prix_a_partir_de ? `De <b>${Number(x.prix_a_partir_de).toFixed(0)}</b> à <b>${Number(x.prix_max).toFixed(0)} €</b>` : `Dès <b>${Number(x.prix_a_partir_de).toFixed(0)} €</b>`) : ''}</span><span class="btn">Réserver</span></div>
@@ -316,7 +317,7 @@
 
   function effacerFiltres(){
     ['q', 'ville', 'public', 'bmin', 'bmax'].forEach(id => { document.getElementById(id).value = ''; });
-    metier = ''; majPucesBudget(); document.getElementById('promo-btn').setAttribute('aria-pressed', 'false');
+    metier = ''; majPucesBudget(); document.getElementById('promo-btn').setAttribute('aria-pressed', 'false'); document.getElementById('afro-btn').setAttribute('aria-pressed', 'false');
     document.querySelectorAll('#puces button').forEach(o => o.setAttribute('aria-pressed', o.dataset.m === ''));
     chercher();
   }
@@ -335,6 +336,7 @@
     document.getElementById('bmin').value = b.dataset.min; document.getElementById('bmax').value = b.dataset.max;
     majPucesBudget(); chercher();
   }));
+  document.getElementById('afro-btn').addEventListener('click', e => { const b = e.currentTarget; b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') !== 'true'); chercher(); });
   document.getElementById('promo-btn').addEventListener('click', e => { const b = e.currentTarget; b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') !== 'true'); chercher(); });
   ['bmin', 'bmax'].forEach(id => document.getElementById(id).addEventListener('input', () => { majPucesBudget(); clearTimeout(minuterie); minuterie = setTimeout(chercher, 450); }));
 
@@ -361,6 +363,7 @@
   if(init.get('budget_min')) document.getElementById('bmin').value = init.get('budget_min');
   if(init.get('budget_max')) document.getElementById('bmax').value = init.get('budget_max');
   if(init.get('promo') === '1') document.getElementById('promo-btn').setAttribute('aria-pressed', 'true');
+  if(init.get('style') === 'afro') document.getElementById('afro-btn').setAttribute('aria-pressed', 'true');
   majPucesBudget();
   if(init.get('metier')){ metier = init.get('metier'); document.querySelectorAll('#puces button').forEach(o => o.setAttribute('aria-pressed', o.dataset.m === metier)); }
   chercher();

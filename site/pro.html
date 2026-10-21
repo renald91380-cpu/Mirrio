@@ -124,7 +124,7 @@
   const https = u => (typeof u === 'string' && /^https:\/\//i.test(u)) ? u : '';
   const prix = n => Number(n || 0).toFixed(2).replace('.00', '').replace('.', ',') + ' €';
   const etoiles = n => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n));
-  const LIB = { coiffure:'Coiffure', barbier:'Barbier', esthetique:'Esthétique', onglerie:'Onglerie', massage:'Massage & spa', therapeute:'Bien-être',
+  const LIB = { patisserie:'Pâtisserie', coiffure:'Coiffure', barbier:'Barbier', esthetique:'Esthétique', onglerie:'Onglerie', massage:'Massage & spa', therapeute:'Bien-être',
     coach:'Coaching', photographe:'Photographie', formateur:'Formation', professeur:'Cours particuliers', consultant:'Conseil', autre:'' };
   const ACCENTS = { ambre:'#E2A63D', marine:'#244990', ciel:'#58A1E5', acajou:'#822E02', foret:'#155D16', rose:'#CC7097' };
   const POLICES = {
@@ -186,7 +186,7 @@
 
     const nbAvis = (d.avis || []).length;
     const note = nbAvis ? Math.round(d.avis.reduce((s, a) => s + a.note, 0) / nbAvis * 10) / 10 : null;
-    const libMetier = LIB[d.metier] || '';
+    const libMetier = (LIB[d.metier] || '') + ((d.styles || []).includes('afro') && d.metier === 'coiffure' ? ' · Spécialiste afro' : '');
     const cta = esc(v.texte_bouton || 'Réserver en ligne');
     const ctaHref = apercu ? '#' : `reservation.html?p=${encodeURIComponent(d.slug || slug)}`;
 

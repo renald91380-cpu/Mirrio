@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
+<title>Commander un gâteau | Mirrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Uncial+Antiqua&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+<style>
+  :root{ --bg:#F5F5F3; --surface:#FBFBFA; --ink:#101216; --muted:#5B606B; --line:rgba(16,18,22,.12); --accent:#E2A63D; --icone:#8A6431; --ko:#B5381F; --ombre:0 1px 2px rgba(16,18,22,.05), 0 22px 44px -26px rgba(16,18,22,.35); }
+  @media (prefers-color-scheme: dark){ :root{ --bg:#0D0F13; --surface:#15181E; --ink:#F1F1EE; --muted:#9CA2AE; --line:rgba(255,255,255,.14); --icone:#E2A63D; --ko:#FF8A6B; } }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{ scroll-padding-top:90px; }
+  body{ font-family:'Geist', system-ui, sans-serif; background:var(--bg); color:var(--ink); line-height:1.55; -webkit-font-smoothing:antialiased; min-height:100vh; }
+  a{ color:inherit; }
+  :focus-visible{ outline:3px solid var(--accent); outline-offset:3px; }
+  .lien-evitement{ position:absolute; left:-999px; top:8px; background:var(--accent); color:#101216; padding:10px 16px; border-radius:999px; font-weight:600; z-index:50; }
+  .lien-evitement:focus{ left:12px; }
+  .barre{ position:sticky; top:12px; z-index:20; margin:12px auto 0; max-width:1040px; width:calc(100% - 24px); height:60px; display:flex; align-items:center; justify-content:space-between; padding:0 22px; border-radius:999px; background:color-mix(in srgb, var(--surface) 78%, transparent); backdrop-filter:blur(16px) saturate(1.4); border:1px solid var(--line); box-shadow:var(--ombre); }
+  @media (prefers-reduced-transparency: reduce){ .barre{ background:var(--surface); backdrop-filter:none; } }
+  .marque{ font-size:20px; text-decoration:none; }
+  .barre .nom{ font:600 14px 'Geist', sans-serif; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:55%; }
+  main{ max-width:1040px; margin:0 auto; padding:34px 16px 90px; }
+  h1{ font-family:'Bricolage Grotesque', system-ui, sans-serif; font-weight:800; font-size:clamp(30px,5vw,48px); letter-spacing:-.035em; line-height:1.05; margin-bottom:12px; }
+  h2{ font-family:'Bricolage Grotesque', system-ui, sans-serif; font-weight:700; font-size:22px; letter-spacing:-.02em; margin:0 0 14px; }
+  .intro{ color:var(--muted); font-size:16px; max-width:60ch; margin-bottom:8px; }
+  .regles{ display:flex; flex-wrap:wrap; gap:8px; margin:16px 0 30px; }
+  .puce{ display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:999px; background:var(--surface); border:1px solid var(--line); font-size:13.5px; font-weight:500; }
+  .puce i{ color:var(--icone); font-size:17px; }
+  .grille{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px; margin-bottom:34px; }
+  .gateau{ position:relative; text-align:left; background:var(--surface); border:1.5px solid var(--line); border-radius:22px; overflow:hidden; cursor:pointer; font:inherit; color:inherit; padding:0; display:flex; flex-direction:column; transition:transform .2s, border-color .2s, box-shadow .2s; min-height:44px; }
+  .gateau:hover{ transform:translateY(-2px); box-shadow:var(--ombre); }
+  .gateau[aria-pressed="true"]{ border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
+  .gateau .visuel{ aspect-ratio:4/3; background:linear-gradient(135deg, color-mix(in srgb, var(--accent) 40%, var(--surface)), color-mix(in srgb, var(--accent) 12%, var(--surface))); display:grid; place-items:center; color:var(--icone); font-size:54px; background-size:cover; background-position:center; }
+  .gateau .corps{ padding:14px 16px 16px; }
+  .gateau .cat{ font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--icone); font-weight:600; }
+  .gateau strong{ display:block; font-family:'Bricolage Grotesque', system-ui, sans-serif; font-size:18px; letter-spacing:-.015em; margin:2px 0 4px; }
+  .gateau .desc{ font-size:13.5px; color:var(--muted); }
+  .gateau .prix{ margin-top:10px; font-weight:600; font-size:14px; }
+  .coche{ position:absolute; top:10px; right:10px; width:30px; height:30px; border-radius:50%; background:var(--accent); color:#101216; display:none; place-items:center; }
+  .gateau[aria-pressed="true"] .coche{ display:grid; }
+  .formulaire{ display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:22px; align-items:start; }
+  @media (max-width:860px){ .formulaire{ grid-template-columns:1fr; } }
+  .bloc{ background:var(--surface); border:1px solid var(--line); border-radius:22px; padding:24px; box-shadow:var(--ombre); }
+  fieldset{ border:0; margin:0 0 22px; }
+  legend, label{ font-weight:600; font-size:14px; display:block; margin-bottom:6px; }
+  .deux{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:560px){ .deux{ grid-template-columns:1fr; } }
+  .champ{ margin-bottom:16px; }
+  input[type=text], input[type=email], input[type=tel], input[type=number], input[type=date], select, textarea{ width:100%; min-height:48px; padding:12px 16px; border-radius:14px; border:1.5px solid var(--line); background:var(--bg); color:var(--ink); font:400 16px 'Geist', system-ui, sans-serif; }
+  textarea{ min-height:96px; resize:vertical; }
+  input[aria-invalid="true"], select[aria-invalid="true"]{ border-color:var(--ko); }
+  .aide{ font-size:13px; color:var(--muted); margin-top:5px; }
+  .erreur{ font-size:13px; color:var(--ko); margin-top:5px; font-weight:500; min-height:0; }
+  .allergenes{ display:flex; flex-wrap:wrap; gap:8px; }
+  .allergenes label{ display:inline-flex; align-items:center; gap:8px; margin:0; padding:9px 14px; border:1.5px solid var(--line); border-radius:999px; cursor:pointer; font-weight:500; min-height:44px; }
+  .allergenes input{ width:18px; height:18px; accent-color:#E2A63D; }
+  .recap{ position:sticky; top:84px; }
+  .recap dl{ display:grid; grid-template-columns:auto 1fr; gap:8px 14px; font-size:14.5px; margin:14px 0; }
+  .recap dt{ color:var(--muted); }
+  .recap dd{ text-align:right; font-weight:500; }
+  .total{ display:flex; justify-content:space-between; align-items:baseline; padding-top:14px; border-top:1px solid var(--line); font-family:'Bricolage Grotesque', system-ui, sans-serif; font-size:26px; font-weight:800; letter-spacing:-.02em; }
+  .note{ font-size:13px; color:var(--muted); margin-top:12px; }
+  .btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:52px; margin-top:18px; padding:12px 24px; border:0; border-radius:999px; font:600 16px 'Geist', system-ui, sans-serif; background:var(--accent); color:#101216; cursor:pointer; transition:transform .15s; }
+  .btn:active{ transform:scale(.98); }
+  .btn[disabled]{ opacity:.55; cursor:progress; }
+  .resume-erreurs{ display:none; margin-bottom:18px; padding:14px 16px; border-radius:14px; border:1.5px solid var(--ko); color:var(--ko); font-size:14.5px; font-weight:500; }
+  .resume-erreurs.visible{ display:block; }
+  .resume-erreurs ul{ margin:6px 0 0 18px; }
+  .resume-erreurs a{ color:inherit; }
+  .confirmation{ text-align:center; max-width:560px; margin:30px auto; padding:44px 30px; }
+  .confirmation .rond{ width:72px; height:72px; margin:0 auto 18px; border-radius:50%; background:color-mix(in srgb, var(--accent) 24%, transparent); color:var(--icone); display:grid; place-items:center; font-size:34px; }
+  .confirmation p{ color:var(--muted); margin-bottom:10px; }
+  .ref{ display:inline-block; padding:8px 16px; border-radius:999px; background:var(--bg); border:1px solid var(--line); font:600 15px 'Geist', monospace; letter-spacing:.12em; margin:6px 0 14px; }
+  .bandeau-demo{ margin:0 0 20px; padding:12px 16px; border-radius:14px; background:color-mix(in srgb, var(--accent) 18%, var(--surface)); font-size:14px; font-weight:500; }
+  .piege{ position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
+  .vide{ text-align:center; padding:60px 20px; color:var(--muted); }
+  @media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
+</style>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#101216">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="brand.css">
+</head>
+<body>
+<a class="lien-evitement" href="#contenu">Aller au contenu</a>
+<header class="barre"><a class="marque logo" href="/">Mirrio</a><span class="nom" id="nom-boutique"></span></header>
+<main id="contenu" tabindex="-1"><div class="vide" id="chargement">Chargement…</div></main>
+
+<script>
+(function(){
+  var params = new URLSearchParams(location.search);
+  var slug = (params.get('p') || '').toLowerCase().replace(/[^a-z0-9-]/g, '');
+  var DEMO = slug === 'demo-patisserie';
+  var main = document.getElementById('contenu');
+  var etat = { produit: null, donnees: null };
+
+  var $ = function(s, r){ return (r || document).querySelector(s); };
+  var esc = function(s){ var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; };
+  var euros = function(n){ return new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR' }).format(n); };
+  var JOURS = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+  var ICONES = { 'Entremets':'ph-cake', 'Gâteaux de fête':'ph-cake', 'Pièces montées':'ph-confetti', 'Tartes':'ph-pie-chart', 'Petits fours':'ph-cookie' };
+
+  function iso(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+  function plus(isoDate, n){ var d = new Date(isoDate + 'T12:00:00'); d.setDate(d.getDate() + n); return iso(d); }
+
+  function donneesDemo(){
+    var auj = iso(new Date());
+    return {
+      slug: 'demo-patisserie', nom: 'Maison Dorée (démo)', ville: 'Lyon', demo: true,
+      occasions: { mariage:'Mariage', anniversaire:'Anniversaire', retraite:'Départ en retraite', communion:'Communion', bapteme:'Baptême', naissance:'Naissance', fiancailles:'Fiançailles', entreprise:'Événement d’entreprise', autre:'Autre occasion' },
+      produits: [
+        { id:'d1', nom:'Pièce montée de mariage', categorie:'Pièces montées', description:'Choux caramélisés, nougatine et fleurs en sucre, à partir de 20 parts.', prix_part:4.2, parts_min:20, parts_max:120 },
+        { id:'d2', nom:'Wedding cake trois étages', categorie:'Gâteaux de fête', description:'Génoise vanille, ganache framboise, finition pâte à sucre.', prix_part:6.5, parts_min:25, parts_max:100 },
+        { id:'d3', nom:'Fraisier', categorie:'Entremets', description:'Crème mousseline, fraises fraîches, pâte d’amande.', prix_part:5.2, parts_min:6, parts_max:30 },
+        { id:'d4', nom:'Entremets chocolat noisette', categorie:'Entremets', description:'Croustillant praliné, mousse chocolat noir 70 %.', prix_part:5.6, parts_min:6, parts_max:30 },
+        { id:'d5', nom:'Layer cake personnalisé', categorie:'Gâteaux de fête', description:'Message et décor à votre goût, parfums au choix.', prix_part:5.9, parts_min:8, parts_max:40 },
+        { id:'d6', nom:'Plateau de petits fours sucrés', categorie:'Petits fours', description:'Assortiment de 12 variétés, par pièce (6 pièces = 1 part).', prix_part:3.4, parts_min:10, parts_max:80 }
+      ],
+      regles: { date_min: plus(auj, 3), date_max: plus(auj, 120), delai_min_jours: 3, jours_fermes: [1], dates_completes: [plus(auj, 9)],
+        heure_debut:'08:00', heure_fin:'18:00', acompte_pourcentage: 30, adresse:'12 rue de la République, Lyon 2e', message:'Tout est fait maison, la veille ou le matin même du retrait.' }
+    };
+  }
+
+  function charger(){
+    if(DEMO){ return Promise.resolve(donneesDemo()); }
+    if(!slug){ return Promise.reject(new Error('Adresse incomplète.')); }
+    return fetch('/api/gateaux?p=' + encodeURIComponent(slug)).then(function(r){
+      return r.json().then(function(j){ if(!r.ok) throw new Error(j.error || 'Page introuvable.'); return j; });
+    });
+  }
+
+  function rendre(d){
+    etat.donnees = d;
+    document.title = 'Commander un gâteau | ' + d.nom;
+    $('#nom-boutique').textContent = d.nom + (d.ville ? ' · ' + d.ville : '');
+    var r = d.regles;
+    var fermes = (r.jours_fermes || []).map(function(j){ return JOURS[j]; });
+    main.innerHTML =
+      (d.demo ? '<div class="bandeau-demo">Démo : cette commande est simulée, rien n’est envoyé ni enregistré.</div>' : '') +
+      '<h1>Commandez votre gâteau</h1>' +
+      '<p class="intro">' + esc(r.message || 'Pour un mariage, un anniversaire, un départ en retraite… choisissez un gâteau, une date de retrait, et ' + d.nom + ' vous confirme la commande.') + '</p>' +
+      '<div class="regles">' +
+        '<span class="puce"><i class="ph ph-clock-countdown" aria-hidden="true"></i>À commander ' + r.delai_min_jours + ' jour' + (r.delai_min_jours > 1 ? 's' : '') + ' à l’avance</span>' +
+        (fermes.length ? '<span class="puce"><i class="ph ph-door" aria-hidden="true"></i>Fermé le ' + fermes.join(', le ') + '</span>' : '') +
+        (r.acompte_pourcentage ? '<span class="puce"><i class="ph ph-hand-coins" aria-hidden="true"></i>Acompte de ' + r.acompte_pourcentage + ' % à la confirmation</span>' : '') +
+        (r.adresse ? '<span class="puce"><i class="ph ph-map-pin" aria-hidden="true"></i>Retrait : ' + esc(r.adresse) + '</span>' : '') +
+      '</div>' +
+      '<h2 id="titre-gateaux">1. Choisissez un gâteau</h2>' +
+      '<div class="grille" role="group" aria-labelledby="titre-gateaux">' + d.produits.map(carte).join('') + '</div>' +
+      '<form class="formulaire" id="formulaire" novalidate>' +
+        '<div class="bloc"><div class="resume-erreurs" id="resume-erreurs" role="alert" tabindex="-1"></div>' + champs(d) + '</div>' +
+        '<aside class="bloc recap" aria-live="polite"><h2>Votre demande</h2><dl id="recap"></dl><div class="total"><span>Estimation</span><span id="total">–</span></div>' +
+          '<p class="note">Ce n’est pas encore une commande ferme : ' + esc(d.nom) + ' vérifie la faisabilité et vous confirme le prix final' + (r.acompte_pourcentage ? ', avec un acompte de ' + r.acompte_pourcentage + ' %' : '') + '.</p>' +
+          '<button class="btn" type="submit" id="envoyer"><i class="ph ph-paper-plane-tilt" aria-hidden="true"></i>Envoyer ma demande</button></aside>' +
+      '</form>';
+    main.querySelectorAll('.gateau').forEach(function(b){ b.addEventListener('click', function(){ choisir(b.dataset.id); }); });
+    var f = $('#formulaire');
+    f.addEventListener('input', majRecap); f.addEventListener('change', majRecap);
+    f.addEventListener('submit', envoyer);
+    ['nom','email','date','occasion','parts'].forEach(function(id){ var el = $('#' + id); if(el) el.addEventListener('blur', function(){ valider(id); }); });
+    var pre = params.get('gateau'); if(pre && d.produits.some(function(p){ return p.id === pre; })) choisir(pre);
+    majRecap();
+  }
+
+  function carte(p){
+    var visuel = p.photo_url ? ' style="background-image:url(\'' + esc(p.photo_url) + '\')"' : '';
+    return '<button type="button" class="gateau" data-id="' + esc(p.id) + '" aria-pressed="false">' +
+      '<span class="coche" aria-hidden="true"><i class="ph ph-check"></i></span>' +
+      '<span class="visuel"' + visuel + '>' + (p.photo_url ? '' : '<i class="ph ' + (ICONES[p.categorie] || 'ph-cake') + '" aria-hidden="true"></i>') + '</span>' +
+      '<span class="corps">' + (p.categorie ? '<span class="cat">' + esc(p.categorie) + '</span>' : '') + '<strong>' + esc(p.nom) + '</strong>' +
+      (p.description ? '<span class="desc">' + esc(p.description) + '</span>' : '') +
+      '<span class="prix" style="display:block">' + euros(p.prix_part) + ' la part · de ' + p.parts_min + ' à ' + p.parts_max + ' parts</span></span></button>';
+  }
+
+  function champs(d){
+    var r = d.regles;
+    var occ = Object.keys(d.occasions).map(function(k){ return '<option value="' + k + '">' + esc(d.occasions[k]) + '</option>'; }).join('');
+    var allerg = ['Gluten','Lait','Œufs','Fruits à coque','Arachides','Alcool'].map(function(a){ return '<label><input type="checkbox" name="allergene" value="' + a + '">' + a + '</label>'; }).join('');
+    return '<h2>2. L’occasion et le retrait</h2><div class="deux">' +
+      '<div class="champ"><label for="occasion">Occasion</label><select id="occasion" required aria-describedby="err-occasion"><option value="">Choisir…</option>' + occ + '</select><div class="erreur" id="err-occasion"></div></div>' +
+      '<div class="champ"><label for="parts">Nombre de parts</label><input type="number" id="parts" inputmode="numeric" min="1" step="1" aria-describedby="aide-parts err-parts"><div class="aide" id="aide-parts">Choisissez d’abord un gâteau.</div><div class="erreur" id="err-parts"></div></div>' +
+      '<div class="champ"><label for="date">Date de retrait</label><input type="date" id="date" min="' + r.date_min + '" max="' + r.date_max + '" aria-describedby="err-date"><div class="erreur" id="err-date"></div></div>' +
+      '<div class="champ"><label for="heure">Heure souhaitée <span style="font-weight:400;color:var(--muted)">(facultatif)</span></label><input type="time" id="heure" min="' + r.heure_debut + '" max="' + r.heure_fin + '" style="width:100%;min-height:48px;padding:12px 16px;border-radius:14px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);font:400 16px Geist,system-ui,sans-serif"><div class="aide">Entre ' + r.heure_debut.replace(':','h') + ' et ' + r.heure_fin.replace(':','h') + '.</div></div></div>' +
+      '<h2 style="margin-top:8px">3. Personnalisation</h2>' +
+      '<div class="champ"><label for="message">Message sur le gâteau <span style="font-weight:400;color:var(--muted)">(facultatif)</span></label><input type="text" id="message" maxlength="80" placeholder="Joyeux anniversaire Camille !"></div>' +
+      '<div class="champ"><label for="precisions">Précisions <span style="font-weight:400;color:var(--muted)">(parfums, couleurs, thème…)</span></label><textarea id="precisions" maxlength="600"></textarea></div>' +
+      '<fieldset class="champ"><legend>Allergies ou régimes à respecter</legend><div class="allergenes">' + allerg + '</div><div class="aide">Précisez le reste dans le champ ci-dessus. Le pâtissier vous recontacte si besoin.</div></fieldset>' +
+      '<h2>4. Vos coordonnées</h2><div class="deux">' +
+      '<div class="champ"><label for="nom">Nom</label><input type="text" id="nom" autocomplete="name" aria-describedby="err-nom"><div class="erreur" id="err-nom"></div></div>' +
+      '<div class="champ"><label for="email">Email</label><input type="email" id="email" autocomplete="email" inputmode="email" aria-describedby="err-email"><div class="erreur" id="err-email"></div></div></div>' +
+      '<div class="champ"><label for="tel">Téléphone <span style="font-weight:400;color:var(--muted)">(facultatif)</span></label><input type="tel" id="tel" autocomplete="tel" inputmode="tel"></div>' +
+      '<div class="piege" aria-hidden="true"><label>Ne pas remplir<input type="text" id="site" tabindex="-1" autocomplete="off"></label></div>';
+  }
+
+  function choisir(id){
+    var p = etat.donnees.produits.filter(function(x){ return x.id === id; })[0]; if(!p) return;
+    etat.produit = p;
+    main.querySelectorAll('.gateau').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.id === id)); });
+    var parts = $('#parts'); parts.min = p.parts_min; parts.max = p.parts_max;
+    if(!parts.value || +parts.value < p.parts_min || +parts.value > p.parts_max) parts.value = p.parts_min;
+    $('#aide-parts').textContent = 'De ' + p.parts_min + ' à ' + p.parts_max + ' parts.';
+    majRecap();
+  }
+
+  function jourLong(isoDate){ return new Intl.DateTimeFormat('fr-FR', { weekday:'long', day:'numeric', month:'long' }).format(new Date(isoDate + 'T12:00:00')); }
+
+  function majRecap(){
+    var p = etat.produit, parts = +($('#parts') || {}).value, date = ($('#date') || {}).value;
+    var lignes = [['Gâteau', p ? esc(p.nom) : '–'], ['Parts', parts > 0 ? parts : '–'], ['Retrait', date ? esc(jourLong(date)) + (($('#heure') || {}).value ? ' à ' + $('#heure').value.replace(':','h') : '') : '–']];
+    $('#recap').innerHTML = lignes.map(function(l){ return '<dt>' + l[0] + '</dt><dd>' + l[1] + '</dd>'; }).join('');
+    $('#total').textContent = p && parts >= p.parts_min && parts <= p.parts_max ? euros(Math.round(parts * p.prix_part * 100) / 100) : '–';
+  }
+
+  var MESSAGES = {};
+  function erreurChamp(id, msg){
+    var el = $('#' + id), e = $('#err-' + id); if(!el) return;
+    if(msg){ el.setAttribute('aria-invalid', 'true'); if(e) e.textContent = msg; MESSAGES[id] = msg; }
+    else { el.removeAttribute('aria-invalid'); if(e) e.textContent = ''; delete MESSAGES[id]; }
+    return !msg;
+  }
+  function valider(id){
+    var r = etat.donnees.regles, v = ($('#' + id) || {}).value || '';
+    if(id === 'nom') return erreurChamp(id, v.trim().length < 2 ? 'Indiquez votre nom.' : '');
+    if(id === 'email') return erreurChamp(id, /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.trim()) ? '' : 'Indiquez une adresse email valide.');
+    if(id === 'occasion') return erreurChamp(id, v ? '' : 'Choisissez une occasion.');
+    if(id === 'parts'){
+      var p = etat.produit; if(!p) return erreurChamp(id, 'Choisissez d’abord un gâteau.');
+      var n = +v; return erreurChamp(id, n >= p.parts_min && n <= p.parts_max && n % 1 === 0 ? '' : 'Entre ' + p.parts_min + ' et ' + p.parts_max + ' parts.');
+    }
+    if(id === 'date'){
+      if(!v) return erreurChamp(id, 'Choisissez une date de retrait.');
+      if(v < r.date_min) return erreurChamp(id, 'Les commandes se prennent ' + r.delai_min_jours + ' jour(s) à l’avance : à partir du ' + jourLong(r.date_min) + '.');
+      if(v > r.date_max) return erreurChamp(id, 'Cette date est trop lointaine.');
+      if((r.jours_fermes || []).indexOf(new Date(v + 'T12:00:00').getDay()) >= 0) return erreurChamp(id, 'Fermé le ' + JOURS[new Date(v + 'T12:00:00').getDay()] + '.');
+      if((r.dates_completes || []).indexOf(v) >= 0) return erreurChamp(id, 'Ce jour est complet, choisissez-en un autre.');
+      return erreurChamp(id, '');
+    }
+  }
+
+  function envoyer(e){
+    e.preventDefault();
+    var ids = ['occasion','parts','date','nom','email'];
+    ids.forEach(valider);
+    var resume = $('#resume-erreurs');
+    var manque = ids.filter(function(i){ return MESSAGES[i]; });
+    if(!etat.produit){ resume.innerHTML = 'Choisissez d’abord un gâteau, plus haut sur la page.'; resume.classList.add('visible'); resume.focus(); return; }
+    if(manque.length){
+      resume.innerHTML = 'Quelques champs sont à corriger :<ul>' + manque.map(function(i){ return '<li><a href="#' + i + '">' + esc(MESSAGES[i]) + '</a></li>'; }).join('') + '</ul>';
+      resume.classList.add('visible'); resume.focus(); return;
+    }
+    resume.classList.remove('visible');
+    var allerg = Array.prototype.map.call(document.querySelectorAll('input[name=allergene]:checked'), function(c){ return c.value; }).join(', ');
+    var corps = {
+      p: slug, produit_id: etat.produit.id, occasion: $('#occasion').value, parts: +$('#parts').value, date_retrait: $('#date').value,
+      heure_retrait: $('#heure').value, message_gateau: $('#message').value, personnalisation: $('#precisions').value,
+      allergies: allerg, nom: $('#nom').value, email: $('#email').value, telephone: $('#tel').value, site: $('#site').value
+    };
+    var btn = $('#envoyer'); btn.disabled = true; btn.textContent = 'Envoi…';
+    var fin = function(j){ confirmer(j); };
+    if(DEMO){
+      var ref = 'DEMO' + Math.floor(1000 + Math.random() * 9000);
+      return setTimeout(function(){ fin({ reference: ref, prix_estime: Math.round(corps.parts * etat.produit.prix_part * 100) / 100, quand: jourLong(corps.date_retrait) }); }, 500);
+    }
+    fetch('/api/gateaux', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(corps) })
+      .then(function(r){ return r.json().then(function(j){ return { ok: r.ok, j: j }; }); })
+      .then(function(x){
+        if(!x.ok) throw new Error(x.j.error || 'Envoi impossible.');
+        fin(x.j);
+      })
+      .catch(function(err){
+        btn.disabled = false; btn.innerHTML = '<i class="ph ph-paper-plane-tilt" aria-hidden="true"></i>Envoyer ma demande';
+        resume.textContent = err.message + ' Vous pouvez réessayer.'; resume.classList.add('visible'); resume.focus();
+      });
+  }
+
+  function confirmer(j){
+    var d = etat.donnees;
+    main.innerHTML = '<div class="bloc confirmation"><div class="rond"><i class="ph ph-check" aria-hidden="true"></i></div><h1 tabindex="-1" id="titre-ok" style="font-size:32px">Demande envoyée</h1>' +
+      '<p>' + esc(d.nom) + ' a bien reçu votre demande pour <strong>' + esc(etat.produit.nom) + '</strong>, retrait le ' + esc(j.quand) + '.</p>' +
+      '<div class="ref">' + esc(j.reference) + '</div><p>Estimation : <strong>' + euros(j.prix_estime) + '</strong>. La pâtisserie vous écrit pour confirmer la faisabilité et le prix final' + (d.regles.acompte_pourcentage ? ' (acompte de ' + d.regles.acompte_pourcentage + ' %)' : '') + '.</p>' +
+      (d.demo ? '<p><a href="demo.html">Retour à la démo</a></p>' : '<p>Un email récapitulatif vient de vous être envoyé.</p>') + '</div>';
+    var t = $('#titre-ok'); if(t) t.focus(); window.scrollTo({ top: 0 });
+  }
+
+  charger().then(rendre).catch(function(err){
+    main.innerHTML = '<div class="vide"><h1 style="font-size:28px">Commandes indisponibles</h1><p>' + esc(err.message) + '</p></div>';
+  });
+})();
+</script>
+</body>
+</html>

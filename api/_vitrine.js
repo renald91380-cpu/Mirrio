@@ -38,7 +38,8 @@ export default async function handler(req, res){
     if(!/^[a-z0-9-]{3,40}$/.test(slug)) return json(res, 404, { error: 'Page introuvable.' });
 
     const [reglage] = await get(
-      `parametres_reservation?slug=eq.${slug}&activee=eq.true&select=owner_id,jours_ouvres,heure_debut,heure_fin,adresse_annuaire,latitude,longitude`);
+      `parametres_reservation?slug=eq.${slug}&activee=eq.true&select=owner_id,jours_ouvres,heure_debut,heure_fin,adresse_annuaire,latitude,longitude,styles`)
+      .catch(() => get(`parametres_reservation?slug=eq.${slug}&activee=eq.true&select=owner_id,jours_ouvres,heure_debut,heure_fin,adresse_annuaire,latitude,longitude`));
     if(!reglage) return json(res, 404, { error: 'Page introuvable.' });
     const id = reglage.owner_id;
 
@@ -62,6 +63,7 @@ export default async function handler(req, res){
       accent: profil?.accent || 'ambre',
       ville: fact?.emetteur_ville || null,
       horaires: { jours: reglage.jours_ouvres, debut: reglage.heure_debut, fin: reglage.heure_fin },
+      styles: reglage.styles || [],
       adresse: reglage.adresse_annuaire, latitude: reglage.latitude, longitude: reglage.longitude,
       vitrine: v, equipe, prestations, avis
     });

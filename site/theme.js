@@ -68,6 +68,7 @@ export const METIERS = {
   barbier:     { nom:'Barbier',               singulier:'rendez-vous', pluriel:'rendez-vous' },
   massage:     { nom:'Masseur·euse / spa',     singulier:'massage',  pluriel:'massages'  },
   onglerie:    { nom:'Prothésiste ongulaire',  singulier:'prestation', pluriel:'prestations' },
+  patisserie:  { nom:'Pâtissier·ère / boulanger·ère', singulier:'commande', pluriel:'commandes' },
   autre:       { nom:'Autre métier',           singulier:'rendez-vous', pluriel:'rendez-vous' }
 };
 
@@ -194,6 +195,9 @@ function echapper(str){
 // à tout le monde. admin.html revérifie lui-même l'accès côté serveur
 // (`admin_est_admin()`) : ce lien n'est qu'une question de découvrabilité,
 // pas la barrière de sécurité.
+// Onglet réservé aux pâtisseries : les commandes de gâteaux (commandes.html). Ajouté par monterEntete().
+const ONGLET_COMMANDES = { cle:'commandes', href:'commandes.html', libelle:'Commandes' };
+
 const ONGLET_ADMIN = { cle:'admin', href:'admin.html', libelle:'Back-office' };
 
 // Icônes des onglets — utilisées uniquement par la variante menu latéral
@@ -206,6 +210,7 @@ const ICONES_ONGLETS = {
   documents: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>',
   vitrine: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/>',
   reglages: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+  commandes: '<path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/><path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1"/><path d="M2 21h20"/><path d="M7 8v3M12 8v3M17 8v3"/><path d="M7 4h.01M12 4h.01M17 4h.01"/>',
   admin: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>'
 };
 
@@ -235,7 +240,10 @@ export function monterEntete(brand, actif, estAdmin){
     el.setAttribute('title', nom);
   });
 
-  const onglets = estAdmin ? [...ONGLETS, ONGLET_ADMIN] : ONGLETS;
+  const base = b.metier === 'patisserie'
+    ? [...ONGLETS.slice(0, 3), ONGLET_COMMANDES, ...ONGLETS.slice(3)]
+    : ONGLETS;
+  const onglets = estAdmin ? [...base, ONGLET_ADMIN] : base;
 
   const navHaut = document.querySelector('.app-header .app-nav');
   if(navHaut){
