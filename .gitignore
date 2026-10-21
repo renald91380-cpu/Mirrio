@@ -7,3 +7,4 @@ node_modules/
 .git_locks_to_delete/
 .env*
 db/seed-comptes-test.sql
+db/seed-comptes-test-boulangerie.sql
