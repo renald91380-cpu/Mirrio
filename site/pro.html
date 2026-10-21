@@ -23,6 +23,7 @@
   h1,h2,h3{ font-family:var(--titre); line-height:1.05; letter-spacing:-.025em; }
   a{ color:inherit; }
   img{ display:block; max-width:100%; }
+  html.chargement, html.chargement body{ background:transparent !important; } html.chargement .etat{ color:rgba(255,255,255,.75); }
   .etat{ text-align:center; padding:90px 20px; color:#6b7080; font-family:Inter, sans-serif; }
 
   .bandeau{ background:var(--c); color:var(--c-texte); text-align:center; padding:9px 16px; font-size:14px; font-weight:600; }
@@ -337,9 +338,10 @@
   if(apercu){
     // Aperçu depuis l'éditeur « Ma page » : les données arrivent par message, même origine uniquement.
     const r = document.createElement('meta'); r.name = 'robots'; r.content = 'noindex'; document.head.appendChild(r);
+    document.documentElement.classList.add('chargement');   // fond transparent tant que les données n'ont pas été reçues
     window.addEventListener('message', e => {
       if(e.origin !== location.origin || !e.data || e.data.type !== 'cadence-vitrine') return;
-      const y = window.scrollY; rendre(e.data.data); window.scrollTo(0, y);
+      const y = window.scrollY; rendre(e.data.data); document.documentElement.classList.remove('chargement'); window.scrollTo(0, y);
     });
     if(window.parent !== window) window.parent.postMessage({ type:'cadence-vitrine-ready' }, location.origin);
     return;

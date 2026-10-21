@@ -8,3 +8,7 @@
 .logo b, .logo .dot{ letter-spacing:0 !important; margin-left:.04em; }
 .logo{ font-size:24px !important; }
 .marque{ font-size:22px !important; }
+
+/* Emblème gravé dans le panneau sombre des pages de connexion : une médaille posée dans le coin, derrière le texte. */
+.auth-aside .auth-embleme{ position:absolute; z-index:-1; right:-120px; bottom:-120px; width:520px; height:520px; opacity:.55; pointer-events:none; }
+@media(max-width:900px){ .auth-aside .auth-embleme{ width:360px; height:360px; right:-80px; bottom:-90px; } }

@@ -282,7 +282,7 @@
       const { praticiens, non_inscrits } = await r.json();
       rendreNonInscrits(non_inscrits || []);
       if(!praticiens?.length){
-        grille.innerHTML = '<div class="vide"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><h3>Aucun salon trouvé</h3><p>Essayez une autre ville, une autre catégorie ou un budget plus large.</p><button class="btn" type="button" id="effacer">Effacer les filtres</button></div>';
+        grille.innerHTML = '<div class="vide"><img src="img/emblem-femme.webp" width="150" height="150" alt="" aria-hidden="true" style="display:block;margin:0 auto 6px;opacity:.9"><h3>Aucun salon trouvé</h3><p>Essayez une autre ville, une autre catégorie ou un budget plus large.</p><button class="btn" type="button" id="effacer">Effacer les filtres</button></div>';
         document.getElementById('effacer').addEventListener('click', effacerFiltres);
         compte.textContent = 'Aucun résultat.'; majCarte([], non_inscrits || []); return;
       }
