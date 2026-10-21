@@ -120,6 +120,7 @@
 <meta name="theme-color" content="#101216">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <link rel="stylesheet" href="brand.css">
+<script src="demo-patisserie.js"></script>
 </head>
 <body>
 <a class="lien-evitement" href="#contenu">Aller au contenu</a>
@@ -143,44 +144,21 @@
   function iso(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
   function plus(isoDate, n){ var d = new Date(isoDate + 'T12:00:00'); d.setDate(d.getDate() + n); return iso(d); }
 
-  // Agenda fictif du pâtissier de démo : un mariage et un anniversaire le même jour, etc.
-  function DEMO_DETAILS(auj){
-    var d = {};
-    d[plus(auj, 6)] = ['mariage', 'anniversaire'];
-    d[plus(auj, 7)] = ['anniversaire'];
-    d[plus(auj, 10)] = ['mariage', 'gros gâteau'];
-    d[plus(auj, 13)] = ['anniversaire', 'communion'];
-    d[plus(auj, 14)] = ['mariage'];
-    d[plus(auj, 15)] = ['mariage', 'anniversaire'];
-    d[plus(auj, 17)] = ['mariage', 'mariage', 'gros gâteau'];
-    d[plus(auj, 20)] = ['mariage'];
-    d[plus(auj, 22)] = ['mariage', 'mariage'];
-    d[plus(auj, 24)] = ['mariage', 'mariage', 'anniversaire'];
-    return d;
-  }
-  function DEMO_CHARGES(auj){
-    var d = DEMO_DETAILS(auj), c = {};
-    Object.keys(d).forEach(function(k){ c[k] = d[k].reduce(function(t, o){ return t + (o === 'mariage' ? 3 : (o === 'gros gâteau' ? 2 : 1)); }, 0); });
-    return c;
-  }
-
+  // Pâtisserie de démo : données partagées avec le back-office de démo (demo-patisserie.js).
+  // Les réglages et le catalogue modifiés dans commandes.html?demo=1 se retrouvent ici (sessionStorage).
   function donneesDemo(){
-    var auj = iso(new Date());
+    var D = window.DEMO_PATISSERIE, g = D.reglages, auj = D.iso(new Date()), ag = D.agenda(auj);
     return {
-      slug: 'demo-patisserie', nom: 'Maison Dorée (démo)', ville: 'Lyon', demo: true,
+      slug: 'demo-patisserie', nom: D.nom, ville: D.ville, demo: true,
       occasions: { mariage:'Mariage', anniversaire:'Anniversaire', retraite:'Départ en retraite', communion:'Communion', bapteme:'Baptême', naissance:'Naissance', fiancailles:'Fiançailles', entreprise:'Événement d’entreprise', autre:'Autre occasion' },
-      produits: [
-        { id:'d1', nom:'Pièce montée de mariage', categorie:'Pièces montées', description:'Choux caramélisés, nougatine et fleurs en sucre, à partir de 20 parts.', prix_part:4.2, parts_min:20, parts_max:120 },
-        { id:'d2', nom:'Wedding cake trois étages', categorie:'Gâteaux de fête', description:'Génoise vanille, ganache framboise, finition pâte à sucre.', prix_part:6.5, parts_min:25, parts_max:100 },
-        { id:'d3', nom:'Fraisier', categorie:'Entremets', description:'Crème mousseline, fraises fraîches, pâte d’amande.', prix_part:5.2, parts_min:6, parts_max:30 },
-        { id:'d4', nom:'Entremets chocolat noisette', categorie:'Entremets', description:'Croustillant praliné, mousse chocolat noir 70 %.', prix_part:5.6, parts_min:6, parts_max:30 },
-        { id:'d5', nom:'Layer cake personnalisé', categorie:'Gâteaux de fête', description:'Message et décor à votre goût, parfums au choix.', prix_part:5.9, parts_min:8, parts_max:40 },
-        { id:'d6', nom:'Plateau de petits fours sucrés', categorie:'Petits fours', description:'Assortiment de 12 variétés, par pièce (6 pièces = 1 part).', prix_part:3.4, parts_min:10, parts_max:80 }
-      ],
-      regles: { date_min: plus(auj, 3), date_max: plus(auj, 120), delai_min_jours: 3, jours_fermes: [1], capacite: 5, surcharge_points: 2, surcharge_pourcentage: 15, exception_points: 3, exception_pourcentage: 30,
-        charges: DEMO_CHARGES(auj), details: DEMO_DETAILS(auj),
-        niveaux: (function(){ var n = {}; n[plus(auj, 22)] = { surcharge: 1, exception: 0 }; n[plus(auj, 24)] = { surcharge: 1, exception: 1 }; return n; })(),
-        heure_debut:'08:00', heure_fin:'18:00', acompte_pourcentage: 30, adresse:'12 rue de la République, Lyon 2e', message:'Tout est fait maison, la veille ou le matin même du retrait.' }
+      produits: D.produits.filter(function(p){ return p.actif; }),
+      regles: { date_min: plus(auj, g.delai_min_jours), date_max: plus(auj, g.horizon_jours), delai_min_jours: g.delai_min_jours, jours_fermes: g.jours_fermes, capacite: g.commandes_max_par_jour,
+        surcharge_points: g.surcharge_points, surcharge_pourcentage: g.surcharge_pourcentage, surcharge_max: g.surcharge_max_par_jour,
+        exception_points: g.exception_points, exception_pourcentage: g.exception_pourcentage, exception_max: g.exception_max_par_jour,
+        poids: { standard: g.poids_standard, gros: g.poids_gros, seuil_gros_parts: g.seuil_gros_parts, mariage: g.poids_mariage },
+        charges: ag.charges, details: ag.details, niveaux: ag.niveaux,
+        heure_debut: String(g.heure_retrait_debut).slice(0, 5), heure_fin: String(g.heure_retrait_fin).slice(0, 5),
+        acompte_pourcentage: g.acompte_pourcentage, adresse: g.adresse_retrait, message: g.message_accueil }
     };
   }
 
@@ -270,8 +248,8 @@
 
 
   // ---- calendrier de disponibilité : même règle de charge que le serveur (api/_gateaux.js)
-  function charge(occ, parts, cap){ var c = occ === 'mariage' ? 3 : (parts > 25 ? 2 : 1); return Math.min(c, cap); }
-  function chargeCourante(){ return charge(($('#occasion') || {}).value, +($('#parts') || {}).value || 0, etat.donnees.regles.capacite); }
+  function charge(occ, parts, r){ var w = r.poids, c = occ === 'mariage' ? w.mariage : (parts > w.seuil_gros_parts ? w.gros : w.standard); return Math.min(c, r.capacite); }
+  function chargeCourante(){ return charge(($('#occasion') || {}).value, +($('#parts') || {}).value || 0, etat.donnees.regles); }
   function jourFerme(r, v){ return (r.jours_fermes || []).indexOf(new Date(v + 'T12:00:00').getDay()) >= 0; }
   function horsPlage(r, v){ return v < r.date_min || v > r.date_max; }
   // 'normal', 'surcharge' (journée déjà chargée mais possible : +X % et règlement intégral par carte) ou 'impossible'.
@@ -280,10 +258,10 @@
     if(horsPlage(r, v) || jourFerme(r, v)) return 'impossible';
     var deja = r.charges[v] || 0, total = deja + chargeCourante();
     if(total <= r.capacite) return 'normal';
-    // Règle interne : une seule commande « surcharge » et une seule « exception » par jour.
+    // Nombre de commandes majorées déjà acceptées ce jour-là, plafonné par les réglages de la pâtisserie.
     var pris = (r.niveaux && r.niveaux[v]) || { surcharge: 0, exception: 0 };
-    if(deja > 0 && r.surcharge_points > 0 && pris.surcharge < 1 && total <= r.capacite + r.surcharge_points) return 'surcharge';
-    if(deja > 0 && r.exception_points > 0 && pris.exception < 1 && total <= r.capacite + r.surcharge_points + r.exception_points) return 'exception';
+    if(deja > 0 && r.surcharge_points > 0 && pris.surcharge < r.surcharge_max && total <= r.capacite + r.surcharge_points) return 'surcharge';
+    if(deja > 0 && r.exception_points > 0 && pris.exception < r.exception_max && total <= r.capacite + r.surcharge_points + r.exception_points) return 'exception';
     return 'impossible';
   }
   function jourLibre(v){ return etatJour(v) !== 'impossible'; }

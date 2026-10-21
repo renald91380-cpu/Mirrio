@@ -71,12 +71,12 @@ async function pâtisserie(slug){
   return { id, cfg, profil: profil || {}, fact: fact || {} };
 }
 
-// Charge de travail d'une commande, en points : un anniversaire pèse 1, un gros gâteau (plus de 25 parts)
-// 2, un mariage ou une pièce montée 3. La capacité du jour (`commandes_max_par_jour`) est exprimée dans
-// ces points. Même règle dans commander.html : à garder identique des deux côtés.
-function charge(occasion, parts, capacite){
-  const c = occasion === 'mariage' ? 3 : (parts > 25 ? 2 : 1);
-  return Math.min(c, capacite);
+// Charge de travail d'une commande, en points, selon les réglages de la pâtisserie (par défaut : standard 1,
+// gros gâteau au-delà de 25 parts 2, mariage 3). La capacité du jour (`commandes_max_par_jour`) est exprimée
+// dans ces points. Même règle dans commander.html : à garder identique des deux côtés.
+function charge(occasion, parts, cfg){
+  const c = occasion === 'mariage' ? cfg.poids_mariage : (parts > cfg.seuil_gros_parts ? cfg.poids_gros : cfg.poids_standard);
+  return Math.min(c, cfg.commandes_max_par_jour);
 }
 
 // Charge déjà engagée par date (commandes non annulées) sur [debut, fin].
@@ -86,8 +86,8 @@ async function chargesParDate(id, cfg, debut, fin){
   const lignes = await get(`gateaux_commandes?owner_id=eq.${id}&date_retrait=gte.${debut}&date_retrait=lte.${fin}&or=(statut.in.(nouvelle,confirmee,prete,retiree),and(statut.eq.a_payer,created_at.gt.${il40}))&select=date_retrait,occasion,parts,surcharge,niveau_charge`);
   const n = {}, niveaux = {};
   lignes.forEach(l => {
-    n[l.date_retrait] = (n[l.date_retrait] || 0) + charge(l.occasion, l.parts, cfg.commandes_max_par_jour);
-    // Règle interne : une seule commande « surcharge » et une seule « exception » par jour.
+    n[l.date_retrait] = (n[l.date_retrait] || 0) + charge(l.occasion, l.parts, cfg);
+    // Nombre de commandes majorées déjà acceptées par jour, par palier (plafonné par les réglages).
     const niv = l.niveau_charge || (l.surcharge ? 'surcharge' : null);
     if(niv){ const e = niveaux[l.date_retrait] || (niveaux[l.date_retrait] = { surcharge: 0, exception: 0 }); e[niv]++; }
   });
@@ -107,8 +107,8 @@ function etatDate(iso, cfg, n, c, aujourdhui, carteActive, niveaux){
   const deja = n[iso] || 0, total = deja + c, cap = cfg.commandes_max_par_jour;
   if(total <= cap) return 'normal';
   const pris = (niveaux && niveaux[iso]) || { surcharge: 0, exception: 0 };
-  if(carteActive && deja > 0 && cfg.surcharge_points > 0 && pris.surcharge < 1 && total <= cap + cfg.surcharge_points) return 'surcharge';
-  if(carteActive && deja > 0 && cfg.exception_points > 0 && pris.exception < 1 && total <= cap + cfg.surcharge_points + cfg.exception_points) return 'exception';
+  if(carteActive && deja > 0 && cfg.surcharge_points > 0 && pris.surcharge < cfg.surcharge_max_par_jour && total <= cap + cfg.surcharge_points) return 'surcharge';
+  if(carteActive && deja > 0 && cfg.exception_points > 0 && pris.exception < cfg.exception_max_par_jour && total <= cap + cfg.surcharge_points + cfg.exception_points) return 'exception';
   return 'impossible';
 }
 
@@ -194,6 +194,8 @@ export default async function handler(req, res){
           jours_fermes: c.jours_fermes, charges, niveaux, capacite: c.commandes_max_par_jour,
           surcharge_points: carte ? c.surcharge_points : 0, surcharge_pourcentage: c.surcharge_pourcentage,
           exception_points: carte ? c.exception_points : 0, exception_pourcentage: c.exception_pourcentage,
+          surcharge_max: c.surcharge_max_par_jour, exception_max: c.exception_max_par_jour,
+          poids: { standard: c.poids_standard, gros: c.poids_gros, seuil_gros_parts: c.seuil_gros_parts, mariage: c.poids_mariage },
           heure_debut: String(c.heure_retrait_debut).slice(0, 5), heure_fin: String(c.heure_retrait_fin).slice(0, 5),
           acompte_pourcentage: c.acompte_pourcentage, adresse: c.adresse_retrait, message: c.message_accueil
         }
@@ -227,7 +229,7 @@ export default async function handler(req, res){
     if(date < ajouterJours(aujourdhui, c.delai_min_jours)) return json(res, 400, { error: `Les commandes se prennent au moins ${c.delai_min_jours} jour(s) à l’avance.` });
     if(date > ajouterJours(aujourdhui, c.horizon_jours)) return json(res, 400, { error: 'Cette date est trop lointaine.' });
     if((c.jours_fermes || []).includes(jourSemaine(date))) return json(res, 400, { error: 'La pâtisserie est fermée ce jour-là.' });
-    const aCharge = charge(b.occasion, parts, c.commandes_max_par_jour);
+    const aCharge = charge(b.occasion, parts, c);
     const { charges: n, niveaux } = await chargesParDate(p.id, c, ajouterJours(date, -7), ajouterJours(date, 7));
     const cleStripe = await stripeDuSalon(p.id);
     const etat = etatDate(date, c, n, aCharge, aujourdhui, !!cleStripe, niveaux);
