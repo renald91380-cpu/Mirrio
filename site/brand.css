@@ -20,3 +20,16 @@ body::before{ content:""; position:fixed; inset:0; z-index:-1; pointer-events:no
 @media (prefers-color-scheme: dark){ body::before{ opacity:.2; } }
 @media (max-width:960px){ body::before{ background-image:url('img/fond-site-mobile.webp'); } }
 @media print{ body::before{ display:none; } }
+
+/* ---------- Antiquité grecque : méandre (clé grecque), colonnes, laurier, mots grecs ---------- */
+:root{ --or:#C39A62; --or-texte:#8A6431; }
+.meandre{ height:22px; background:url('img/grec-meandre.svg') repeat-x center/auto 22px; opacity:.9; pointer-events:none; }
+.meandre.fin{ height:20px; background-size:auto 20px; opacity:.85; }
+.laurier{ display:block; margin:0 auto 14px; width:190px; height:auto; }
+.colonne{ position:absolute; bottom:0; width:60px; height:204px; background:url('img/grec-colonne.svg') no-repeat bottom center/contain; opacity:.5; pointer-events:none; }
+.grec-eyebrow{ display:flex; align-items:center; gap:12px; margin:0 0 14px; font-family:'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif; font-size:13px; letter-spacing:.32em; text-transform:uppercase; color:var(--or-texte); font-weight:700; }
+.grec-eyebrow::before{ content:""; width:34px; height:1px; background:currentColor; opacity:.7; }
+.grec-eyebrow .fr{ letter-spacing:.04em; text-transform:none; font-style:italic; font-weight:400; opacity:.85; font-size:14px; }
+.metiers .grec-eyebrow, .final .grec-eyebrow{ color:#E0C08F; }
+@media (prefers-color-scheme: dark){ .grec-eyebrow{ color:#D9B98A; } }
+@media print{ .meandre, .colonne{ display:none; } }

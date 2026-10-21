@@ -234,6 +234,7 @@
   .icone.grand b{ font-family:var(--display); font-size:30px; font-weight:800; letter-spacing:-.02em; }
   .icone.grand small{ color:var(--sombre-muted); font-size:14.5px; line-height:1.4; max-width:24ch; }
   @media(max-width:520px){ .icone.grand{ width:150px; } .verre.grand{ width:140px; height:140px; border-radius:40px; } .icone.grand b{ font-size:24px; } .duo{ gap:30px 20px; } }
+  @media(max-width:900px){ .final .colonne{ display:none; } }
   .avantages{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:44px; }
   @media(max-width:900px){ .avantages{ grid-template-columns:1fr; } }
   .avantage{ position:relative; overflow:hidden; padding:30px; border-radius:var(--r); background:var(--surface); border:1px solid var(--line); box-shadow:var(--ombre); display:flex; flex-direction:column; gap:12px; min-height:300px; }
@@ -248,7 +249,7 @@
   .etapes{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:44px; counter-reset:e; }
   @media(max-width:820px){ .etapes{ grid-template-columns:1fr; } }
   .etape{ counter-increment:e; padding:30px; border-radius:var(--r); background:var(--surface); border:1px solid var(--line); box-shadow:var(--ombre); }
-  .etape::before{ content:counter(e); display:grid; place-items:center; width:44px; height:44px; border-radius:50%; background:var(--ink); color:var(--bg); font:800 20px var(--display); margin-bottom:60px; }
+  .etape::before{ content:counter(e, lower-greek); font-family:'Palatino Linotype', Palatino, Georgia, serif; display:grid; place-items:center; width:44px; height:44px; border-radius:50%; background:var(--ink); color:var(--bg); font:800 20px var(--display); margin-bottom:60px; }
   .etape h3{ font-size:24px; font-weight:700; margin-bottom:8px; } .etape p{ color:var(--muted); font-size:15.5px; }
   .salons{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:44px; }
   @media(max-width:900px){ .salons{ grid-template-columns:1fr; } }
@@ -294,6 +295,7 @@
 
 <main id="contenu">
   <section class="hero photo">
+    <div class="meandre fin" aria-hidden="true" style="position:absolute;left:0;right:0;bottom:0;z-index:1"></div>
     <div class="wrap">
       <div>
         <p class="puce rv"><i class="ph ph-seal-check" aria-hidden="true"></i>0 % de commission sur vos rendez-vous</p>
@@ -332,6 +334,7 @@
 
   <section style="padding-top:20px;">
     <div class="wrap">
+      <p class="grec-eyebrow rv">ΟΔΟΣ<span class="fr">le chemin</span></p>
       <h2 class="rv">En ligne en trois étapes.</h2>
       <div class="etapes">
         <article class="etape rv"><h3>Créez votre salon</h3><p>Nom, métier, catalogue de prestations importé en un clic. Ajoutez vos photos et vos couleurs.</p></article>
@@ -343,6 +346,7 @@
 
   <section id="difference">
     <div class="wrap">
+      <p class="grec-eyebrow rv">ΑΡΕΤΗ<span class="fr">l'excellence</span></p>
       <h2 class="rv">Trois raisons de nous choisir.</h2>
       <div class="avantages">
         <article class="avantage fort rv"><div class="grand">0 %</div><h3>de commission</h3><p>Chaque rendez-vous vous revient en entier, nouveaux clients compris. Un abonnement fixe, c'est tout.</p></article>
@@ -354,6 +358,7 @@
 
   <section class="metiers" id="elle-lui" style="margin-top:34px">
     <div class="wrap">
+      <p class="grec-eyebrow rv">ΚΑΛΛΟΣ<span class="fr">la beauté</span></p>
       <h2 class="rv">Pour elle. Pour lui.</h2>
       <p class="lead rv">Coiffure, barbier, institut, ongles, massage : un catalogue pensé pour les deux, et des salons qui accueillent tout le monde.</p>
       <div class="duo rv">
@@ -410,6 +415,7 @@
 
   <section class="metiers" id="metiers">
     <div class="wrap">
+      <p class="grec-eyebrow rv">ΤΕΧΝΗ<span class="fr">le savoir-faire</span></p>
       <h2 class="rv">Un outil pour chaque métier de la beauté.</h2>
       <p class="lead rv">Choisissez votre métier : le vocabulaire s'adapte et un catalogue type vous attend.</p>
       <div class="icones rv" role="list">
@@ -439,6 +445,7 @@
 
   <section id="tarifs" style="padding-top:40px;">
     <div class="wrap">
+      <p class="grec-eyebrow rv">ΜΕΤΡΟΝ<span class="fr">la juste mesure</span></p>
       <h2 class="rv">Un abonnement, jamais de pourcentage.</h2>
       <div class="tarifs">
         <article class="plan fort rv">
@@ -490,13 +497,16 @@
   </section>
 
   <section class="final">
+    <span class="colonne" aria-hidden="true" style="left:5%"></span><span class="colonne" aria-hidden="true" style="right:5%"></span>
     <div class="wrap">
+      <img class="laurier rv" src="img/grec-laurier.svg" alt="" aria-hidden="true" style="margin-left:0">
       <h2 class="rv">Ouvrez les réservations de votre salon aujourd'hui.</h2>
       <a class="btn rv" style="--d:100ms" href="signup.html">Créer mon salon <i class="ph ph-arrow-right" aria-hidden="true"></i></a>
     </div>
   </section>
 </main>
 
+<div class="meandre" aria-hidden="true"></div>
 <footer><div class="wrap"><span>© Mirrio</span><span><a href="cgu.html">CGU</a> &nbsp; <a href="confidentialite.html">Confidentialité</a> &nbsp; <a href="explorer.html">Trouver un salon</a> &nbsp; <a href="mon-espace.html">Mes rendez-vous</a> &nbsp; <a href="demo.html">Démo</a> &nbsp; <a href="login.html">Espace salon</a></span></div></footer>
 
 <script>
