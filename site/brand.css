@@ -12,3 +12,11 @@
 /* Emblème gravé dans le panneau sombre des pages de connexion : une médaille posée dans le coin, derrière le texte. */
 .auth-aside .auth-embleme{ position:absolute; z-index:-1; right:-120px; bottom:-120px; width:520px; height:520px; opacity:.55; pointer-events:none; }
 @media(max-width:900px){ .auth-aside .auth-embleme{ width:360px; height:360px; right:-80px; bottom:-90px; } }
+
+/* Fond d'ambiance de tout le site public : la photo de groupe en transparence, fixe derrière le contenu.
+   Très atténuée pour ne jamais gêner la lecture ; les cartes et sections pleines la recouvrent. */
+body::before{ content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background:url('img/fond-site.webp') 60% 40%/cover no-repeat; opacity:.17; }
+@media (prefers-color-scheme: dark){ body::before{ opacity:.2; } }
+@media (max-width:960px){ body::before{ background-image:url('img/fond-site-mobile.webp'); } }
+@media print{ body::before{ display:none; } }
