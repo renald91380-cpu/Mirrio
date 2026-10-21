@@ -113,6 +113,12 @@
   .msg-date.ok{ background:color-mix(in srgb, #1F7A5A 14%, var(--surface)); }
   .alts{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
   .alts button{ min-height:44px; padding:8px 16px; border-radius:999px; border:1.5px solid var(--accent); background:var(--surface); color:var(--ink); font:600 14px 'Geist', system-ui, sans-serif; cursor:pointer; }
+  .entete-boutique{ display:flex; align-items:center; justify-content:space-between; gap:24px; flex-wrap:wrap; margin-bottom:6px; }
+  .entete-boutique .texte{ flex:1; min-width:260px; }
+  .duo-emblemes{ display:flex; flex-shrink:0; }
+  .duo-emblemes img{ width:148px; height:148px; border-radius:50%; object-fit:cover; border:3px solid var(--surface); box-shadow:var(--ombre); background:var(--surface); }
+  .duo-emblemes img + img{ margin-left:-34px; }
+  @media(max-width:600px){ .duo-emblemes{ order:-1; margin:0 auto; } .duo-emblemes img{ width:112px; height:112px; } .duo-emblemes img + img{ margin-left:-26px; } }
   .vide{ text-align:center; padding:60px 20px; color:var(--muted); }
   @media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
 </style>
@@ -180,8 +186,9 @@
     var fermes = (r.jours_fermes || []).map(function(j){ return JOURS[j]; });
     main.innerHTML =
       (d.demo ? '<div class="bandeau-demo">Démo : cette commande est simulée, rien n’est envoyé ni enregistré.</div>' : '') +
-      '<h1>Commandez votre pâtisserie</h1>' +
-      '<p class="intro">' + esc(r.message || 'Pour un mariage, un anniversaire, un départ en retraite… choisissez une création, une date de retrait, et ' + d.nom + ' vous confirme la commande.') + '</p>' +
+      '<div class="entete-boutique"><div class="texte"><h1>Commandez votre pâtisserie</h1>' +
+      '<p class="intro">' + esc(r.message || 'Pour un mariage, un anniversaire, un départ en retraite… choisissez une création, une date de retrait, et ' + d.nom + ' vous confirme la commande.') + '</p></div>' +
+      (d.demo ? '<div class="duo-emblemes" aria-hidden="true"><img src="img/emblem-boulangere.webp" alt="" width="148" height="148"><img src="img/emblem-boulanger.webp" alt="" width="148" height="148"></div>' : '') + '</div>' +
       '<div class="regles">' +
         '<span class="puce"><i class="ph ph-clock-countdown" aria-hidden="true"></i>À commander ' + r.delai_min_jours + ' jour' + (r.delai_min_jours > 1 ? 's' : '') + ' à l’avance</span>' +
         (fermes.length ? '<span class="puce"><i class="ph ph-door" aria-hidden="true"></i>Fermé le ' + fermes.join(', le ') + '</span>' : '') +
