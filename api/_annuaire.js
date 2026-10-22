@@ -1,6 +1,6 @@
 // Mirrio — annuaire public des praticiens (site/explorer.html, site/pro.html).
 //
-//   GET /api/annuaire?q=<texte>&ville=<ville>&metier=<metier>&public=<femme|homme>&budget_min=<€>&budget_max=<€>&promo=1&style=afro   → liste (promo=1 : salons avec heures creuses)
+//   GET /api/annuaire?q=<texte>&ville=<ville>&metier=<metier>&public=<femme|homme>&budget_min=<€>&budget_max=<€>&promo=1&style=afro&tarif=enfant|etudiant   → liste (promo=1 : salons avec heures creuses)
 //     Le budget (TTC, en euros) s'applique aux PRESTATIONS : un salon est retenu s'il propose au moins une prestation
 //     dans la fourchette (celles qui correspondent à la recherche `q` si elle en désigne, et au public choisi).
 //   GET /api/annuaire?slug=<slug>                                → fiche détaillée
@@ -172,13 +172,15 @@ export default async function handler(req, res){
     const budgetMin = nombre(params.get('budget_min')), budgetMax = nombre(params.get('budget_max'));
     const seulementPromo = params.get('promo') === '1';
     const style = params.get('style') === 'afro' ? 'afro' : '';
+    // Salons qui proposent un tarif enfant ou étudiant (schema-v34, facultatifs, au choix du salon).
+    const tarif = ['enfant', 'etudiant'].includes(params.get('tarif')) ? params.get('tarif') : '';
 
     const fiches = await supabase(
       `parametres_reservation?activee=eq.true&visible_annuaire=eq.true&slug=not.is.null&select=${FICHE_COLS}&limit=500`);
-    if(!fiches.length) return json(res, 200, { praticiens: [], non_inscrits: await chercherNonInscrits({ ville, metier, q, params, filtreInscrit: budgetMin != null || budgetMax != null || seulementPromo || publicCible || style }) });
+    if(!fiches.length) return json(res, 200, { praticiens: [], non_inscrits: await chercherNonInscrits({ ville, metier, q, params, filtreInscrit: budgetMin != null || budgetMax != null || seulementPromo || publicCible || style || tarif }) });
 
     const ids = fiches.map(f => f.owner_id).join(',');
-    const [profils, villes, prestations, avis, vitrines, creuxLignes, stylesLignes] = await Promise.all([
+    const [profils, villes, prestations, avis, vitrines, creuxLignes, stylesLignes, tarifsLignes] = await Promise.all([
       supabase(`profiles?id=in.(${ids})&select=id,business_name,full_name,logo_url,metier`),
       supabase(`parametres_facturation?owner_id=in.(${ids})&select=owner_id,emetteur_ville`),
       supabase(`prestations?owner_id=in.(${ids})&actif=eq.true&select=owner_id,libelle,prix_unitaire,tva_taux,public_cible`)
@@ -188,8 +190,13 @@ export default async function handler(req, res){
       // Heures creuses (schema-v24) : salons qui proposent une remise sur certains créneaux.
       supabase(`parametres_reservation?owner_id=in.(${ids})&creux_actif=eq.true&select=owner_id,creux_pourcentage`).catch(() => []),
       // Styles de coiffure (schema-v27) : absent tant que la migration n'est pas passée.
-      supabase(`parametres_reservation?owner_id=in.(${ids})&select=owner_id,styles`).catch(() => [])
+      supabase(`parametres_reservation?owner_id=in.(${ids})&select=owner_id,styles`).catch(() => []),
+      // Tarifs enfant et étudiant (schema-v34) : absents tant que la migration n'est pas passée.
+      supabase(`parametres_reservation?owner_id=in.(${ids})&select=owner_id,tarif_enfant_actif,tarif_enfant_pourcentage,tarif_enfant_age_max,tarif_etudiant_actif,tarif_etudiant_pourcentage`).catch(() => [])
     ]);
+    const tarifsParId = Object.fromEntries(tarifsLignes.map(l => [l.owner_id, {
+      enfant: l.tarif_enfant_actif ? { pourcentage: l.tarif_enfant_pourcentage, age_max: l.tarif_enfant_age_max } : null,
+      etudiant: l.tarif_etudiant_actif ? { pourcentage: l.tarif_etudiant_pourcentage } : null }]));
     const stylesParId = Object.fromEntries(stylesLignes.map(l => [l.owner_id, l.styles || []]));
     const creuxParId = Object.fromEntries(creuxLignes.map(c => [c.owner_id, Number(c.creux_pourcentage) || null]));
     const vitParId = Object.fromEntries(vitrines.map(v => [v.owner_id, v]));
@@ -229,6 +236,7 @@ export default async function handler(req, res){
         correspondance,
         creux: creuxParId[f.owner_id] || null,
         styles: stylesParId[f.owner_id] || [],
+        tarifs: tarifsParId[f.owner_id] || { enfant: null, etudiant: null },
         _ok_budget: (budgetMin == null && budgetMax == null) || dansBudget.length > 0,
         _ok_texte: !q || parTexte.length > 0,
         nb_prestations: px ? px.n : 0,
@@ -239,6 +247,7 @@ export default async function handler(req, res){
       .filter(x => !metier || x.metier === metier)
       .filter(x => !publicCible || x.publics.includes(publicCible))
       .filter(x => !style || x.styles.includes(style))
+      .filter(x => !tarif || x.tarifs[tarif])
       .filter(x => !ville || normaliser(x.ville).includes(ville))
       .filter(x => !q || x._ok_texte || normaliser(`${x.nom} ${x.description || ''} ${x.metier}`).includes(q))
       .filter(x => x._ok_budget)

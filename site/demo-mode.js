@@ -272,13 +272,13 @@
         var s = DEMOS[k], notes = s.avis.map(function(a){ return a[1]; }), pub = {};
         s.prestations.forEach(function(p){ if(p.public === 'mixte'){ pub.femme = pub.homme = 1; } else pub[p.public] = 1; });
         return { slug: k, nom: s.nom, metier: s.metier, ville: s.ville, logo_url: null, photo: s.style.cover_url, description: s.style.accroche, latitude: s.latitude, longitude: s.longitude,
-          prix_a_partir_de: Math.min.apply(null, s.prestations.map(function(p){ return p.prix; })), prix_max: Math.max.apply(null, s.prestations.map(function(p){ return p.prix; })), creux: s.creux ? s.creux.pourcentage : null, nb_prestations: s.prestations.length, publics: Object.keys(pub), _s: s,
+          prix_a_partir_de: Math.min.apply(null, s.prestations.map(function(p){ return p.prix; })), prix_max: Math.max.apply(null, s.prestations.map(function(p){ return p.prix; })), creux: s.creux ? s.creux.pourcentage : null, tarifs: s.tarifs || { enfant: null, etudiant: null }, nb_prestations: s.prestations.length, publics: Object.keys(pub), _s: s,
           note_moyenne: notes.length ? Math.round(notes.reduce(function(a, b){ return a + b; }, 0) / notes.length * 10) / 10 : null, nb_avis: notes.length };
       });
       var norm = function(x){ return String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); };
       var qt = norm(q.get('q')), vi = norm(q.get('ville')), me = q.get('metier') || '', pu = q.get('public') || '';
       var nb = function(v){ var n = Number(String(v || '').replace(',', '.')); return v !== null && v !== '' && isFinite(n) && n >= 0 ? n : null; };
-      var bmin = nb(q.get('budget_min')), bmax = nb(q.get('budget_max')), soloPromo = q.get('promo') === '1';
+      var bmin = nb(q.get('budget_min')), bmax = nb(q.get('budget_max')), soloPromo = q.get('promo') === '1', soloTarif = ['enfant', 'etudiant'].indexOf(q.get('tarif')) >= 0 ? q.get('tarif') : '';
       liste = liste.filter(function(x){
         var cand = x._s.prestations.filter(function(p){ return !pu || p.public === 'mixte' || p.public === pu; });
         var parTexte = qt ? cand.filter(function(p){ return norm(p.libelle).indexOf(qt) >= 0; }) : [];
@@ -288,11 +288,12 @@
         var okTexte = !qt || parTexte.length > 0 || norm(x.nom + ' ' + x.description).indexOf(qt) >= 0;
         var okBudget = (bmin == null && bmax == null) || dans.length > 0;
         if(soloPromo && !x.creux) return false;
+        if(soloTarif && !(x.tarifs && x.tarifs[soloTarif])) return false;
         return (!me || x.metier === me) && (!pu || x.publics.indexOf(pu) >= 0) && (!vi || norm(x.ville).indexOf(vi) >= 0) && okTexte && okBudget;
       });
       liste.forEach(function(x){ delete x._s; });
       var villeCherchee = norm(q.get('ville')), dem2 = demandesAjoutees();
-      var externes = (villeCherchee && bmin == null && bmax == null && !soloPromo && !pu) ? EXTERNES.filter(function(e){
+      var externes = (villeCherchee && bmin == null && bmax == null && !soloPromo && !soloTarif && !pu) ? EXTERNES.filter(function(e){
         return norm(e.ville).indexOf(villeCherchee) >= 0 && (!me || e.metier === me) && (!qt || norm(e.nom).indexOf(qt) >= 0);
       }).map(function(e){ return Object.assign({}, e, { nb_demandes: e.nb_demandes + (dem2[e.id] ? 1 : 0) }); }) : [];
       return reponse({ praticiens: liste, non_inscrits: externes });
