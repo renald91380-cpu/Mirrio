@@ -27,6 +27,8 @@
   let invite = null, bandeauOuvert = null;
 
   function bandeau(texte, action, definitif){
+    // Pas par-dessus le bandeau cookies : on attend que le visiteur ait fait son choix.
+    if(document.getElementById('mirrio-cookies')){ setTimeout(() => bandeau(texte, action, definitif), 2000); return; }
     if(bandeauOuvert) bandeauOuvert.remove();
     const b = document.createElement('div');
     b.setAttribute('role', 'dialog'); b.setAttribute('aria-label', 'Installer Mirrio');

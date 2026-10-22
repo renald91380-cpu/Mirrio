@@ -1,0 +1,19 @@
+# Mirrio
+
+> Mirrio est un logiciel de réservation en ligne et de gestion pour les salons de beauté (coiffure, barbier, institut, onglerie, massage) et les pâtisseries. Abonnement fixe de 15 € ou 29 € par mois, zéro commission sur les rendez-vous. Édité par Dima Artistry SARL (Casablanca, Maroc).
+
+## Pages principales
+- [Accueil](https://cadence-site-cadence-65cc.vercel.app/): présentation, tarifs, questions fréquentes
+- [Trouver un salon](https://cadence-site-cadence-65cc.vercel.app/explorer.html): annuaire des salons, recherche par ville, métier, budget, tarif enfant ou étudiant
+- [Créer un compte](https://cadence-site-cadence-65cc.vercel.app/signup.html): inscription des professionnels
+
+## Informations clés
+- Réservation en ligne 24 h/24, confirmation immédiate, choix du coiffeur, équipe en colonnes
+- Acompte par carte d'au moins 5 € à la réservation, solde en espèces ou par carte sur place
+- Heures creuses : remise automatique de 5 à 50 % sur les créneaux peu demandés
+- Livre d'or vérifié : un avis par rendez-vous réellement effectué
+- Aucune commission sur les rendez-vous : seuls les frais Stripe ou PayPal du salon s'appliquent
+
+## Légal
+- [Conditions générales d'utilisation](https://cadence-site-cadence-65cc.vercel.app/cgu.html)
+- [Politique de confidentialité](https://cadence-site-cadence-65cc.vercel.app/confidentialite.html)

@@ -109,6 +109,7 @@
 </style>
 <script src="demo-mode.js"></script>
 <script src="https://unpkg.com/@phosphor-icons/web@2.1.1" defer></script>
+<script src="/cookies.js" defer></script>
 </head>
 <body>
 <div id="app"><div class="etat">Chargement…</div></div>
@@ -173,6 +174,42 @@
     else if(/^0[1-9]\d{8}$/.test(n)) n = '33' + n.slice(1);
     return /^[1-9]\d{7,14}$/.test(n) ? n : null;
   };
+
+  // Référencement : titre, description, canonical, partage social et données structurées propres à CE salon.
+  // Écrits côté navigateur (les moteurs modernes exécutent le JavaScript) ; les pages de démonstration et l'aperçu de l'éditeur restent en noindex.
+  function referencement(d, v){
+    const BASE = 'https://cadence-site-cadence-65cc.vercel.app';
+    const url = `${BASE}/pro.html?p=${encodeURIComponent(d.slug || slug)}`;
+    const desc = (v.accroche || `Réservez en ligne chez ${d.nom}${d.ville ? ' à ' + d.ville : ''}.`).slice(0, 160);
+    const image = https(v.cover_url) || https(d.logo_url) || `${BASE}/img/og-mirrio.jpg`;
+    const meta = (attr, cle, val) => {
+      let m = document.head.querySelector(`meta[${attr}="${cle}"]`);
+      if(!m){ m = document.createElement('meta'); m.setAttribute(attr, cle); document.head.appendChild(m); }
+      m.setAttribute('content', val);
+    };
+    const titre = `${d.nom}${d.ville ? ' à ' + d.ville : ''} | Réservation en ligne`;
+    document.title = titre;
+    const interne = params.get('preview') === '1' || (d.slug || slug).startsWith('demo-');
+    meta('name', 'robots', interne ? 'noindex, nofollow' : 'index, follow');
+    if(interne) return;
+    let c = document.head.querySelector('link[rel=canonical]');
+    if(!c){ c = document.createElement('link'); c.rel = 'canonical'; document.head.appendChild(c); }
+    c.href = url;
+    meta('property', 'og:type', 'website'); meta('property', 'og:site_name', 'Mirrio'); meta('property', 'og:locale', 'fr_FR');
+    meta('property', 'og:url', url); meta('property', 'og:title', titre); meta('property', 'og:description', desc); meta('property', 'og:image', image);
+    meta('name', 'twitter:card', 'summary_large_image'); meta('name', 'twitter:title', titre); meta('name', 'twitter:description', desc); meta('name', 'twitter:image', image);
+    const TYPES = { coiffure: 'HairSalon', barbier: 'HairSalon', esthetique: 'BeautySalon', onglerie: 'NailSalon', massage: 'HealthAndBeautyBusiness' };
+    const ld = { '@context': 'https://schema.org', '@type': TYPES[d.metier] || 'LocalBusiness', name: d.nom, url, image, description: desc };
+    if(d.adresse || d.ville) ld.address = { '@type': 'PostalAddress', ...(d.adresse ? { streetAddress: d.adresse } : {}), ...(d.ville ? { addressLocality: d.ville } : {}) };
+    if(d.latitude != null && d.longitude != null) ld.geo = { '@type': 'GeoCoordinates', latitude: d.latitude, longitude: d.longitude };
+    const notes = (d.avis || []).map(a => Number(a.note)).filter(n => n >= 1 && n <= 5);
+    if(notes.length) ld.aggregateRating = { '@type': 'AggregateRating', ratingValue: (notes.reduce((x, y) => x + y, 0) / notes.length).toFixed(1), reviewCount: notes.length, bestRating: 5, worstRating: 1 };
+    const offres = (d.prestations || []).slice(0, 12).filter(p => p.prix_unitaire != null).map(p => ({ '@type': 'Offer', priceCurrency: 'EUR', price: String(p.prix_unitaire), itemOffered: { '@type': 'Service', name: p.libelle } }));
+    if(offres.length) ld.makesOffer = offres;
+    let sc = document.getElementById('ld-salon');
+    if(!sc){ sc = document.createElement('script'); sc.type = 'application/ld+json'; sc.id = 'ld-salon'; document.head.appendChild(sc); }
+    sc.textContent = JSON.stringify(ld);
+  }
 
   function rendre(d){
     const v = d.vitrine || {};
@@ -262,7 +299,7 @@
     const corps = ordre.filter(k => sections[k] !== false && rendus[k]).map(k => rendus[k]()).join('');
 
     document.getElementById('app').innerHTML = `<a class="evitement" href="#prestations">Aller aux prestations</a>${bandeau}${entete}<main class="wrap">${corps}</main>
-      <footer class="pied">Page propulsée par <a href="beaute.html">Mirrio</a> · <a href="cgu.html">CGU</a> · <a href="confidentialite.html">Confidentialité</a></footer>
+      <footer class="pied">Page propulsée par <a href="beaute.html">Mirrio</a> · <a href="cgu.html">CGU</a> · <a href="confidentialite.html">Confidentialité</a> · <a href="#" data-cookies>Gérer les cookies</a></footer>
       ${wa ? `<a class="wa-flottant" href="${waHref}" ${waDemo ? 'data-wa-demo="1"' : 'target="_blank" rel="noopener"'} aria-label="Écrire au salon sur WhatsApp" title="Écrire sur WhatsApp"><i class="ph-fill ph-whatsapp-logo" aria-hidden="true"></i></a>` : ''}
       <div class="barre-resa"><a class="btn" href="${ctaHref}">${cta}</a></div>
       <div class="haut" id="haut" aria-hidden="true"><b>${esc(d.nom)}</b><a class="btn" href="${ctaHref}" tabindex="-1">${cta}</a></div>`;
@@ -275,6 +312,7 @@
     document.title = `${d.nom} | Réservation en ligne`;
     const md = document.querySelector('meta[name=description]');
     if(md) md.content = (v.accroche || `Réservez en ligne chez ${d.nom}.`).slice(0, 160);
+    referencement(d, v);
 
     // Prestations : onglets Femme / Homme + catégories
     if(document.getElementById('liste-presta')){

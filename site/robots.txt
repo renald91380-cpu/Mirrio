@@ -1,0 +1,43 @@
+# Mirrio — les moteurs de recherche ET les assistants IA sont les bienvenus sur les pages publiques.
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin.html
+Disallow: /dashboard.html
+Disallow: /clients.html
+Disallow: /agenda.html
+Disallow: /devis-factures.html
+Disallow: /parametres.html
+Disallow: /ma-page.html
+Disallow: /commandes.html
+Disallow: /prospection.html
+Disallow: /agent-dashboard.html
+Disallow: /voir-document.html
+Disallow: /mon-espace.html
+Disallow: /paiement-merci.html
+Disallow: /avis.html
+Disallow: /nouveau-mot-de-passe.html
+
+# Robots d'IA explicitement autorisés (citation dans ChatGPT, Perplexity, Claude, Gemini, Copilot, Apple Intelligence).
+User-agent: GPTBot
+Allow: /
+User-agent: OAI-SearchBot
+Allow: /
+User-agent: ChatGPT-User
+Allow: /
+User-agent: PerplexityBot
+Allow: /
+User-agent: ClaudeBot
+Allow: /
+User-agent: Claude-SearchBot
+Allow: /
+User-agent: anthropic-ai
+Allow: /
+User-agent: Google-Extended
+Allow: /
+User-agent: Applebot-Extended
+Allow: /
+User-agent: cohere-ai
+Allow: /
+
+Sitemap: https://cadence-site-cadence-65cc.vercel.app/sitemap.xml
