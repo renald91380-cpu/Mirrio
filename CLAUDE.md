@@ -16,6 +16,8 @@ Ce fichier est chargé automatiquement par Claude Code à chaque session ouverte
 - Indépendant — 15€/mois — jusqu'à 25 clients actifs (valeur interne `plan = 'solo'`)
 - Salon — 29€/mois — clients illimités, multi-collaborateurs (valeur interne `plan = 'studio'`)
 
+- Boulangerie-pâtisserie — **tarif unique 29 €/mois, tout inclus** (pas de choix de formule). À l'inscription (`signup.html`, champ « Votre activité »), `activite = 'patisserie'` part dans les métadonnées ; `handle_new_user()` (`db/schema-v36-patisserie-tarif-unique.sql`) pose alors `metier = 'patisserie'` et force `plan = 'studio'`. Limite : la connexion Google ne transmet pas l'activité ni la formule (comme avant pour `plan`).
+
 *Seuls les libellés affichés ont changé : les valeurs `solo`/`studio` restent les clés en base, dans les URLs (`signup.html?plan=studio`) et dans le code.*
 
 ---

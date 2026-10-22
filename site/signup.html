@@ -123,6 +123,8 @@
     display:flex; font-size:13.5px; font-weight:600; margin-bottom:7px; gap:4px;
   }
   .field .req{ color:var(--brick); }
+  .field select{ width:100%; min-height:48px; padding:12px 14px; font-size:15px; font-family:var(--body); background:#fff; border:1px solid rgba(28,35,51,0.2); border-radius:7px; color:var(--ink); }
+  .field select:focus{ outline:none; border-color:var(--teal); box-shadow:0 0 0 3px rgba(62,124,116,0.15); }
   .field input{
     width:100%; min-height:48px; padding:12px 14px; font-size:15px; font-family:var(--body);
     background:#fff; border:1px solid rgba(28,35,51,0.2); border-radius:7px; color:var(--ink);
@@ -261,6 +263,23 @@
         </div>
 
         <form id="signup-form" novalidate>
+          <div class="field" id="activite-field">
+            <label for="activite">Votre activité</label>
+            <select id="activite" name="activite">
+              <option value="beaute">Salon de beauté, coiffure, institut, massage</option>
+              <option value="patisserie">Boulangerie, pâtisserie</option>
+            </select>
+          </div>
+
+          <div class="field" id="tarif-unique" style="display:none;">
+            <div class="plan-picker" style="grid-template-columns:1fr;">
+              <div class="plan-option" style="border-color:var(--teal); background:rgba(62,124,116,0.06);">
+                <div class="name">Boulangerie-pâtisserie</div>
+                <div class="price">29&nbsp;€&nbsp;/mois, tout inclus, tarif unique</div>
+              </div>
+            </div>
+          </div>
+
           <div class="field" id="plan-field">
             <label for="plan-picker-group">Formule</label>
             <div class="plan-picker" id="plan-picker-group" role="radiogroup" aria-label="Choisir une formule">
@@ -487,7 +506,9 @@
       options: {
         data: {
           full_name: form.elements.name.value.trim(),
-          plan: form.elements.plan.value,
+          plan: form.elements.activite.value === 'patisserie' ? 'studio' : form.elements.plan.value,
+          // Lu par handle_new_user() (schema-v36) : métier pâtissier et formule unique à 29 €.
+          activite: form.elements.activite.value === 'patisserie' ? 'patisserie' : undefined,
           // Lu directement par handle_new_user() côté SQL : si ce jeton est valide,
           // le compte rejoint l'espace de l'invitant dès sa création, avant même
           // la confirmation de l'email.
@@ -525,6 +546,17 @@
   if(plan === 'studio'){
     document.querySelector('input[name="plan"][value="studio"]').checked = true;
   }
+  // Boulangerie-pâtisserie : un seul tarif (29 €), donc pas de choix de formule.
+  const activiteEl = document.getElementById('activite');
+  function majActivite(){
+    const patisserie = activiteEl.value === 'patisserie' && !jetonInvite;
+    document.getElementById('tarif-unique').style.display = patisserie ? '' : 'none';
+    document.getElementById('plan-field').style.display = (patisserie || jetonInvite) ? 'none' : '';
+  }
+  activiteEl.addEventListener('change', majActivite);
+  if(params.get('activite') === 'patisserie') activiteEl.value = 'patisserie';
+  if(jetonInvite) document.getElementById('activite-field').style.display = 'none';
+  majActivite();
 </script>
 
 </body>
