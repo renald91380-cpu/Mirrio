@@ -66,6 +66,7 @@
       adresse: '27 rue Oberkampf, 75011 Paris', latitude: 48.8650, longitude: 2.3790,
       jours: [2,3,4,5,6], debut: '09:30', fin: '19:00', pas: 30,
       creux: { pourcentage: 15, jours: [2,3,4], debut: '09:30', fin: '12:00' },
+      tarifs: { enfant: { pourcentage: 20, age_max: 12 }, etudiant: { pourcentage: 10 } },
       style: { accroche: 'Coiffure femme et homme. Colorations végétales, balayages sur mesure.', mise_en_page: 'classique', police: 'elegante', couleur: '#C25B7E', fond: 'creme', boutons: 'pilule',
         texte_bouton: 'Prendre rendez-vous', cover_url: c('Ricky Reyes salon interiorB.jpg'),
         galerie: [g('Drying hair in salon.jpg'), g('Salon interior.jpg'), g('Woman Weaves Hair in Salon 03.jpg'), g('Young men with trendy haircut at barber shop.jpg')],
@@ -304,7 +305,7 @@
       var v = salon.style;
       return reponse({
         slug: slug, nom: salon.nom, metier: salon.metier, logo_url: null, accent: salon.accent, ville: salon.ville,
-        horaires: { jours: salon.jours, debut: salon.debut, fin: salon.fin }, adresse: salon.adresse, latitude: salon.latitude, longitude: salon.longitude,
+        horaires: { jours: salon.jours, debut: salon.debut, fin: salon.fin }, tarifs: salon.tarifs || { enfant: null, etudiant: null }, adresse: salon.adresse, latitude: salon.latitude, longitude: salon.longitude,
         vitrine: { accroche: v.accroche, a_propos: v.a_propos, cover_url: v.cover_url, galerie: v.galerie, mise_en_page: v.mise_en_page, police: v.police, couleur: v.couleur, fond: v.fond, boutons: v.boutons,
           texte_bouton: v.texte_bouton, bandeau_actif: !!v.bandeau_actif, bandeau_texte: v.bandeau_texte || null, instagram: v.instagram, whatsapp: v.whatsapp || '06 12 34 56 78', telephone_public: v.telephone_public, email_public: v.email_public || null,
           sections: { a_propos: true, prestations: true, galerie: true, equipe: true, avis: true, horaires: true, carte: true }, ordre: ['a_propos', 'prestations', 'galerie', 'equipe', 'horaires', 'carte', 'avis'] },
@@ -324,6 +325,7 @@
           intervenants: salon.equipe.map(function(i){ return { id: i.id, nom: i.nom, role: i.role, photo_url: null }; }),
           validation_auto: true, prestations: listePrestations(salon),
           creux: salon.creux ? { pourcentage: salon.creux.pourcentage, jours: salon.creux.jours, debut: salon.creux.debut, fin: salon.creux.fin } : null,
+          tarifs: salon.tarifs || { enfant: null, etudiant: null },
           paiement_requis: salon.paiement.en_ligne, paiement: salon.paiement,
           reglages: { jours_ouvres: salon.jours, heure_debut: salon.debut, heure_fin: salon.fin, delai_min_heures: 2, horizon_jours: 21 }
         });
@@ -354,7 +356,7 @@
       var l = lire(); l.push({ slug: slug, interv: choisi, a: deb.getTime(), b: finD.getTime() }); ecrire(l);
 
       var total = idsR.reduce(function(t, id){ return t + pris(salon)[id].prix; }, 0), cfg = salon.paiement;
-      var remisePct = remiseCreux(salon, deb); if(remisePct > 0) total = Math.round(total * (100 - remisePct)) / 100;
+      var remisePct = remiseCreux(salon, deb); var tarifs = salon.tarifs || {}; var pctSpecial = (b.tarif && tarifs[b.tarif]) ? tarifs[b.tarif].pourcentage : 0; remisePct = Math.max(remisePct, pctSpecial); if(remisePct > 0) total = Math.round(total * (100 - remisePct)) / 100;
       var acompte = Math.min(total, Math.max(5, cfg.acompte_minimum, Math.round(total * cfg.acompte_pourcentage) / 100));
       var surPlace = b.mode_paiement === 'sur_place' && cfg.especes && acompte < total;
       var aPayer = !cfg.en_ligne ? 0 : (surPlace ? acompte : total);

@@ -29,7 +29,7 @@ import rdvIcs from './_rdv-ics.js';
 import vitrine from './_vitrine.js';
 import client from './_client.js';
 import gateaux from './_gateaux.js';
-import { contexte, occupes, creneauxDuJour, composantsParis, parisVersUtc, get as getDispo, chargerCreux, remiseCreux } from './_dispo.js';
+import { contexte, occupes, creneauxDuJour, composantsParis, parisVersUtc, get as getDispo, chargerCreux, remiseCreux, chargerTarifs } from './_dispo.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -205,6 +205,7 @@ export default async function handler(req, res){
   prestations = prestations.map(p => ({ ...p, intervenants: intervenants.filter(i => !parIntervenant[i.id] || parIntervenant[i.id].has(p.id)).map(i => i.id) }));
 
   const creuxActif = await chargerCreux(ownerId);
+  const tarifs = await chargerTarifs(ownerId);
   // WhatsApp du salon (schema-v26, facultatif) : bouton « Une question ? » sur la page de confirmation.
   const whatsapp = await getDispo(`vitrine?owner_id=eq.${ownerId}&select=whatsapp`).then(l => l[0]?.whatsapp || null).catch(() => null);
   const profil = profils[0] || {};
@@ -228,6 +229,8 @@ export default async function handler(req, res){
     whatsapp,
     // Heures creuses (schema-v24) : null si le salon n'en propose pas.
     creux: creuxActif ? { pourcentage: creuxActif.pourcentage, jours: creuxActif.jours, debut: String(creuxActif.debut).slice(0, 5), fin: String(creuxActif.fin).slice(0, 5) } : null,
+    // Tarifs enfant et étudiant (schema-v34) : null = non proposé par ce salon.
+    tarifs,
     // Choix proposé au client : CB (total en ligne) ou espèces (acompte en ligne, solde au salon).
     paiement: {
       en_ligne: paiementRequis,

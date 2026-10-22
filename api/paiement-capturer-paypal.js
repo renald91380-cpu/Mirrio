@@ -287,7 +287,7 @@ export default async function handler(req, res){
       client_id: rdv.client_id,
       type: 'facture',
       statut: 'paye',
-      notes: `Réglée en ligne par PayPal le ${new Date().toLocaleDateString('fr-FR')}.${remise ? ` Remise heures creuses de ${remise} % appliquée.` : ''}`
+      notes: `Réglée en ligne par PayPal le ${new Date().toLocaleDateString('fr-FR')}.${remise ? ` ${rdv.tarif === 'enfant' ? 'Tarif enfant' : (rdv.tarif === 'etudiant' ? 'Tarif étudiant' : 'Remise heures creuses')} : ${remise} % de réduction appliquée.` : ''}`
     });
     const doc = docs[0];
 

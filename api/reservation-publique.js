@@ -27,7 +27,7 @@
 
 import { icsParId, pieceJointe } from './_ics.js';
 
-import { contexte, occupes as chargerOccupes, choisirRessource, chargerCreux, remiseCreux, prixRemise, repartirCentimes } from './_dispo.js';
+import { contexte, occupes as chargerOccupes, choisirRessource, chargerCreux, remiseCreux, prixRemise, repartirCentimes, chargerTarifs, pctTarif } from './_dispo.js';
 import { smsConfirmation } from './_sms.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -94,6 +94,11 @@ async function insererRendezVous(corps, infos){
   try{
     return await supabasePostRepresentation('rendez_vous', { ...corps, ...infos });
   }catch(e){
+    // Colonne `tarif` (schema-v34) absente : on réessaie sans elle mais en gardant les colonnes de paiement.
+    if(infos && infos.tarif !== undefined && /tarif/.test(String(e.message)) && /PGRST204|42703/.test(String(e.message))){
+      const { tarif, ...sansTarif } = infos;
+      return insererRendezVous(corps, sansTarif);
+    }
     if(!/paiement_mode|total_ttc|reste_sur_place|intervenant_id|PGRST204|42703/.test(String(e.message))) throw e;
     return supabasePostRepresentation('rendez_vous', corps);
   }
@@ -306,7 +311,15 @@ export default async function handler(req, res){
     return s + Number(p.prix_unitaire) * (1 + taux / 100);
   }, 0);
   // Heures creuses : si le créneau choisi est dans la plage remisée du salon, le prix baisse. Seul le serveur décide.
-  const remisePct = remiseCreux(await chargerCreux(ownerId), dateDebut);
+  // Tarif enfant ou étudiant demandé par le client (facultatif, au choix du salon) : même mécanique, non cumulable
+  // avec les heures creuses (la réduction la plus forte s'applique). Seul le serveur décide.
+  const tarifDemande = ['enfant', 'etudiant'].includes(body?.tarif) ? body.tarif : '';
+  const pctCreux = remiseCreux(await chargerCreux(ownerId), dateDebut);
+  const pctSpecial = tarifDemande ? pctTarif(await chargerTarifs(ownerId), tarifDemande) : 0;
+  if(tarifDemande && !(pctSpecial > 0)) return json(res, 400, { error: 'Ce tarif n’est pas proposé par ce salon.' });
+  const remisePct = Math.max(pctCreux, pctSpecial);
+  const tarifApplique = pctSpecial > 0 && pctSpecial >= pctCreux ? tarifDemande : '';
+  const suffixeTarif = tarifApplique === 'enfant' ? ' (tarif enfant)' : (tarifApplique === 'etudiant' ? ' (tarif étudiant, justificatif à présenter)' : '');
   const montantTTC = prixRemise(montantBrutTTC, remisePct);
   const libelleCombine = prestationsOrdonnees.map(p => p.libelle).join(' + ');
   // Représentant unique pour les colonnes historiques (rendez_vous.prestation_id,
@@ -397,7 +410,7 @@ export default async function handler(req, res){
   const paiementRequis = stripeActif && aPayerEnLigneCentimes > 0;
   const modeEnregistre = stripeActif ? mode : 'sur_place';
   // Colonnes schema-v19 : ajoutées seulement si présentes en base (voir insertSouple).
-  const infosPaiement = { paiement_mode: modeEnregistre, total_ttc: montantTTC, reste_sur_place: resteSurPlace, remise_pct: remisePct };
+  const infosPaiement = { paiement_mode: modeEnregistre, total_ttc: montantTTC, reste_sur_place: resteSurPlace, remise_pct: remisePct, ...(tarifApplique ? { tarif: tarifApplique } : {}) };
 
   if(paiementRequis){
     const montantCentimes = aPayerEnLigneCentimes;
@@ -416,7 +429,7 @@ export default async function handler(req, res){
       // `paiement_montant` = ce qui est réellement débité par carte (total, ou acompte en mode espèces).
       const rows = await insererRendezVous({
         owner_id: ownerId,
-        titre: `${libelleCombine} — ${nom}`,
+        titre: `${libelleCombine} — ${nom}${suffixeTarif}`,
         prestation_id: prestationPrincipale.id,
         date_debut: dateDebut.toISOString(),
         date_fin: dateFin.toISOString(),
@@ -506,7 +519,7 @@ export default async function handler(req, res){
   try{
     const rows = await insererRendezVous({
       owner_id: ownerId,
-      titre: `${libelleCombine} — ${nom}`,
+      titre: `${libelleCombine} — ${nom}${suffixeTarif}`,
       prestation_id: prestationPrincipale.id,
       date_debut: dateDebut.toISOString(),
       date_fin: dateFin.toISOString(),

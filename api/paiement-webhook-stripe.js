@@ -444,8 +444,8 @@ async function traiterConfirmationReservation({ rdv, session, ownerId, stripeSec
       type: 'facture',
       statut: surPlace ? 'envoye' : 'paye',
       notes: surPlace
-        ? `Acompte de ${eur(acompte)} réglé par carte (Stripe) le ${dateJour}, déduit du total. Reste à régler en espèces sur place : ${eur(reste)}.${remise ? ` Remise heures creuses de ${remise} % appliquée.` : ''}`
-        : `Réservation en ligne réglée par carte (Stripe) le ${dateJour}.${remise ? ` Remise heures creuses de ${remise} % appliquée.` : ''}`
+        ? `Acompte de ${eur(acompte)} réglé par carte (Stripe) le ${dateJour}, déduit du total. Reste à régler en espèces sur place : ${eur(reste)}.${remise ? ` ${rdv.tarif === 'enfant' ? 'Tarif enfant' : (rdv.tarif === 'etudiant' ? 'Tarif étudiant' : 'Remise heures creuses')} : ${remise} % de réduction appliquée.` : ''}`
+        : `Réservation en ligne réglée par carte (Stripe) le ${dateJour}.${remise ? ` ${rdv.tarif === 'enfant' ? 'Tarif enfant' : (rdv.tarif === 'etudiant' ? 'Tarif étudiant' : 'Remise heures creuses')} : ${remise} % de réduction appliquée.` : ''}`
     });
     const doc = docs[0];
     // Lien rendez-vous → facture, pour que « Espèces reçues » puisse la marquer payée.

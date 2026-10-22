@@ -1001,6 +1001,25 @@
             <div class="field"><label>Jours concernés</label><div id="resa-creux-jours" style="display:flex; gap:8px; flex-wrap:wrap;"></div></div>
           </div>
 
+          <h3 style="margin:26px 0 6px; font-size:15px;">Tarifs enfant et étudiant</h3>
+          <div class="hint" style="margin-bottom:10px;">Facultatifs et à votre main : rien n'est proposé tant que vous ne les activez pas. Quand un tarif est actif, vos clients le choisissent au moment de réserver ; la réduction s'applique au prix de leur prestation, sur l'acompte et sur la facture. Elle ne se cumule pas avec les heures creuses : la réduction la plus forte s'applique.</div>
+          <div class="field" style="display:flex; align-items:center; gap:10px; margin:6px 0 4px;">
+            <input type="checkbox" id="resa-enfant-actif" data-bind="reservation.tarif_enfant_actif" style="width:20px; height:20px;">
+            <label for="resa-enfant-actif" style="margin:0;">Proposer un tarif enfant</label>
+          </div>
+          <div class="grid-2" id="resa-enfant-detail" style="margin-bottom:12px;">
+            <div class="field"><label for="resa-enfant-pct">Réduction sur le prix adulte</label><select id="resa-enfant-pct" data-bind="reservation.tarif_enfant_pourcentage"><option value="5">5 %</option><option value="10">10 %</option><option value="15">15 %</option><option value="20">20 %</option><option value="25">25 %</option><option value="30">30 %</option><option value="40">40 %</option><option value="50">50 %</option></select></div>
+            <div class="field"><label for="resa-enfant-age">Pour les enfants</label><select id="resa-enfant-age" data-bind="reservation.tarif_enfant_age_max"><option value="6">Moins de 6 ans</option><option value="8">Moins de 8 ans</option><option value="10">Moins de 10 ans</option><option value="12">Moins de 12 ans</option><option value="14">Moins de 14 ans</option><option value="16">Moins de 16 ans</option></select></div>
+          </div>
+          <div class="field" style="display:flex; align-items:center; gap:10px; margin:6px 0 4px;">
+            <input type="checkbox" id="resa-etudiant-actif" data-bind="reservation.tarif_etudiant_actif" style="width:20px; height:20px;">
+            <label for="resa-etudiant-actif" style="margin:0;">Proposer un tarif étudiant</label>
+          </div>
+          <div class="grid-2" id="resa-etudiant-detail" style="margin-bottom:6px;">
+            <div class="field"><label for="resa-etudiant-pct">Réduction sur le prix adulte</label><select id="resa-etudiant-pct" data-bind="reservation.tarif_etudiant_pourcentage"><option value="5">5 %</option><option value="10">10 %</option><option value="15">15 %</option><option value="20">20 %</option><option value="25">25 %</option><option value="30">30 %</option><option value="40">40 %</option><option value="50">50 %</option></select></div>
+          </div>
+          <div class="hint" style="margin-bottom:14px;">Pour le tarif étudiant, le client est prévenu qu'une carte d'étudiant en cours de validité sera demandée au salon. Le rendez-vous porte la mention « tarif enfant » ou « tarif étudiant » dans votre agenda.</div>
+
           <div class="field" style="display:flex; align-items:center; gap:10px; margin:14px 0 4px;">
             <input type="checkbox" id="resa-rappel-email" data-bind="reservation.rappel_email" style="width:20px; height:20px;">
             <label for="resa-rappel-email" style="margin:0;">Rappeler le rendez-vous par email la veille</label>
@@ -2564,6 +2583,14 @@
     saveBtn.disabled = false;
     saveBtn.textContent = 'Enregistrer';
 
+    // Migration v34 (tarifs enfant et étudiant) pas encore exécutée : on enregistre le reste et on le dit clairement.
+    if(r3.error && /tarif_/.test(String(r3.error.message || '')) ){
+      const sansTarifs = { ...pReserv };
+      Object.keys(sansTarifs).filter(k => k.startsWith('tarif_')).forEach(k => delete sansTarifs[k]);
+      const retry = await supabase.from('parametres_reservation').upsert(sansTarifs, { onConflict:'owner_id' });
+      r3.error = retry.error;
+      if(!retry.error) showToast("Enregistré, sauf les tarifs enfant et étudiant : la mise à jour de la base (schema-v34) n'a pas encore été exécutée.", true);
+    }
     if(r3.error && r3.error.code === '23505'){
       setFieldError('resa-slug', 'Ce lien est déjà pris, essayez une variante.');
       showToast("L'enregistrement a échoué.", true);
@@ -2669,7 +2696,8 @@
       jours_ouvres: [1,2,3,4,5],
       heure_debut: '09:00', heure_fin: '18:00',
       intervalle_minutes: 30, delai_min_heures: 24, horizon_jours: 30,
-      creux_actif: false, creux_pourcentage: 15, creux_jours: [2,3,4], creux_heure_debut: '09:00', creux_heure_fin: '12:00'
+      creux_actif: false, creux_pourcentage: 15, creux_jours: [2,3,4], creux_heure_debut: '09:00', creux_heure_fin: '12:00',
+      tarif_enfant_actif: false, tarif_enfant_pourcentage: 20, tarif_enfant_age_max: 12, tarif_etudiant_actif: false, tarif_etudiant_pourcentage: 10
     };
     delete reservation.owner_id;
 

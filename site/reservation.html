@@ -240,6 +240,17 @@
           <button type="button" class="retour" data-cible="etape-date">&larr; Changer de créneau</button>
           <h2 id="t-form" tabindex="-1">Vos coordonnées</h2>
           <div class="recap-bloc" id="recap"></div>
+          <fieldset class="mode" id="choix-tarif" hidden>
+            <legend>Quel tarif ?</legend>
+            <label class="mode-carte"><input type="radio" name="tarif" value="" checked>
+              <span class="mode-corps"><span class="mode-puce" aria-hidden="true"></span><span class="mode-titre"><span>Tarif normal</span></span></span></label>
+            <label class="mode-carte" id="carte-tarif-enfant" hidden><input type="radio" name="tarif" value="enfant">
+              <span class="mode-corps"><span class="mode-puce" aria-hidden="true"></span><span class="mode-titre"><span id="tarif-enfant-titre">Tarif enfant</span><span id="tarif-enfant-prix"></span></span>
+              <span class="mode-detail" id="tarif-enfant-detail"></span></span></label>
+            <label class="mode-carte" id="carte-tarif-etudiant" hidden><input type="radio" name="tarif" value="etudiant">
+              <span class="mode-corps"><span class="mode-puce" aria-hidden="true"></span><span class="mode-titre"><span>Tarif étudiant</span><span id="tarif-etudiant-prix"></span></span>
+              <span class="mode-detail" id="tarif-etudiant-detail"></span></span></label>
+          </fieldset>
           <fieldset class="mode" id="choix-mode" hidden>
             <legend>Comment souhaitez-vous régler ?</legend>
             <label class="mode-carte"><input type="radio" name="mode" value="en_ligne" checked>
@@ -315,7 +326,12 @@
   let fermee = false;
   // Heures creuses : créneaux remisés du jour affiché, et remise du créneau choisi (le serveur recalcule le prix au paiement).
   let remisePct = 0, promoPct = 0, promoSet = new Set();
-  const prixDu = () => { const p = totaux(prestationsChoisies).prix; return remisePct > 0 ? Math.round(p * (100 - remisePct)) / 100 : p; };               // salon sans paiement en ligne : pas de réservation
+  // Tarif enfant ou étudiant (facultatif, au choix du salon) : non cumulable avec les heures creuses, la réduction la plus forte s'applique.
+  let tarifChoisi = '';
+  const tarifPct = () => (tarifChoisi && bootstrap && bootstrap.tarifs && bootstrap.tarifs[tarifChoisi] ? Number(bootstrap.tarifs[tarifChoisi].pourcentage) || 0 : 0);
+  const pctEffectif = () => Math.max(remisePct, tarifPct());
+  const libelleReduction = () => tarifPct() > 0 && tarifPct() >= remisePct ? (tarifChoisi === 'enfant' ? 'Tarif enfant' : 'Tarif étudiant') : 'Heures creuses';
+  const prixDu = () => { const p = totaux(prestationsChoisies).prix; return pctEffectif() > 0 ? Math.round(p * (100 - pctEffectif())) / 100 : p; };               // salon sans paiement en ligne : pas de réservation
   // Une ou plusieurs prestations choisies ensemble (ex. « Coupe + Couleur »).
   // L'ordre reflète l'ordre de sélection, conservé jusqu'au serveur pour que
   // l'itemisation (facture, reçu Stripe) suive le même ordre.
@@ -420,7 +436,7 @@
     }else{
       const t = totaux(prestationsChoisies);
       corps.innerHTML = `<ul>${prestationsChoisies.map(p => `<li><span>${echapperHtml(p.libelle)}</span><span>${formaterEuros(prixTTC(p))}</span></li>`).join('')}</ul>
-        ${etapeCourante === 'etape-form' && remisePct > 0 ? `<div class="total" style="border-top:0; padding-top:4px;"><span>Heures creuses, −${remisePct} %</span><span>− ${formaterEuros(t.prix - prixDu())}</span></div>` : ''}
+        ${etapeCourante === 'etape-form' && pctEffectif() > 0 ? `<div class="total" style="border-top:0; padding-top:4px;"><span>${libelleReduction()}, −${pctEffectif()} %</span><span>− ${formaterEuros(t.prix - prixDu())}</span></div>` : ''}
         <div class="total"><span>Total, ${formaterDuree(t.duree)}</span><strong>${formaterEuros(etapeCourante === 'etape-form' ? prixDu() : t.prix)}</strong></div>
         ${etapeCourante === 'etape-form' ? (() => { const i = infosPaiement(); return `<ul style="margin-top:10px;">${i.maintenant > 0 ? `<li><span>À payer maintenant (carte)</span><strong>${formaterEuros(i.maintenant)}</strong></li>` : ''}${i.reste > 0 ? `<li><span>Au salon (espèces)</span><strong>${formaterEuros(i.reste)}</strong></li>` : ''}</ul>`; })() : ''}
         ${intervenantChoisi !== 'any' && intervenantParId(intervenantChoisi) && etapeCourante !== 'etape-prestation' ? `<div class="quand" style="background:transparent; padding:12px 0 0; font-weight:500;">Avec ${echapperHtml(intervenantParId(intervenantChoisi).nom)}</div>` : ''}
@@ -608,7 +624,29 @@
   }
 
   // ------------------------------------------------------------------- form
+  // Tarifs enfant et étudiant : proposés seulement si le salon les a activés (Paramètres → Réservation).
+  function majChoixTarif(){
+    const t = (bootstrap && bootstrap.tarifs) || {};
+    const total = totaux(prestationsChoisies).prix;
+    const avec = !!(t.enfant || t.etudiant);
+    $('choix-tarif').hidden = !avec;
+    $('carte-tarif-enfant').hidden = !t.enfant; $('carte-tarif-etudiant').hidden = !t.etudiant;
+    if(t.enfant){
+      $('tarif-enfant-titre').textContent = `Tarif enfant (moins de ${t.enfant.age_max} ans)`;
+      $('tarif-enfant-prix').textContent = `−${t.enfant.pourcentage} %`;
+      $('tarif-enfant-detail').textContent = `Le prix passe à ${formaterEuros(Math.round(total * (100 - t.enfant.pourcentage)) / 100)}. L'enfant doit avoir moins de ${t.enfant.age_max} ans le jour du rendez-vous.`;
+    }
+    if(t.etudiant){
+      $('tarif-etudiant-prix').textContent = `−${t.etudiant.pourcentage} %`;
+      $('tarif-etudiant-detail').textContent = `Le prix passe à ${formaterEuros(Math.round(total * (100 - t.etudiant.pourcentage)) / 100)}. Une carte d'étudiant en cours de validité sera demandée au salon.`;
+    }
+    if(!avec || (tarifChoisi && !t[tarifChoisi])){ tarifChoisi = ''; }
+    const r = document.querySelector(`input[name=tarif][value="${tarifChoisi}"]`); if(r) r.checked = true;
+  }
+  document.querySelectorAll('input[name=tarif]').forEach(r => r.addEventListener('change', () => { tarifChoisi = r.value; majChoixMode(); majResume(); majRecapForm(); majBoutonEnvoi(); }));
+
   function ouvrirEtapeForm(){
+    majChoixTarif();
     majChoixMode();
     majRecapForm();
     majBoutonEnvoi();
@@ -665,7 +703,7 @@
     try{
       const r = await fetch('/api/reservation-publique', {
         method:'POST', headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify({ slug, prestation_ids: prestationsChoisies.map(p => p.id), date_debut: creneauChoisi, nom, email, telephone, mode_paiement: infos.mode, intervenant_id: intervenantChoisi })
+        body: JSON.stringify({ slug, prestation_ids: prestationsChoisies.map(p => p.id), date_debut: creneauChoisi, nom, email, telephone, mode_paiement: infos.mode, intervenant_id: intervenantChoisi, tarif: tarifChoisi || undefined })
       });
       resultat = await r.json();
       if(!r.ok){

@@ -139,6 +139,14 @@
     sombre: { bg:'#14171F', surface:'#1F2430', ink:'#F3F1EA', muted:'#A4A8B5', trait:'rgba(255,255,255,.12)' }
   };
   const RAYONS = { arrondi:'10px', carre:'2px', pilule:'999px' };
+  // Tarifs enfant et étudiant (facultatifs, au choix du salon) : une ligne d'information au-dessus des prestations.
+  function notesTarifs(t){
+    if(!t || (!t.enfant && !t.etudiant)) return '';
+    const l = [];
+    if(t.enfant) l.push(`<b>Tarif enfant</b> : −${esc(t.enfant.pourcentage)} % pour les moins de ${esc(t.enfant.age_max)} ans`);
+    if(t.etudiant) l.push(`<b>Tarif étudiant</b> : −${esc(t.etudiant.pourcentage)} % sur présentation de la carte d’étudiant`);
+    return `<p class="note-tarifs" style="margin:0 0 14px;padding:11px 16px;border-radius:16px;background:color-mix(in srgb, var(--accent, #E2A63D) 16%, transparent);font-size:14.5px;line-height:1.45">${l.join('<br>')}. À choisir au moment de réserver.</p>`;
+  }
   const ORDRE_DEFAUT = ['a_propos','prestations','galerie','equipe','horaires','carte','avis'];
   const JOURS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
 
@@ -225,6 +233,7 @@
     const rendus = {
       a_propos: () => v.a_propos ? `<section id="a-propos"><h2>À propos</h2><div class="texte">${esc(v.a_propos).split(/\n+/).map(p => `<p>${p}</p>`).join('')}</div></section>` : '',
       prestations: () => (d.prestations || []).length ? `<section id="prestations"><h2>Prestations</h2>
+          ${notesTarifs(d.tarifs)}
           <div id="zone-onglets"></div><div class="carte-s" id="liste-presta"></div>
           <div class="actions"><a class="btn" href="${ctaHref}">${cta}</a></div></section>` : '',
       galerie: () => {

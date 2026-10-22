@@ -54,6 +54,11 @@ export default async function handler(req, res){
     ]);
     if(!prestations.length) return json(res, 404, { error: 'Page introuvable.' });
 
+    // Tarifs enfant et étudiant (schema-v34), affichés sur la page du salon : absents si la migration manque.
+    const tar = await ouVide(get(`parametres_reservation?owner_id=eq.${id}&select=tarif_enfant_actif,tarif_enfant_pourcentage,tarif_enfant_age_max,tarif_etudiant_actif,tarif_etudiant_pourcentage`), []);
+    const t0 = tar[0] || {};
+    const tarifs = { enfant: t0.tarif_enfant_actif ? { pourcentage: t0.tarif_enfant_pourcentage, age_max: t0.tarif_enfant_age_max } : null, etudiant: t0.tarif_etudiant_actif ? { pourcentage: t0.tarif_etudiant_pourcentage } : null };
+
     const { owner_id, created_at, updated_at, ...v } = vitrine || {};
     return json(res, 200, {
       slug,
@@ -64,6 +69,7 @@ export default async function handler(req, res){
       ville: fact?.emetteur_ville || null,
       horaires: { jours: reglage.jours_ouvres, debut: reglage.heure_debut, fin: reglage.heure_fin },
       styles: reglage.styles || [],
+      tarifs,
       adresse: reglage.adresse_annuaire, latitude: reglage.latitude, longitude: reglage.longitude,
       vitrine: v, equipe, prestations, avis
     });

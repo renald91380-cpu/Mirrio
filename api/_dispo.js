@@ -162,6 +162,24 @@ export async function chargerCreux(ownerId){
   }catch(e){ return null; }
 }
 
+// Tarifs enfant et étudiant (schema-v34), facultatifs et au choix du salon : null = non proposé.
+export async function chargerTarifs(ownerId){
+  try{
+    const l = await get(`parametres_reservation?owner_id=eq.${ownerId}&select=tarif_enfant_actif,tarif_enfant_pourcentage,tarif_enfant_age_max,tarif_etudiant_actif,tarif_etudiant_pourcentage`);
+    const c = l[0];
+    if(!c) return { enfant: null, etudiant: null };
+    return {
+      enfant: c.tarif_enfant_actif ? { pourcentage: Number(c.tarif_enfant_pourcentage) || 0, age_max: Number(c.tarif_enfant_age_max) || 12 } : null,
+      etudiant: c.tarif_etudiant_actif ? { pourcentage: Number(c.tarif_etudiant_pourcentage) || 0 } : null
+    };
+  }catch(e){ return { enfant: null, etudiant: null }; }   // migration v34 pas encore passée : aucun tarif spécial
+}
+// Réduction du tarif demandé ('enfant' | 'etudiant'), 0 si le salon ne le propose pas.
+export function pctTarif(tarifs, tarif){
+  const t = tarifs && tarif && tarifs[tarif];
+  return t && t.pourcentage > 0 ? t.pourcentage : 0;
+}
+
 // Pourcentage de remise applicable à un rendez-vous commençant à `debutDate` (0 = aucune).
 export function remiseCreux(creux, debutDate){
   if(!creux || !(creux.pourcentage > 0)) return 0;
