@@ -405,6 +405,13 @@ Le back-office et l'inscription reprennent le langage des pages publiques (§3.2
 - `sw.js` : cache passé en `cadence-v2` pour que les anciens visiteurs reçoivent `app.css`.
 - **Limite** : seuls les écrans « coquille » ont été vérifiés visuellement (connexion, inscription, tableau de bord, Paramètres, mobile) ; Clients, Agenda, Devis et Admin héritent des mêmes variables et formes mais n'ont pas été relus un par un. Les libellés internes contiennent encore des tirets longs (règle réservée aux pages publiques).
 
+### 3.32 Textes légaux modifiables depuis le back-office
+
+`cgu.html` et `confidentialite.html` gardent leur texte statique, mais le remplacent à l'affichage par la version publiée en base (table `textes_legaux`, `db/schema-v35-textes-legaux.sql`) quand elle existe. L'éditeur est une carte « Textes légaux » de `admin.html` (HTML à gauche, aperçu à droite, « Publier », « Revenir au texte d'origine »). Lecture publique, écriture réservée à `admin_est_admin()` par RLS ; trigger d'horodatage (`maj_le`, `maj_par`), la date affichée sur la page suit la dernière publication.
+- **`texte-legal.js`** (module partagé par les deux pages et l'admin) contient l'assainisseur par liste blanche (balises, `href` http/mailto/relatif, classes `note`/`fill`) : l'aperçu est exactement ce que reçoit le public, et un compte admin compromis ne peut pas injecter de script dans une page publique.
+- **Tolérance** : sans migration, sans ligne ou en cas d'erreur réseau, la page garde son texte statique d'origine, jamais vide. Ne pas supprimer le texte statique des deux pages : c'est aussi le point de départ de l'éditeur.
+- Pas d'historique des versions (une seule version publiée par texte).
+
 ### Deux projets Vercel : un seul est public
 
 Le dépôt est déployé par **deux projets Vercel** (`cadence` et `cadence-site`). **`cadence` est protégé par l'authentification Vercel** : tout visiteur est redirigé vers `vercel.com/sso-api` (réponse 302), donc `demo.html`, la réservation et les pages salons « ne fonctionnent pas » depuis ce projet. **`cadence-site` est public** : `https://cadence-site-cadence-65cc.vercel.app/demo.html` répond 200. À partager : uniquement l'adresse de `cadence-site` (ou un domaine propre pointé dessus). Pour régler définitivement : désactiver la protection de `cadence` (Vercel → Settings → Deployment Protection) **ou** supprimer ce projet en double. Un réglage de sécurité Vercel n'est pas modifiable depuis ce dépôt. Le message à copier de `demo.html` utilise l'adresse d'où la page est ouverte : l'ouvrir depuis l'adresse publique avant de le copier.

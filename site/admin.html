@@ -108,6 +108,15 @@
   .card{ background:#fff; border:1px solid rgba(28,35,51,0.09); border-radius:12px; padding:22px 24px; margin-bottom:20px; }
   .card h2{ font-family:var(--display); font-size:18px; font-weight:700; margin-bottom:4px; }
   .card-sub{ font-size:13px; color:rgba(28,35,51,0.55); margin-bottom:18px; }
+  .legal-bar{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:12px; }
+  .legal-bar select{ padding:9px 12px; border:1px solid rgba(28,35,51,0.2); border-radius:10px; font:inherit; background:#fff; }
+  .legal-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:900px){ .legal-grid{ grid-template-columns:1fr; } }
+  .legal-grid textarea{ width:100%; min-height:460px; padding:12px; border:1px solid rgba(28,35,51,0.2); border-radius:10px; font:13px/1.5 ui-monospace,Menlo,monospace; resize:vertical; }
+  .legal-preview{ min-height:460px; max-height:560px; overflow:auto; padding:6px 16px; border:1px solid rgba(28,35,51,0.12); border-radius:10px; font-size:14px; line-height:1.6; }
+  .legal-preview h2{ font-size:16px; margin:18px 0 6px; } .legal-preview .note{ background:rgba(226,166,61,0.12); padding:8px 12px; border-radius:8px; font-size:13px; }
+  .legal-preview .fill{ background:rgba(226,166,61,0.3); padding:0 3px; border-radius:3px; }
+  .legal-msg{ font-size:13px; color:rgba(28,35,51,0.6); }
 
   /* ---------- Camembert métiers ---------- */
   .donut-wrap{ display:flex; gap:26px; align-items:center; flex-wrap:wrap; }
@@ -354,6 +363,25 @@
         </div>
       </div>
 
+      <div class="card" id="legal-card">
+        <h2>Textes légaux</h2>
+        <p class="card-sub">CGU et politique de confidentialité affichées publiquement sur <code>cgu.html</code> et <code>confidentialite.html</code>. Modifie le HTML à gauche, l'aperçu à droite montre ce que verra le public. Balises acceptées : titres <code>h2</code>/<code>h3</code>, paragraphes, listes, tableaux, liens, <code>strong</code>/<code>em</code>, <code>div class="note"</code>, <code>span class="fill"</code>. Le reste est retiré à l'affichage.</p>
+        <div class="legal-bar">
+          <select id="legal-slug" aria-label="Texte à modifier">
+            <option value="cgu">Conditions générales d'utilisation</option>
+            <option value="confidentialite">Politique de confidentialité</option>
+          </select>
+          <button class="btn btn-primary btn-sm" id="legal-save" type="button">Publier</button>
+          <button class="btn btn-outline btn-sm" id="legal-reset" type="button">Revenir au texte d'origine</button>
+          <a class="btn btn-outline btn-sm" id="legal-open" href="cgu.html" target="_blank" rel="noopener">Voir la page</a>
+          <span class="legal-msg" id="legal-msg" role="status"></span>
+        </div>
+        <div class="legal-grid">
+          <textarea id="legal-source" spellcheck="false" aria-label="HTML du texte"></textarea>
+          <div class="legal-preview" id="legal-preview" aria-label="Aperçu"></div>
+        </div>
+      </div>
+
       <div class="card">
         <h2>Répartition géographique</h2>
         <p class="card-sub">Ville/pays déclarés par chaque praticien dans Paramètres → Devis &amp; factures — pas de géolocalisation IP, donc « Non renseigné » tant que le champ est vide.</p>
@@ -419,6 +447,7 @@
 <script type="module">
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
   import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
+  import { assainir, dateFr } from './texte-legal.js';
   import { initTheme, formaterNomAffichage, initiales, prenomConnecte } from './theme.js';
 
   const configured = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_ANON_KEY.includes('YOUR-ANON');
@@ -625,6 +654,59 @@
     `).join('');
   }
 
+  // Textes légaux : édition du HTML publié (table textes_legaux). Sans ligne en base, l'éditeur
+  // part du texte statique de la page, extrait de son <article>, pour ne jamais commencer à vide.
+  async function initTextesLegaux(){
+    const slugEl = document.getElementById('legal-slug');
+    const src = document.getElementById('legal-source');
+    const prev = document.getElementById('legal-preview');
+    const msg = document.getElementById('legal-msg');
+    const page = () => slugEl.value + '.html';
+    const montrer = (t, ok) => { msg.textContent = t; msg.style.color = ok === false ? '#b3402a' : ''; };
+    const apercu = () => { prev.innerHTML = assainir(src.value); };
+
+    async function texteOrigine(){
+      const html = await (await fetch(page(), { cache: 'no-store' })).text();
+      // La page publique remplace son <article> par la version publiée : on relit le source statique via le DOM brut.
+      return new DOMParser().parseFromString(html, 'text/html').querySelector('article').innerHTML.trim();
+    }
+    async function charger(){
+      montrer('Chargement…');
+      document.getElementById('legal-open').href = page();
+      const { data } = await supabase.from('textes_legaux').select('contenu_html, maj_le').eq('slug', slugEl.value).maybeSingle();
+      if(data && data.contenu_html){
+        src.value = data.contenu_html;
+        montrer('Version publiée le ' + dateFr(data.maj_le) + '.');
+      } else {
+        try { src.value = await texteOrigine(); montrer('Aucune version publiée : texte d\'origine de la page chargé.'); }
+        catch(e){ src.value = ''; montrer('Impossible de charger le texte d\'origine.', false); }
+      }
+      apercu();
+    }
+    slugEl.addEventListener('change', charger);
+    src.addEventListener('input', apercu);
+    document.getElementById('legal-reset').addEventListener('click', async () => {
+      if(!confirm('Supprimer la version publiée et revenir au texte statique d\'origine ?')) return;
+      const { error } = await supabase.from('textes_legaux').delete().eq('slug', slugEl.value);
+      if(error){ montrer('Échec : ' + error.message, false); return; }
+      await charger();
+      montrer('Version publiée supprimée : la page affiche de nouveau son texte d\'origine.');
+    });
+    document.getElementById('legal-save').addEventListener('click', async () => {
+      const contenu = assainir(src.value).trim();
+      if(!contenu){ montrer('Le texte est vide.', false); return; }
+      const { error } = await supabase.from('textes_legaux').upsert({ slug: slugEl.value, contenu_html: contenu });
+      if(error){
+        montrer(/relation|does not exist|schema cache/i.test(error.message)
+          ? 'Table absente : exécute db/schema-v35-textes-legaux.sql dans Supabase.' : 'Échec : ' + error.message, false);
+        return;
+      }
+      src.value = contenu; apercu();
+      montrer('Publié le ' + dateFr(new Date().toISOString()) + '. Visible immédiatement sur la page.');
+    });
+    await charger();
+  }
+
   (async function init(){
     const { data } = await supabase.auth.getSession();
     const session = data.session;
@@ -700,6 +782,7 @@
     document.getElementById('filtre-plan').addEventListener('change', rendreTable);
     document.getElementById('filtre-statut').addEventListener('change', rendreTable);
     rendreTable();
+    initTextesLegaux();
   })();
   }
 </script>

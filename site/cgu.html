@@ -175,5 +175,12 @@
   <a href="index.html">Mirrio</a> · <a href="confidentialite.html">Politique de confidentialité</a>
 </footer>
 
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+  import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
+  import { afficherTexteLegal } from './texte-legal.js';
+  afficherTexteLegal(createClient(SUPABASE_URL, SUPABASE_ANON_KEY), 'cgu');
+</script>
+
 </body>
 </html>
