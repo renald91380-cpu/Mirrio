@@ -240,9 +240,10 @@ export function monterEntete(brand, actif, estAdmin){
     el.setAttribute('title', nom);
   });
 
-  const base = b.metier === 'patisserie'
+  let base = b.metier === 'patisserie'
     ? [...ONGLETS.slice(0, 3), ONGLET_COMMANDES, ...ONGLETS.slice(3)]
     : ONGLETS;
+  if(b.mariages) base = [...base.slice(0, -1), { cle:'mariages', href:'mariage-pro.html', libelle:'Mariages' }, base[base.length - 1]];
   const onglets = estAdmin ? [...base, ONGLET_ADMIN] : base;
 
   const navHaut = document.querySelector('.app-header .app-nav');
@@ -353,6 +354,11 @@ export async function initTheme(supabase, ongletActif){
     chargerBrand(supabase, espaceId),
     estCompteAdmin(supabase)
   ]);
+  // Onglet « Mariages » : seulement pour un espace qui a déjà reçu une demande de devis (table absente = pas d'onglet, jamais d'erreur).
+  try{
+    const { count } = await supabase.from('mariage_demandes').select('id', { count:'exact', head:true }).eq('prestataire_id', espaceId);
+    if(count > 0) brand.mariages = true;
+  }catch(e){}
   appliquerTheme(brand);
   monterEntete(brand, ongletActif, estAdmin);
   return brand;

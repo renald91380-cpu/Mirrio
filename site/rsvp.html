@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Répondre à l'invitation | Mirrio</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#101216">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{ --bg:#F5F5F3; --surface:#FBFBFA; --ink:#101216; --muted:#5B606B; --line:rgba(16,18,22,.14); --accent:#E2A63D; --accent-ink:#101216; --alerte:#B3402A; }
+  @media (prefers-color-scheme:dark){ :root{ --bg:#0D0F13; --surface:#15181E; --ink:#F1F1EE; --muted:#9CA2AE; --line:rgba(255,255,255,.16); --alerte:#F0836C; } }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ background:var(--bg); color:var(--ink); font:400 16px/1.55 'Geist',system-ui,sans-serif; min-height:100vh; display:grid; place-items:center; padding:20px; }
+  main{ width:100%; max-width:480px; background:var(--surface); border:1px solid var(--line); border-radius:26px; padding:28px; box-shadow:0 12px 40px -16px rgba(0,0,0,.25); }
+  h1{ font:800 30px/1.15 'Bricolage Grotesque',system-ui,sans-serif; letter-spacing:-.02em; margin-bottom:6px; }
+  .muted{ color:var(--muted); } .champ{ margin:18px 0; } label,legend{ display:block; font-weight:600; margin-bottom:8px; }
+  input[type=number],textarea{ width:100%; min-height:48px; padding:12px 14px; border-radius:12px; border:1px solid var(--line); background:var(--bg); color:var(--ink); font:inherit; }
+  textarea{ min-height:90px; resize:vertical; } fieldset{ border:none; }
+  .choix{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .choix label{ margin:0; display:flex; align-items:center; justify-content:center; min-height:52px; border:1px solid var(--line); border-radius:14px; cursor:pointer; font-weight:600; text-align:center; padding:6px; }
+  .choix input{ position:absolute; opacity:0; } .choix label:has(input:checked){ background:var(--accent); color:var(--accent-ink); border-color:transparent; }
+  .choix label:has(input:focus-visible), input:focus-visible, textarea:focus-visible, button:focus-visible{ outline:3px solid var(--accent); outline-offset:2px; }
+  button.go{ width:100%; min-height:52px; border:none; border-radius:999px; background:var(--accent); color:var(--accent-ink); font:600 16px 'Geist',system-ui,sans-serif; cursor:pointer; }
+  button.go:disabled{ opacity:.6; cursor:progress; } .erreur{ color:var(--alerte); font-weight:600; min-height:1.4em; margin-top:10px; }
+  .merci{ text-align:center; padding:14px 0; }
+</style>
+</head>
+<body>
+<main id="contenu">
+  <p class="muted" id="chargement">Chargement…</p>
+  <div id="form" hidden>
+    <p class="muted" id="intro"></p>
+    <h1 id="titre"></h1>
+    <p class="muted" id="infos"></p>
+    <form id="rsvp" novalidate>
+      <fieldset class="champ"><legend>Serez-vous présent·e ?</legend>
+        <div class="choix"><label><input type="radio" name="statut" value="oui" required>Oui, avec plaisir</label><label><input type="radio" name="statut" value="non">Non, désolé·e</label></div></fieldset>
+      <div class="champ" id="bloc-nb"><label for="nb">Nombre de personnes (vous compris)</label><input id="nb" type="number" min="1" max="10" value="1" inputmode="numeric"></div>
+      <div class="champ" id="bloc-reg"><label for="regime">Régime alimentaire ou allergies <span class="muted" style="font-weight:400">(facultatif)</span></label><textarea id="regime" maxlength="300" placeholder="Végétarien, sans gluten, allergie aux fruits à coque…"></textarea></div>
+      <button class="go" type="submit" id="envoyer">Envoyer ma réponse</button>
+      <p class="erreur" role="alert" id="err"></p>
+    </form>
+  </div>
+  <div id="merci" class="merci" hidden><h1>Merci !</h1><p class="muted" id="merci-t"></p></div>
+</main>
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+  import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const $ = s => document.querySelector(s);
+  const jeton = new URLSearchParams(location.search).get('t') || '';
+  const dateFr = d => new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+  function bascule(){
+    const oui = document.querySelector('input[name=statut]:checked')?.value === 'oui';
+    $('#bloc-nb').hidden = !oui; $('#bloc-reg').hidden = !oui;
+  }
+  document.querySelectorAll('input[name=statut]').forEach(r => r.addEventListener('change', bascule));
+
+  (async function init(){
+    const { data, error } = jeton ? await supabase.rpc('rsvp_lire', { p_token:jeton }) : { data:null };
+    $('#chargement').hidden = true;
+    if(error || !data){ $('#chargement').hidden = false; $('#chargement').textContent = 'Cette invitation est introuvable. Vérifiez le lien reçu.'; return; }
+    $('#intro').textContent = 'Bonjour ' + data.invite + ',';
+    $('#titre').textContent = data.titre;
+    $('#infos').textContent = [data.date_mariage ? dateFr(data.date_mariage) : '', data.ville || ''].filter(Boolean).join(' · ');
+    if(data.statut !== 'attente'){
+      document.querySelector(`input[name=statut][value=${data.statut}]`).checked = true;
+      $('#nb').value = data.nb_personnes; $('#regime').value = data.regime || '';
+      $('#envoyer').textContent = 'Modifier ma réponse';
+    }
+    bascule(); $('#form').hidden = false;
+  })();
+
+  $('#rsvp').addEventListener('submit', async e => {
+    e.preventDefault();
+    const statut = document.querySelector('input[name=statut]:checked')?.value;
+    if(!statut){ $('#err').textContent = 'Merci de choisir une réponse.'; return; }
+    $('#envoyer').disabled = true; $('#err').textContent = '';
+    const { error } = await supabase.rpc('rsvp_repondre', { p_token:jeton, p_statut:statut, p_nb:Number($('#nb').value) || 1, p_regime:$('#regime').value });
+    $('#envoyer').disabled = false;
+    if(error){ $('#err').textContent = 'Impossible d\'enregistrer votre réponse. Réessayez dans un instant.'; return; }
+    $('#form').hidden = true; $('#merci').hidden = false;
+    $('#merci-t').textContent = statut === 'oui' ? 'Votre présence est enregistrée. À très bientôt !' : 'Votre réponse est enregistrée. Vous nous manquerez.';
+  });
+</script>
+<script src="/cookies.js" defer></script>
+</body>
+</html>

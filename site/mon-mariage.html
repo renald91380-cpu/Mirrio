@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mon mariage | Mirrio</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#101216">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<style>
+  :root{
+    --bg:#F5F5F3; --surface:#FBFBFA; --ink:#101216; --muted:#5B606B; --line:rgba(16,18,22,.12);
+    --accent:#E2A63D; --accent-ink:#101216; --ok:#2E7D5B; --alerte:#B3402A;
+    --display:'Bricolage Grotesque',system-ui,sans-serif; --body:'Geist',system-ui,sans-serif;
+    --ombre:0 1px 2px rgba(16,18,22,.05), 0 12px 30px -14px rgba(16,18,22,.18);
+  }
+  @media (prefers-color-scheme:dark){ :root{ --bg:#0D0F13; --surface:#15181E; --ink:#F1F1EE; --muted:#9CA2AE; --line:rgba(255,255,255,.14); --ok:#5CC08F; --alerte:#F0836C; --ombre:0 1px 2px rgba(0,0,0,.3), 0 14px 34px -14px rgba(0,0,0,.6); } }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ background:var(--bg); color:var(--ink); font:400 15px/1.55 var(--body); -webkit-font-smoothing:antialiased; }
+  a{ color:inherit; }
+  h1,h2,h3{ font-family:var(--display); letter-spacing:-.02em; line-height:1.15; }
+  .evitement{ position:absolute; left:-9999px; } .evitement:focus{ left:12px; top:12px; background:var(--accent); color:var(--accent-ink); padding:10px 16px; border-radius:999px; z-index:50; }
+  header{ position:sticky; top:0; z-index:20; background:color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
+  .barre{ max-width:1000px; margin:0 auto; padding:12px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .logo{ font:800 21px var(--display); text-decoration:none; } .logo b{ color:var(--accent); }
+  .barre .droite{ display:flex; gap:10px; align-items:center; font-size:14px; color:var(--muted); }
+  main{ max-width:1000px; margin:0 auto; padding:24px 20px 90px; }
+  nav.onglets{ display:flex; gap:6px; overflow-x:auto; padding:2px 0 14px; scrollbar-width:none; }
+  nav.onglets button{ flex:none; min-height:44px; padding:0 18px; border-radius:999px; border:1px solid var(--line); background:var(--surface); color:var(--ink); font:600 15px var(--body); cursor:pointer; }
+  nav.onglets button[aria-selected=true]{ background:var(--ink); color:var(--bg); border-color:transparent; }
+  .btn{ min-height:44px; padding:0 20px; border-radius:999px; border:1px solid var(--line); background:transparent; color:var(--ink); font:600 15px var(--body); cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+  .btn.principal{ background:var(--accent); color:var(--accent-ink); border-color:transparent; }
+  .btn.petit{ min-height:36px; padding:0 14px; font-size:14px; } .btn.danger{ color:var(--alerte); }
+  .btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{ outline:3px solid var(--accent); outline-offset:2px; }
+  .carte{ background:var(--surface); border:1px solid var(--line); border-radius:22px; padding:22px; box-shadow:var(--ombre); }
+  .grille{ display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); }
+  .grand{ font:800 44px/1 var(--display); letter-spacing:-.04em; } .muted{ color:var(--muted); }
+  .barre-prog{ height:10px; border-radius:99px; background:var(--line); overflow:hidden; margin:10px 0 6px; } .barre-prog i{ display:block; height:100%; background:var(--accent); }
+  .barre-prog.rouge i{ background:var(--alerte); }
+  .rang{ display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--line); }
+  .rang:last-child{ border-bottom:none; } .rang .corps{ flex:1; min-width:0; } .rang .titre{ font-weight:600; } .rang .titre.fait{ text-decoration:line-through; color:var(--muted); }
+  .rang input[type=checkbox]{ width:24px; height:24px; accent-color:var(--accent); flex:none; }
+  .puce{ display:inline-block; padding:3px 11px; border-radius:99px; font-size:13px; font-weight:600; border:1px solid var(--line); }
+  .puce.ok{ color:var(--ok); border-color:currentColor; } .puce.ko{ color:var(--alerte); border-color:currentColor; } .puce.att{ color:var(--muted); }
+  .alerte{ color:var(--alerte); font-weight:600; }
+  .actions{ display:flex; flex-wrap:wrap; gap:10px; margin:0 0 16px; align-items:center; }
+  table{ width:100%; border-collapse:collapse; font-size:14px; } th,td{ text-align:left; padding:10px 8px; border-bottom:1px solid var(--line); vertical-align:top; } th{ color:var(--muted); font-weight:500; }
+  td.num,th.num{ text-align:right; white-space:nowrap; } .scroll-x{ overflow-x:auto; }
+  dialog{ border:none; border-radius:24px; padding:24px; width:min(520px,calc(100vw - 24px)); background:var(--surface); color:var(--ink); box-shadow:0 30px 80px -20px rgba(0,0,0,.5); }
+  dialog::backdrop{ background:rgba(8,10,14,.55); }
+  .champ{ margin:0 0 14px; } .champ label{ display:block; font-weight:600; margin-bottom:6px; }
+  .champ input,.champ select,.champ textarea{ width:100%; min-height:46px; padding:11px 14px; border-radius:12px; border:1px solid var(--line); background:var(--bg); color:var(--ink); font:inherit; }
+  .champ textarea{ min-height:110px; resize:vertical; }
+  .erreur{ color:var(--alerte); font-weight:600; min-height:1.4em; }
+  #toast{ position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:12px 20px; border-radius:99px; font-weight:600; opacity:0; pointer-events:none; transition:opacity .25s; z-index:60; }
+  #toast.on{ opacity:1; }
+  .vide{ text-align:center; padding:36px 10px; color:var(--muted); }
+  .resultat{ display:flex; gap:14px; align-items:center; padding:14px 0; border-bottom:1px solid var(--line); } .resultat:last-child{ border:none; }
+  .resultat img{ width:64px; height:64px; border-radius:16px; object-fit:cover; background:var(--line); flex:none; }
+  @media (max-width:560px){ .grand{ font-size:36px; } th:nth-child(n+6),td:nth-child(n+6){ display:none; } }
+  @media (prefers-reduced-motion:reduce){ *{ transition:none !important; } }
+</style>
+<script src="/pwa.js" defer></script>
+<script src="/cookies.js" defer></script>
+</head>
+<body>
+<a class="evitement" href="#contenu">Aller au contenu</a>
+<header><div class="barre">
+  <a class="logo" href="mariage.html">Mirrio<b>.</b></a>
+  <div class="droite"><span id="qui"></span><button class="btn petit" id="sortir" type="button">Se déconnecter</button></div>
+</div></header>
+
+<main id="contenu">
+  <div id="chargement" class="vide">Chargement…</div>
+  <div id="creation" hidden></div>
+  <div id="appli" hidden>
+    <nav class="onglets" role="tablist" aria-label="Sections du mariage" id="onglets">
+      <button role="tab" data-t="apercu" aria-selected="true">Aperçu</button>
+      <button role="tab" data-t="taches" aria-selected="false">Checklist</button>
+      <button role="tab" data-t="budget" aria-selected="false">Budget</button>
+      <button role="tab" data-t="invites" aria-selected="false">Invités</button>
+      <button role="tab" data-t="presta" aria-selected="false">Prestataires</button>
+    </nav>
+    <section id="vue" role="tabpanel" tabindex="-1"></section>
+  </div>
+</main>
+<div id="toast" role="status"></div>
+
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+  import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const $ = s => document.querySelector(s);
+  const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  const eur = n => (Number(n) || 0).toLocaleString('fr-FR', { style:'currency', currency:'EUR', maximumFractionDigits:0 });
+  const num = v => { const n = Number(String(v == null ? '' : v).replace(',', '.')); return isFinite(n) && n >= 0 ? n : 0; };
+  const dateFr = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' }) : '';
+  const iso = d => d.toISOString().slice(0, 10);
+  const aujourdhui = () => iso(new Date());
+  function toast(t){ const e = $('#toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 2600); }
+  const msgErreur = e => (e && e.message) ? e.message.replace(/^.*?:\s*/, '') : 'Une erreur est survenue.';
+
+  // ------------------------------------------------------------------ modèles
+  const CATEGORIES = { general:'Général', lieu:'Lieu', traiteur:'Traiteur', photo:'Photo et vidéo', musique:'Musique', deco:'Fleurs et décoration', tenues:'Tenues', beaute:'Coiffure et maquillage', gateau:'Gâteau', transport:'Transport', papeterie:'Faire-part', admin:'Administratif' };
+  // [mois avant le mariage, titre, catégorie] : checklist indicative, à adapter au pays, à la religion et au style du mariage.
+  const TACHES_TYPE = [
+    [12,'Fixer le budget et le nombre d\'invités approximatif','general'],[12,'Choisir la date et la ville','general'],[12,'Réserver le lieu de réception','lieu'],
+    [11,'Réserver le traiteur','traiteur'],[11,'Réserver le photographe et le vidéaste','photo'],[9,'Réserver le DJ ou le groupe','musique'],
+    [9,'Choisir les tenues des mariés','tenues'],[8,'Réserver le fleuriste et la décoration','deco'],[6,'Envoyer les « save the date »','papeterie'],
+    [6,'Réserver coiffure et maquillage, prévoir un essai','beaute'],[5,'Organiser le transport des mariés et des invités','transport'],
+    [4,'Envoyer les faire-part','papeterie'],[4,'Constituer le dossier administratif (mairie ou équivalent)','admin'],[3,'Dégustation et menu définitif avec le traiteur','traiteur'],
+    [3,'Commander la pièce montée ou le gâteau','gateau'],[2,'Essayages finaux des tenues','tenues'],[1,'Confirmer chaque prestataire par écrit','general'],
+    [1,'Établir le plan de table','general'],[1,'Relancer les invités sans réponse','general'],[0,'Confirmer les horaires avec chaque prestataire (la semaine précédente)','general'],
+    [0,'Préparer les enveloppes et les pourboires des prestataires','general']
+  ];
+  // Répartition indicative du budget, en pourcentage : une base de départ à ajuster, pas une règle.
+  const BUDGET_TYPE = [['Lieu de réception',20],['Traiteur et boissons',28],['Photo et vidéo',10],['Musique et animation',7],['Fleurs et décoration',8],['Tenues',10],['Coiffure et maquillage',3],['Gâteau ou pièce montée',3],['Transport',2],['Faire-part et papeterie',2],['Alliances',3],['Imprévus',4]];
+
+  let session = null, M = null, taches = [], budget = [], invites = [], demandes = [], onglet = 'apercu';
+
+  // ------------------------------------------------------------------ formulaire modal réutilisable
+  function formulaire(titre, champs, valeurs = {}, libelleOk = 'Enregistrer'){
+    return new Promise(resolve => {
+      const d = document.createElement('dialog');
+      d.setAttribute('aria-labelledby', 'dlg-t');
+      d.innerHTML = `<form method="dialog" novalidate><h2 id="dlg-t" style="font-size:22px;margin-bottom:16px">${esc(titre)}</h2>
+        ${champs.map(c => {
+          const v = valeurs[c.n] != null ? valeurs[c.n] : (c.val != null ? c.val : '');
+          const attrs = `id="f-${c.n}" name="${c.n}"${c.req ? ' required' : ''}${c.ph ? ` placeholder="${esc(c.ph)}"` : ''}`;
+          let champ;
+          if(c.type === 'select') champ = `<select ${attrs}>${c.options.map(([k, l]) => `<option value="${esc(k)}"${String(v) === String(k) ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
+          else if(c.type === 'textarea') champ = `<textarea ${attrs}>${esc(v)}</textarea>`;
+          else champ = `<input ${attrs} type="${c.type || 'text'}" value="${esc(v)}"${c.type === 'number' ? ' min="0" step="any" inputmode="decimal"' : ''}>`;
+          return `<div class="champ"><label for="f-${c.n}">${esc(c.label)}${c.req ? '' : ' <span class="muted" style="font-weight:400">(facultatif)</span>'}</label>${champ}</div>`;
+        }).join('')}
+        <p class="erreur" role="alert" id="dlg-err"></p>
+        <div class="actions" style="justify-content:flex-end;margin:6px 0 0"><button class="btn" value="annuler" type="button" id="dlg-non">Annuler</button><button class="btn principal" type="submit">${esc(libelleOk)}</button></div></form>`;
+      document.body.appendChild(d);
+      const fin = r => { d.close(); d.remove(); resolve(r); };
+      d.querySelector('#dlg-non').onclick = () => fin(null);
+      d.addEventListener('cancel', e => { e.preventDefault(); fin(null); });
+      d.querySelector('form').addEventListener('submit', e => {
+        e.preventDefault();
+        const f = e.target, out = {};
+        for(const c of champs){
+          const val = f.elements[c.n].value.trim();
+          if(c.req && !val){ $('#dlg-err').textContent = `« ${c.label} » est obligatoire.`; f.elements[c.n].focus(); return; }
+          out[c.n] = val;
+        }
+        fin(out);
+      });
+      d.showModal();
+      d.querySelector('input,select,textarea').focus();
+    });
+  }
+  const confirmer = async (texte, ok = 'Confirmer') => !!(await formulaire(texte, [], {}, ok));
+
+  // ------------------------------------------------------------------ données
+  async function charger(){
+    const { data: m } = await supabase.from('mariages').select('*').limit(1).maybeSingle();
+    M = m;
+    if(!M) return;
+    const [t, b, i, d] = await Promise.all([
+      supabase.from('mariage_taches').select('*').eq('mariage_id', M.id).order('echeance', { nullsFirst:false }).order('created_at'),
+      supabase.from('mariage_budget').select('*').eq('mariage_id', M.id).order('created_at'),
+      supabase.from('mariage_invites').select('*').eq('mariage_id', M.id).order('nom'),
+      supabase.from('mariage_demandes').select('*').eq('mariage_id', M.id).order('created_at', { ascending:false })
+    ]);
+    taches = t.data || []; budget = b.data || []; invites = i.data || []; demandes = d.data || [];
+  }
+
+  // ------------------------------------------------------------------ création du mariage
+  function afficherCreation(){
+    $('#chargement').hidden = true; $('#appli').hidden = true;
+    const z = $('#creation'); z.hidden = false;
+    z.innerHTML = `<div class="carte" style="max-width:560px;margin:20px auto">
+      <h1 style="font-size:30px;margin-bottom:6px">Organisons votre mariage.</h1>
+      <p class="muted" style="margin-bottom:18px">Quelques informations pour démarrer. Tout est modifiable plus tard.</p>
+      <form id="form-creation" novalidate>
+        <div class="champ"><label for="c-titre">Titre</label><input id="c-titre" value="Notre mariage" maxlength="120"></div>
+        <div class="champ"><label for="c-date">Date du mariage <span class="muted" style="font-weight:400">(facultatif)</span></label><input id="c-date" type="date"></div>
+        <div class="champ"><label for="c-ville">Ville <span class="muted" style="font-weight:400">(facultatif)</span></label><input id="c-ville" maxlength="80" autocomplete="address-level2"></div>
+        <div class="champ"><label for="c-budget">Budget total en € <span class="muted" style="font-weight:400">(facultatif)</span></label><input id="c-budget" inputmode="decimal"></div>
+        <div class="champ"><label for="c-inv">Nombre d'invités estimé <span class="muted" style="font-weight:400">(facultatif)</span></label><input id="c-inv" inputmode="numeric"></div>
+        <p class="erreur" id="c-err" role="alert"></p>
+        <button class="btn principal" type="submit" style="width:100%">Créer mon mariage</button>
+      </form></div>`;
+    $('#form-creation').addEventListener('submit', async e => {
+      e.preventDefault();
+      const budgetTotal = $('#c-budget').value.trim() ? num($('#c-budget').value) : null;
+      const nb = $('#c-inv').value.trim() ? Math.round(num($('#c-inv').value)) : null;
+      const { error } = await supabase.from('mariages').insert({
+        titre: $('#c-titre').value.trim() || 'Notre mariage', date_mariage: $('#c-date').value || null,
+        ville: $('#c-ville').value.trim() || null, budget_total: budgetTotal, nb_invites: nb });
+      if(error){ $('#c-err').textContent = /does not exist|schema cache/i.test(error.message) ? 'Base non préparée : exécuter db/schema-v37-mariage.sql dans Supabase.' : msgErreur(error); return; }
+      z.hidden = true; await demarrer();
+    });
+  }
+
+  // ------------------------------------------------------------------ onglets
+  const VUES = { apercu:vueApercu, taches:vueTaches, budget:vueBudget, invites:vueInvites, presta:vuePresta };
+  function afficher(t){
+    onglet = t;
+    document.querySelectorAll('#onglets button').forEach(b => b.setAttribute('aria-selected', b.dataset.t === t));
+    VUES[t]();
+  }
+  $('#onglets').addEventListener('click', e => { const b = e.target.closest('button[data-t]'); if(b) afficher(b.dataset.t); });
+  $('#onglets').addEventListener('keydown', e => {
+    const bs = [...document.querySelectorAll('#onglets button')], i = bs.findIndex(b => b.dataset.t === onglet);
+    const d = { ArrowRight:1, ArrowLeft:-1 }[e.key]; if(!d) return;
+    const n = bs[(i + d + bs.length) % bs.length]; n.focus(); afficher(n.dataset.t);
+  });
+
+  // ------------------------------------------------------------------ aperçu
+  function totauxBudget(){
+    const prevu = budget.reduce((s, l) => s + Number(l.prevu), 0), montant = budget.reduce((s, l) => s + Number(l.montant), 0), paye = budget.reduce((s, l) => s + Number(l.paye), 0);
+    return { prevu, montant, paye, reste: Math.max(0, montant - paye) };
+  }
+  function vueApercu(){
+    const jours = M.date_mariage ? Math.ceil((new Date(M.date_mariage + 'T12:00:00') - new Date()) / 86400000) : null;
+    const faites = taches.filter(t => t.fait).length, tp = taches.length ? Math.round(faites / taches.length * 100) : 0;
+    const bt = totauxBudget(), plafond = Number(M.budget_total) || 0, depasse = plafond && bt.montant > plafond;
+    const oui = invites.filter(i => i.statut === 'oui'), pers = oui.reduce((s, i) => s + i.nb_personnes, 0);
+    const suivantes = taches.filter(t => !t.fait).slice(0, 5);
+    const aTraiter = demandes.filter(d => d.statut === 'repondue').length;
+    $('#vue').innerHTML = `
+      <div class="carte" style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start">
+          <div><h1 style="font-size:28px">${esc(M.titre)}</h1><p class="muted">${M.date_mariage ? esc(dateFr(M.date_mariage)) : 'Date à définir'}${M.ville ? ' · ' + esc(M.ville) : ''}</p></div>
+          <button class="btn petit" id="modif-m" type="button">Modifier</button>
+        </div>
+        <div class="grand" style="margin-top:14px">${jours == null ? '—' : jours > 0 ? 'J−' + jours : jours === 0 ? 'C\'est aujourd\'hui' : 'Terminé'}</div>
+        ${jours == null ? '<p class="muted">Renseignez la date pour voir le compte à rebours.</p>' : ''}
+      </div>
+      <div class="grille">
+        <div class="carte"><h2 style="font-size:19px">Checklist</h2><div class="grand" style="margin-top:8px">${tp} %</div>
+          <div class="barre-prog" role="progressbar" aria-valuenow="${tp}" aria-valuemin="0" aria-valuemax="100" aria-label="Avancement de la checklist"><i style="width:${tp}%"></i></div>
+          <p class="muted">${faites} sur ${taches.length} tâches faites</p></div>
+        <div class="carte"><h2 style="font-size:19px">Budget</h2><div class="grand" style="margin-top:8px">${eur(bt.montant)}</div>
+          ${plafond ? `<div class="barre-prog${depasse ? ' rouge' : ''}"><i style="width:${Math.min(100, Math.round(bt.montant / plafond * 100))}%"></i></div>
+          <p class="${depasse ? 'alerte' : 'muted'}">${depasse ? 'Dépasse le budget de ' + eur(bt.montant - plafond) : eur(plafond - bt.montant) + ' disponibles sur ' + eur(plafond)}</p>` : '<p class="muted">Engagé auprès des prestataires</p>'}
+          <p class="muted">Payé ${eur(bt.paye)} · reste à payer ${eur(bt.reste)}</p></div>
+        <div class="carte"><h2 style="font-size:19px">Invités</h2><div class="grand" style="margin-top:8px">${pers}</div>
+          <p class="muted">personnes confirmées · ${invites.filter(i => i.statut === 'attente').length} sans réponse · ${invites.filter(i => i.statut === 'non').length} absents${M.nb_invites ? ` · objectif ${M.nb_invites}` : ''}</p></div>
+        <div class="carte"><h2 style="font-size:19px">Prestataires</h2><div class="grand" style="margin-top:8px">${demandes.length}</div>
+          <p class="muted">demandes envoyées${aTraiter ? ` · <span class="alerte">${aTraiter} réponse${aTraiter > 1 ? 's' : ''} à examiner</span>` : ''}</p></div>
+      </div>
+      <div class="carte" style="margin-top:16px"><h2 style="font-size:19px;margin-bottom:6px">Prochaines tâches</h2>
+        ${suivantes.length ? suivantes.map(t => ligneTache(t)).join('') : `<p class="vide">${taches.length ? 'Tout est fait, bravo !' : 'Aucune tâche pour le moment. Importez la checklist type dans l\'onglet Checklist.'}</p>`}
+      </div>`;
+    $('#modif-m').onclick = modifierMariage;
+    brancherTaches();
+  }
+  async function modifierMariage(){
+    const r = await formulaire('Votre mariage', [
+      { n:'titre', label:'Titre', req:true }, { n:'date_mariage', label:'Date', type:'date' }, { n:'ville', label:'Ville' },
+      { n:'budget_total', label:'Budget total en €', type:'number' }, { n:'nb_invites', label:'Nombre d\'invités estimé', type:'number' }],
+      { titre:M.titre, date_mariage:M.date_mariage || '', ville:M.ville || '', budget_total:M.budget_total || '', nb_invites:M.nb_invites || '' });
+    if(!r) return;
+    const { error } = await supabase.from('mariages').update({ titre:r.titre, date_mariage:r.date_mariage || null, ville:r.ville || null,
+      budget_total:r.budget_total ? num(r.budget_total) : null, nb_invites:r.nb_invites ? Math.round(num(r.nb_invites)) : null }).eq('id', M.id);
+    if(error) return toast(msgErreur(error));
+    await charger(); afficher(onglet); toast('Mariage mis à jour.');
+  }
+
+  // ------------------------------------------------------------------ checklist
+  function ligneTache(t){
+    const retard = !t.fait && t.echeance && t.echeance < aujourdhui();
+    return `<div class="rang" data-id="${t.id}">
+      <input type="checkbox" ${t.fait ? 'checked' : ''} data-act="cocher" aria-label="Marquer « ${esc(t.titre)} » comme ${t.fait ? 'à faire' : 'faite'}">
+      <div class="corps"><div class="titre${t.fait ? ' fait' : ''}">${esc(t.titre)}</div>
+        <div class="muted" style="font-size:13px">${esc(CATEGORIES[t.categorie] || t.categorie)}${t.echeance ? ` · <span class="${retard ? 'alerte' : ''}">${retard ? 'En retard, ' : ''}${esc(dateFr(t.echeance))}</span>` : ''}${t.notes ? ' · ' + esc(t.notes) : ''}</div></div>
+      <button class="btn petit" data-act="editer" type="button">Modifier</button><button class="btn petit danger" data-act="sup" type="button" aria-label="Supprimer ${esc(t.titre)}">×</button></div>`;
+  }
+  function brancherTaches(){
+    $('#vue').querySelectorAll('.rang[data-id]').forEach(r => {
+      const t = taches.find(x => x.id === r.dataset.id); if(!t) return;
+      r.querySelector('[data-act=cocher]').onchange = async e => {
+        const { error } = await supabase.from('mariage_taches').update({ fait:e.target.checked }).eq('id', t.id);
+        if(error){ e.target.checked = !e.target.checked; return toast(msgErreur(error)); }
+        t.fait = e.target.checked; afficher(onglet);
+      };
+      r.querySelector('[data-act=editer]').onclick = () => editerTache(t);
+      r.querySelector('[data-act=sup]').onclick = () => supprimer('mariage_taches', t, t.titre);
+    });
+  }
+  const champsTache = () => [{ n:'titre', label:'Tâche', req:true }, { n:'categorie', label:'Catégorie', type:'select', options:Object.entries(CATEGORIES) },
+    { n:'echeance', label:'À faire avant le', type:'date' }, { n:'notes', label:'Notes' }];
+  async function editerTache(t){
+    const r = await formulaire(t ? 'Modifier la tâche' : 'Nouvelle tâche', champsTache(), t ? { ...t, echeance:t.echeance || '', notes:t.notes || '' } : { categorie:'general' });
+    if(!r) return;
+    const ligne = { titre:r.titre, categorie:r.categorie, echeance:r.echeance || null, notes:r.notes || null };
+    const q = t ? supabase.from('mariage_taches').update(ligne).eq('id', t.id) : supabase.from('mariage_taches').insert({ ...ligne, mariage_id:M.id });
+    const { error } = await q; if(error) return toast(msgErreur(error));
+    await charger(); afficher(onglet);
+  }
+  function vueTaches(){
+    const afaire = taches.filter(t => !t.fait), faites = taches.filter(t => t.fait);
+    $('#vue').innerHTML = `<div class="actions"><button class="btn principal" id="nvl-t" type="button">Ajouter une tâche</button>
+      <button class="btn" id="imp-t" type="button">Importer la checklist type</button></div>
+      <div class="carte"><h2 style="font-size:19px">À faire (${afaire.length})</h2>${afaire.map(ligneTache).join('') || '<p class="vide">Rien à faire pour le moment.</p>'}</div>
+      ${faites.length ? `<details class="carte" style="margin-top:16px"><summary style="cursor:pointer;font-weight:600">Faites (${faites.length})</summary>${faites.map(ligneTache).join('')}</details>` : ''}`;
+    $('#nvl-t').onclick = () => editerTache(null);
+    $('#imp-t').onclick = async () => {
+      if(!M.date_mariage) return toast('Renseignez d\'abord la date du mariage (bouton Modifier de l\'aperçu).');
+      const existants = new Set(taches.map(t => t.titre));
+      const base = new Date(M.date_mariage + 'T12:00:00');
+      const lignes = TACHES_TYPE.filter(([, titre]) => !existants.has(titre)).map(([mois, titre, categorie]) => {
+        const d = new Date(base); d.setMonth(d.getMonth() - mois); if(mois === 0) d.setTime(base.getTime() - 7 * 86400000);
+        return { mariage_id:M.id, titre, categorie, echeance:iso(d) };
+      });
+      if(!lignes.length) return toast('La checklist type est déjà importée.');
+      const { error } = await supabase.from('mariage_taches').insert(lignes); if(error) return toast(msgErreur(error));
+      await charger(); afficher('taches'); toast(lignes.length + ' tâches ajoutées.');
+    };
+    brancherTaches();
+  }
+
+  // ------------------------------------------------------------------ budget
+  const champsBudget = () => [{ n:'poste', label:'Poste', req:true, ph:'Traiteur' }, { n:'prevu', label:'Prévu (€)', type:'number' }, { n:'montant', label:'Engagé : devis accepté (€)', type:'number' },
+    { n:'paye', label:'Déjà payé (€)', type:'number' }, { n:'prestataire', label:'Prestataire' }, { n:'echeance_solde', label:'Solde à payer avant le', type:'date' }];
+  async function editerBudget(l){
+    const r = await formulaire(l ? 'Modifier la ligne' : 'Nouvelle ligne de budget', champsBudget(), l ? { ...l, prestataire:l.prestataire || '', echeance_solde:l.echeance_solde || '' } : {});
+    if(!r) return;
+    if(num(r.paye) > num(r.montant) && num(r.montant) > 0) return toast('Le montant payé dépasse le montant engagé.');
+    const ligne = { poste:r.poste, prevu:num(r.prevu), montant:num(r.montant), paye:num(r.paye), prestataire:r.prestataire || null, echeance_solde:r.echeance_solde || null };
+    const q = l ? supabase.from('mariage_budget').update(ligne).eq('id', l.id) : supabase.from('mariage_budget').insert({ ...ligne, mariage_id:M.id });
+    const { error } = await q; if(error) return toast(msgErreur(error));
+    await charger(); afficher('budget');
+  }
+  function vueBudget(){
+    const bt = totauxBudget(), plafond = Number(M.budget_total) || 0;
+    $('#vue').innerHTML = `<div class="actions"><button class="btn principal" id="nvl-b" type="button">Ajouter une ligne</button>
+      <button class="btn" id="imp-b" type="button">Répartition indicative</button></div>
+      <div class="grille" style="margin-bottom:16px">
+        <div class="carte"><div class="muted">Budget total</div><div class="grand">${plafond ? eur(plafond) : '—'}</div></div>
+        <div class="carte"><div class="muted">Engagé</div><div class="grand${plafond && bt.montant > plafond ? ' alerte' : ''}">${eur(bt.montant)}</div></div>
+        <div class="carte"><div class="muted">Reste à payer</div><div class="grand">${eur(bt.reste)}</div></div></div>
+      <div class="carte scroll-x">${budget.length ? `<table><thead><tr><th>Poste</th><th class="num">Prévu</th><th class="num">Engagé</th><th class="num">Payé</th><th class="num">Reste</th><th>Prestataire</th><th></th></tr></thead><tbody>
+        ${budget.map(l => { const reste = Math.max(0, l.montant - l.paye), retard = reste > 0 && l.echeance_solde && l.echeance_solde < aujourdhui();
+          return `<tr data-id="${l.id}"><td><b>${esc(l.poste)}</b>${l.echeance_solde && reste > 0 ? `<div class="${retard ? 'alerte' : 'muted'}" style="font-size:12px">Solde avant le ${esc(dateFr(l.echeance_solde))}</div>` : ''}</td>
+          <td class="num">${eur(l.prevu)}</td><td class="num${l.montant > l.prevu && l.prevu > 0 ? ' alerte' : ''}">${eur(l.montant)}</td><td class="num">${eur(l.paye)}</td><td class="num">${eur(reste)}</td><td>${esc(l.prestataire || '')}</td>
+          <td class="num"><button class="btn petit" data-act="ed" type="button">Modifier</button> <button class="btn petit danger" data-act="sup" type="button" aria-label="Supprimer ${esc(l.poste)}">×</button></td></tr>`; }).join('')}
+        <tr><td><b>Total</b></td><td class="num"><b>${eur(bt.prevu)}</b></td><td class="num"><b>${eur(bt.montant)}</b></td><td class="num"><b>${eur(bt.paye)}</b></td><td class="num"><b>${eur(bt.reste)}</b></td><td></td><td></td></tr></tbody></table>`
+        : '<p class="vide">Aucune ligne. Ajoutez vos postes ou partez de la répartition indicative.</p>'}</div>
+      <p class="muted" style="margin-top:12px;font-size:13px">« Engagé » = devis accepté ou dépense décidée. « Prévu » = ce que vous comptiez y consacrer.</p>`;
+    $('#nvl-b').onclick = () => editerBudget(null);
+    $('#imp-b').onclick = async () => {
+      if(!M.budget_total) return toast('Renseignez d\'abord le budget total (bouton Modifier de l\'aperçu).');
+      const existants = new Set(budget.map(l => l.poste));
+      const lignes = BUDGET_TYPE.filter(([p]) => !existants.has(p)).map(([poste, pct]) => ({ mariage_id:M.id, poste, prevu:Math.round(M.budget_total * pct / 100) }));
+      if(!lignes.length) return toast('La répartition est déjà en place.');
+      const { error } = await supabase.from('mariage_budget').insert(lignes); if(error) return toast(msgErreur(error));
+      await charger(); afficher('budget'); toast('Répartition indicative ajoutée : à ajuster selon vos priorités.');
+    };
+    $('#vue').querySelectorAll('tr[data-id]').forEach(tr => {
+      const l = budget.find(x => x.id === tr.dataset.id);
+      tr.querySelector('[data-act=ed]').onclick = () => editerBudget(l);
+      tr.querySelector('[data-act=sup]').onclick = async () => {
+        if(!(await confirmer('Supprimer la ligne « ' + l.poste + ' » ?', 'Supprimer'))) return;
+        const { error } = await supabase.from('mariage_budget').delete().eq('id', l.id); if(error) return toast(msgErreur(error));
+        await charger(); afficher('budget');
+      };
+    });
+  }
+
+  // ------------------------------------------------------------------ invités
+  const lienRsvp = i => `${location.origin}/rsvp.html?t=${encodeURIComponent(i.rsvp_token)}`;
+  function vueInvites(){
+    const oui = invites.filter(i => i.statut === 'oui'), pers = oui.reduce((s, i) => s + i.nb_personnes, 0);
+    const regimes = oui.filter(i => i.regime);
+    $('#vue').innerHTML = `<div class="actions"><button class="btn principal" id="nvl-i" type="button">Ajouter un invité</button><button class="btn" id="lot-i" type="button">Ajouter plusieurs noms</button></div>
+      <div class="grille" style="margin-bottom:16px">
+        <div class="carte"><div class="muted">Confirmés</div><div class="grand">${pers}</div><div class="muted">personnes (${oui.length} invitations)</div></div>
+        <div class="carte"><div class="muted">Sans réponse</div><div class="grand">${invites.filter(i => i.statut === 'attente').length}</div></div>
+        <div class="carte"><div class="muted">Ne viendront pas</div><div class="grand">${invites.filter(i => i.statut === 'non').length}</div></div></div>
+      ${regimes.length ? `<div class="carte" style="margin-bottom:16px"><h2 style="font-size:19px;margin-bottom:6px">Régimes et allergies (pour le traiteur)</h2>
+        ${regimes.map(i => `<p><b>${esc(i.nom)}</b> (${i.nb_personnes}) : ${esc(i.regime)}</p>`).join('')}
+        <button class="btn petit" id="copier-reg" type="button" style="margin-top:10px">Copier ce résumé</button></div>` : ''}
+      <div class="carte">${invites.length ? invites.map(i => `<div class="rang" data-id="${i.id}">
+        <div class="corps"><div class="titre">${esc(i.nom)}${i.groupe ? ` <span class="muted" style="font-weight:400">· ${esc(i.groupe)}</span>` : ''}</div>
+        <div class="muted" style="font-size:13px">${i.nb_personnes} personne${i.nb_personnes > 1 ? 's' : ''}${i.email ? ' · ' + esc(i.email) : ''}</div></div>
+        <span class="puce ${i.statut === 'oui' ? 'ok' : i.statut === 'non' ? 'ko' : 'att'}">${i.statut === 'oui' ? 'Présent' : i.statut === 'non' ? 'Absent' : 'En attente'}</span>
+        <button class="btn petit" data-act="lien" type="button">Copier le lien</button><button class="btn petit" data-act="ed" type="button">Modifier</button><button class="btn petit danger" data-act="sup" type="button" aria-label="Supprimer ${esc(i.nom)}">×</button></div>`).join('')
+        : '<p class="vide">Aucun invité. Ajoutez-les un par un ou collez une liste de noms.</p>'}</div>
+      ${invites.length ? '<p class="muted" style="margin-top:12px;font-size:13px">« Copier le lien » donne à chaque invité une page personnelle pour répondre (présence, nombre de personnes, allergies), sans créer de compte.</p>' : ''}`;
+    $('#nvl-i').onclick = () => editerInvite(null);
+    $('#lot-i').onclick = async () => {
+      const r = await formulaire('Ajouter plusieurs invités', [{ n:'noms', label:'Un nom par ligne', type:'textarea', req:true, ph:'Famille Martin\nSophie Durand' }], {}, 'Ajouter');
+      if(!r) return;
+      const lignes = r.noms.split('\n').map(s => s.trim()).filter(Boolean).slice(0, 300).map(nom => ({ mariage_id:M.id, nom:nom.slice(0, 120) }));
+      if(!lignes.length) return;
+      const { error } = await supabase.from('mariage_invites').insert(lignes); if(error) return toast(msgErreur(error));
+      await charger(); afficher('invites'); toast(lignes.length + ' invités ajoutés.');
+    };
+    const cp = $('#copier-reg');
+    if(cp) cp.onclick = () => { navigator.clipboard.writeText(regimes.map(i => `${i.nom} (${i.nb_personnes}) : ${i.regime}`).join('\n')).then(() => toast('Résumé copié.'), () => toast('Copie impossible.')); };
+    $('#vue').querySelectorAll('.rang[data-id]').forEach(r => {
+      const i = invites.find(x => x.id === r.dataset.id);
+      r.querySelector('[data-act=lien]').onclick = () => navigator.clipboard.writeText(lienRsvp(i)).then(() => toast('Lien copié : à envoyer à ' + i.nom + '.'), () => toast('Copie impossible.'));
+      r.querySelector('[data-act=ed]').onclick = () => editerInvite(i);
+      r.querySelector('[data-act=sup]').onclick = () => supprimer('mariage_invites', i, i.nom);
+    });
+  }
+  async function editerInvite(i){
+    const r = await formulaire(i ? 'Modifier l\'invité' : 'Nouvel invité', [{ n:'nom', label:'Nom', req:true }, { n:'email', label:'E-mail', type:'email' }, { n:'groupe', label:'Groupe', ph:'Famille, amis, collègues' },
+      { n:'nb_personnes', label:'Nombre de personnes', type:'number', val:1 }, { n:'statut', label:'Réponse', type:'select', options:[['attente', 'En attente'], ['oui', 'Présent'], ['non', 'Absent']] }, { n:'regime', label:'Régime ou allergies' }],
+      i ? { ...i, email:i.email || '', groupe:i.groupe || '', regime:i.regime || '' } : {}, 'Enregistrer');
+    if(!r) return;
+    const ligne = { nom:r.nom, email:r.email || null, groupe:r.groupe || null, nb_personnes:Math.max(1, Math.min(10, Math.round(num(r.nb_personnes)) || 1)), statut:r.statut, regime:r.regime || null };
+    const q = i ? supabase.from('mariage_invites').update(ligne).eq('id', i.id) : supabase.from('mariage_invites').insert({ ...ligne, mariage_id:M.id });
+    const { error } = await q; if(error) return toast(msgErreur(error));
+    await charger(); afficher('invites');
+  }
+  async function supprimer(table, ligne, libelle){
+    if(!(await confirmer('Supprimer « ' + libelle + ' » ?', 'Supprimer'))) return;
+    const { error } = await supabase.from(table).delete().eq('id', ligne.id); if(error) return toast(msgErreur(error));
+    await charger(); afficher(onglet);
+  }
+
+  // ------------------------------------------------------------------ prestataires
+  const METIERS = [['', 'Tous les métiers'], ['coiffure', 'Coiffure'], ['barbier', 'Barbier'], ['esthetique', 'Esthétique et maquillage'], ['onglerie', 'Onglerie'], ['massage', 'Massage'], ['photographe', 'Photographe'], ['patisserie', 'Pâtisserie'], ['autre', 'Autre']];
+  const STATUTS = { envoyee:['En attente de réponse', 'att'], repondue:['Réponse reçue', 'ok'], indisponible:['Indisponible', 'ko'], acceptee:['Acceptée', 'ok'], refusee:['Refusée', 'ko'] };
+  function vuePresta(){
+    $('#vue').innerHTML = `<div class="carte" style="margin-bottom:16px"><h2 style="font-size:19px;margin-bottom:10px">Trouver un prestataire</h2>
+      <form id="form-rech" class="actions" role="search" style="margin:0">
+        <label class="sr" for="r-q" style="position:absolute;left:-9999px">Recherche</label><input id="r-q" class="champ" placeholder="Que cherchez-vous ?" style="flex:2;min-width:160px;min-height:46px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit">
+        <input id="r-ville" placeholder="Ville" value="${esc(M.ville || '')}" aria-label="Ville" style="flex:1;min-width:120px;min-height:46px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit">
+        <select id="r-metier" aria-label="Métier" style="min-height:46px;padding:0 12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit">${METIERS.map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select>
+        <button class="btn principal" type="submit">Rechercher</button></form>
+      <div id="resultats" aria-live="polite"></div>
+      <p class="muted" style="font-size:13px;margin-top:10px">L'annuaire regroupe les professionnels inscrits à Mirrio qui ont choisi d'y figurer.</p></div>
+      <div class="carte"><h2 style="font-size:19px;margin-bottom:6px">Mes demandes (${demandes.length})</h2>${demandes.length ? demandes.map(ligneDemande).join('') : '<p class="vide">Aucune demande envoyée.</p>'}</div>`;
+    $('#form-rech').addEventListener('submit', e => { e.preventDefault(); rechercher(); });
+    $('#vue').querySelectorAll('[data-d]').forEach(b => b.onclick = () => decider(b.dataset.d, b.dataset.s));
+    if(!vuePresta.deja){ vuePresta.deja = true; rechercher(); }
+  }
+  function ligneDemande(d){
+    const [lib, cls] = STATUTS[d.statut] || [d.statut, 'att'];
+    return `<div class="rang" style="align-items:flex-start"><div class="corps"><div class="titre">${esc(d.prestataire_nom || 'Prestataire')}</div>
+      <div class="muted" style="font-size:13px">Envoyée le ${esc(dateFr(d.created_at.slice(0, 10)))}</div>
+      ${d.reponse || d.montant_propose != null ? `<div style="margin-top:8px;padding:10px 12px;border-radius:12px;background:var(--bg)">${d.montant_propose != null ? `<b>Devis : ${eur(d.montant_propose)}</b><br>` : ''}${esc(d.reponse || '')}</div>` : ''}
+      ${d.statut === 'repondue' ? `<div class="actions" style="margin:10px 0 0"><button class="btn principal petit" data-d="${d.id}" data-s="acceptee" type="button">Accepter</button><button class="btn petit" data-d="${d.id}" data-s="refusee" type="button">Refuser</button></div>` : ''}</div>
+      <span class="puce ${cls}">${esc(lib)}</span></div>`;
+  }
+  async function rechercher(){
+    const z = $('#resultats'); z.innerHTML = '<p class="vide">Recherche…</p>';
+    const p = new URLSearchParams(); const q = $('#r-q').value.trim(), v = $('#r-ville').value.trim(), m = $('#r-metier').value;
+    if(q) p.set('q', q); if(v) p.set('ville', v); if(m) p.set('metier', m);
+    try{
+      const r = await fetch('/api/annuaire?' + p.toString()); const j = await r.json();
+      const liste = j.praticiens || [];
+      z.innerHTML = liste.length ? liste.slice(0, 20).map(x => `<div class="resultat"><img src="${esc((x.photos && x.photos[0]) || x.logo_url || '')}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+        <div style="flex:1;min-width:0"><b>${esc(x.nom)}</b><div class="muted" style="font-size:13px">${esc(x.ville || '')}${x.nb_avis ? ` · ★ ${esc(x.note_moyenne)} (${x.nb_avis})` : ''}</div></div>
+        <a class="btn petit" href="pro.html?p=${encodeURIComponent(x.slug)}" target="_blank" rel="noopener">Voir la fiche</a>
+        <button class="btn principal petit" data-slug="${esc(x.slug)}" data-nom="${esc(x.nom)}" type="button">Demander un devis</button></div>`).join('')
+        : '<p class="vide">Aucun prestataire trouvé. Essayez une autre ville ou un autre métier.</p>';
+      z.querySelectorAll('[data-slug]').forEach(b => b.onclick = () => demander(b.dataset.slug, b.dataset.nom));
+    }catch(e){ z.innerHTML = '<p class="vide">Recherche impossible pour le moment.</p>'; }
+  }
+  async function demander(slug, nom){
+    const r = await formulaire('Demande de devis : ' + nom, [
+      { n:'message', label:'Votre demande', type:'textarea', req:true, val:`Bonjour, nous nous marions${M.date_mariage ? ' le ' + dateFr(M.date_mariage) : ''}${M.ville ? ' à ' + M.ville : ''} et aimerions un devis. Pouvez-vous nous dire si vous êtes disponible ?` },
+      { n:'nb', label:'Nombre d\'invités', type:'number', val:M.nb_invites || '' }, { n:'budget', label:'Budget indicatif (€)', type:'number' },
+      { n:'nom', label:'Votre nom', req:true, val:(session.user.user_metadata && session.user.user_metadata.full_name) || '' }, { n:'email', label:'Votre e-mail', type:'email', req:true, val:session.user.email },
+      { n:'tel', label:'Téléphone' }], {}, 'Envoyer la demande');
+    if(!r) return;
+    const { data: nouvelle, error } = await supabase.rpc('mariage_demander', { p_mariage:M.id, p_slug:slug, p_message:r.message, p_date:M.date_mariage, p_nb:r.nb ? Math.round(num(r.nb)) : null,
+      p_budget:r.budget ? num(r.budget) : null, p_nom:r.nom, p_email:r.email, p_tel:r.tel || null });
+    if(error) return toast(msgErreur(error));
+    // E-mail au prestataire : best-effort, la demande existe déjà même si l'envoi échoue.
+    fetch('/api/mariage', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Bearer ' + session.access_token }, body:JSON.stringify({ demande_id:nouvelle, evenement:'demande' }) }).catch(() => {});
+    await charger(); afficher('presta'); toast('Demande envoyée à ' + nom + '.');
+  }
+  async function decider(id, statut){
+    const d = demandes.find(x => x.id === id);
+    const { error } = await supabase.rpc('mariage_decider', { p_demande:id, p_statut:statut });
+    if(error) return toast(msgErreur(error));
+    if(statut === 'acceptee' && d.montant_propose != null && await confirmer('Ajouter ce devis (' + eur(d.montant_propose) + ') à votre budget ?', 'Ajouter au budget')){
+      await supabase.from('mariage_budget').insert({ mariage_id:M.id, poste:'Prestataire : ' + (d.prestataire_nom || ''), prevu:d.montant_propose, montant:d.montant_propose, prestataire:d.prestataire_nom });
+    }
+    await charger(); afficher('presta');
+  }
+
+  // ------------------------------------------------------------------ démarrage
+  async function demarrer(){
+    await charger();
+    $('#chargement').hidden = true;
+    if(!M){ afficherCreation(); return; }
+    $('#creation').hidden = true; $('#appli').hidden = false;
+    afficher(onglet);
+  }
+  (async function init(){
+    const { data } = await supabase.auth.getSession();
+    session = data.session;
+    if(!session){ location.href = 'login.html'; return; }
+    $('#qui').textContent = session.user.email;
+    $('#sortir').onclick = async () => { await supabase.auth.signOut(); location.href = 'mariage.html'; };
+    await demarrer();
+  })();
+</script>
+</body>
+</html>

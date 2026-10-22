@@ -507,9 +507,17 @@
     }
   }
 
-  function redirigerApresSucces(){
-    const destination = destinationApresConnexion();
-    if(destination !== 'clients.html'){
+  async function redirigerApresSucces(){
+    let destination = destinationApresConnexion();
+    // Un compte « futurs mariés » (schema-v37) n'a pas d'espace professionnel : il va droit à son mariage.
+    if(destination === 'clients.html'){
+      try{
+        const { data: u } = await supabase.auth.getUser();
+        const { data: p } = u && u.user ? await supabase.from('profiles').select('type_compte').eq('id', u.user.id).maybeSingle() : {};
+        if(p && p.type_compte === 'couple') destination = 'mon-mariage.html';
+      }catch(e){}
+    }
+    if(destination !== 'clients.html' && destination !== 'mon-mariage.html'){
       document.getElementById('success-redirect-text').textContent = "Redirection vers votre invitation d'équipe…";
     }
     document.getElementById('form-view').style.display = 'none';

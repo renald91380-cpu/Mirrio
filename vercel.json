@@ -105,6 +105,10 @@
     {
       "source": "/sitemap.xml",
       "destination": "/api/reservation-disponibilites?action=sitemap"
+    },
+    {
+      "source": "/api/mariage",
+      "destination": "/api/reservation-disponibilites?action=mariage"
     }
   ]
 }

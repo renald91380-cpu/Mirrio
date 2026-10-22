@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demandes de mariage | Mirrio</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#101216">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<style>
+  :root{
+    --bg:#F5F5F3; --surface:#FBFBFA; --ink:#101216; --muted:#5B606B; --line:rgba(16,18,22,.12);
+    --accent:#E2A63D; --accent-ink:#101216; --ok:#2E7D5B; --alerte:#B3402A;
+    --display:'Bricolage Grotesque',system-ui,sans-serif; --body:'Geist',system-ui,sans-serif;
+    --ombre:0 1px 2px rgba(16,18,22,.05), 0 12px 30px -14px rgba(16,18,22,.18);
+  }
+  @media (prefers-color-scheme:dark){ :root{ --bg:#0D0F13; --surface:#15181E; --ink:#F1F1EE; --muted:#9CA2AE; --line:rgba(255,255,255,.14); --ok:#5CC08F; --alerte:#F0836C; --ombre:0 1px 2px rgba(0,0,0,.3), 0 14px 34px -14px rgba(0,0,0,.6); } }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ background:var(--bg); color:var(--ink); font:400 15px/1.55 var(--body); -webkit-font-smoothing:antialiased; }
+  a{ color:inherit; }
+  h1,h2,h3{ font-family:var(--display); letter-spacing:-.02em; line-height:1.15; }
+  .evitement{ position:absolute; left:-9999px; } .evitement:focus{ left:12px; top:12px; background:var(--accent); color:var(--accent-ink); padding:10px 16px; border-radius:999px; z-index:50; }
+  header{ position:sticky; top:0; z-index:20; background:color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
+  .barre{ max-width:1000px; margin:0 auto; padding:12px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .logo{ font:800 21px var(--display); text-decoration:none; } .logo b{ color:var(--accent); }
+  .barre .droite{ display:flex; gap:10px; align-items:center; font-size:14px; color:var(--muted); }
+  main{ max-width:1000px; margin:0 auto; padding:24px 20px 90px; }
+  nav.onglets{ display:flex; gap:6px; overflow-x:auto; padding:2px 0 14px; scrollbar-width:none; }
+  nav.onglets button{ flex:none; min-height:44px; padding:0 18px; border-radius:999px; border:1px solid var(--line); background:var(--surface); color:var(--ink); font:600 15px var(--body); cursor:pointer; }
+  nav.onglets button[aria-selected=true]{ background:var(--ink); color:var(--bg); border-color:transparent; }
+  .btn{ min-height:44px; padding:0 20px; border-radius:999px; border:1px solid var(--line); background:transparent; color:var(--ink); font:600 15px var(--body); cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+  .btn.principal{ background:var(--accent); color:var(--accent-ink); border-color:transparent; }
+  .btn.petit{ min-height:36px; padding:0 14px; font-size:14px; } .btn.danger{ color:var(--alerte); }
+  .btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{ outline:3px solid var(--accent); outline-offset:2px; }
+  .carte{ background:var(--surface); border:1px solid var(--line); border-radius:22px; padding:22px; box-shadow:var(--ombre); }
+  .grille{ display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); }
+  .grand{ font:800 44px/1 var(--display); letter-spacing:-.04em; } .muted{ color:var(--muted); }
+  .barre-prog{ height:10px; border-radius:99px; background:var(--line); overflow:hidden; margin:10px 0 6px; } .barre-prog i{ display:block; height:100%; background:var(--accent); }
+  .barre-prog.rouge i{ background:var(--alerte); }
+  .rang{ display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--line); }
+  .rang:last-child{ border-bottom:none; } .rang .corps{ flex:1; min-width:0; } .rang .titre{ font-weight:600; } .rang .titre.fait{ text-decoration:line-through; color:var(--muted); }
+  .rang input[type=checkbox]{ width:24px; height:24px; accent-color:var(--accent); flex:none; }
+  .puce{ display:inline-block; padding:3px 11px; border-radius:99px; font-size:13px; font-weight:600; border:1px solid var(--line); }
+  .puce.ok{ color:var(--ok); border-color:currentColor; } .puce.ko{ color:var(--alerte); border-color:currentColor; } .puce.att{ color:var(--muted); }
+  .alerte{ color:var(--alerte); font-weight:600; }
+  .actions{ display:flex; flex-wrap:wrap; gap:10px; margin:0 0 16px; align-items:center; }
+  table{ width:100%; border-collapse:collapse; font-size:14px; } th,td{ text-align:left; padding:10px 8px; border-bottom:1px solid var(--line); vertical-align:top; } th{ color:var(--muted); font-weight:500; }
+  td.num,th.num{ text-align:right; white-space:nowrap; } .scroll-x{ overflow-x:auto; }
+  dialog{ border:none; border-radius:24px; padding:24px; width:min(520px,calc(100vw - 24px)); background:var(--surface); color:var(--ink); box-shadow:0 30px 80px -20px rgba(0,0,0,.5); }
+  dialog::backdrop{ background:rgba(8,10,14,.55); }
+  .champ{ margin:0 0 14px; } .champ label{ display:block; font-weight:600; margin-bottom:6px; }
+  .champ input,.champ select,.champ textarea{ width:100%; min-height:46px; padding:11px 14px; border-radius:12px; border:1px solid var(--line); background:var(--bg); color:var(--ink); font:inherit; }
+  .champ textarea{ min-height:110px; resize:vertical; }
+  .erreur{ color:var(--alerte); font-weight:600; min-height:1.4em; }
+  #toast{ position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:12px 20px; border-radius:99px; font-weight:600; opacity:0; pointer-events:none; transition:opacity .25s; z-index:60; }
+  #toast.on{ opacity:1; }
+  .vide{ text-align:center; padding:36px 10px; color:var(--muted); }
+  .resultat{ display:flex; gap:14px; align-items:center; padding:14px 0; border-bottom:1px solid var(--line); } .resultat:last-child{ border:none; }
+  .resultat img{ width:64px; height:64px; border-radius:16px; object-fit:cover; background:var(--line); flex:none; }
+  @media (max-width:560px){ .grand{ font-size:36px; } th:nth-child(n+6),td:nth-child(n+6){ display:none; } }
+  @media (prefers-reduced-motion:reduce){ *{ transition:none !important; } }
+</style>
+<script src="/pwa.js" defer></script>
+<script src="/cookies.js" defer></script>
+</head>
+<body>
+<a class="evitement" href="#contenu">Aller au contenu</a>
+<header><div class="barre">
+  <a class="logo" href="dashboard.html">Mirrio<b>.</b></a>
+  <div class="droite"><a class="btn petit" href="dashboard.html">Retour à l'application</a></div>
+</div></header>
+<main id="contenu">
+  <h1 style="font-size:30px;margin-bottom:6px">Demandes de mariage</h1>
+  <p class="muted" style="margin-bottom:18px">Des futurs mariés vous demandent un devis. Répondez-leur ici : ils reçoivent votre réponse par e-mail.</p>
+  <div id="liste" aria-live="polite"><p class="vide">Chargement…</p></div>
+</main>
+<div id="toast" role="status"></div>
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+  import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const $ = s => document.querySelector(s);
+  const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  const eur = n => (Number(n) || 0).toLocaleString('fr-FR', { style:'currency', currency:'EUR', maximumFractionDigits:0 });
+  const dateFr = d => d ? new Date(d.slice(0, 10) + 'T12:00:00').toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' }) : '';
+  function toast(t){ const e = $('#toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 2600); }
+  const STATUTS = { envoyee:['À traiter', 'ko'], repondue:['Réponse envoyée', 'ok'], indisponible:['Indisponible', 'att'], acceptee:['Acceptée par les mariés', 'ok'], refusee:['Refusée par les mariés', 'att'] };
+  let session = null, demandes = [];
+
+  function formulaire(titre, champs, valeurs){
+    return new Promise(resolve => {
+      const d = document.createElement('dialog');
+      d.innerHTML = `<form method="dialog" novalidate><h2 style="font-size:22px;margin-bottom:16px">${esc(titre)}</h2>
+        ${champs.map(c => `<div class="champ"><label for="f-${c.n}">${esc(c.label)}</label>${c.type === 'textarea' ? `<textarea id="f-${c.n}">${esc(valeurs[c.n] || '')}</textarea>` : `<input id="f-${c.n}" type="${c.type || 'text'}" ${c.type === 'number' ? 'min="0" step="any" inputmode="decimal"' : ''} value="${esc(valeurs[c.n] || '')}">`}</div>`).join('')}
+        <div class="actions" style="justify-content:flex-end;margin:6px 0 0"><button class="btn" type="button" id="non">Annuler</button><button class="btn principal" type="submit">Envoyer</button></div></form>`;
+      document.body.appendChild(d);
+      const fin = r => { d.close(); d.remove(); resolve(r); };
+      d.querySelector('#non').onclick = () => fin(null);
+      d.addEventListener('cancel', e => { e.preventDefault(); fin(null); });
+      d.querySelector('form').addEventListener('submit', e => { e.preventDefault(); const o = {}; champs.forEach(c => o[c.n] = d.querySelector('#f-' + c.n).value.trim()); fin(o); });
+      d.showModal(); d.querySelector('input,textarea').focus();
+    });
+  }
+
+  async function charger(){
+    const { data, error } = await supabase.from('mariage_demandes').select('*').order('created_at', { ascending:false });
+    demandes = data || [];
+    if(error) $('#liste').innerHTML = '<p class="vide">Impossible de charger les demandes pour le moment.</p>';
+    else dessiner();
+  }
+  function dessiner(){
+    if(!demandes.length){ $('#liste').innerHTML = '<div class="carte"><p class="vide">Aucune demande pour le moment. Elles apparaîtront ici dès qu\'un couple vous contactera depuis l\'annuaire.</p></div>'; return; }
+    $('#liste').innerHTML = demandes.map(d => { const [lib, cls] = STATUTS[d.statut] || [d.statut, 'att'];
+      return `<div class="carte" style="margin-bottom:14px" data-id="${d.id}">
+      <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><h2 style="font-size:19px">${esc(d.contact_nom)}</h2>
+        <p class="muted" style="font-size:13px">Reçue le ${esc(dateFr(d.created_at))}</p></div><span class="puce ${cls}">${esc(lib)}</span></div>
+      <p style="margin:12px 0;white-space:pre-wrap">${esc(d.message)}</p>
+      <p class="muted" style="font-size:14px">${[d.date_evenement && 'Date : ' + dateFr(d.date_evenement), d.nb_invites != null && d.nb_invites + ' invités', d.budget_indicatif != null && 'Budget indicatif : ' + eur(d.budget_indicatif)].filter(Boolean).map(esc).join(' · ')}</p>
+      <p class="muted" style="font-size:14px">${esc(d.contact_email)}${d.contact_telephone ? ' · ' + esc(d.contact_telephone) : ''}</p>
+      ${d.reponse || d.montant_propose != null ? `<div style="margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--bg)">${d.montant_propose != null ? '<b>Votre devis : ' + eur(d.montant_propose) + '</b><br>' : ''}${esc(d.reponse || '')}</div>` : ''}
+      ${['envoyee', 'repondue'].includes(d.statut) ? `<div class="actions" style="margin:12px 0 0"><button class="btn principal petit" data-a="rep" type="button">${d.statut === 'envoyee' ? 'Répondre avec un devis' : 'Modifier ma réponse'}</button>${d.statut === 'envoyee' ? '<button class="btn petit" data-a="indispo" type="button">Je ne suis pas disponible</button>' : ''}</div>` : ''}</div>`; }).join('');
+    $('#liste').querySelectorAll('[data-id]').forEach(c => {
+      const d = demandes.find(x => x.id === c.dataset.id);
+      const rep = c.querySelector('[data-a=rep]'), nope = c.querySelector('[data-a=indispo]');
+      if(rep) rep.onclick = async () => {
+        const r = await formulaire('Répondre à ' + d.contact_nom, [{ n:'montant', label:'Montant du devis (€)', type:'number' }, { n:'reponse', label:'Votre message', type:'textarea' }],
+          { montant:d.montant_propose != null ? d.montant_propose : '', reponse:d.reponse || '' });
+        if(r) envoyer(d, 'repondue', r.reponse, r.montant === '' ? null : Number(String(r.montant).replace(',', '.')));
+      };
+      if(nope) nope.onclick = () => envoyer(d, 'indisponible', 'Je ne suis malheureusement pas disponible à cette date.', null);
+    });
+  }
+  async function envoyer(d, statut, reponse, montant){
+    if(!reponse && montant == null) return toast('Ajoutez un message ou un montant.');
+    const { error } = await supabase.rpc('mariage_repondre', { p_demande:d.id, p_statut:statut, p_reponse:reponse || null, p_montant:montant });
+    if(error) return toast('Impossible d\'envoyer la réponse.');
+    fetch('/api/mariage', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Bearer ' + session.access_token }, body:JSON.stringify({ demande_id:d.id, evenement:'reponse' }) }).catch(() => {});
+    toast('Réponse envoyée.'); await charger();
+  }
+  (async function init(){
+    const { data } = await supabase.auth.getSession(); session = data.session;
+    if(!session){ location.href = 'login.html'; return; }
+    await charger();
+  })();
+</script>
+</body>
+</html>

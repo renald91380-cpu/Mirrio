@@ -5,6 +5,7 @@
 ## Pages principales
 - [Accueil](https://cadence-site-cadence-65cc.vercel.app/): présentation, tarifs, questions fréquentes
 - [Boulangeries et pâtisseries](https://cadence-site-cadence-65cc.vercel.app/bouche.html): commandes de gâteaux en ligne, calendrier de charge, tarif unique 29 €/mois
+- [Mariage](https://cadence-site-cadence-65cc.vercel.app/mariage.html): application gratuite pour organiser son mariage (checklist, budget, invités, demandes de devis)
 - [Trouver un salon](https://cadence-site-cadence-65cc.vercel.app/explorer.html): annuaire des salons, recherche par ville, métier, budget, tarif enfant ou étudiant
 - [Créer un compte](https://cadence-site-cadence-65cc.vercel.app/signup.html): inscription des professionnels
 

@@ -268,14 +268,15 @@
             <select id="activite" name="activite">
               <option value="beaute">Salon de beauté, coiffure, institut, massage</option>
               <option value="patisserie">Boulangerie, pâtisserie</option>
+              <option value="mariage">Futurs mariés (gratuit)</option>
             </select>
           </div>
 
           <div class="field" id="tarif-unique" style="display:none;">
             <div class="plan-picker" style="grid-template-columns:1fr;">
               <div class="plan-option" style="border-color:var(--teal); background:rgba(62,124,116,0.06);">
-                <div class="name">Boulangerie-pâtisserie</div>
-                <div class="price">29&nbsp;€&nbsp;/mois, tout inclus, tarif unique</div>
+                <div class="name" id="tu-nom">Boulangerie-pâtisserie</div>
+                <div class="price" id="tu-prix">29&nbsp;€&nbsp;/mois, tout inclus, tarif unique</div>
               </div>
             </div>
           </div>
@@ -508,7 +509,7 @@
           full_name: form.elements.name.value.trim(),
           plan: form.elements.activite.value === 'patisserie' ? 'studio' : form.elements.plan.value,
           // Lu par handle_new_user() (schema-v36) : métier pâtissier et formule unique à 29 €.
-          activite: form.elements.activite.value === 'patisserie' ? 'patisserie' : undefined,
+          activite: ['patisserie', 'mariage'].includes(form.elements.activite.value) ? form.elements.activite.value : undefined,
           // Lu directement par handle_new_user() côté SQL : si ce jeton est valide,
           // le compte rejoint l'espace de l'invitant dès sa création, avant même
           // la confirmation de l'email.
@@ -550,11 +551,15 @@
   const activiteEl = document.getElementById('activite');
   function majActivite(){
     const patisserie = activiteEl.value === 'patisserie' && !jetonInvite;
-    document.getElementById('tarif-unique').style.display = patisserie ? '' : 'none';
-    document.getElementById('plan-field').style.display = (patisserie || jetonInvite) ? 'none' : '';
+    const mariageSel = activiteEl.value === 'mariage' && !jetonInvite;
+    document.getElementById('tarif-unique').style.display = (patisserie || mariageSel) ? '' : 'none';
+    document.getElementById('tu-nom').textContent = mariageSel ? 'Futurs mariés' : 'Boulangerie-pâtisserie';
+    document.getElementById('tu-prix').innerHTML = mariageSel ? 'Gratuit : planning, budget, invités, demandes de devis' : '29&nbsp;€&nbsp;/mois, tout inclus, tarif unique';
+    const mariage = activiteEl.value === 'mariage' && !jetonInvite;
+    document.getElementById('plan-field').style.display = (patisserie || mariage || jetonInvite) ? 'none' : '';
   }
   activiteEl.addEventListener('change', majActivite);
-  if(params.get('activite') === 'patisserie') activiteEl.value = 'patisserie';
+  if(['patisserie', 'mariage'].includes(params.get('activite'))) activiteEl.value = params.get('activite');
   if(jetonInvite) document.getElementById('activite-field').style.display = 'none';
   majActivite();
 </script>

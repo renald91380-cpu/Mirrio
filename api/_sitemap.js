@@ -14,6 +14,7 @@ const BASE = (process.env.SITE_URL || 'https://cadence-site-cadence-65cc.vercel.
 const PAGES = [
   ['/', 'weekly', '1.0'],
   ['/bouche.html', 'weekly', '0.8'],
+  ['/mariage.html', 'weekly', '0.8'],
   ['/explorer.html', 'daily', '0.8'],
   ['/signup.html', 'monthly', '0.6'],
   ['/cgu.html', 'yearly', '0.2'],
