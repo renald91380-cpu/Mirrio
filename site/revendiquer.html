@@ -67,7 +67,7 @@
     var n = Number(f.nb_demandes) || 0;
     var cible = 'signup.html?plan=studio&revendiquer=' + encodeURIComponent(f.id) + (demo ? '&demo=1' : '');
     var cibleSolo = 'signup.html?plan=solo&revendiquer=' + encodeURIComponent(f.id) + (demo ? '&demo=1' : '');
-    var contact = 'mailto:renald91380@gmail.com?subject=' + encodeURIComponent('Retrait de la fiche ' + f.nom);
+    var contact = 'mailto:contact@dima-artistry.com?subject=' + encodeURIComponent('Retrait de la fiche ' + f.nom);
     document.title = 'Reprendre la fiche de ' + f.nom + ' | Mirrio';
     $('zone').innerHTML =
       (demo ? '<div class="bandeau-demo">Exemple fictif : ce salon n\'existe pas, rien n\'est enregistré.</div>' : '') +
