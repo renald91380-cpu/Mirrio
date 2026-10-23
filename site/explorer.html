@@ -221,6 +221,7 @@
 </main>
 <button class="btn bascule-mobile" id="bascule" type="button"><i class="ph ph-map-trifold" aria-hidden="true"></i><span>Carte</span></button>
 
+<script src="maps-config.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
   const grille = document.getElementById('grille'), compte = document.getElementById('compte');
@@ -232,8 +233,61 @@
   const hash = s => [...s].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
   let metier = '';
 
-  let carteL = null, marqueurs = null;
+  // Carte : Google Maps si une clé est configurée (maps-config.js), sinon OpenStreetMap via Leaflet. Si Google refuse la clé ou ne
+  // charge pas, on retombe automatiquement sur OpenStreetMap : la recherche n'est jamais privée de carte.
+  let moteur = window.MIRRIO_GOOGLE_MAPS_KEY ? 'google' : 'leaflet';
+  let carteL = null, marqueurs = null, carteG = null, infoG = null, pinsG = [], dernier = [[], []], googlePret = null;
+
+  function chargerGoogle(){
+    if(googlePret) return googlePret;
+    googlePret = new Promise((ok, ko) => {
+      window.__mirrioGmaps = ok;
+      window.gm_authFailure = () => { if(moteur === 'google') basculerLeaflet(); };   // clé refusée par Google
+      const sc = document.createElement('script');
+      sc.async = true; sc.onerror = () => ko(new Error('Google Maps indisponible'));
+      sc.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(window.MIRRIO_GOOGLE_MAPS_KEY) + '&v=weekly&loading=async&libraries=marker&language=fr&region=FR&callback=__mirrioGmaps';
+      document.head.appendChild(sc);
+    });
+    return googlePret;
+  }
+  function basculerLeaflet(){
+    moteur = 'leaflet'; carteG = null; pinsG = [];
+    document.getElementById('carte').innerHTML = '';
+    majCarte(...dernier);
+  }
+
+  async function majCarteGoogle(liste, externes){
+    await chargerGoogle();
+    const { Map, InfoWindow, LatLngBounds } = await google.maps.importLibrary('maps');
+    const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary('marker');
+    if(!carteG){
+      carteG = new Map(document.getElementById('carte'), { center:{ lat:46.6, lng:2.5 }, zoom:5, mapId:'DEMO_MAP_ID', gestureHandling:'greedy',
+        mapTypeControl:false, streetViewControl:false, fullscreenControl:false, colorScheme: google.maps.ColorScheme ? google.maps.ColorScheme.FOLLOW_SYSTEM : undefined });
+      infoG = new InfoWindow();
+    }
+    pinsG.forEach(m => { m.map = null; }); pinsG = [];
+    const limites = new LatLngBounds();
+    const poser = (x, pin, html) => {
+      const position = { lat:Number(x.latitude), lng:Number(x.longitude) };
+      const m = new AdvancedMarkerElement({ map:carteG, position, title:x.nom, content:pin.element });
+      m.addListener('click', () => { infoG.setContent(html); infoG.open({ map:carteG, anchor:m }); });
+      pinsG.push(m); limites.extend(position);
+    };
+    externes.filter(x => x.latitude != null).forEach(x => poser(x,
+      new PinElement({ background:'#B9BCC6', borderColor:'#6B7080', glyphColor:'#6B7080', scale:.8 }),
+      `<b>${esc(x.nom)}</b><br>Pas encore sur Mirrio`));
+    liste.filter(x => x.latitude != null).forEach(x => poser(x,
+      new PinElement({ background:'#E2A63D', borderColor:'#A1700A', glyphColor:'#101216' }),
+      `<div style="color:#101216"><b>${esc(x.nom)}</b><br>${x.nb_avis ? '★ ' + esc(x.note_moyenne) + ' (' + esc(x.nb_avis) + ')<br>' : ''}${x.ville ? esc(x.ville) + '<br>' : ''}<a href="pro.html?p=${encodeURIComponent(x.slug)}">Voir la fiche et réserver</a></div>`));
+    if(pinsG.length){
+      carteG.fitBounds(limites, 48);
+      google.maps.event.addListenerOnce(carteG, 'idle', () => { if(carteG.getZoom() > 14) carteG.setZoom(14); });
+    }
+  }
+
   function majCarte(liste, externes = []){
+    dernier = [liste, externes];
+    if(moteur === 'google'){ majCarteGoogle(liste, externes).catch(() => { if(moteur === 'google') basculerLeaflet(); }); return; }
     if(!window.L) return;
     if(!carteL){
       carteL = L.map('carte', { scrollWheelZoom:true }).setView([46.6, 2.5], 5);
@@ -373,7 +427,8 @@
     const ouverte = col.classList.toggle('ouverte');
     bas.querySelector('span').textContent = ouverte ? 'Liste' : 'Carte';
     bas.querySelector('i').className = ouverte ? 'ph ph-list-bullets' : 'ph ph-map-trifold';
-    if(ouverte && carteL) setTimeout(() => carteL.invalidateSize(), 60);
+    if(ouverte && moteur === 'google' && carteG) setTimeout(() => google.maps.event.trigger(carteG, 'resize'), 60);
+    else if(ouverte && carteL) setTimeout(() => carteL.invalidateSize(), 60);
   });
 
   // État initial depuis l'URL
