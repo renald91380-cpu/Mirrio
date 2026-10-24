@@ -81,7 +81,7 @@
   </div>
   <p class="muted" style="margin-bottom:18px">Chaque salon a sa propre page de réservation, son catalogue, son équipe, ses clients et son compte de paiement. Choisissez un salon pour le gérer, ou comparez-les ici.</p>
   <div id="contenu-salons" aria-live="polite"><p class="vide">Chargement…</p></div>
-  <p class="muted" style="font-size:13px;margin-top:14px">Chiffres du mois en cours. Le chiffre d'affaires est la somme hors taxes des factures payées émises ce mois-ci. Chaque salon supplémentaire est facturé comme un salon de la formule Salon (29 €/mois), sans commission.</p>
+  <p class="muted" style="font-size:13px;margin-top:14px">Chiffres du mois en cours. Le chiffre d'affaires est la somme hors taxes des factures payées émises ce mois-ci. Tarif : forfait Salon + 10 % du forfait par salon supplémentaire, sans commission.</p>
 </main>
 <div id="toast" role="status"></div>
 <script type="module">
@@ -94,6 +94,10 @@
   function toast(t){ const e = $('#toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 3200); }
   const METIERS = [['coiffure', 'Coiffure'], ['barbier', 'Barbier'], ['esthetique', 'Institut, esthétique'], ['onglerie', 'Onglerie'], ['massage', 'Massage et spa'], ['patisserie', 'Boulangerie, pâtisserie'], ['autre', 'Autre']];
   const LIB = Object.fromEntries(METIERS);
+  // Tarif : forfait Salon + 10 % de ce forfait pour chaque salon supplémentaire (affichage ; aucune facturation réelle pour l'instant).
+  const FORFAIT = 29, SUPPLEMENT = 0.10;
+  const eur2 = n => n.toLocaleString('fr-FR', { style:'currency', currency:'EUR', minimumFractionDigits:2, maximumFractionDigits:2 });
+  const supplement = FORFAIT * SUPPLEMENT;
   let session = null, salons = [], stats = [];
 
   async function charger(){
@@ -111,6 +115,8 @@
         <div class="carte"><div class="muted">Rendez-vous ce mois</div><div class="grand">${tot.m}</div></div>
         <div class="carte"><div class="muted">Rendez-vous, 7 prochains jours</div><div class="grand">${tot.j}</div></div>
         <div class="carte"><div class="muted">Clients</div><div class="grand">${tot.c}</div></div></div>
+      <div class="carte" style="margin-bottom:16px"><b>Abonnement du groupe : ${eur2(FORFAIT + supplement * Math.max(0, salons.length - 1))} par mois</b>
+        <p class="muted" style="font-size:14px;margin-top:4px">Forfait Salon de ${eur2(FORFAIT)}${salons.length > 1 ? ` + ${salons.length - 1} salon${salons.length > 2 ? 's' : ''} supplémentaire${salons.length > 2 ? 's' : ''} à ${eur2(supplement)} (10 % du forfait chacun)` : ''}. Sans commission.</p></div>
       <div class="carte scroll-x"><table><thead><tr><th>Salon</th><th class="num">CA du mois</th><th class="num">RDV du mois</th><th class="num">RDV 7 jours</th><th class="num">Clients</th><th class="num">Équipe</th><th></th></tr></thead><tbody>
       ${salons.map(x => { const st = par[x.id] || {}; return `<tr data-id="${esc(x.id)}">
         <td><b>${esc(x.nom)}</b>${x.principal ? ' <span class="puce">Principal</span>' : ''}${x.actif ? ' <span class="puce ok">Affiché</span>' : ''}<div class="muted" style="font-size:12px">${esc(LIB[x.metier] || '')}${x.ville ? ' · ' + esc(x.ville) : ''}</div></td>
@@ -133,6 +139,7 @@
       d.innerHTML = `<form method="dialog" novalidate><h2 style="font-size:22px;margin-bottom:16px">Ajouter un salon</h2>
         <div class="champ"><label for="f-nom">Nom du salon</label><input id="f-nom" maxlength="80" required></div>
         <div class="champ"><label for="f-metier">Activité</label><select id="f-metier">${METIERS.map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></div>
+        <p class="muted" style="margin-bottom:14px">Chaque salon supplémentaire ajoute <b>${eur2(supplement)} par mois</b> à votre abonnement, soit 10 % du forfait Salon.</p>
         <div class="champ"><label for="f-ville">Ville <span class="muted" style="font-weight:400">(facultatif)</span></label><input id="f-ville" maxlength="80"></div>
         <p class="erreur" id="f-err" role="alert"></p>
         <div class="actions" style="justify-content:flex-end;margin:6px 0 0"><button class="btn" type="button" id="non">Annuler</button><button class="btn principal" type="submit" id="ok">Créer le salon</button></div></form>`;
