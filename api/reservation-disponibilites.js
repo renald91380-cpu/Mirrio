@@ -31,6 +31,7 @@ import client from './_client.js';
 import gateaux from './_gateaux.js';
 import sitemap from './_sitemap.js';
 import mariage from './_mariage.js';
+import salons from './_salons.js';
 import { contexte, occupes, creneauxDuJour, composantsParis, parisVersUtc, get as getDispo, chargerCreux, remiseCreux, chargerTarifs } from './_dispo.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -59,7 +60,7 @@ async function supabase(chemin){
 // leur code vit dans api/_annuaire.js, _avis.js et _rdv-ics.js (le préfixe `_`
 // les exclut du décompte). Ne pas recréer de fichier de route dans api/ sans
 // en retirer un autre.
-const ACTIONS = { annuaire, avis, ics: rdvIcs, vitrine, client, gateaux, sitemap, mariage };
+const ACTIONS = { annuaire, avis, ics: rdvIcs, vitrine, client, gateaux, sitemap, mariage, salons };
 
 export default async function handler(req, res){
   const action = new URL(req.url, 'http://x').searchParams.get('action');

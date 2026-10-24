@@ -109,6 +109,10 @@
     {
       "source": "/api/mariage",
       "destination": "/api/reservation-disponibilites?action=mariage"
+    },
+    {
+      "source": "/api/salons",
+      "destination": "/api/reservation-disponibilites?action=salons"
     }
   ]
 }

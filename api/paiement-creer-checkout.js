@@ -78,7 +78,10 @@ async function espaceActif(userId){
   if(!souhaite) return userId;
   const membres = await supabaseGet(
     `workspace_members?workspace_id=eq.${souhaite}&user_id=eq.${userId}&statut=eq.actif&select=id`);
-  return membres.length ? souhaite : userId;
+  if(membres.length) return souhaite;
+  // Gestionnaire d'un salon du groupe (schema-v38) : même droit qu'un membre actif.
+  const gestion = await supabaseGet(`salon_gestionnaires?salon_id=eq.${souhaite}&user_id=eq.${userId}&select=salon_id`).catch(() => []);
+  return gestion.length ? souhaite : userId;
 }
 
 // Stripe attend un corps `application/x-www-form-urlencoded` avec la

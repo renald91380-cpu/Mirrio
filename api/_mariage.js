@@ -55,7 +55,8 @@ export default async function handler(req, res){
     }
 
     if(corps.evenement === 'reponse'){
-      const [m] = user.id === d.prestataire_id ? [{}] : await get(`workspace_members?workspace_id=eq.${d.prestataire_id}&user_id=eq.${user.id}&statut=eq.actif&select=id`);
+      const [m] = user.id === d.prestataire_id ? [{}] : await get(`workspace_members?workspace_id=eq.${d.prestataire_id}&user_id=eq.${user.id}&statut=eq.actif&select=id`)
+        .then(l => l.length ? l : get(`salon_gestionnaires?salon_id=eq.${d.prestataire_id}&user_id=eq.${user.id}&select=salon_id`)).catch(() => []);
       if(!m) return json(res, 403, { error: 'Interdit.' });
       const ok = await envoyer(d.contact_email, null, `${d.prestataire_nom || 'Un prestataire'} a répondu à votre demande`,
         d.statut === 'indisponible' ? `<p>${esc(d.prestataire_nom)} n'est malheureusement pas disponible pour votre date.</p>`

@@ -243,8 +243,13 @@ export function monterEntete(brand, actif, estAdmin){
   let base = b.metier === 'patisserie'
     ? [...ONGLETS.slice(0, 3), ONGLET_COMMANDES, ...ONGLETS.slice(3)]
     : ONGLETS;
-  if(b.mariages) base = [...base.slice(0, -1), { cle:'mariages', href:'mariage-pro.html', libelle:'Mariages' }, base[base.length - 1]];
+  const supplements = [];
+  if(b.groupe) supplements.push({ cle:'salons', href:'salons.html', libelle:'Salons' });
+  if(b.mariages) supplements.push({ cle:'mariages', href:'mariage-pro.html', libelle:'Mariages' });
+  if(supplements.length) base = [...base.slice(0, -1), ...supplements, base[base.length - 1]];
   const onglets = estAdmin ? [...base, ONGLET_ADMIN] : base;
+
+  if(b.salons && b.salons.length > 1 && clientSupabase) monterSelecteurSalon(b.salons);
 
   const navHaut = document.querySelector('.app-header .app-nav');
   if(navHaut){
@@ -313,6 +318,23 @@ export async function chargerBrand(supabase, espaceId){
   return brand;
 }
 
+let clientSupabase = null;
+
+// Sélecteur de salon (en-tête et menu latéral) : visible seulement si l'on possède ou gère plusieurs salons.
+function monterSelecteurSalon(salons){
+  document.querySelectorAll('.salon-switch').forEach(e => e.remove());
+  const options = salons.map(s => `<option value="${echapper(s.id)}"${s.actif ? ' selected' : ''}>${echapper(s.nom)}${s.ville ? ' · ' + echapper(s.ville) : ''}</option>`).join('');
+  const html = `<select class="salon-switch" aria-label="Salon affiché" style="max-width:190px;min-height:36px;padding:0 10px;border-radius:999px;border:1px solid rgba(128,128,128,.4);background:transparent;color:inherit;font:600 13px inherit;cursor:pointer">${options}</select>`;
+  const haut = document.querySelector('.app-header-right'); if(haut) haut.insertAdjacentHTML('afterbegin', html);
+  const cote = document.querySelector('.app-sidebar .sidebar-nav'); if(cote) cote.insertAdjacentHTML('beforebegin', html.replace('max-width:190px', 'width:calc(100% - 24px);margin:0 12px 10px'));
+  document.querySelectorAll('.salon-switch').forEach(sel => sel.addEventListener('change', async () => {
+    const principal = salons.find(s => s.principal);
+    const { error } = await clientSupabase.rpc('basculer_espace', { p_espace_id: sel.value === (principal && principal.id) ? null : sel.value });
+    if(error){ alert('Impossible de changer de salon pour le moment.'); return; }
+    viderCacheBrand(); cacheEspaceId = null; location.reload();
+  }));
+}
+
 export function viderCacheBrand(){
   try{ sessionStorage.removeItem(CLE_CACHE); }catch(e){}
 }
@@ -359,6 +381,14 @@ export async function initTheme(supabase, ongletActif){
     const { count } = await supabase.from('mariage_demandes').select('id', { count:'exact', head:true }).eq('prestataire_id', espaceId);
     if(count > 0) brand.mariages = true;
   }catch(e){}
+  // Plusieurs salons (schema-v38) : liste des salons que je possède ou gère, pour le sélecteur et l'onglet « Salons ».
+  try{
+    const { data: salons } = await supabase.rpc('mes_salons');
+    brand.salons = salons || [];
+    const principal = brand.salons.find(s => s.principal);
+    brand.groupe = brand.salons.length > 1 || (!!principal && principal.plan === 'studio');
+  }catch(e){ brand.salons = []; }
+  clientSupabase = supabase;
   appliquerTheme(brand);
   monterEntete(brand, ongletActif, estAdmin);
   return brand;

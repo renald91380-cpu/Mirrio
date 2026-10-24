@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mes salons | Mirrio</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#101216">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<style>
+  :root{
+    --bg:#F5F5F3; --surface:#FBFBFA; --ink:#101216; --muted:#5B606B; --line:rgba(16,18,22,.12);
+    --accent:#E2A63D; --accent-ink:#101216; --ok:#2E7D5B; --alerte:#B3402A;
+    --display:'Bricolage Grotesque',system-ui,sans-serif; --body:'Geist',system-ui,sans-serif;
+    --ombre:0 1px 2px rgba(16,18,22,.05), 0 12px 30px -14px rgba(16,18,22,.18);
+  }
+  @media (prefers-color-scheme:dark){ :root{ --bg:#0D0F13; --surface:#15181E; --ink:#F1F1EE; --muted:#9CA2AE; --line:rgba(255,255,255,.14); --ok:#5CC08F; --alerte:#F0836C; --ombre:0 1px 2px rgba(0,0,0,.3), 0 14px 34px -14px rgba(0,0,0,.6); } }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ background:var(--bg); color:var(--ink); font:400 15px/1.55 var(--body); -webkit-font-smoothing:antialiased; }
+  a{ color:inherit; }
+  h1,h2,h3{ font-family:var(--display); letter-spacing:-.02em; line-height:1.15; }
+  .evitement{ position:absolute; left:-9999px; } .evitement:focus{ left:12px; top:12px; background:var(--accent); color:var(--accent-ink); padding:10px 16px; border-radius:999px; z-index:50; }
+  header{ position:sticky; top:0; z-index:20; background:color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
+  .barre{ max-width:1000px; margin:0 auto; padding:12px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .logo{ font:800 21px var(--display); text-decoration:none; } .logo b{ color:var(--accent); }
+  .barre .droite{ display:flex; gap:10px; align-items:center; font-size:14px; color:var(--muted); }
+  main{ max-width:1000px; margin:0 auto; padding:24px 20px 90px; }
+  nav.onglets{ display:flex; gap:6px; overflow-x:auto; padding:2px 0 14px; scrollbar-width:none; }
+  nav.onglets button{ flex:none; min-height:44px; padding:0 18px; border-radius:999px; border:1px solid var(--line); background:var(--surface); color:var(--ink); font:600 15px var(--body); cursor:pointer; }
+  nav.onglets button[aria-selected=true]{ background:var(--ink); color:var(--bg); border-color:transparent; }
+  .btn{ min-height:44px; padding:0 20px; border-radius:999px; border:1px solid var(--line); background:transparent; color:var(--ink); font:600 15px var(--body); cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+  .btn.principal{ background:var(--accent); color:var(--accent-ink); border-color:transparent; }
+  .btn.petit{ min-height:36px; padding:0 14px; font-size:14px; } .btn.danger{ color:var(--alerte); }
+  .btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{ outline:3px solid var(--accent); outline-offset:2px; }
+  .carte{ background:var(--surface); border:1px solid var(--line); border-radius:22px; padding:22px; box-shadow:var(--ombre); }
+  .grille{ display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); }
+  .grand{ font:800 44px/1 var(--display); letter-spacing:-.04em; } .muted{ color:var(--muted); }
+  .barre-prog{ height:10px; border-radius:99px; background:var(--line); overflow:hidden; margin:10px 0 6px; } .barre-prog i{ display:block; height:100%; background:var(--accent); }
+  .barre-prog.rouge i{ background:var(--alerte); }
+  .rang{ display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--line); }
+  .rang:last-child{ border-bottom:none; } .rang .corps{ flex:1; min-width:0; } .rang .titre{ font-weight:600; } .rang .titre.fait{ text-decoration:line-through; color:var(--muted); }
+  .rang input[type=checkbox]{ width:24px; height:24px; accent-color:var(--accent); flex:none; }
+  .puce{ display:inline-block; padding:3px 11px; border-radius:99px; font-size:13px; font-weight:600; border:1px solid var(--line); }
+  .puce.ok{ color:var(--ok); border-color:currentColor; } .puce.ko{ color:var(--alerte); border-color:currentColor; } .puce.att{ color:var(--muted); }
+  .alerte{ color:var(--alerte); font-weight:600; }
+  .actions{ display:flex; flex-wrap:wrap; gap:10px; margin:0 0 16px; align-items:center; }
+  table{ width:100%; border-collapse:collapse; font-size:14px; } th,td{ text-align:left; padding:10px 8px; border-bottom:1px solid var(--line); vertical-align:top; } th{ color:var(--muted); font-weight:500; }
+  td.num,th.num{ text-align:right; white-space:nowrap; } .scroll-x{ overflow-x:auto; }
+  dialog{ border:none; border-radius:24px; padding:24px; width:min(520px,calc(100vw - 24px)); background:var(--surface); color:var(--ink); box-shadow:0 30px 80px -20px rgba(0,0,0,.5); }
+  dialog::backdrop{ background:rgba(8,10,14,.55); }
+  .champ{ margin:0 0 14px; } .champ label{ display:block; font-weight:600; margin-bottom:6px; }
+  .champ input,.champ select,.champ textarea{ width:100%; min-height:46px; padding:11px 14px; border-radius:12px; border:1px solid var(--line); background:var(--bg); color:var(--ink); font:inherit; }
+  .champ textarea{ min-height:110px; resize:vertical; }
+  .erreur{ color:var(--alerte); font-weight:600; min-height:1.4em; }
+  #toast{ position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:12px 20px; border-radius:99px; font-weight:600; opacity:0; pointer-events:none; transition:opacity .25s; z-index:60; }
+  #toast.on{ opacity:1; }
+  .vide{ text-align:center; padding:36px 10px; color:var(--muted); }
+  .resultat{ display:flex; gap:14px; align-items:center; padding:14px 0; border-bottom:1px solid var(--line); } .resultat:last-child{ border:none; }
+  .resultat img{ width:64px; height:64px; border-radius:16px; object-fit:cover; background:var(--line); flex:none; }
+  @media (max-width:560px){ .grand{ font-size:36px; } th:nth-child(n+6),td:nth-child(n+6){ display:none; } }
+  @media (prefers-reduced-motion:reduce){ *{ transition:none !important; } }
+</style>
+<script src="/pwa.js" defer></script>
+<script src="/cookies.js" defer></script>
+</head>
+<body>
+<a class="evitement" href="#contenu">Aller au contenu</a>
+<header><div class="barre">
+  <a class="logo" href="dashboard.html">Mirrio<b>.</b></a>
+  <div class="droite"><a class="btn petit" href="dashboard.html">Retour à l'application</a></div>
+</div></header>
+<main id="contenu">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:6px">
+    <h1 style="font-size:30px">Mes salons</h1>
+    <button class="btn principal" id="ajouter" type="button">Ajouter un salon</button>
+  </div>
+  <p class="muted" style="margin-bottom:18px">Chaque salon a sa propre page de réservation, son catalogue, son équipe, ses clients et son compte de paiement. Choisissez un salon pour le gérer, ou comparez-les ici.</p>
+  <div id="contenu-salons" aria-live="polite"><p class="vide">Chargement…</p></div>
+  <p class="muted" style="font-size:13px;margin-top:14px">Chiffres du mois en cours. Le chiffre d'affaires est la somme hors taxes des factures payées émises ce mois-ci. Chaque salon supplémentaire est facturé comme un salon de la formule Salon (29 €/mois), sans commission.</p>
+</main>
+<div id="toast" role="status"></div>
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+  import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const $ = s => document.querySelector(s);
+  const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  const eur = n => (Number(n) || 0).toLocaleString('fr-FR', { style:'currency', currency:'EUR', maximumFractionDigits:0 });
+  function toast(t){ const e = $('#toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 3200); }
+  const METIERS = [['coiffure', 'Coiffure'], ['barbier', 'Barbier'], ['esthetique', 'Institut, esthétique'], ['onglerie', 'Onglerie'], ['massage', 'Massage et spa'], ['patisserie', 'Boulangerie, pâtisserie'], ['autre', 'Autre']];
+  const LIB = Object.fromEntries(METIERS);
+  let session = null, salons = [], stats = [];
+
+  async function charger(){
+    const [s, g] = await Promise.all([supabase.rpc('mes_salons'), supabase.rpc('groupe_stats')]);
+    if(s.error || g.error){ $('#contenu-salons').innerHTML = '<div class="carte"><p class="vide">Base non préparée : exécuter db/schema-v38-multi-salons.sql dans Supabase.</p></div>'; return; }
+    salons = s.data || []; stats = g.data || [];
+    dessiner();
+  }
+  function dessiner(){
+    const par = Object.fromEntries(stats.map(x => [x.salon_id, x]));
+    const tot = stats.reduce((t, x) => ({ ca:t.ca + Number(x.ca_mois), m:t.m + Number(x.rdv_mois), j:t.j + Number(x.rdv_7j), c:t.c + Number(x.nb_clients) }), { ca:0, m:0, j:0, c:0 });
+    $('#contenu-salons').innerHTML = `
+      <div class="grille" style="margin-bottom:16px">
+        <div class="carte"><div class="muted">Chiffre d'affaires du mois</div><div class="grand">${eur(tot.ca)}</div></div>
+        <div class="carte"><div class="muted">Rendez-vous ce mois</div><div class="grand">${tot.m}</div></div>
+        <div class="carte"><div class="muted">Rendez-vous, 7 prochains jours</div><div class="grand">${tot.j}</div></div>
+        <div class="carte"><div class="muted">Clients</div><div class="grand">${tot.c}</div></div></div>
+      <div class="carte scroll-x"><table><thead><tr><th>Salon</th><th class="num">CA du mois</th><th class="num">RDV du mois</th><th class="num">RDV 7 jours</th><th class="num">Clients</th><th class="num">Équipe</th><th></th></tr></thead><tbody>
+      ${salons.map(x => { const st = par[x.id] || {}; return `<tr data-id="${esc(x.id)}">
+        <td><b>${esc(x.nom)}</b>${x.principal ? ' <span class="puce">Principal</span>' : ''}${x.actif ? ' <span class="puce ok">Affiché</span>' : ''}<div class="muted" style="font-size:12px">${esc(LIB[x.metier] || '')}${x.ville ? ' · ' + esc(x.ville) : ''}</div></td>
+        <td class="num">${eur(st.ca_mois)}</td><td class="num">${st.rdv_mois ?? 0}</td><td class="num">${st.rdv_7j ?? 0}</td><td class="num">${st.nb_clients ?? 0}</td><td class="num">${st.nb_equipe ?? 0}</td>
+        <td class="num"><button class="btn petit" data-act="ouvrir" type="button">Gérer ce salon</button></td></tr>`; }).join('')}
+      <tr><td><b>Total</b></td><td class="num"><b>${eur(tot.ca)}</b></td><td class="num"><b>${tot.m}</b></td><td class="num"><b>${tot.j}</b></td><td class="num"><b>${tot.c}</b></td><td></td><td></td></tr></tbody></table></div>`;
+    $('#contenu-salons').querySelectorAll('tr[data-id]').forEach(tr => tr.querySelector('[data-act=ouvrir]').onclick = () => ouvrir(tr.dataset.id));
+  }
+  async function ouvrir(id){
+    const principal = salons.find(s => s.principal);
+    const { error } = await supabase.rpc('basculer_espace', { p_espace_id: principal && principal.id === id ? null : id });
+    if(error) return toast('Impossible d\'ouvrir ce salon.');
+    try{ sessionStorage.clear(); }catch(e){}
+    location.href = 'dashboard.html';
+  }
+
+  function formulaire(){
+    return new Promise(resolve => {
+      const d = document.createElement('dialog');
+      d.innerHTML = `<form method="dialog" novalidate><h2 style="font-size:22px;margin-bottom:16px">Ajouter un salon</h2>
+        <div class="champ"><label for="f-nom">Nom du salon</label><input id="f-nom" maxlength="80" required></div>
+        <div class="champ"><label for="f-metier">Activité</label><select id="f-metier">${METIERS.map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></div>
+        <div class="champ"><label for="f-ville">Ville <span class="muted" style="font-weight:400">(facultatif)</span></label><input id="f-ville" maxlength="80"></div>
+        <p class="erreur" id="f-err" role="alert"></p>
+        <div class="actions" style="justify-content:flex-end;margin:6px 0 0"><button class="btn" type="button" id="non">Annuler</button><button class="btn principal" type="submit" id="ok">Créer le salon</button></div></form>`;
+      document.body.appendChild(d);
+      const fin = r => { d.close(); d.remove(); resolve(r); };
+      d.querySelector('#non').onclick = () => fin(null);
+      d.addEventListener('cancel', e => { e.preventDefault(); fin(null); });
+      d.querySelector('form').addEventListener('submit', async e => {
+        e.preventDefault();
+        const nom = d.querySelector('#f-nom').value.trim();
+        if(nom.length < 2){ d.querySelector('#f-err').textContent = 'Indiquez le nom du salon.'; return; }
+        d.querySelector('#ok').disabled = true; d.querySelector('#ok').textContent = 'Création…';
+        const r = await fetch('/api/salons', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Bearer ' + session.access_token },
+          body:JSON.stringify({ nom, metier:d.querySelector('#f-metier').value, ville:d.querySelector('#f-ville').value.trim() }) });
+        const j = await r.json().catch(() => ({}));
+        if(!r.ok){ d.querySelector('#f-err').textContent = j.error || 'Création impossible pour le moment.'; d.querySelector('#ok').disabled = false; d.querySelector('#ok').textContent = 'Créer le salon'; return; }
+        fin(j);
+      });
+      d.showModal(); d.querySelector('#f-nom').focus();
+    });
+  }
+  $('#ajouter').onclick = async () => {
+    const r = await formulaire(); if(!r) return;
+    toast('Salon « ' + r.nom + ' » créé. Choisissez « Gérer ce salon » pour le configurer.');
+    await charger();
+  };
+  (async function init(){
+    const { data } = await supabase.auth.getSession(); session = data.session;
+    if(!session){ location.href = 'login.html'; return; }
+    await charger();
+  })();
+</script>
+</body>
+</html>

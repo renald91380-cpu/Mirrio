@@ -2151,7 +2151,10 @@
   // qui autorise ou non l'invitation, pas celui de l'espace où il travaille.
   let monPlan = 'solo';
 
-  function estProprietaire(){ return espaceId === session.user.id; }
+  // Gestionnaire d'un salon du groupe (schema-v38) : agit comme le propriétaire de CE salon, dont le profil est celui de l'espace actif.
+  let estGest = false;
+  const idProfil = () => estGest ? espaceId : session.user.id;
+  function estProprietaire(){ return espaceId === session.user.id || estGest; }
 
   function urlInvitation(token){
     return `${window.location.origin}/parametres.html?invite=${encodeURIComponent(token)}`;
@@ -2182,7 +2185,7 @@
   }
 
   async function chargerEquipe(){
-    monPlan = (await supabase.from('profiles').select('plan').eq('id', session.user.id).maybeSingle()).data?.plan || 'solo';
+    monPlan = (await supabase.from('profiles').select('plan').eq('id', idProfil()).maybeSingle()).data?.plan || 'solo';
 
     const proprio = estProprietaire();
 
@@ -2538,7 +2541,7 @@
     saveBtn.textContent = 'Enregistrement…';
 
     const pProfil = {
-      id: session.user.id,
+      id: idProfil(),
       business_name: profil.business_name,
       metier: profil.metier || 'autre',
       terme_singulier: profil.terme_singulier,
@@ -2660,9 +2663,10 @@
     // valeur d'avant l'acceptation.
     await accepterInvitationEnAttente();
     espaceId = await idEspaceActif(supabase);
+    estGest = espaceId !== session.user.id && !!(await supabase.rpc('est_gestionnaire', { p_salon: espaceId })).data;
 
     const [rp, rf, rr, rpay] = await Promise.all([
-      supabase.from('profiles').select('*').maybeSingle(),
+      supabase.from('profiles').select('*').eq('id', idProfil()).maybeSingle(),
       supabase.from('parametres_facturation').select('*').maybeSingle(),
       supabase.from('parametres_reservation').select('*').maybeSingle(),
       // Jamais la table de base ici : cette vue n'expose délibérément aucune
