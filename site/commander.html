@@ -495,7 +495,7 @@
     main.innerHTML = '<div class="bloc confirmation"><div class="rond"><i class="ph ph-check" aria-hidden="true"></i></div><h1 tabindex="-1" id="titre-ok" style="font-size:32px">Demande envoyée</h1>' +
       '<p>' + esc(d.nom) + ' a bien reçu votre demande pour <strong>' + esc(etat.produit.nom) + '</strong>, retrait le ' + esc(j.quand) + '.</p>' +
       '<div class="ref">' + esc(j.reference) + '</div><p>Estimation : <strong>' + euros(j.prix_estime) + '</strong>. La pâtisserie vous écrit pour confirmer la faisabilité et le prix final' + (d.regles.acompte_integral ? ', puis demander le règlement intégral' : (d.regles.acompte_pourcentage ? ' (acompte de ' + d.regles.acompte_pourcentage + ' %)' : '')) + '.</p>' +
-      (d.demo ? '<p><a href="demo.html">Retour à la démo</a></p>' : '<p>Un email récapitulatif vient de vous être envoyé.</p>') + '</div>';
+      (d.demo ? '<p><a href="demo-bouche.html">Retour à la démo</a></p>' : '<p>Un email récapitulatif vient de vous être envoyé.</p>') + '</div>';
     var t = $('#titre-ok'); if(t) t.focus(); window.scrollTo({ top: 0 });
   }
 

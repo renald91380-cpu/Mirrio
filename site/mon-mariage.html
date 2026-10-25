@@ -70,7 +70,7 @@
 </head>
 <body>
 <a class="evitement" href="#contenu">Aller au contenu</a>
-<div id="bandeau-demo" hidden style="background:var(--accent);color:var(--accent-ink);padding:8px 16px;font-weight:600;font-size:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:220px">Démonstration : Sophie et Karim, mariage à Lyon. Rien n'est enregistré, essayez librement.</span><button class="btn petit" id="b-demo-reset" type="button">Réinitialiser</button><a class="btn petit" href="demo.html">Retour à la démo</a></div>
+<div id="bandeau-demo" hidden style="background:var(--accent);color:var(--accent-ink);padding:8px 16px;font-weight:600;font-size:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:220px">Démonstration : Sophie et Karim, mariage à Lyon. Rien n'est enregistré, essayez librement.</span><button class="btn petit" id="b-demo-reset" type="button">Réinitialiser</button><a class="btn petit" href="demo-mariage.html">Retour à la démo</a></div>
 <header><div class="barre">
   <a class="logo" href="mariage.html">Mirrio<b>.</b></a>
   <div class="droite"><span id="qui"></span><button class="btn petit" id="sortir" type="button">Se déconnecter</button></div>
@@ -508,7 +508,7 @@
     session = data.session;
     if(!session){ location.href = 'login.html'; return; }
     $('#qui').textContent = DEMO ? 'Démo' : session.user.email;
-    $('#sortir').onclick = async () => { await supabase.auth.signOut(); location.href = DEMO ? 'demo.html' : 'mariage.html'; };
+    $('#sortir').onclick = async () => { await supabase.auth.signOut(); location.href = DEMO ? 'demo-mariage.html' : 'mariage.html'; };
     await demarrer();
   })();
 </script>

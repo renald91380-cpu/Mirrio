@@ -115,7 +115,7 @@
 </head>
 <body>
 <a class="evitement" href="#catalogue">Aller au catalogue</a>
-<div id="bandeau-demo" hidden style="background:var(--accent);color:var(--accent-ink);padding:8px 16px;font-weight:600;font-size:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:220px">Démonstration : Maison Éloïse. Rien n'est enregistré, essayez librement.</span><button class="btn petit" id="b-demo-reset" type="button">Réinitialiser</button><a class="btn petit" href="demo.html">Retour à la démo</a></div>
+<div id="bandeau-demo" hidden style="background:var(--accent);color:var(--accent-ink);padding:8px 16px;font-weight:600;font-size:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:220px">Démonstration : Maison Éloïse. Rien n'est enregistré, essayez librement.</span><button class="btn petit" id="b-demo-reset" type="button">Réinitialiser</button><a class="btn petit" href="demos.html">Retour aux démos</a></div>
 <header>
   <a class="logo" href="dashboard.html" aria-label="Retour à l'application">Mirrio<b>.</b></a>
   <span class="salon" id="salon"></span>
@@ -542,7 +542,7 @@
   function montrerBandeauDemo(){
     $('#bandeau-demo').hidden = false;
     $('#b-demo-reset').onclick = () => { reinitialiserDemo(); try{ localStorage.removeItem(cleTickets()); localStorage.removeItem(cleTickets() + '-init'); }catch(e){} location.reload(); };
-    document.querySelector('header a.btn:last-of-type').href = 'demo.html'; $('#b-compta').hidden = true;
+    document.querySelector('header a.btn:last-of-type').href = 'demos.html'; $('#b-compta').hidden = true;
   }
 
   // ---------------------------------------------------------------- démarrage

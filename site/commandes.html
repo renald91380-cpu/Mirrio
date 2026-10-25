@@ -806,13 +806,13 @@
   document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if(e.target === m) fermer(); }));
   document.addEventListener('keydown', e => { if(e.key === 'Escape') fermer(); });
 
-  async function seDeconnecter(){ if(DEMO){ location.href = 'demo.html'; return; } viderCacheBrand(); await supabase.auth.signOut(); location.href = 'login.html'; }
+  async function seDeconnecter(){ if(DEMO){ location.href = 'demo-bouche.html'; return; } viderCacheBrand(); await supabase.auth.signOut(); location.href = 'login.html'; }
   $('#logout-btn').addEventListener('click', seDeconnecter);
   $('#sidebar-logout-btn').addEventListener('click', seDeconnecter);
 
   if(DEMO){
     document.title = 'Démo : commandes de pâtisseries | Mirrio';
-    document.querySelectorAll('.app-nav, .sidebar-nav').forEach(n => { n.innerHTML = '<a href="demo.html">Retour à la démo</a><a href="commander.html?p=demo-patisserie" class="active">Page de commande</a>'; n.style.display = 'flex'; });
+    document.querySelectorAll('.app-nav, .sidebar-nav').forEach(n => { n.innerHTML = '<a href="demo-bouche.html">Retour à la démo</a><a href="commander.html?p=demo-patisserie" class="active">Page de commande</a>'; n.style.display = 'flex'; });
     $('#page-sub').insertAdjacentHTML('afterend', '<p class="bandeau-demo">Démonstration : pâtisserie fictive « Maison Dorée ». Modifiez les réglages et le catalogue, puis ouvrez la page de commande pour voir l’effet. Rien n’est enregistré durablement. <button type="button" class="lien-reset" id="reset-demo">Remettre à zéro</button></p>');
     $('#reset-demo').addEventListener('click', () => { window.DEMO_PATISSERIE.reinitialiser(); location.reload(); });
   }
