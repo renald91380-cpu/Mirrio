@@ -12,11 +12,12 @@ Ce fichier est chargé automatiquement par Claude Code à chaque session ouverte
 
 **Positionnement :** France/Belgique/Suisse en priorité. Ton direct, chiffré, sans superlatif marketing creux (voir `Asset/cadence-brand-guidelines.md` pour le détail complet de la charte : couleurs, typographies, voix).
 
-**Tarifs actuels affichés (non encore facturés réellement, pas de Stripe branché) :**
-- Indépendant — 15€/mois — jusqu'à 25 clients actifs (valeur interne `plan = 'solo'`)
-- Salon — 29€/mois — clients illimités, multi-collaborateurs (valeur interne `plan = 'studio'`)
-
-- Boulangerie-pâtisserie — **tarif unique 29 €/mois, tout inclus** (pas de choix de formule). À l'inscription (`signup.html`, champ « Votre activité »), `activite = 'patisserie'` part dans les métadonnées ; `handle_new_user()` (`db/schema-v36-patisserie-tarif-unique.sql`) pose alors `metier = 'patisserie'` et force `plan = 'studio'`. Limite : la connexion Google ne transmet pas l'activité ni la formule (comme avant pour `plan`).
+**Tarifs actuels affichés (non encore facturés réellement, pas de Stripe branché pour les abonnements Mirrio) — décidés le 25 octobre 2026 :**
+- **Salon — 20 €/mois** : un salon, clients et rendez-vous illimités, équipe, caisse, devis et factures, tableau de bord (valeur interne `plan = 'studio'`).
+- **Groupe — 50 €/mois** : jusqu'à 10 salons, un seul forfait (voir §3.36).
+- **Boulangerie-pâtisserie — tarif unique 29 €/mois**, tout inclus (valeur interne `plan = 'studio'` aussi ; voir ci-dessous).
+- L'ancienne formule **Indépendant (15 €, `solo`)** n'est plus proposée ; les comptes `solo` existants sont conservés tels quels. À l'inscription tout nouveau compte beauté est `studio`.
+- Boulangerie-pâtisserie — **tarif unique 29 €/mois**, tout inclus (pas de choix de formule). À l'inscription (`signup.html`, champ « Votre activité »), `activite = 'patisserie'` part dans les métadonnées ; `handle_new_user()` (`db/schema-v36-patisserie-tarif-unique.sql`) pose alors `metier = 'patisserie'` et force `plan = 'studio'`. Limite : la connexion Google ne transmet ni l'activité ni la formule.
 
 *Seuls les libellés affichés ont changé : les valeurs `solo`/`studio` restent les clés en base, dans les URLs (`signup.html?plan=studio`) et dans le code.*
 
