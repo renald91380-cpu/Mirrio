@@ -20,6 +20,8 @@ Disallow: /mon-mariage.html
 Disallow: /mariage-pro.html
 Disallow: /salons.html
 Disallow: /caisse.html
+Disallow: /export-comptable.html
+Disallow: /comptable.html
 Disallow: /rsvp.html
 Disallow: /nouveau-mot-de-passe.html
 

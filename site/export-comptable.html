@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Export comptable | Mirrio</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#101216">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<style>
+  :root{
+    --bg:#F5F5F3; --surface:#FBFBFA; --ink:#101216; --muted:#5B606B; --line:rgba(16,18,22,.12);
+    --accent:#E2A63D; --accent-ink:#101216; --ok:#2E7D5B; --alerte:#B3402A;
+    --display:'Bricolage Grotesque',system-ui,sans-serif; --body:'Geist',system-ui,sans-serif;
+    --ombre:0 1px 2px rgba(16,18,22,.05), 0 12px 30px -14px rgba(16,18,22,.18);
+  }
+  @media (prefers-color-scheme:dark){ :root{ --bg:#0D0F13; --surface:#15181E; --ink:#F1F1EE; --muted:#9CA2AE; --line:rgba(255,255,255,.14); --ok:#5CC08F; --alerte:#F0836C; --ombre:0 1px 2px rgba(0,0,0,.3), 0 14px 34px -14px rgba(0,0,0,.6); } }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ background:var(--bg); color:var(--ink); font:400 15px/1.55 var(--body); -webkit-font-smoothing:antialiased; }
+  a{ color:inherit; }
+  h1,h2,h3{ font-family:var(--display); letter-spacing:-.02em; line-height:1.15; }
+  .evitement{ position:absolute; left:-9999px; } .evitement:focus{ left:12px; top:12px; background:var(--accent); color:var(--accent-ink); padding:10px 16px; border-radius:999px; z-index:50; }
+  header{ position:sticky; top:0; z-index:20; background:color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
+  .barre{ max-width:1000px; margin:0 auto; padding:12px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .logo{ font:800 21px var(--display); text-decoration:none; } .logo b{ color:var(--accent); }
+  .barre .droite{ display:flex; gap:10px; align-items:center; font-size:14px; color:var(--muted); }
+  main{ max-width:1000px; margin:0 auto; padding:24px 20px 90px; }
+  nav.onglets{ display:flex; gap:6px; overflow-x:auto; padding:2px 0 14px; scrollbar-width:none; }
+  nav.onglets button{ flex:none; min-height:44px; padding:0 18px; border-radius:999px; border:1px solid var(--line); background:var(--surface); color:var(--ink); font:600 15px var(--body); cursor:pointer; }
+  nav.onglets button[aria-selected=true]{ background:var(--ink); color:var(--bg); border-color:transparent; }
+  .btn{ min-height:44px; padding:0 20px; border-radius:999px; border:1px solid var(--line); background:transparent; color:var(--ink); font:600 15px var(--body); cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+  .btn.principal{ background:var(--accent); color:var(--accent-ink); border-color:transparent; }
+  .btn.petit{ min-height:36px; padding:0 14px; font-size:14px; } .btn.danger{ color:var(--alerte); }
+  .btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{ outline:3px solid var(--accent); outline-offset:2px; }
+  .carte{ background:var(--surface); border:1px solid var(--line); border-radius:22px; padding:22px; box-shadow:var(--ombre); }
+  .grille{ display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); }
+  .grand{ font:800 44px/1 var(--display); letter-spacing:-.04em; } .muted{ color:var(--muted); }
+  .barre-prog{ height:10px; border-radius:99px; background:var(--line); overflow:hidden; margin:10px 0 6px; } .barre-prog i{ display:block; height:100%; background:var(--accent); }
+  .barre-prog.rouge i{ background:var(--alerte); }
+  .rang{ display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--line); }
+  .rang:last-child{ border-bottom:none; } .rang .corps{ flex:1; min-width:0; } .rang .titre{ font-weight:600; } .rang .titre.fait{ text-decoration:line-through; color:var(--muted); }
+  .rang input[type=checkbox]{ width:24px; height:24px; accent-color:var(--accent); flex:none; }
+  .puce{ display:inline-block; padding:3px 11px; border-radius:99px; font-size:13px; font-weight:600; border:1px solid var(--line); }
+  .puce.ok{ color:var(--ok); border-color:currentColor; } .puce.ko{ color:var(--alerte); border-color:currentColor; } .puce.att{ color:var(--muted); }
+  .alerte{ color:var(--alerte); font-weight:600; }
+  .actions{ display:flex; flex-wrap:wrap; gap:10px; margin:0 0 16px; align-items:center; }
+  table{ width:100%; border-collapse:collapse; font-size:14px; } th,td{ text-align:left; padding:10px 8px; border-bottom:1px solid var(--line); vertical-align:top; } th{ color:var(--muted); font-weight:500; }
+  td.num,th.num{ text-align:right; white-space:nowrap; } .scroll-x{ overflow-x:auto; }
+  dialog{ border:none; border-radius:24px; padding:24px; width:min(520px,calc(100vw - 24px)); background:var(--surface); color:var(--ink); box-shadow:0 30px 80px -20px rgba(0,0,0,.5); }
+  dialog::backdrop{ background:rgba(8,10,14,.55); }
+  .champ{ margin:0 0 14px; } .champ label{ display:block; font-weight:600; margin-bottom:6px; }
+  .champ input,.champ select,.champ textarea{ width:100%; min-height:46px; padding:11px 14px; border-radius:12px; border:1px solid var(--line); background:var(--bg); color:var(--ink); font:inherit; }
+  .champ textarea{ min-height:110px; resize:vertical; }
+  .erreur{ color:var(--alerte); font-weight:600; min-height:1.4em; }
+  #toast{ position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:12px 20px; border-radius:99px; font-weight:600; opacity:0; pointer-events:none; transition:opacity .25s; z-index:60; }
+  #toast.on{ opacity:1; }
+  .vide{ text-align:center; padding:36px 10px; color:var(--muted); }
+  .resultat{ display:flex; gap:14px; align-items:center; padding:14px 0; border-bottom:1px solid var(--line); } .resultat:last-child{ border:none; }
+  .resultat img{ width:64px; height:64px; border-radius:16px; object-fit:cover; background:var(--line); flex:none; }
+  @media (max-width:560px){ .grand{ font-size:36px; } th:nth-child(n+6),td:nth-child(n+6){ display:none; } }
+  @media (prefers-reduced-motion:reduce){ *{ transition:none !important; } }
+</style>
+<script src="/pwa.js" defer></script>
+<script src="/cookies.js" defer></script>
+<style>
+  .periode{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 16px; }
+  .periode button.chip{ min-height:44px; padding:0 16px; border-radius:99px; border:1px solid var(--line); background:var(--surface); font:600 15px var(--body); }
+  .periode button.chip[aria-pressed=true]{ background:var(--ink); color:var(--bg); border-color:transparent; }
+  .periode input[type=date]{ min-height:44px; padding:0 12px; border-radius:12px; border:1px solid var(--line); background:var(--surface); color:var(--ink); font:inherit; }
+  .telechargements{ display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); margin-bottom:16px; }
+  .telechargements button{ text-align:left; padding:14px 16px; border-radius:16px; border:1px solid var(--line); background:var(--surface); min-height:64px; }
+  .telechargements button b{ display:block; } .telechargements button small{ color:var(--muted); }
+  .bandeau-lecture{ background:rgba(226,166,61,.14); border:1px solid rgba(226,166,61,.5); border-radius:14px; padding:10px 14px; margin-bottom:16px; font-size:14px; }
+  @media print{ header, .periode, .telechargements, .a-masquer, #toast{ display:none !important; } body{ background:#fff; color:#000; } .kpi, .tableau{ border-color:#bbb; box-shadow:none; break-inside:avoid; } }
+</style>
+</head>
+<body>
+<a class="evitement" href="#contenu">Aller au contenu</a>
+<header><div class="barre">
+  <a class="logo" href="dashboard.html">Mirrio<b>.</b></a>
+  <div class="droite"><a class="btn petit" href="caisse.html">Caisse</a><a class="btn petit" href="dashboard.html">Retour à l'application</a></div>
+</div></header>
+<main id="contenu">
+  <h1 style="font-size:30px;margin-bottom:6px">Export comptable</h1>
+  <p class="muted" style="margin-bottom:18px">Les factures et les encaissements de caisse de la période, prêts à envoyer à votre comptable, en fichiers CSV lisibles par Excel.</p>
+  <div class="periode" id="periode"></div>
+  <div class="telechargements" id="telechargements"></div>
+  <div id="rapport" aria-live="polite"><p class="vide">Chargement…</p></div>
+
+  <section class="carte a-masquer" style="margin-top:24px" aria-labelledby="t-partage">
+    <h2 id="t-partage" style="font-size:20px;margin-bottom:6px">Partager avec votre comptable, en lecture seule</h2>
+    <p class="muted" style="margin-bottom:14px">Créez un lien à lui envoyer : il consulte vos ventes, la TVA et les clôtures de caisse, et télécharge les fichiers, sans compte et sans rien pouvoir modifier. Le lien expire à la date choisie et se révoque à tout moment. <b>Il montre les noms des clients facturés</b> : ne l'envoyez qu'à votre comptable.</p>
+    <form id="form-partage" class="actions" style="margin:0 0 12px" novalidate>
+      <div class="champ" style="margin:0;flex:2;min-width:180px"><label for="lib">Pour qui ?</label><input id="lib" maxlength="80" placeholder="Cabinet Dupont" required></div>
+      <div class="champ" style="margin:0;min-width:150px"><label for="duree">Valable</label><select id="duree"><option value="7">7 jours</option><option value="30" selected>30 jours</option><option value="90">90 jours</option><option value="365">1 an</option></select></div>
+      <button class="btn principal" type="submit" style="align-self:flex-end">Créer le lien</button>
+    </form>
+    <p class="erreur" id="err-partage" role="alert"></p>
+    <div id="partages"></div>
+  </section>
+</main>
+<div id="toast" role="status"></div>
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+  import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
+  import { idEspaceActif } from './theme.js';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  import { analyser, rendreRapport, injecterStyleRapport, periodesPredefinies, FICHIERS, telecharger, nomFichier, toutTelecharger } from './export-compta.js';
+  const $ = s => document.querySelector(s);
+  const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  function toast(t){ const e = $('#toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 3200); }
+  const dateFr = d => new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('fr-FR');
+  injecterStyleRapport();
+  let analyse = null, debut = '', fin = '', preset = 0;
+  const presets = periodesPredefinies();
+
+  function dessinerPeriode(){
+    $('#periode').innerHTML = presets.map(([l], i) => `<button class="chip" type="button" data-i="${i}" aria-pressed="${preset === i}">${esc(l)}</button>`).join('')
+      + `<input type="date" id="p-debut" value="${debut}" aria-label="Du"><span>au</span><input type="date" id="p-fin" value="${fin}" aria-label="Au"><button class="btn petit" id="p-ok" type="button">Afficher</button>`;
+    $('#periode').querySelectorAll('.chip').forEach(b => b.onclick = () => { preset = Number(b.dataset.i); [, debut, fin] = presets[preset]; dessinerPeriode(); actualiser(); });
+    $('#p-ok').onclick = () => { debut = $('#p-debut').value; fin = $('#p-fin').value; preset = -1; dessinerPeriode(); actualiser(); };
+  }
+  function dessinerResultat(){
+    $('#rapport').innerHTML = rendreRapport(analyse);
+    $('#telechargements').innerHTML = FICHIERS.map(([cle, titre, , desc]) => `<button type="button" data-k="${cle}"><b>${esc(titre)} (CSV)</b><small>${esc(desc)}</small></button>`).join('')
+      + '<button type="button" data-k="tout"><b>Tout télécharger</b><small>Les cinq fichiers d\'un coup. Autorisez les téléchargements multiples si votre navigateur le demande.</small></button>'
+      + '<button type="button" data-k="imprimer"><b>Imprimer ou enregistrer en PDF</b><small>Le rapport ci-dessous, mis en page pour l\'impression.</small></button>';
+  }
+  $('#telechargements').addEventListener('click', e => {
+    const b = e.target.closest('button[data-k]'); if(!b || !analyse) return;
+    if(b.dataset.k === 'tout') toutTelecharger(analyse);
+    else if(b.dataset.k === 'imprimer') window.print();
+    else { const f = FICHIERS.find(x => x[0] === b.dataset.k); telecharger(nomFichier(analyse, f[0]), f[2](analyse)); }
+  });
+
+  let espaceId = null;
+  async function actualiser(){
+    $('#rapport').innerHTML = '<p class="vide">Chargement…</p>';
+    const { data, error } = await supabase.rpc('export_comptable', { p_debut:debut, p_fin:fin });
+    if(error){ $('#rapport').innerHTML = `<div class="carte"><p class="vide">${/does not exist|schema cache|function/i.test(error.message) ? 'Base non préparée : exécuter db/schema-v40-export-comptable.sql dans Supabase.' : esc(error.message.replace(/^.*?:\s*/, ''))}</p></div>`; $('#telechargements').innerHTML = ''; return; }
+    analyse = analyser(data); dessinerResultat();
+  }
+
+  // ---- partage au comptable
+  const lien = p => `${location.origin}/comptable.html?t=${encodeURIComponent(p.token)}`;
+  async function chargerPartages(){
+    const { data, error } = await supabase.from('partages_comptable').select('*').eq('owner_id', espaceId).order('created_at', { ascending:false });
+    if(error){ $('#partages').innerHTML = ''; return; }
+    $('#partages').innerHTML = (data || []).length ? data.map(p => { const expire = new Date(p.expire_le) < new Date(), etat = !p.actif ? 'Révoqué' : expire ? 'Expiré' : 'Actif';
+      return `<div class="rang" data-id="${p.id}" style="display:flex;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);flex-wrap:wrap">
+        <div style="flex:1;min-width:200px"><b>${esc(p.libelle)}</b> <span class="puce ${etat === 'Actif' ? 'ok' : 'ko'}">${etat}</span>
+          <div class="muted" style="font-size:13px">Expire le ${dateFr(p.expire_le)} · ${p.nb_acces} consultation${p.nb_acces > 1 ? 's' : ''}${p.dernier_acces ? ', dernière le ' + dateFr(p.dernier_acces) : ''}</div></div>
+        ${etat === 'Actif' ? '<button class="btn petit" data-a="copier" type="button">Copier le lien</button><button class="btn petit danger" data-a="revoquer" type="button">Révoquer</button>' : '<button class="btn petit danger" data-a="supprimer" type="button">Supprimer</button>'}</div>`; }).join('')
+      : '<p class="muted">Aucun lien créé.</p>';
+    $('#partages').querySelectorAll('[data-id]').forEach(r => {
+      const p = data.find(x => x.id === r.dataset.id);
+      const c = r.querySelector('[data-a=copier]'), v = r.querySelector('[data-a=revoquer]'), s = r.querySelector('[data-a=supprimer]');
+      if(c) c.onclick = () => navigator.clipboard.writeText(lien(p)).then(() => toast('Lien copié : à envoyer à ' + p.libelle + '.'), () => toast('Copie impossible : sélectionnez le lien à la main.'));
+      if(v) v.onclick = async () => { if(!confirm('Révoquer ce lien ? Le comptable ne pourra plus le consulter.')) return; await supabase.from('partages_comptable').update({ actif:false }).eq('id', p.id); chargerPartages(); };
+      if(s) s.onclick = async () => { await supabase.from('partages_comptable').delete().eq('id', p.id); chargerPartages(); };
+    });
+  }
+  $('#form-partage').addEventListener('submit', async e => {
+    e.preventDefault(); $('#err-partage').textContent = '';
+    const libelle = $('#lib').value.trim(); if(!libelle){ $('#err-partage').textContent = 'Indiquez pour qui est ce lien.'; return; }
+    const expire = new Date(Date.now() + Number($('#duree').value) * 86400000).toISOString();
+    const { data, error } = await supabase.from('partages_comptable').insert({ owner_id:espaceId, libelle, expire_le:expire }).select().single();
+    if(error){ $('#err-partage').textContent = /does not exist|schema cache/i.test(error.message) ? 'Base non préparée : exécuter db/schema-v40-export-comptable.sql dans Supabase.' : 'Création du lien impossible.'; return; }
+    $('#lib').value = '';
+    try{ await navigator.clipboard.writeText(lien(data)); toast('Lien créé et copié : envoyez-le à votre comptable.'); }catch(err){ toast('Lien créé : utilisez « Copier le lien ».'); }
+    chargerPartages();
+  });
+
+  (async function init(){
+    const { data } = await supabase.auth.getSession();
+    if(!data.session){ location.href = 'login.html'; return; }
+    espaceId = await idEspaceActif(supabase);
+    [, debut, fin] = presets[0]; dessinerPeriode(); await actualiser(); await chargerPartages();
+  })();
+</script>
+</body>
+</html>

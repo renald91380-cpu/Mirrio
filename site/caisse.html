@@ -121,6 +121,7 @@
   <span class="salon" id="salon"></span>
   <span class="puce" id="etat-session" role="status"></span>
   <button class="btn petit" id="b-historique" type="button">Ventes</button>
+  <a class="btn petit" id="b-compta" href="export-comptable.html">Comptable</a>
   <button class="btn petit danger" id="b-cloture" type="button" hidden>Clôturer la caisse</button>
   <a class="btn petit" href="dashboard.html">Quitter</a>
 </header>
@@ -541,7 +542,7 @@
   function montrerBandeauDemo(){
     $('#bandeau-demo').hidden = false;
     $('#b-demo-reset').onclick = () => { reinitialiserDemo(); try{ localStorage.removeItem(cleTickets()); localStorage.removeItem(cleTickets() + '-init'); }catch(e){} location.reload(); };
-    document.querySelector('header a.btn').href = 'demo.html';
+    document.querySelector('header a.btn:last-of-type').href = 'demo.html'; $('#b-compta').hidden = true;
   }
 
   // ---------------------------------------------------------------- démarrage
