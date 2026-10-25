@@ -7,11 +7,12 @@ const CLE = 'mirrio-demo-mariage-v1';
 const jour = 86400000;
 const isoJ = ms => new Date(ms).toISOString().slice(0, 10);
 
+export const COORDS_DEMO = { lyon:{ lat:45.764, lng:4.8357 } };
 export const PROS_DEMO = [
-  { slug:'demo-coiffure', nom:'Maison Éloïse', metier:'coiffure', ville:'Lyon', note_moyenne:'4.8', nb_avis:42, fiche:'pro.html?p=demo-coiffure' },
-  { slug:'demo-institut', nom:'Institut Lotus', metier:'esthetique', ville:'Lyon', note_moyenne:'4.9', nb_avis:27, fiche:'pro.html?p=demo-institut' },
-  { slug:'demo-barber', nom:'The Barber Club', metier:'barbier', ville:'Lyon', note_moyenne:'4.7', nb_avis:58, fiche:'pro.html?p=demo-barber' },
-  { slug:'demo-patisserie', nom:'Maison Dorée', metier:'patisserie', ville:'Lyon', note_moyenne:'4.9', nb_avis:63, fiche:'commander.html?p=demo-patisserie' }
+  { slug:'demo-coiffure', nom:'Maison Éloïse', metier:'coiffure', ville:'Lyon', note_moyenne:'4.8', nb_avis:42, fiche:'pro.html?p=demo-coiffure', latitude:45.7485, longitude:4.8467, prix_a_partir_de:25 },
+  { slug:'demo-institut', nom:'Institut Lotus', metier:'esthetique', ville:'Lyon', note_moyenne:'4.9', nb_avis:27, fiche:'pro.html?p=demo-institut', latitude:45.7578, longitude:4.832, prix_a_partir_de:35 },
+  { slug:'demo-barber', nom:'The Barber Club', metier:'barbier', ville:'Lyon', note_moyenne:'4.7', nb_avis:58, fiche:'pro.html?p=demo-barber', latitude:45.7709, longitude:4.8601, prix_a_partir_de:15 },
+  { slug:'demo-patisserie', nom:'Maison Dorée', metier:'patisserie', ville:'Lyon', note_moyenne:'4.9', nb_avis:63, fiche:'commander.html?p=demo-patisserie', latitude:45.7578, longitude:4.8351, prix_a_partir_de:38 }
 ];
 
 function initiale(){
@@ -120,8 +121,25 @@ export function creerFauxSupabase(role = 'couple'){
   };
 }
 
-// Faux annuaire : même forme que /api/annuaire, filtré par texte, ville et métier.
+// Faux annuaire : même forme que /api/annuaire, filtré par texte, ville, métier et budget (budget_max).
 export function annuaireDemo(params){
   const q = (params.get('q') || '').toLowerCase(), ville = (params.get('ville') || '').toLowerCase(), metier = params.get('metier') || '';
-  return { praticiens: PROS_DEMO.filter(p => (!q || (p.nom + ' ' + p.metier).toLowerCase().includes(q)) && (!ville || p.ville.toLowerCase().includes(ville)) && (!metier || p.metier === metier)).map(p => ({ ...p, photos:[], latitude:null, longitude:null })) };
+  const bmax = params.get('budget_max') ? Number(params.get('budget_max')) : null;
+  return { praticiens: PROS_DEMO.filter(p => (!q || (p.nom + ' ' + p.metier).toLowerCase().includes(q)) && (!ville || p.ville.toLowerCase().includes(ville)) && (!metier || p.metier === metier)
+    && (bmax == null || p.prix_a_partir_de <= bmax)).map(p => ({ ...p, photos:[] })) };
+}
+
+// Faux résultats « Google » (démonstration sans clé) : noms fictifs, clairement signalés comme tels dans l'écran.
+const GOOGLE_DEMO = {
+  salle:['Domaine des Tilleuls', 'Château de la Verrerie', 'Salle Les Jardins du Rhône'], traiteur:['Saveurs & Co', 'Traiteur Maison Lumière', 'Les Tables de Lyon'],
+  photo:['Studio Lumière', 'Atelier Instant T', 'Julien R. Photographe'], video:['Films de Mariage Lyon', 'Studio Rêve & Cadence'], dj:['DJ Nova Events', 'Orchestre Les Soirées Dorées', 'Sono Prestige'],
+  deco:['Atmosphère Décor', 'Maison des Ambiances', 'Éclats de Fête'], fleuriste:['Fleurs de Saison', 'L\'Atelier Pivoine', 'Maison Bouquet'], coiffure:['Coiffure à domicile Léa', 'Atelier Chignon'],
+  maquillage:['Maquillage by Inès', 'Studio Glow Mariées'], gateau:['Pâtisserie Maison Sucrée', 'Au Fournil Doré'], tenues:['Atelier Rivoli', 'Maison Blanche Mariées', 'Costumes & Cie'],
+  transport:['Prestige Chauffeur Lyon', 'Location Voitures de Collection'], alliances:['Bijouterie Aurélie', 'Atelier Or & Alliance'], animation:['Photobooth Party', 'Magic Moments'],
+  officiant:['Cérémonies Laïques Élodie'], location:['Location Mobilier Événement', 'Tentes & Réceptions']
+};
+export function placesDemo(cle, centre, rayon){
+  const noms = GOOGLE_DEMO[cle] || [];
+  return noms.map((nom, i) => ({ nom, adresse:'Environ ' + Math.round(8 + i * 17) + ' km de Lyon (exemple fictif)', note:(4.3 + ((i * 3) % 6) / 10).toFixed(1), avis:20 + i * 37, prix:['MODERATE', 'EXPENSIVE', 'MODERATE'][i % 3],
+    lien:'https://www.google.com/maps/search/' + encodeURIComponent(nom + ' Lyon'), site:null, lat:centre ? centre.lat + 0.1 * (i + 1) : null, lng:centre ? centre.lng + 0.08 * (i + 1) : null, fictif:true }));
 }

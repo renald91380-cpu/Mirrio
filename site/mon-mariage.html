@@ -60,12 +60,17 @@
   #toast{ position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:12px 20px; border-radius:99px; font-weight:600; opacity:0; pointer-events:none; transition:opacity .25s; z-index:60; }
   #toast.on{ opacity:1; }
   .vide{ text-align:center; padding:36px 10px; color:var(--muted); }
+  .cats{ display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:10px; }
+  .cat{ text-align:left; padding:12px 14px; min-height:68px; border-radius:16px; border:1px solid var(--line); background:var(--bg); display:flex; flex-direction:column; gap:2px; font:inherit; color:inherit; cursor:pointer; }
+  .cat small{ color:var(--muted); } .cat .ok-txt{ color:var(--ok); } .cat[aria-pressed=true]{ background:var(--ink); color:var(--bg); border-color:transparent; } .cat[aria-pressed=true] small{ color:inherit; opacity:.85; }
+  .avert{ background:rgba(226,166,61,.14); border:1px solid rgba(226,166,61,.5); border-radius:14px; padding:10px 14px; }
   .resultat{ display:flex; gap:14px; align-items:center; padding:14px 0; border-bottom:1px solid var(--line); } .resultat:last-child{ border:none; }
   .resultat img{ width:64px; height:64px; border-radius:16px; object-fit:cover; background:var(--line); flex:none; }
   @media (max-width:560px){ .grand{ font-size:36px; } th:nth-child(n+6),td:nth-child(n+6){ display:none; } }
   @media (prefers-reduced-motion:reduce){ *{ transition:none !important; } }
 </style>
 <script src="/pwa.js" defer></script>
+<script src="maps-config.js"></script>
 <script src="/cookies.js" defer></script>
 </head>
 <body>
@@ -430,20 +435,149 @@
   // ------------------------------------------------------------------ prestataires
   const METIERS = [['', 'Tous les métiers'], ['coiffure', 'Coiffure'], ['barbier', 'Barbier'], ['esthetique', 'Esthétique et maquillage'], ['onglerie', 'Onglerie'], ['massage', 'Massage'], ['photographe', 'Photographe'], ['patisserie', 'Pâtisserie'], ['autre', 'Autre']];
   const STATUTS = { envoyee:['En attente de réponse', 'att'], repondue:['Réponse reçue', 'ok'], indisponible:['Indisponible', 'ko'], acceptee:['Acceptée', 'ok'], refusee:['Refusée', 'ko'] };
+  // Catégories de prestataires d'un mariage : chacune est rattachée à un poste du budget (BUDGET_TYPE) pour en déduire une enveloppe cible,
+  // à une requête de recherche Google, et, quand Mirrio a un métier équivalent, à l'annuaire Mirrio.
+  const PRESTAS = [
+    { cle:'salle', nom:'Salle et lieu de réception', poste:'Lieu de réception', requete:'salle de mariage', metier:null },
+    { cle:'traiteur', nom:'Traiteur', poste:'Traiteur et boissons', requete:'traiteur mariage', metier:null },
+    { cle:'photo', nom:'Photographe', poste:'Photo et vidéo', requete:'photographe mariage', metier:'photographe' },
+    { cle:'video', nom:'Vidéaste', poste:'Photo et vidéo', requete:'vidéaste mariage', metier:null },
+    { cle:'dj', nom:'DJ, groupe, orchestre', poste:'Musique et animation', requete:'DJ mariage', metier:null },
+    { cle:'animation', nom:'Animations (photobooth, magicien…)', poste:'Musique et animation', requete:'animation mariage photobooth', metier:null },
+    { cle:'deco', nom:'Décoration et ambiance', poste:'Fleurs et décoration', requete:'décorateur mariage', metier:null },
+    { cle:'fleuriste', nom:'Fleuriste', poste:'Fleurs et décoration', requete:'fleuriste mariage', metier:null },
+    { cle:'location', nom:'Location de matériel et mobilier', poste:'Fleurs et décoration', requete:'location mobilier tente mariage', metier:null },
+    { cle:'coiffure', nom:'Coiffure', poste:'Coiffure et maquillage', requete:'coiffeur mariage', metier:'coiffure' },
+    { cle:'maquillage', nom:'Maquillage', poste:'Coiffure et maquillage', requete:'maquilleuse mariage', metier:'esthetique' },
+    { cle:'gateau', nom:'Pâtissier, pièce montée', poste:'Gâteau ou pièce montée', requete:'pâtissier gâteau de mariage', metier:'patisserie' },
+    { cle:'tenues', nom:'Robe et costume', poste:'Tenues', requete:'robe de mariée costume', metier:null },
+    { cle:'transport', nom:'Transport', poste:'Transport', requete:'location voiture mariage chauffeur', metier:null },
+    { cle:'alliances', nom:'Alliances et bijoutier', poste:'Alliances', requete:'bijouterie alliances mariage', metier:null },
+    { cle:'officiant', nom:'Officiant, cérémonie laïque', poste:null, requete:'officiant cérémonie laïque', metier:null }
+  ];
+  const MODES_PRIX = { INEXPENSIVE:'€', MODERATE:'€€', EXPENSIVE:'€€€', VERY_EXPENSIVE:'€€€€', PRICE_LEVEL_INEXPENSIVE:'€', PRICE_LEVEL_MODERATE:'€€', PRICE_LEVEL_EXPENSIVE:'€€€', PRICE_LEVEL_VERY_EXPENSIVE:'€€€€' };
+  let catActive = null, coords, ignorerBudget = false, rayon = 100;
+  try{ rayon = Number(localStorage.getItem('mirrio-rayon')) || 100; }catch(e){}
+
+  // Enveloppe cible d'une catégorie : la ligne de budget « prévu » du poste (ou la part indicative du budget total), partagée entre les catégories du même poste.
+  function budgetCible(cat){
+    if(!cat.poste) return 0;
+    const lignes = budget.filter(l => l.poste === cat.poste), partage = PRESTAS.filter(c => c.poste === cat.poste).length;
+    const total = lignes.length ? lignes.reduce((s, l) => s + Number(l.prevu), 0) : (M.budget_total ? M.budget_total * ((BUDGET_TYPE.find(([p]) => p === cat.poste) || [0, 0])[1]) / 100 : 0);
+    return Math.round(total / partage);
+  }
+  const engage = cat => cat.poste ? budget.filter(l => l.poste === cat.poste).reduce((s, l) => s + Number(l.montant), 0) : 0;
+
+  async function coordsMariage(){
+    if(coords !== undefined) return coords;
+    const ville = (M.ville || '').trim().toLowerCase(); if(!ville) return coords = null;
+    if(DEMO && demoMod.COORDS_DEMO[ville]) return coords = demoMod.COORDS_DEMO[ville];
+    const cle = 'mirrio-geo-' + ville;
+    try{ const c = JSON.parse(localStorage.getItem(cle) || 'null'); if(c) return coords = c; }catch(e){}
+    try{
+      const j = await (await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(M.ville))).json();
+      if(j[0]){ coords = { lat:Number(j[0].lat), lng:Number(j[0].lon) }; try{ localStorage.setItem(cle, JSON.stringify(coords)); }catch(e){} return coords; }
+    }catch(e){}
+    return coords = null;
+  }
+  const km = (a, b) => { const R = 6371, rad = x => x * Math.PI / 180, dLa = rad(b.lat - a.lat), dLo = rad(b.lng - a.lng);
+    return 2 * R * Math.asin(Math.sqrt(Math.sin(dLa / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLo / 2) ** 2)); };
+  const zoomPour = r => r <= 25 ? 11 : r <= 50 ? 10 : r <= 100 ? 9 : 8;
+  const lienMaps = (cat, c) => c ? `https://www.google.com/maps/search/${encodeURIComponent(cat.requete)}/@${c.lat},${c.lng},${zoomPour(rayon)}z` : `https://www.google.com/maps/search/${encodeURIComponent(cat.requete + ' ' + (M.ville || ''))}`;
+  const lienGoogle = cat => `https://www.google.com/search?q=${encodeURIComponent(cat.requete + ' ' + (M.ville || '') + ' ' + rayon + ' km')}`;
+
+  let placesPret = null;
+  function chargerPlaces(){
+    if(placesPret) return placesPret;
+    placesPret = new Promise((ok, ko) => {
+      window.__mirrioPlaces = ok; window.gm_authFailure = () => ko(new Error('clé refusée'));
+      const sc = document.createElement('script'); sc.async = true; sc.onerror = () => ko(new Error('Google indisponible'));
+      sc.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(window.MIRRIO_GOOGLE_MAPS_KEY) + '&v=weekly&loading=async&libraries=places&language=fr&region=FR&callback=__mirrioPlaces';
+      document.head.appendChild(sc);
+    });
+    return placesPret;
+  }
+  async function resultatsGoogle(cat, c){
+    if(DEMO) return demoMod.placesDemo(cat.cle, c, rayon);
+    if(!window.MIRRIO_GOOGLE_MAPS_KEY) return null;
+    await chargerPlaces();
+    const { Place } = await google.maps.importLibrary('places');
+    const { places } = await Place.searchByText({ textQuery:cat.requete + ' ' + (M.ville || ''), fields:['displayName', 'formattedAddress', 'rating', 'userRatingCount', 'priceLevel', 'googleMapsURI', 'websiteURI', 'location'],
+      ...(c ? { locationBias:{ center:{ lat:c.lat, lng:c.lng }, radius:rayon * 1000 } } : {}), maxResultCount:15, language:'fr', region:'fr' });
+    return places.map(p => ({ nom:p.displayName, adresse:p.formattedAddress, note:p.rating, avis:p.userRatingCount, prix:p.priceLevel, lien:p.googleMapsURI, site:p.websiteURI, lat:p.location ? p.location.lat() : null, lng:p.location ? p.location.lng() : null }));
+  }
+
   function vuePresta(){
-    $('#vue').innerHTML = `<div class="carte" style="margin-bottom:16px"><h2 style="font-size:19px;margin-bottom:10px">Trouver un prestataire</h2>
-      <form id="form-rech" class="actions" role="search" style="margin:0">
-        <label class="sr" for="r-q" style="position:absolute;left:-9999px">Recherche</label><input id="r-q" class="champ" placeholder="Que cherchez-vous ?" style="flex:2;min-width:160px;min-height:46px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit">
-        <input id="r-ville" placeholder="Ville" value="${esc(M.ville || '')}" aria-label="Ville" style="flex:1;min-width:120px;min-height:46px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit">
-        <select id="r-metier" aria-label="Métier" style="min-height:46px;padding:0 12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit">${METIERS.map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select>
-        <button class="btn principal" type="submit">Rechercher</button></form>
-      <div id="resultats" aria-live="polite"></div>
-      <p class="muted" style="font-size:13px;margin-top:10px">L'annuaire regroupe les professionnels inscrits à Mirrio qui ont choisi d'y figurer.</p></div>
+    const total = Number(M.budget_total) || 0;
+    $('#vue').innerHTML = `<div class="carte" style="margin-bottom:16px"><h2 style="font-size:19px;margin-bottom:4px">Les prestataires de votre mariage</h2>
+      <p class="muted" style="margin-bottom:12px">${M.ville ? `Autour de <b>${esc(M.ville)}</b>` : '<span class="alerte">Ajoutez la ville du mariage (bouton Modifier de l\'aperçu) pour chercher autour de vous.</span>'}${total ? ` · budget total ${eur(total)}` : ''}. Touchez une catégorie : vous verrez qui correspond à votre enveloppe, dans le rayon choisi.</p>
+      <div class="actions" style="margin-bottom:12px"><label for="rayon" style="font-weight:600">Rayon</label><select id="rayon" style="min-height:44px;padding:0 12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit">${[25, 50, 100, 150].map(r => `<option value="${r}"${r === rayon ? ' selected' : ''}>${r} km</option>`).join('')}</select></div>
+      <div class="cats" id="cats">${PRESTAS.map(c => { const cible = budgetCible(c), eng = engage(c);
+        return `<button class="cat" type="button" data-c="${c.cle}" aria-pressed="${catActive === c.cle}"><b>${esc(c.nom)}</b><small>${cible ? 'Enveloppe ≈ ' + eur(cible) : 'Budget à définir'}</small>${eng ? `<small class="ok-txt">Déjà engagé : ${eur(eng)}</small>` : ''}</button>`; }).join('')}</div></div>
+      <div id="zone-cat"></div>
+      <details class="carte" style="margin-bottom:16px"><summary style="cursor:pointer;font-weight:600">Recherche libre dans l'annuaire Mirrio</summary>
+        <form id="form-rech" class="actions" role="search" style="margin:12px 0 0">
+          <label class="sr" for="r-q" style="position:absolute;left:-9999px">Recherche</label><input id="r-q" placeholder="Que cherchez-vous ?" style="flex:2;min-width:160px;min-height:46px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit">
+          <input id="r-ville" placeholder="Ville" value="${esc(M.ville || '')}" aria-label="Ville" style="flex:1;min-width:120px;min-height:46px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit">
+          <select id="r-metier" aria-label="Métier" style="min-height:46px;padding:0 12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit">${METIERS.map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select>
+          <button class="btn principal" type="submit">Rechercher</button></form>
+        <div id="resultats" aria-live="polite"></div></details>
       <div class="carte"><h2 style="font-size:19px;margin-bottom:6px">Mes demandes (${demandes.length})</h2>${demandes.length ? demandes.map(ligneDemande).join('') : '<p class="vide">Aucune demande envoyée.</p>'}</div>`;
     $('#form-rech').addEventListener('submit', e => { e.preventDefault(); rechercher(); });
+    $('#rayon').onchange = e => { rayon = Number(e.target.value); try{ localStorage.setItem('mirrio-rayon', String(rayon)); }catch(err){} if(catActive) afficherCategorie(); };
+    $('#cats').addEventListener('click', e => { const b = e.target.closest('.cat'); if(!b) return; catActive = b.dataset.c; ignorerBudget = false;
+      document.querySelectorAll('#cats .cat').forEach(x => x.setAttribute('aria-pressed', x === b)); afficherCategorie(); $('#zone-cat').scrollIntoView({ behavior:'smooth', block:'start' }); });
     $('#vue').querySelectorAll('[data-d]').forEach(b => b.onclick = () => decider(b.dataset.d, b.dataset.s));
-    if(!vuePresta.deja){ vuePresta.deja = true; rechercher(); }
+    if(catActive) afficherCategorie();
   }
+
+  async function afficherCategorie(){
+    const cat = PRESTAS.find(c => c.cle === catActive), z = $('#zone-cat'); if(!cat) return;
+    const cible = budgetCible(cat);
+    z.innerHTML = `<div class="carte" style="margin-bottom:16px"><h2 style="font-size:20px">${esc(cat.nom)}</h2>
+      <p class="muted" style="margin-bottom:14px">${cible ? `Enveloppe cible : <b>${eur(cible)}</b> (poste « ${esc(cat.poste)} » de votre budget).` : 'Aucune enveloppe définie pour cette catégorie : ajoutez-la dans l\'onglet Budget.'} Rayon : ${rayon} km.</p>
+      <h3 style="font-size:16px;margin-bottom:6px">Sur Mirrio${cible && !ignorerBudget && cat.metier ? ' (dans votre budget)' : ''}</h3><div id="res-mirrio"><p class="vide">Recherche…</p></div>
+      <h3 style="font-size:16px;margin:18px 0 6px">Sur Google</h3><div id="res-google"><p class="vide">Recherche…</p></div></div>`;
+    const c = await coordsMariage();
+    if(catActive !== cat.cle) return;
+    // ---- Mirrio
+    const zm = $('#res-mirrio');
+    if(!cat.metier){
+      zm.innerHTML = '<p class="muted" style="padding:6px 0 10px">Ce métier n\'est pas encore dans l\'annuaire Mirrio. Les professionnels qui s\'y inscrivent apparaîtront ici avec leurs prix.</p>';
+    } else {
+      try{
+        const p = new URLSearchParams(); p.set('metier', cat.metier); if(cible && !ignorerBudget) p.set('budget_max', String(cible));
+        const j = DEMO ? demoMod.annuaireDemo(p) : await (await fetch('/api/annuaire?' + p.toString())).json();
+        let liste = (j.praticiens || []).map(x => ({ ...x, distance:(c && x.latitude != null && x.longitude != null) ? km(c, { lat:Number(x.latitude), lng:Number(x.longitude) }) : null }));
+        // dans le rayon ; sans coordonnées, on garde la fiche si elle est dans la même ville que le mariage
+        liste = liste.filter(x => x.distance != null ? x.distance <= rayon : (!c || !M.ville || (x.ville || '').toLowerCase().includes(M.ville.toLowerCase()))).sort((a, b) => (a.distance ?? 1e9) - (b.distance ?? 1e9));
+        if(catActive !== cat.cle) return;
+        zm.innerHTML = liste.length ? liste.slice(0, 20).map(x => `<div class="resultat"><img src="${esc(x.photo || (x.photos && x.photos[0]) || x.logo_url || '')}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+          <div style="flex:1;min-width:0"><b>${esc(x.nom)}</b><div class="muted" style="font-size:13px">${esc(x.ville || '')}${x.distance != null ? ` · à ${Math.round(x.distance)} km` : ''}${x.nb_avis ? ` · ★ ${esc(x.note_moyenne)} (${x.nb_avis})` : ''}${x.prix_a_partir_de != null ? ` · dès ${eur(x.prix_a_partir_de)}` : ''}</div></div>
+          <a class="btn petit" href="${esc(x.fiche || 'pro.html?p=' + encodeURIComponent(x.slug))}" target="_blank" rel="noopener">Voir la fiche</a>
+          <button class="btn principal petit" data-slug="${esc(x.slug)}" data-nom="${esc(x.nom)}" data-budget="${cible || ''}" type="button">Demander un devis</button></div>`).join('')
+          : `<p class="muted" style="padding:6px 0 10px">Aucun prestataire Mirrio${cible && !ignorerBudget ? ' dans votre budget' : ''} à moins de ${rayon} km.</p>${cible && !ignorerBudget ? '<button class="btn petit" id="sans-budget" type="button">Voir sans filtre de budget</button>' : ''}`;
+        zm.querySelectorAll('[data-slug]').forEach(b => b.onclick = () => demander(b.dataset.slug, b.dataset.nom, b.dataset.budget));
+        const sb = $('#sans-budget'); if(sb) sb.onclick = () => { ignorerBudget = true; afficherCategorie(); };
+      }catch(e){ zm.innerHTML = '<p class="vide">Recherche impossible pour le moment.</p>'; }
+    }
+    // ---- Google
+    const zg = $('#res-google');
+    const liens = `<div class="actions" style="margin:10px 0 0"><a class="btn petit principal" href="${esc(lienMaps(cat, c))}" target="_blank" rel="noopener">Ouvrir dans Google Maps</a><a class="btn petit" href="${esc(lienGoogle(cat))}" target="_blank" rel="noopener">Recherche Google</a></div>`;
+    let res = null;
+    try{ res = await resultatsGoogle(cat, c); }catch(e){ res = null; }
+    if(catActive !== cat.cle) return;
+    if(res && res.length){
+      res = res.map(x => ({ ...x, distance:(c && x.lat != null) ? km(c, { lat:x.lat, lng:x.lng }) : null })).filter(x => x.distance == null || x.distance <= rayon).sort((a, b) => (a.distance ?? 1e9) - (b.distance ?? 1e9));
+      zg.innerHTML = (DEMO ? '<p class="avert" style="margin:0 0 8px;font-size:13px">Démonstration : ces résultats Google sont fictifs. Avec la clé Google de Mirrio, ce sont les vrais commerces autour de chez vous.</p>' : '')
+        + res.map(x => `<div class="resultat"><div style="flex:1;min-width:0"><b>${esc(x.nom)}</b><div class="muted" style="font-size:13px">${esc(x.adresse || '')}${x.distance != null ? ` · à ${Math.round(x.distance)} km` : ''}${x.note ? ` · ★ ${esc(x.note)}${x.avis ? ' (' + x.avis + ')' : ''}` : ''}${x.prix && MODES_PRIX[x.prix] ? ` · ${MODES_PRIX[x.prix]}` : ''}</div></div>
+          <a class="btn petit" href="${esc(x.lien || '#')}" target="_blank" rel="noopener">Google Maps</a>${x.site ? `<a class="btn petit" href="${esc(x.site)}" target="_blank" rel="noopener">Site</a>` : ''}</div>`).join('')
+        + `<p class="muted" style="font-size:13px;margin-top:8px">Les tarifs ne sont pas publics : demandez un devis et comparez-le à votre enveloppe${cible ? ' de ' + eur(cible) : ''}. Les symboles € sont l'indication de prix de Google, quand elle existe.</p>` + liens;
+    } else {
+      zg.innerHTML = `<p class="muted" style="padding:6px 0 4px">Lancez la recherche directement dans Google, centrée sur ${M.ville ? esc(M.ville) : 'votre ville'}${c ? ` (zone d'environ ${rayon} km)` : ''}.</p>` + liens;
+    }
+  }
+
   function ligneDemande(d){
     const [lib, cls] = STATUTS[d.statut] || [d.statut, 'att'];
     return `<div class="rang" style="align-items:flex-start"><div class="corps"><div class="titre">${esc(d.prestataire_nom || 'Prestataire')}</div>
@@ -467,10 +601,10 @@
       z.querySelectorAll('[data-slug]').forEach(b => b.onclick = () => demander(b.dataset.slug, b.dataset.nom));
     }catch(e){ z.innerHTML = '<p class="vide">Recherche impossible pour le moment.</p>'; }
   }
-  async function demander(slug, nom){
+  async function demander(slug, nom, budgetPre){
     const r = await formulaire('Demande de devis : ' + nom, [
       { n:'message', label:'Votre demande', type:'textarea', req:true, val:`Bonjour, nous nous marions${M.date_mariage ? ' le ' + dateFr(M.date_mariage) : ''}${M.ville ? ' à ' + M.ville : ''} et aimerions un devis. Pouvez-vous nous dire si vous êtes disponible ?` },
-      { n:'nb', label:'Nombre d\'invités', type:'number', val:M.nb_invites || '' }, { n:'budget', label:'Budget indicatif (€)', type:'number' },
+      { n:'nb', label:'Nombre d\'invités', type:'number', val:M.nb_invites || '' }, { n:'budget', label:'Budget indicatif (€)', type:'number', val:budgetPre || '' },
       { n:'nom', label:'Votre nom', req:true, val:(session.user.user_metadata && session.user.user_metadata.full_name) || '' }, { n:'email', label:'Votre e-mail', type:'email', req:true, val:session.user.email },
       { n:'tel', label:'Téléphone' }], {}, 'Envoyer la demande');
     if(!r) return;
