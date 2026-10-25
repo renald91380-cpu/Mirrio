@@ -19,6 +19,7 @@ Disallow: /avis.html
 Disallow: /mon-mariage.html
 Disallow: /mariage-pro.html
 Disallow: /salons.html
+Disallow: /caisse.html
 Disallow: /rsvp.html
 Disallow: /nouveau-mot-de-passe.html
 

@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Caisse | Mirrio</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#101216">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<style>
+  :root{
+    --bg:#F1F1EE; --surface:#FBFBFA; --ink:#101216; --muted:#5B606B; --line:rgba(16,18,22,.13);
+    --accent:#E2A63D; --accent-ink:#101216; --ok:#2E7D5B; --alerte:#B3402A;
+    --display:'Bricolage Grotesque',system-ui,sans-serif; --body:'Geist',system-ui,sans-serif;
+    --ombre:0 1px 2px rgba(16,18,22,.05), 0 10px 26px -14px rgba(16,18,22,.2);
+  }
+  @media (prefers-color-scheme:dark){ :root{ --bg:#0D0F13; --surface:#171A21; --ink:#F1F1EE; --muted:#9CA2AE; --line:rgba(255,255,255,.15); --ok:#5CC08F; --alerte:#F0836C; --ombre:0 1px 2px rgba(0,0,0,.3), 0 12px 30px -14px rgba(0,0,0,.6); } }
+  *{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  html,body{ height:100%; }
+  body{ background:var(--bg); color:var(--ink); font:400 16px/1.45 var(--body); -webkit-font-smoothing:antialiased; touch-action:manipulation; overscroll-behavior:none; display:flex; flex-direction:column; }
+  button,input,select{ font:inherit; color:inherit; }
+  button{ cursor:pointer; }
+  a{ color:inherit; }
+  [hidden]{ display:none !important; }
+  button:focus-visible,input:focus-visible,select:focus-visible{ outline:3px solid var(--accent); outline-offset:2px; }
+  .evitement{ position:absolute; left:-9999px; } .evitement:focus{ left:12px; top:12px; background:var(--accent); color:var(--accent-ink); padding:10px 16px; border-radius:999px; z-index:100; }
+
+  /* barre du haut */
+  header{ flex:none; display:flex; align-items:center; gap:12px; padding:10px 16px; padding-top:max(10px, env(safe-area-inset-top)); background:var(--surface); border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  header .logo{ font:800 20px var(--display); text-decoration:none; color:inherit; } header .logo b{ color:var(--accent); }
+  header .salon{ font-weight:600; color:var(--muted); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
+  .puce{ display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:99px; border:1px solid var(--line); font-size:14px; font-weight:600; white-space:nowrap; }
+  .puce.ok{ color:var(--ok); border-color:currentColor; } .puce.ko{ color:var(--alerte); border-color:currentColor; }
+  .btn{ min-height:48px; padding:0 20px; border-radius:14px; border:1px solid var(--line); background:var(--surface); font-weight:600; display:inline-flex; align-items:center; justify-content:center; gap:8px; text-decoration:none; }
+  .btn.principal{ background:var(--accent); color:var(--accent-ink); border-color:transparent; }
+  .btn.sombre{ background:var(--ink); color:var(--bg); border-color:transparent; }
+  .btn.petit{ min-height:40px; padding:0 14px; font-size:14px; border-radius:12px; } .btn:disabled{ opacity:.45; cursor:not-allowed; }
+  .btn.danger{ color:var(--alerte); }
+
+  /* corps : catalogue + panier */
+  main{ flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1fr) 380px; gap:0; }
+  .catalogue{ min-height:0; overflow:auto; padding:14px 16px 100px; }
+  .recherche{ width:100%; min-height:48px; padding:0 16px; border-radius:14px; border:1px solid var(--line); background:var(--surface); margin-bottom:12px; }
+  .chips{ display:flex; gap:8px; overflow-x:auto; padding-bottom:12px; scrollbar-width:none; }
+  .chips button{ flex:none; min-height:42px; padding:0 16px; border-radius:99px; border:1px solid var(--line); background:var(--surface); font-weight:600; }
+  .chips button[aria-pressed=true]{ background:var(--ink); color:var(--bg); border-color:transparent; }
+  .tuiles{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; }
+  .tuile{ min-height:96px; padding:12px 14px; border-radius:18px; border:1px solid var(--line); background:var(--surface); box-shadow:var(--ombre); text-align:left; display:flex; flex-direction:column; justify-content:space-between; gap:6px; user-select:none; -webkit-user-select:none; }
+  .tuile:active{ transform:scale(.97); background:var(--accent); color:var(--accent-ink); }
+  .tuile b{ font-weight:600; line-height:1.25; } .tuile span{ font:700 18px var(--display); }
+  .tuile.libre{ border-style:dashed; background:transparent; box-shadow:none; }
+
+  .panier{ min-height:0; display:flex; flex-direction:column; background:var(--surface); border-left:1px solid var(--line); }
+  .panier h2{ font:700 18px var(--display); padding:14px 16px 6px; display:flex; justify-content:space-between; align-items:center; }
+  .lignes{ flex:1; min-height:0; overflow:auto; padding:0 16px; }
+  .ligne{ padding:10px 0; border-bottom:1px solid var(--line); display:grid; grid-template-columns:1fr auto; gap:4px 10px; align-items:center; }
+  .ligne .nom{ font-weight:600; } .ligne .sous{ color:var(--muted); font-size:13px; }
+  .qte{ display:flex; align-items:center; gap:4px; } .qte button{ width:40px; height:40px; border-radius:12px; border:1px solid var(--line); background:var(--bg); font-size:20px; font-weight:600; } .qte span{ min-width:26px; text-align:center; font-weight:700; }
+  .vide{ color:var(--muted); text-align:center; padding:40px 10px; }
+  .totaux{ flex:none; padding:12px 16px calc(14px + env(safe-area-inset-bottom)); border-top:1px solid var(--line); display:grid; gap:6px; }
+  .totaux .l{ display:flex; justify-content:space-between; color:var(--muted); font-size:14px; }
+  .totaux .total{ display:flex; justify-content:space-between; align-items:baseline; font:800 30px var(--display); letter-spacing:-.02em; }
+  .barre-mobile{ display:none; } .mobile-seul{ display:none; }
+
+  @media (max-width:900px){
+    main{ grid-template-columns:1fr; }
+    .panier{ position:fixed; left:0; right:0; bottom:0; top:20%; z-index:40; border-left:none; border-radius:22px 22px 0 0; box-shadow:0 -20px 50px rgba(0,0,0,.35); transform:translateY(105%); transition:transform .3s; }
+    .panier.ouvert{ transform:none; }
+    .mobile-seul{ display:inline-flex; }
+    .barre-mobile{ display:flex; position:fixed; left:12px; right:12px; bottom:calc(12px + env(safe-area-inset-bottom)); z-index:30; }
+    .barre-mobile button{ flex:1; min-height:56px; border-radius:18px; border:none; background:var(--ink); color:var(--bg); font:700 17px var(--body); display:flex; justify-content:space-between; align-items:center; padding:0 22px; box-shadow:0 12px 30px rgba(0,0,0,.35); }
+  }
+  @media (prefers-reduced-motion:reduce){ .panier{ transition:none; } }
+
+  /* dialogues */
+  dialog{ border:none; border-radius:26px; padding:24px; width:min(560px,calc(100vw - 20px)); max-height:calc(100dvh - 20px); overflow:auto; background:var(--surface); color:var(--ink); box-shadow:0 30px 80px -20px rgba(0,0,0,.55); }
+  dialog::backdrop{ background:rgba(8,10,14,.6); }
+  dialog h2{ font:800 24px var(--display); letter-spacing:-.02em; margin-bottom:14px; }
+  .champ{ margin:0 0 14px; } .champ label{ display:block; font-weight:600; margin-bottom:6px; }
+  .champ input,.champ select{ width:100%; min-height:52px; padding:0 14px; border-radius:14px; border:1px solid var(--line); background:var(--bg); font-size:18px; }
+  .rang{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--line); }
+  .modes{ display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:10px; margin:12px 0; }
+  .modes button{ min-height:64px; border-radius:16px; border:1px solid var(--line); background:var(--bg); font-weight:700; font-size:16px; }
+  .modes button[aria-pressed=true]{ background:var(--ink); color:var(--bg); }
+  .rapides{ display:flex; flex-wrap:wrap; gap:8px; margin:8px 0; } .rapides button{ min-height:44px; padding:0 16px; border-radius:12px; border:1px solid var(--line); background:var(--bg); font-weight:600; }
+  .gros{ font:800 36px var(--display); letter-spacing:-.03em; }
+  .erreur{ color:var(--alerte); font-weight:600; min-height:1.4em; } .muted{ color:var(--muted); }
+  .actions{ display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; margin-top:14px; }
+  .avert{ background:rgba(226,166,61,.14); border:1px solid rgba(226,166,61,.5); border-radius:14px; padding:10px 14px; font-size:13.5px; margin-bottom:12px; }
+  #toast{ position:fixed; left:50%; bottom:90px; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:12px 20px; border-radius:99px; font-weight:600; opacity:0; pointer-events:none; transition:opacity .25s; z-index:200; max-width:90vw; text-align:center; }
+  #toast.on{ opacity:1; }
+
+  /* impression : ticket 80 mm */
+  #zone-impression{ display:none; }
+  @media print{
+    @page{ size:80mm auto; margin:4mm; }
+    body > *:not(#zone-impression){ display:none !important; }
+    #zone-impression{ display:block !important; color:#000; background:#fff; font:12px/1.35 'Courier New',monospace; width:72mm; }
+    #zone-impression h1{ font:700 15px 'Courier New',monospace; text-align:center; } #zone-impression .c{ text-align:center; }
+    #zone-impression table{ width:100%; border-collapse:collapse; } #zone-impression td{ padding:1px 0; vertical-align:top; } #zone-impression td.r{ text-align:right; white-space:nowrap; padding-left:6px; }
+    #zone-impression hr{ border:none; border-top:1px dashed #000; margin:6px 0; }
+  }
+</style>
+<script src="/pwa.js" defer></script>
+<script src="/cookies.js" defer></script>
+</head>
+<body>
+<a class="evitement" href="#catalogue">Aller au catalogue</a>
+<header>
+  <a class="logo" href="dashboard.html" aria-label="Retour à l'application">Mirrio<b>.</b></a>
+  <span class="salon" id="salon"></span>
+  <span class="puce" id="etat-session" role="status"></span>
+  <button class="btn petit" id="b-historique" type="button">Ventes</button>
+  <button class="btn petit danger" id="b-cloture" type="button" hidden>Clôturer la caisse</button>
+  <a class="btn petit" href="dashboard.html">Quitter</a>
+</header>
+
+<main>
+  <section class="catalogue" id="catalogue" aria-label="Catalogue">
+    <div class="avert" id="avert-nf525" hidden><b>Caisse non certifiée.</b> Votre salon est assujetti à la TVA : en France, un logiciel de caisse utilisé pour encaisser des particuliers doit être certifié NF525 (ou attesté par l'éditeur). Mirrio Caisse ne l'est pas encore : utilisez-la en parallèle d'une caisse certifiée, ou en franchise de TVA.</div>
+    <input class="recherche" id="recherche" type="search" placeholder="Rechercher une prestation" aria-label="Rechercher une prestation" autocomplete="off">
+    <div class="chips" id="chips" role="group" aria-label="Catégories"></div>
+    <div class="tuiles" id="tuiles"></div>
+  </section>
+  <aside class="panier" id="panier" aria-label="Panier">
+    <h2>Panier <span style="display:flex;gap:8px"><button class="btn petit" id="b-client" type="button">Client</button><button class="btn petit mobile-seul" id="b-fermer-panier" type="button">Fermer</button></span></h2>
+    <div class="lignes" id="lignes" aria-live="polite"></div>
+    <div class="totaux">
+      <div class="l" id="ligne-ht"><span>Total HT</span><span id="t-ht"></span></div>
+      <div class="l" id="ligne-tva"><span>TVA</span><span id="t-tva"></span></div>
+      <div class="total"><span>À payer</span><span id="t-ttc">0,00 €</span></div>
+      <div style="display:flex;gap:10px"><button class="btn petit" id="b-vider" type="button">Vider</button><button class="btn principal" id="b-encaisser" type="button" style="flex:1;min-height:56px;font-size:18px" disabled>Encaisser</button></div>
+    </div>
+  </aside>
+</main>
+<div class="barre-mobile"><button id="b-voir-panier" type="button"><span id="bm-n">Panier (0)</span><span id="bm-total">0,00 €</span></button></div>
+<div id="toast" role="status"></div>
+<div id="zone-impression" aria-hidden="true"></div>
+
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+  import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
+  import { idEspaceActif, chargerBrand } from './theme.js';
+  import { calculerTotaux, MENTION_FRANCHISE_TVA } from './document-render.js';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const $ = s => document.querySelector(s);
+  const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  const r2 = n => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+  const eur = n => r2(n).toLocaleString('fr-FR', { style:'currency', currency:'EUR' });
+  const heure = d => new Date(d).toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+  const jourHeure = d => new Date(d).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  const num = v => { const n = Number(String(v == null ? '' : v).replace(',', '.')); return isFinite(n) && n >= 0 ? n : 0; };
+  function toast(t){ const e = $('#toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 3200); }
+  const MODES = { especes:'Espèces', carte:'Carte', cheque:'Chèque', virement:'Virement', autre:'Autre' };
+
+  let espaceId = null, session = null, params = {}, brand = {}, prestations = [], clients = [];
+  let panier = [], client = null, categorie = '';
+  const assujetti = () => !!params.assujetti_tva;
+  const tauxDefaut = () => Number(params.tva_taux_defaut) || 0;
+  const ttcUnitaire = (ht, tva) => assujetti() ? ht * (1 + (Number(tva) || 0) / 100) : ht;
+
+  // ---------------------------------------------------------------- dialogues génériques
+  // Ouvre un <dialog> et renvoie l'élément (pour y brancher des écouteurs) et une promesse résolue par d.fermer(valeur).
+  function ouvrir(html){
+    const d = document.createElement('dialog');
+    d.innerHTML = html; document.body.appendChild(d);
+    const p = new Promise(res => { d.fermer = r => { try{ d.close(); }catch(e){} d.remove(); res(r); }; });
+    d.addEventListener('cancel', e => { e.preventDefault(); d.fermer(null); });
+    d.showModal();
+    return { d, fin:p };
+  }
+
+  // ---------------------------------------------------------------- chargement
+  async function charger(){
+    espaceId = await idEspaceActif(supabase);
+    const [b, f, sess, pr, cl] = await Promise.all([
+      chargerBrand(supabase, espaceId),
+      supabase.from('parametres_facturation').select('*').eq('owner_id', espaceId).maybeSingle(),
+      supabase.from('caisse_sessions').select('*').eq('owner_id', espaceId).is('cloturee_le', null).maybeSingle(),
+      supabase.from('prestations').select('id,libelle,prix_unitaire,tva_taux,categorie,actif,position').eq('owner_id', espaceId).eq('actif', true).order('position').then(r => r.error
+        ? supabase.from('prestations').select('id,libelle,prix_unitaire,tva_taux,actif,position').eq('owner_id', espaceId).eq('actif', true).order('position') : r),
+      supabase.from('clients').select('id,full_name,phone,email').eq('owner_id', espaceId).order('full_name').limit(1000)
+    ]);
+    brand = b || {}; params = f.data || {}; prestations = pr.data || []; clients = cl.data || [];
+    $('#salon').textContent = brand.business_name || params.emetteur_nom || '';
+    if(sess.error){ $('#etat-session').textContent = 'Base non préparée'; $('#etat-session').className = 'puce ko'; toast('Exécuter db/schema-v39-caisse.sql dans Supabase.'); return false; }
+    session = sess.data || null;
+    return true;
+  }
+
+  function majSession(){
+    const p = $('#etat-session');
+    if(session){ p.textContent = `Caisse ouverte depuis ${heure(session.ouverte_le)} · fond ${eur(session.fond_caisse)}`; p.className = 'puce ok'; }
+    else { p.textContent = 'Caisse fermée'; p.className = 'puce ko'; }
+    $('#b-cloture').hidden = !session;
+    $('#b-encaisser').disabled = !session || !panier.length;
+  }
+
+  async function ouvrirCaisse(){
+    const { d, fin } = ouvrir(`<h2>Ouvrir la caisse</h2>
+      <p class="muted" style="margin-bottom:14px">Indiquez les espèces présentes dans le tiroir-caisse (fond de caisse).</p>
+      <div class="champ"><label for="fond">Fond de caisse (€)</label><input id="fond" inputmode="decimal" value="0" autofocus></div>
+      <p class="erreur" id="err" role="alert"></p>
+      <div class="actions"><button class="btn" id="non" type="button">Plus tard</button><button class="btn principal" id="ok" type="button">Ouvrir la caisse</button></div>`);
+    d.querySelector('#non').onclick = () => d.fermer(null);
+    d.querySelector('#ok').onclick = async () => {
+      const { data, error } = await supabase.from('caisse_sessions').insert({ owner_id:espaceId, fond_caisse:num(d.querySelector('#fond').value) }).select().single();
+      if(error){ d.querySelector('#err').textContent = /duplicate|unique/i.test(error.message) ? 'Une caisse est déjà ouverte sur ce salon.' : 'Impossible d\'ouvrir la caisse.'; return; }
+      session = data; d.fermer(true);
+    };
+    await fin; majSession(); dessinerPanier();
+  }
+
+  // ---------------------------------------------------------------- catalogue
+  function dessinerCatalogue(){
+    const cats = [...new Set(prestations.map(p => p.categorie).filter(Boolean))];
+    $('#chips').innerHTML = cats.length ? [['', 'Tout'], ...cats.map(c => [c, c])].map(([k, l]) => `<button type="button" data-c="${esc(k)}" aria-pressed="${categorie === k}">${esc(l)}</button>`).join('') : '';
+    const q = $('#recherche').value.trim().toLowerCase();
+    const liste = prestations.filter(p => (!categorie || p.categorie === categorie) && (!q || p.libelle.toLowerCase().includes(q)));
+    $('#tuiles').innerHTML = liste.map(p => `<button class="tuile" type="button" data-id="${p.id}"><b>${esc(p.libelle)}</b><span>${eur(ttcUnitaire(Number(p.prix_unitaire), p.tva_taux))}</span></button>`).join('')
+      + `<button class="tuile libre" type="button" data-libre="1"><b>Montant libre</b><span>+</span></button>`;
+  }
+  $('#chips').addEventListener('click', e => { const b = e.target.closest('button[data-c]'); if(b){ categorie = b.dataset.c; dessinerCatalogue(); } });
+  $('#recherche').addEventListener('input', dessinerCatalogue);
+  $('#tuiles').addEventListener('click', async e => {
+    const b = e.target.closest('button'); if(!b) return;
+    if(!session){ toast('Ouvrez d\'abord la caisse.'); ouvrirCaisse(); return; }
+    if(b.dataset.libre){ await montantLibre(); return; }
+    const p = prestations.find(x => x.id === b.dataset.id); if(!p) return;
+    const l = panier.find(x => x.pid === p.id && !x.remise);
+    if(l) l.qte++; else panier.push({ cle:crypto.randomUUID(), pid:p.id, libelle:p.libelle, ht:Number(p.prix_unitaire), tva:Number(p.tva_taux) || 0, qte:1, remise:0 });
+    dessinerPanier();
+  });
+
+  async function montantLibre(){
+    const { d, fin } = ouvrir(`<h2>Montant libre</h2>
+      <div class="champ"><label for="lib">Libellé</label><input id="lib" value="Vente" maxlength="80"></div>
+      <div class="champ"><label for="mt">Montant ${assujetti() ? 'TTC' : ''} (€)</label><input id="mt" inputmode="decimal" autofocus></div>
+      ${assujetti() ? `<div class="champ"><label for="tx">TVA (%)</label><select id="tx">${[20, 10, 5.5, 2.1, 0].map(t => `<option value="${t}"${t === tauxDefaut() ? ' selected' : ''}>${t} %</option>`).join('')}</select></div>` : ''}
+      <p class="erreur" id="err" role="alert"></p>
+      <div class="actions"><button class="btn" id="non" type="button">Annuler</button><button class="btn principal" id="ok" type="button">Ajouter</button></div>`);
+    d.querySelector('#non').onclick = () => d.fermer(null);
+    d.querySelector('#ok').onclick = () => {
+      const m = num(d.querySelector('#mt').value); if(m <= 0){ d.querySelector('#err').textContent = 'Indiquez un montant.'; return; }
+      const tva = assujetti() ? Number(d.querySelector('#tx').value) : 0;
+      d.fermer({ libelle:d.querySelector('#lib').value.trim() || 'Vente', ht:r2(assujetti() ? m / (1 + tva / 100) : m), tva });
+    };
+    const r = await fin;
+    if(r){ panier.push({ cle:crypto.randomUUID(), pid:null, ...r, qte:1, remise:0 }); dessinerPanier(); }
+  }
+
+  // ---------------------------------------------------------------- panier
+  const prixLigneHT = l => r2(l.ht * (1 - (l.remise || 0) / 100));
+  const lignesFacture = () => panier.map((l, i) => ({ description: l.libelle + (l.remise ? ` (remise ${l.remise} %)` : ''), quantite:l.qte, prix_unitaire:prixLigneHT(l), tva_taux:l.tva, position:i }));
+  const totaux = () => { const t = calculerTotaux(lignesFacture(), params); return { ...t, totalTTC:r2(t.totalTTC), totalHT:r2(t.totalHT), totalTVA:r2(t.totalTVA) }; };
+
+  function dessinerPanier(){
+    const t = totaux();
+    $('#lignes').innerHTML = panier.length ? panier.map(l => `<div class="ligne" data-k="${l.cle}">
+      <div><div class="nom">${esc(l.libelle)}</div><div class="sous">${eur(ttcUnitaire(prixLigneHT(l), l.tva))} l'unité${l.remise ? ` · remise ${l.remise} %` : ''}</div></div>
+      <div style="text-align:right;font-weight:700">${eur(ttcUnitaire(prixLigneHT(l), l.tva) * l.qte)}</div>
+      <div class="qte"><button type="button" data-a="moins" aria-label="Retirer un ${esc(l.libelle)}">−</button><span>${l.qte}</span><button type="button" data-a="plus" aria-label="Ajouter un ${esc(l.libelle)}">+</button></div>
+      <div style="display:flex;gap:6px;justify-content:flex-end"><button class="btn petit" type="button" data-a="remise">Remise</button><button class="btn petit danger" type="button" data-a="sup" aria-label="Supprimer ${esc(l.libelle)}">×</button></div></div>`).join('')
+      : '<p class="vide">Touchez une prestation pour l\'ajouter.</p>';
+    $('#ligne-ht').style.display = $('#ligne-tva').style.display = t.assujetti ? '' : 'none';
+    $('#t-ht').textContent = eur(t.totalHT); $('#t-tva').textContent = eur(t.totalTVA); $('#t-ttc').textContent = eur(t.totalTTC);
+    const n = panier.reduce((s, l) => s + l.qte, 0);
+    $('#bm-n').textContent = `Panier (${n})`; $('#bm-total').textContent = eur(t.totalTTC);
+    $('#b-encaisser').disabled = !session || !panier.length;
+    $('#b-client').textContent = client ? client.full_name : 'Client';
+  }
+  $('#lignes').addEventListener('click', async e => {
+    const b = e.target.closest('button[data-a]'); if(!b) return;
+    const k = b.closest('[data-k]').dataset.k, l = panier.find(x => x.cle === k); if(!l) return;
+    if(b.dataset.a === 'plus') l.qte++;
+    else if(b.dataset.a === 'moins'){ l.qte--; if(l.qte <= 0) panier = panier.filter(x => x !== l); }
+    else if(b.dataset.a === 'sup') panier = panier.filter(x => x !== l);
+    else if(b.dataset.a === 'remise'){
+      const { d, fin } = ouvrir(`<h2>Remise sur « ${esc(l.libelle)} »</h2><div class="champ"><label for="rm">Remise en %</label><input id="rm" inputmode="decimal" value="${l.remise || ''}" autofocus></div>
+        <div class="rapides">${[5, 10, 15, 20, 50].map(p => `<button type="button" data-p="${p}">${p} %</button>`).join('')}</div>
+        <div class="actions"><button class="btn" id="non" type="button">Annuler</button><button class="btn principal" id="ok" type="button">Appliquer</button></div>`);
+      d.querySelectorAll('[data-p]').forEach(x => x.onclick = () => { d.querySelector('#rm').value = x.dataset.p; });
+      d.querySelector('#non').onclick = () => d.fermer(null);
+      d.querySelector('#ok').onclick = () => d.fermer(Math.min(100, num(d.querySelector('#rm').value)));
+      const r = await fin; if(r != null) l.remise = r;
+    }
+    dessinerPanier();
+  });
+  $('#b-vider').onclick = () => { panier = []; client = null; dessinerPanier(); };
+  $('#b-voir-panier').onclick = () => $('#panier').classList.add('ouvert');
+  $('#b-fermer-panier').onclick = () => $('#panier').classList.remove('ouvert');
+
+  // client (facultatif)
+  $('#b-client').onclick = async () => {
+    const { d, fin } = ouvrir(`<h2>Client</h2><div class="champ"><input id="q" type="search" placeholder="Rechercher un client" aria-label="Rechercher un client" autofocus></div>
+      <div id="liste" style="max-height:40vh;overflow:auto"></div>
+      <div class="champ" style="margin-top:12px"><label for="nv">Nouveau client</label><div style="display:flex;gap:8px"><input id="nv" placeholder="Nom et prénom" maxlength="120"><button class="btn principal" id="cree" type="button">Créer</button></div></div>
+      <div class="actions"><button class="btn" id="sans" type="button">Sans client</button><button class="btn" id="non" type="button">Fermer</button></div>`);
+    const dessiner = () => {
+      const q = d.querySelector('#q').value.trim().toLowerCase();
+      d.querySelector('#liste').innerHTML = clients.filter(c => !q || c.full_name.toLowerCase().includes(q)).slice(0, 60).map(c => `<div class="rang"><span>${esc(c.full_name)}</span><button class="btn petit" data-id="${c.id}" type="button">Choisir</button></div>`).join('') || '<p class="muted">Aucun client trouvé.</p>';
+    };
+    dessiner(); d.querySelector('#q').addEventListener('input', dessiner);
+    d.querySelector('#liste').addEventListener('click', e => { const b = e.target.closest('button[data-id]'); if(b) d.fermer(clients.find(c => c.id === b.dataset.id)); });
+    d.querySelector('#sans').onclick = () => d.fermer('aucun'); d.querySelector('#non').onclick = () => d.fermer(null);
+    d.querySelector('#cree').onclick = async () => {
+      const nom = d.querySelector('#nv').value.trim(); if(!nom) return;
+      const { data, error } = await supabase.from('clients').insert({ owner_id:espaceId, full_name:nom }).select().single();
+      if(error) return toast('Création du client impossible.');
+      clients.push(data); d.fermer(data);
+    };
+    const r = await fin; if(r === 'aucun') client = null; else if(r) client = r; dessinerPanier();
+  };
+
+  // ---------------------------------------------------------------- encaissement
+  $('#b-encaisser').onclick = () => encaisser();
+  async function encaisser(){
+    const t = totaux(); let paiements = []; let edite = false;   // edite : le montant a été saisi à la main, on ne l'écrase pas
+    const { d, fin } = ouvrir(`<h2>Encaisser</h2>
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="muted">Total</span><span class="gros">${eur(t.totalTTC)}</span></div>
+      <div style="display:flex;justify-content:space-between"><span class="muted">Reste à payer</span><b id="reste"></b></div>
+      <div class="champ" style="margin-top:12px"><label for="mm">Montant de ce paiement (€)</label><input id="mm" inputmode="decimal"></div>
+      <div class="modes" id="modes">${Object.entries(MODES).map(([k, l]) => `<button type="button" data-m="${k}" aria-pressed="false">${l}</button>`).join('')}</div>
+      <div id="pad-especes" hidden><div class="champ"><label for="recu">Espèces reçues (€)</label><input id="recu" inputmode="decimal"></div>
+        <div class="rapides" id="rapides"></div><div style="display:flex;justify-content:space-between"><span class="muted">Monnaie à rendre</span><b id="rendu">0,00 €</b></div>
+        <div class="actions" style="margin-top:8px"><button class="btn sombre" id="ajout-esp" type="button">Valider les espèces</button></div></div>
+      <div id="liste-paiements"></div><p class="erreur" id="err" role="alert"></p>
+      <div class="actions"><button class="btn" id="non" type="button">Retour au panier</button><button class="btn principal" id="valider" type="button" disabled style="min-height:56px;font-size:18px">Valider la vente</button></div>`);
+    const reste = () => r2(t.totalTTC - paiements.reduce((s, p) => s + p.montant, 0));
+    const maj = () => {
+      const r = reste();
+      d.querySelector('#reste').textContent = eur(r); d.querySelector('#valider').disabled = r !== 0 || !paiements.length;
+      if(!edite) d.querySelector('#mm').value = r > 0 ? String(r).replace('.', ',') : '';
+      d.querySelector('#liste-paiements').innerHTML = paiements.map((p, i) => `<div class="rang"><span>${MODES[p.mode]}${p.mode === 'especes' && p.recu > p.montant ? ` <span class="muted">(reçu ${eur(p.recu)}, rendu ${eur(p.recu - p.montant)})</span>` : ''}</span><span><b>${eur(p.montant)}</b> <button class="btn petit danger" data-i="${i}" type="button" aria-label="Retirer ce paiement">×</button></span></div>`).join('');
+      const rendu = Math.max(0, r2(num(d.querySelector('#recu').value) - Math.min(num(d.querySelector('#mm').value), r)));
+      d.querySelector('#rendu').textContent = eur(rendu);
+      d.querySelector('#rapides').innerHTML = `<button type="button" data-v="exact">Exact</button>` + [5, 10, 20, 50, 100].map(v => `<button type="button" data-v="${v}">${v} €</button>`).join('');
+    };
+    const montantSaisi = () => Math.min(num(d.querySelector('#mm').value), reste());
+    d.querySelector('#mm').addEventListener('input', () => { edite = true; maj(); });
+    d.querySelector('#recu').addEventListener('input', maj);
+    d.querySelector('#modes').addEventListener('click', e => {
+      const b = e.target.closest('button[data-m]'); if(!b) return;
+      const m = montantSaisi(); if(m <= 0){ d.querySelector('#err').textContent = 'Il n\'y a plus rien à payer.'; return; }
+      d.querySelector('#err').textContent = '';
+      if(b.dataset.m === 'especes'){ d.querySelector('#pad-especes').hidden = false; d.querySelector('#recu').focus(); maj(); d.querySelectorAll('#modes button').forEach(x => x.setAttribute('aria-pressed', x === b)); return; }
+      d.querySelector('#pad-especes').hidden = true; paiements.push({ mode:b.dataset.m, montant:m, recu:null }); edite = false; maj();
+    });
+    d.querySelector('#rapides').addEventListener('click', e => {
+      const b = e.target.closest('button[data-v]'); if(!b) return;
+      const m = montantSaisi(); d.querySelector('#recu').value = b.dataset.v === 'exact' ? String(m).replace('.', ',') : String(Math.max(num(d.querySelector('#recu').value) + Number(b.dataset.v), 0)).replace('.', ','); maj();
+    });
+    d.querySelector('#ajout-esp').onclick = () => {
+      const m = montantSaisi(), recu = num(d.querySelector('#recu').value) || m;
+      if(m <= 0) return;
+      if(recu < m){ d.querySelector('#err').textContent = 'Les espèces reçues sont inférieures au montant.'; return; }
+      d.querySelector('#err').textContent = ''; paiements.push({ mode:'especes', montant:m, recu }); d.querySelector('#recu').value = ''; edite = false; d.querySelector('#pad-especes').hidden = true;
+      d.querySelectorAll('#modes button').forEach(x => x.setAttribute('aria-pressed', 'false')); maj();
+    };
+    d.querySelector('#liste-paiements').addEventListener('click', e => { const b = e.target.closest('button[data-i]'); if(b){ paiements.splice(Number(b.dataset.i), 1); maj(); } });
+    d.querySelector('#non').onclick = () => d.fermer(null);
+    d.querySelector('#valider').onclick = async () => {
+      const bt = d.querySelector('#valider'); bt.disabled = true; bt.textContent = 'Enregistrement…';
+      try{
+        const v = await enregistrerVente(t, paiements);
+        d.fermer(v);
+      }catch(err){
+        d.querySelector('#err').textContent = 'La vente n\'a pas pu être enregistrée. Aucun paiement n\'a été comptabilisé : réessayez.';
+        bt.disabled = false; bt.textContent = 'Valider la vente';
+      }
+    };
+    maj();
+    const vente = await fin;
+    if(vente){ panier = []; client = null; $('#panier').classList.remove('ouvert'); dessinerPanier(); await ticket(vente); }
+  }
+
+  async function enregistrerVente(t, paiements){
+    const aujourdhui = new Date().toISOString().slice(0, 10);
+    const { data: doc, error } = await supabase.from('documents').insert({
+      type:'facture', statut:'paye', client_id:client ? client.id : null, date_emission:aujourdhui, date_echeance:aujourdhui, notes:'Vente en caisse', owner_id:espaceId }).select().single();
+    if(error || !doc) throw error || new Error('document');
+    const lignes = lignesFacture().map(l => ({ ...l, document_id:doc.id }));
+    const l = await supabase.from('document_lignes').insert(lignes);
+    if(l.error){ await supabase.from('documents').delete().eq('id', doc.id); throw l.error; }
+    const p = await supabase.from('caisse_paiements').insert(paiements.map(x => ({ owner_id:espaceId, session_id:session.id, document_id:doc.id, mode:x.mode, montant:x.montant, recu:x.recu })));
+    if(p.error){ await supabase.from('document_lignes').delete().eq('document_id', doc.id); await supabase.from('documents').delete().eq('id', doc.id); throw p.error; }
+    return { numero:doc.numero, date:doc.created_at || new Date().toISOString(), lignes:lignesFacture(), totaux:t, paiements, client };
+  }
+
+  // ---------------------------------------------------------------- ticket
+  function ticketHTML(v){
+    const nom = brand.business_name || params.emetteur_nom || 'Mirrio';
+    const l = v.lignes.map(x => `<tr><td>${esc(x.quantite)} × ${esc(x.description)}</td><td class="r">${eur(ttcUnitaire(x.prix_unitaire, x.tva_taux) * x.quantite)}</td></tr>`).join('');
+    const ven = v.totaux.assujetti ? v.totaux.ventilation.map(x => `<tr><td>TVA ${x.taux} %</td><td class="r">${eur(x.montant)}</td></tr>`).join('') : '';
+    const pay = v.paiements.map(p => `<tr><td>${MODES[p.mode]}</td><td class="r">${eur(p.montant)}</td></tr>${p.mode === 'especes' && p.recu > p.montant ? `<tr><td>Reçu ${eur(p.recu)}, rendu</td><td class="r">${eur(p.recu - p.montant)}</td></tr>` : ''}`).join('');
+    return `<h1>${esc(nom)}</h1><p class="c">${esc(params.emetteur_adresse || '')}</p><hr>
+      <p>${esc(jourHeure(v.date))}${v.numero ? ' · ' + esc(v.numero) : ''}${v.client ? '<br>Client : ' + esc(v.client.full_name) : ''}</p><hr>
+      <table>${l}</table><hr>
+      <table>${v.totaux.assujetti ? `<tr><td>Total HT</td><td class="r">${eur(v.totaux.totalHT)}</td></tr>${ven}` : ''}<tr><td><b>TOTAL</b></td><td class="r"><b>${eur(v.totaux.totalTTC)}</b></td></tr></table><hr>
+      <table>${pay}</table>${v.totaux.assujetti ? '' : `<hr><p class="c" style="font-size:10px">${esc(MENTION_FRANCHISE_TVA)}</p>`}<hr><p class="c">Merci de votre visite</p>`;
+  }
+  function imprimer(html){ $('#zone-impression').innerHTML = html; window.print(); }
+  async function ticket(v){
+    const { d, fin } = ouvrir(`<h2>Vente enregistrée</h2><p class="muted" style="margin-bottom:10px">${v.numero ? 'Facture ' + esc(v.numero) + ' · ' : ''}${eur(v.totaux.totalTTC)}</p>
+      ${v.paiements.some(p => p.mode === 'especes' && p.recu > p.montant) ? `<p class="gros" style="margin:8px 0">Rendre ${eur(v.paiements.filter(p => p.mode === 'especes').reduce((s, p) => s + (p.recu - p.montant), 0))}</p>` : ''}
+      <div class="actions" style="justify-content:space-between"><button class="btn" id="imp" type="button">Imprimer le ticket</button><button class="btn principal" id="nouv" type="button" autofocus>Nouvelle vente</button></div>`);
+    d.querySelector('#imp').onclick = () => imprimer(ticketHTML(v)); d.querySelector('#nouv').onclick = () => d.fermer(true);
+    await fin;
+  }
+
+  // ---------------------------------------------------------------- historique et clôture
+  async function ventesSession(){
+    const { data: pay } = await supabase.from('caisse_paiements').select('*').eq('session_id', session.id).order('created_at');
+    const ids = [...new Set((pay || []).map(p => p.document_id))];
+    if(!ids.length) return { pay:[], docs:[], lignes:[] };
+    const [dd, ll] = await Promise.all([
+      supabase.from('documents').select('id,numero,created_at,client_id').in('id', ids),
+      supabase.from('document_lignes').select('*').in('document_id', ids).order('position')
+    ]);
+    return { pay:pay || [], docs:dd.data || [], lignes:ll.data || [] };
+  }
+  const totauxVente = (lignes) => { const t = calculerTotaux(lignes, params); return { ...t, totalTTC:r2(t.totalTTC), totalHT:r2(t.totalHT), totalTVA:r2(t.totalTVA) }; };
+
+  $('#b-historique').onclick = async () => {
+    if(!session){ toast('La caisse est fermée : aucune vente en cours.'); return; }
+    const { pay, docs, lignes } = await ventesSession();
+    const { d, fin } = ouvrir(`<h2>Ventes de la session</h2>${docs.length ? docs.sort((a, b) => b.created_at.localeCompare(a.created_at)).map(x => {
+      const lg = lignes.filter(l => l.document_id === x.id), t = totauxVente(lg), pp = pay.filter(p => p.document_id === x.id);
+      return `<div class="rang"><span><b>${esc(x.numero || '')}</b> · ${heure(x.created_at)}<br><span class="muted" style="font-size:13px">${[...new Set(pp.map(p => MODES[p.mode]))].join(', ')}</span></span><span><b>${eur(t.totalTTC)}</b> <button class="btn petit" data-id="${x.id}" type="button">Ticket</button></span></div>`; }).join('') : '<p class="muted">Aucune vente pour l\'instant.</p>'}
+      <div class="actions"><button class="btn" id="non" type="button">Fermer</button></div>`);
+    d.querySelector('#non').onclick = () => d.fermer(null);
+    d.addEventListener('click', e => {
+      const b = e.target.closest('button[data-id]'); if(!b) return;
+      const x = docs.find(z => z.id === b.dataset.id), lg = lignes.filter(l => l.document_id === x.id);
+      imprimer(ticketHTML({ numero:x.numero, date:x.created_at, lignes:lg.map(l => ({ description:l.description, quantite:l.quantite, prix_unitaire:l.prix_unitaire, tva_taux:l.tva_taux })), totaux:totauxVente(lg),
+        paiements:pay.filter(p => p.document_id === x.id).map(p => ({ mode:p.mode, montant:Number(p.montant), recu:p.recu == null ? null : Number(p.recu) })), client:clients.find(c => c.id === x.client_id) || null }));
+    });
+    await fin;
+  };
+
+  $('#b-cloture').onclick = async () => {
+    if(panier.length && !confirm('Le panier en cours sera perdu. Continuer la clôture ?')) return;
+    const { pay, docs, lignes } = await ventesSession();
+    const parMode = {}; pay.forEach(p => { parMode[p.mode] = r2((parMode[p.mode] || 0) + Number(p.montant)); });
+    const t = totauxVente(lignes), especes = parMode.especes || 0, attendues = r2(Number(session.fond_caisse) + especes);
+    const { d, fin } = ouvrir(`<h2>Clôture de la caisse</h2>
+      <div class="rang"><span>Ventes</span><b>${docs.length}</b></div>
+      ${t.assujetti ? `<div class="rang"><span>Chiffre d'affaires HT</span><b>${eur(t.totalHT)}</b></div><div class="rang"><span>TVA collectée</span><b>${eur(t.totalTVA)}</b></div>` : ''}
+      <div class="rang"><span>Chiffre d'affaires TTC</span><b>${eur(t.totalTTC)}</b></div>
+      ${Object.entries(parMode).map(([k, v]) => `<div class="rang"><span>${MODES[k]}</span><b>${eur(v)}</b></div>`).join('')}
+      <div class="rang"><span>Espèces attendues (fond ${eur(session.fond_caisse)} + ventes)</span><b>${eur(attendues)}</b></div>
+      <div class="champ" style="margin-top:12px"><label for="cpt">Espèces comptées dans le tiroir (€)</label><input id="cpt" inputmode="decimal" autofocus></div>
+      <div class="rang"><span>Écart</span><b id="ecart">—</b></div>
+      <p class="erreur" id="err" role="alert"></p>
+      <div class="actions"><button class="btn" id="non" type="button">Annuler</button><button class="btn principal" id="ok" type="button">Clôturer et imprimer le Z</button></div>`);
+    d.querySelector('#cpt').addEventListener('input', () => { const e = r2(num(d.querySelector('#cpt').value) - attendues); d.querySelector('#ecart').textContent = (e > 0 ? '+' : '') + eur(e); d.querySelector('#ecart').style.color = e === 0 ? 'var(--ok)' : 'var(--alerte)'; });
+    d.querySelector('#non').onclick = () => d.fermer(null);
+    d.querySelector('#ok').onclick = async () => {
+      if(d.querySelector('#cpt').value.trim() === ''){ d.querySelector('#err').textContent = 'Comptez les espèces du tiroir avant de clôturer.'; return; }
+      const comptees = num(d.querySelector('#cpt').value), ecart = r2(comptees - attendues), maintenant = new Date().toISOString();
+      const rapport = { nb_ventes:docs.length, total_ht:t.totalHT, total_tva:t.totalTVA, total_ttc:t.totalTTC, ventilation_tva:t.ventilation, par_mode:parMode,
+        fond_caisse:Number(session.fond_caisse), especes_attendues:attendues, especes_comptees:comptees, ecart, ouverte_le:session.ouverte_le, cloturee_le:maintenant, assujetti_tva:t.assujetti };
+      const { error } = await supabase.from('caisse_sessions').update({ cloturee_le:maintenant, cloturee_par:(await supabase.auth.getUser()).data.user.id, especes_comptees:comptees, ecart, rapport }).eq('id', session.id);
+      if(error){ d.querySelector('#err').textContent = 'Clôture impossible pour le moment.'; return; }
+      d.fermer(rapport);
+    };
+    const rapport = await fin;
+    if(rapport){
+      session = null; panier = []; client = null; majSession(); dessinerPanier();
+      const nom = brand.business_name || params.emetteur_nom || 'Mirrio';
+      imprimer(`<h1>${esc(nom)}</h1><p class="c"><b>CLÔTURE DE CAISSE (Z)</b></p><hr><p>Ouverture : ${esc(jourHeure(rapport.ouverte_le))}<br>Clôture : ${esc(jourHeure(rapport.cloturee_le))}</p><hr>
+        <table><tr><td>Ventes</td><td class="r">${rapport.nb_ventes}</td></tr>${rapport.assujetti_tva ? `<tr><td>CA HT</td><td class="r">${eur(rapport.total_ht)}</td></tr>${rapport.ventilation_tva.map(x => `<tr><td>TVA ${x.taux} %</td><td class="r">${eur(x.montant)}</td></tr>`).join('')}` : ''}<tr><td><b>CA TTC</b></td><td class="r"><b>${eur(rapport.total_ttc)}</b></td></tr></table><hr>
+        <table>${Object.entries(rapport.par_mode).map(([k, v]) => `<tr><td>${MODES[k]}</td><td class="r">${eur(v)}</td></tr>`).join('')}</table><hr>
+        <table><tr><td>Fond de caisse</td><td class="r">${eur(rapport.fond_caisse)}</td></tr><tr><td>Espèces attendues</td><td class="r">${eur(rapport.especes_attendues)}</td></tr><tr><td>Espèces comptées</td><td class="r">${eur(rapport.especes_comptees)}</td></tr><tr><td><b>Écart</b></td><td class="r"><b>${eur(rapport.ecart)}</b></td></tr></table>`);
+      toast('Caisse clôturée.');
+    }
+  };
+
+  // ---------------------------------------------------------------- démarrage
+  (async function init(){
+    const { data } = await supabase.auth.getSession();
+    if(!data.session){ location.href = 'login.html'; return; }
+    const ok = await charger();
+    dessinerCatalogue(); dessinerPanier(); majSession();
+    $('#avert-nf525').hidden = !(ok && assujetti());
+    if(ok && !session) ouvrirCaisse();
+  })();
+</script>
+</body>
+</html>
