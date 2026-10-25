@@ -70,6 +70,7 @@
 </head>
 <body>
 <a class="evitement" href="#contenu">Aller au contenu</a>
+<div id="bandeau-demo" hidden style="background:var(--accent);color:var(--accent-ink);padding:8px 16px;font-weight:600;font-size:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:220px">Démonstration : Sophie et Karim, mariage à Lyon. Rien n'est enregistré, essayez librement.</span><button class="btn petit" id="b-demo-reset" type="button">Réinitialiser</button><a class="btn petit" href="demo.html">Retour à la démo</a></div>
 <header><div class="barre">
   <a class="logo" href="mariage.html">Mirrio<b>.</b></a>
   <div class="droite"><span id="qui"></span><button class="btn petit" id="sortir" type="button">Se déconnecter</button></div>
@@ -94,7 +95,9 @@
 <script type="module">
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
   import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const DEMO = new URLSearchParams(location.search).get('demo') === '1';
+  let supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  let demoMod = null;
 
   const $ = s => document.querySelector(s);
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
@@ -156,7 +159,7 @@
         fin(out);
       });
       d.showModal();
-      d.querySelector('input,select,textarea').focus();
+      const premier = d.querySelector('input,select,textarea'); if(premier) premier.focus();
     });
   }
   const confirmer = async (texte, ok = 'Confirmer') => !!(await formulaire(texte, [], {}, ok));
@@ -371,7 +374,7 @@
   }
 
   // ------------------------------------------------------------------ invités
-  const lienRsvp = i => `${location.origin}/rsvp.html?t=${encodeURIComponent(i.rsvp_token)}`;
+  const lienRsvp = i => `${location.origin}/rsvp.html?t=${encodeURIComponent(i.rsvp_token)}${DEMO ? '&demo=1' : ''}`;
   function vueInvites(){
     const oui = invites.filter(i => i.statut === 'oui'), pers = oui.reduce((s, i) => s + i.nb_personnes, 0);
     const regimes = oui.filter(i => i.regime);
@@ -454,11 +457,11 @@
     const p = new URLSearchParams(); const q = $('#r-q').value.trim(), v = $('#r-ville').value.trim(), m = $('#r-metier').value;
     if(q) p.set('q', q); if(v) p.set('ville', v); if(m) p.set('metier', m);
     try{
-      const r = await fetch('/api/annuaire?' + p.toString()); const j = await r.json();
+      const j = DEMO ? demoMod.annuaireDemo(p) : await (await fetch('/api/annuaire?' + p.toString())).json();
       const liste = j.praticiens || [];
       z.innerHTML = liste.length ? liste.slice(0, 20).map(x => `<div class="resultat"><img src="${esc((x.photos && x.photos[0]) || x.logo_url || '')}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
         <div style="flex:1;min-width:0"><b>${esc(x.nom)}</b><div class="muted" style="font-size:13px">${esc(x.ville || '')}${x.nb_avis ? ` · ★ ${esc(x.note_moyenne)} (${x.nb_avis})` : ''}</div></div>
-        <a class="btn petit" href="pro.html?p=${encodeURIComponent(x.slug)}" target="_blank" rel="noopener">Voir la fiche</a>
+        <a class="btn petit" href="${esc(x.fiche || 'pro.html?p=' + encodeURIComponent(x.slug))}" target="_blank" rel="noopener">Voir la fiche</a>
         <button class="btn principal petit" data-slug="${esc(x.slug)}" data-nom="${esc(x.nom)}" type="button">Demander un devis</button></div>`).join('')
         : '<p class="vide">Aucun prestataire trouvé. Essayez une autre ville ou un autre métier.</p>';
       z.querySelectorAll('[data-slug]').forEach(b => b.onclick = () => demander(b.dataset.slug, b.dataset.nom));
@@ -475,7 +478,7 @@
       p_budget:r.budget ? num(r.budget) : null, p_nom:r.nom, p_email:r.email, p_tel:r.tel || null });
     if(error) return toast(msgErreur(error));
     // E-mail au prestataire : best-effort, la demande existe déjà même si l'envoi échoue.
-    fetch('/api/mariage', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Bearer ' + session.access_token }, body:JSON.stringify({ demande_id:nouvelle, evenement:'demande' }) }).catch(() => {});
+    if(!DEMO) fetch('/api/mariage', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Bearer ' + session.access_token }, body:JSON.stringify({ demande_id:nouvelle, evenement:'demande' }) }).catch(() => {});
     await charger(); afficher('presta'); toast('Demande envoyée à ' + nom + '.');
   }
   async function decider(id, statut){
@@ -497,11 +500,15 @@
     afficher(onglet);
   }
   (async function init(){
+    if(DEMO){
+      demoMod = await import('./demo-mariage.js'); supabase = demoMod.creerFauxSupabase('couple');
+      $('#bandeau-demo').hidden = false; $('#b-demo-reset').onclick = () => { demoMod.reinitialiserDemoMariage(); location.reload(); };
+    }
     const { data } = await supabase.auth.getSession();
     session = data.session;
     if(!session){ location.href = 'login.html'; return; }
-    $('#qui').textContent = session.user.email;
-    $('#sortir').onclick = async () => { await supabase.auth.signOut(); location.href = 'mariage.html'; };
+    $('#qui').textContent = DEMO ? 'Démo' : session.user.email;
+    $('#sortir').onclick = async () => { await supabase.auth.signOut(); location.href = DEMO ? 'demo.html' : 'mariage.html'; };
     await demarrer();
   })();
 </script>

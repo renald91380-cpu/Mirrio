@@ -70,6 +70,7 @@
 </head>
 <body>
 <a class="evitement" href="#contenu">Aller au contenu</a>
+<div id="bandeau-demo" hidden style="background:var(--accent);color:var(--accent-ink);padding:8px 16px;font-weight:600;font-size:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:220px">Démonstration : vous êtes Maison Éloïse et vous recevez des demandes de mariés. Rien n'est enregistré, essayez librement.</span><button class="btn petit" id="b-demo-reset" type="button">Réinitialiser</button><a class="btn petit" href="demo.html">Retour à la démo</a></div>
 <header><div class="barre">
   <a class="logo" href="dashboard.html">Mirrio<b>.</b></a>
   <div class="droite"><a class="btn petit" href="dashboard.html">Retour à l'application</a></div>
@@ -83,7 +84,8 @@
 <script type="module">
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
   import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const DEMO = new URLSearchParams(location.search).get('demo') === '1';
+  let supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const $ = s => document.querySelector(s);
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
   const eur = n => (Number(n) || 0).toLocaleString('fr-FR', { style:'currency', currency:'EUR', maximumFractionDigits:0 });
@@ -139,10 +141,14 @@
     if(!reponse && montant == null) return toast('Ajoutez un message ou un montant.');
     const { error } = await supabase.rpc('mariage_repondre', { p_demande:d.id, p_statut:statut, p_reponse:reponse || null, p_montant:montant });
     if(error) return toast('Impossible d\'envoyer la réponse.');
-    fetch('/api/mariage', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Bearer ' + session.access_token }, body:JSON.stringify({ demande_id:d.id, evenement:'reponse' }) }).catch(() => {});
+    if(!DEMO) fetch('/api/mariage', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Bearer ' + session.access_token }, body:JSON.stringify({ demande_id:d.id, evenement:'reponse' }) }).catch(() => {});
     toast('Réponse envoyée.'); await charger();
   }
   (async function init(){
+    if(DEMO){
+      const m = await import('./demo-mariage.js'); supabase = m.creerFauxSupabase('pro');
+      $('#bandeau-demo').hidden = false; $('#b-demo-reset').onclick = () => { m.reinitialiserDemoMariage(); location.reload(); };
+    }
     const { data } = await supabase.auth.getSession(); session = data.session;
     if(!session){ location.href = 'login.html'; return; }
     await charger();

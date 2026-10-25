@@ -50,9 +50,10 @@
 <script type="module">
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
   import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const DEMO = new URLSearchParams(location.search).get('demo') === '1';
+  let supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const $ = s => document.querySelector(s);
-  const jeton = new URLSearchParams(location.search).get('t') || '';
+  let jeton = new URLSearchParams(location.search).get('t') || '';
   const dateFr = d => new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
 
   function bascule(){
@@ -62,6 +63,8 @@
   document.querySelectorAll('input[name=statut]').forEach(r => r.addEventListener('change', bascule));
 
   (async function init(){
+    if(DEMO){ const m = await import('./demo-mariage.js'); supabase = m.creerFauxSupabase('couple'); jeton = jeton || m.premierJetonEnAttente();
+      document.body.insertAdjacentHTML('afterbegin', '<p style="position:fixed;top:0;left:0;right:0;background:#E2A63D;color:#101216;text-align:center;padding:8px;font-weight:600;font-size:14px">Démonstration : vous êtes un invité de Sophie et Karim. Rien n\'est enregistré.</p>'); }
     const { data, error } = jeton ? await supabase.rpc('rsvp_lire', { p_token:jeton }) : { data:null };
     $('#chargement').hidden = true;
     if(error || !data){ $('#chargement').hidden = false; $('#chargement').textContent = 'Cette invitation est introuvable. Vérifiez le lien reçu.'; return; }
