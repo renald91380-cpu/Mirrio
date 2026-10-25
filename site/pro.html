@@ -69,6 +69,11 @@
   .presta{ display:flex; justify-content:space-between; align-items:center; gap:14px; padding:18px 0; border-top:1px solid var(--trait); }
   .presta:first-child, .cat + .presta{ border-top:none; }
   .presta small{ display:block; color:var(--muted); font-size:13px; }
+  .choisir{ flex:none; display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:0 20px; border-radius:var(--rayon); background:var(--c); color:var(--c-texte); font-weight:600; font-size:15px; text-decoration:none; }
+  .choisir:hover{ filter:brightness(1.07); } .choisir:focus-visible{ outline:3px solid var(--c); outline-offset:3px; }
+  .presta .droite-presta{ display:flex; align-items:center; gap:14px; flex:none; }
+  .niveau-prix{ font-weight:600; letter-spacing:.02em; }
+  @media(max-width:520px){ .presta{ flex-wrap:wrap; } .presta .droite-presta{ width:100%; justify-content:space-between; } }
   .prix{ font-family:var(--titre); font-weight:800; font-size:20px; letter-spacing:-.02em; white-space:nowrap; }
   .galerie{ display:grid; grid-template-columns:repeat(4, 1fr); grid-auto-rows:150px; gap:10px; }
   .galerie button{ border:none; padding:0; border-radius:20px; overflow:hidden; cursor:zoom-in; background:var(--surface); }
@@ -123,6 +128,8 @@
 
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const https = u => (typeof u === 'string' && /^https:\/\//i.test(u)) ? u : '';
+  // Niveau de prix du salon (« € » à « €€€€ »), d'après le prix médian de ses prestations : repère rapide, comme sur les annuaires de réservation.
+  const niveauPrix = liste => { const v = (liste || []).map(x => Number(x.prix_unitaire)).filter(n => n > 0).sort((a, b) => a - b); if(!v.length) return ''; const m = v[Math.floor(v.length / 2)]; return m <= 30 ? '€' : m <= 70 ? '€€' : m <= 150 ? '€€€' : '€€€€'; };
   const prix = n => Number(n || 0).toFixed(2).replace('.00', '').replace('.', ',') + ' €';
   const etoiles = n => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n));
   const LIB = { patisserie:'Pâtisserie', coiffure:'Coiffure', barbier:'Barbier', esthetique:'Esthétique', onglerie:'Onglerie', massage:'Massage & spa', therapeute:'Bien-être',
@@ -247,7 +254,7 @@
     const sousTitre = [libMetier, d.ville].filter(Boolean).map(esc).join(' · ');
     const infos = `<h1>${esc(d.nom)}</h1>
       ${v.accroche ? `<div class="accroche">${esc(v.accroche)}</div>` : ''}
-      <div class="meta">${sousTitre}${nbAvis ? `${sousTitre ? ' · ' : ''}<span class="etoiles">${etoiles(note)}</span> ${note} (${nbAvis})` : ''}</div>`;
+      <div class="meta">${sousTitre}${nbAvis ? `${sousTitre ? ' · ' : ''}<span class="etoiles">${etoiles(note)}</span> ${note} (${nbAvis})` : ''}${niveauPrix(d.prestations) ? `${sousTitre || nbAvis ? ' · ' : ''}<span class="niveau-prix" title="Niveau de prix du salon">${niveauPrix(d.prestations)}</span>` : ''}</div>`;
     const boutons = `<div class="actions"><a class="btn" href="${ctaHref}">${cta}</a>${reseaux ? `<div class="reseaux">${reseaux}</div>` : ''}</div>`;
 
     let entete;
@@ -321,7 +328,9 @@
         d.prestations.filter(p => !pub || (p.public_cible || 'mixte') === 'mixte' || p.public_cible === pub).forEach(p => {
           const c = p.categorie || '';
           if(c !== cat){ cat = c; if(c) out += `<div class="cat">${esc(c)}</div>`; }
-          out += `<div class="presta"><div><b>${esc(p.libelle)}</b><small>${p.duree_minutes} min${p.description ? ' · ' + esc(p.description) : ''}</small></div><span class="prix">${prix(p.prix_unitaire)}</span></div>`;
+          // « Choisir » ouvre la réservation avec cette prestation déjà sélectionnée (on peut en ajouter d'autres à l'étape suivante).
+          const lien = apercu ? '#' : `reservation.html?p=${encodeURIComponent(d.slug || slug)}&prestations=${encodeURIComponent(p.id)}`;
+          out += `<div class="presta"><div><b>${esc(p.libelle)}</b><small>${p.duree_minutes} min${p.description ? ' · ' + esc(p.description) : ''}</small></div><div class="droite-presta"><span class="prix">${prix(p.prix_unitaire)}</span><a class="choisir" href="${lien}" aria-label="Choisir ${esc(p.libelle)}">Choisir</a></div></div>`;
         });
         document.getElementById('liste-presta').innerHTML = out || '<p style="padding:14px 0; color:var(--muted);">Aucune prestation pour ce public.</p>';
       };
