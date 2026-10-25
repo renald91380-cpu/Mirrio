@@ -45,6 +45,10 @@
   /* corps : catalogue + panier */
   main{ flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1fr) 380px; gap:0; }
   .catalogue{ min-height:0; overflow:auto; padding:14px 16px 100px; }
+  .tickets{ display:flex; gap:8px; overflow-x:auto; padding-bottom:12px; scrollbar-width:none; }
+  .ticket-chip{ flex:none; min-height:56px; padding:6px 14px; border-radius:16px; border:1px solid var(--line); background:var(--surface); text-align:left; display:flex; flex-direction:column; justify-content:center; min-width:120px; }
+  .ticket-chip small{ color:var(--muted); font-weight:500; } .ticket-chip[aria-pressed=true]{ background:var(--ink); color:var(--bg); border-color:transparent; } .ticket-chip[aria-pressed=true] small{ color:inherit; opacity:.8; }
+  .ticket-plus{ flex:none; min-height:56px; width:56px; border-radius:16px; border:1px dashed var(--line); background:transparent; font-size:26px; }
   .recherche{ width:100%; min-height:48px; padding:0 16px; border-radius:14px; border:1px solid var(--line); background:var(--surface); margin-bottom:12px; }
   .chips{ display:flex; gap:8px; overflow-x:auto; padding-bottom:12px; scrollbar-width:none; }
   .chips button{ flex:none; min-height:42px; padding:0 16px; border-radius:99px; border:1px solid var(--line); background:var(--surface); font-weight:600; }
@@ -111,6 +115,7 @@
 </head>
 <body>
 <a class="evitement" href="#catalogue">Aller au catalogue</a>
+<div id="bandeau-demo" hidden style="background:var(--accent);color:var(--accent-ink);padding:8px 16px;font-weight:600;font-size:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:220px">Démonstration : Maison Éloïse. Rien n'est enregistré, essayez librement.</span><button class="btn petit" id="b-demo-reset" type="button">Réinitialiser</button><a class="btn petit" href="demo.html">Retour à la démo</a></div>
 <header>
   <a class="logo" href="dashboard.html" aria-label="Retour à l'application">Mirrio<b>.</b></a>
   <span class="salon" id="salon"></span>
@@ -123,6 +128,7 @@
 <main>
   <section class="catalogue" id="catalogue" aria-label="Catalogue">
     <div class="avert" id="avert-nf525" hidden><b>Caisse non certifiée.</b> Votre salon est assujetti à la TVA : en France, un logiciel de caisse utilisé pour encaisser des particuliers doit être certifié NF525 (ou attesté par l'éditeur). Mirrio Caisse ne l'est pas encore : utilisez-la en parallèle d'une caisse certifiée, ou en franchise de TVA.</div>
+    <div class="tickets" id="tickets" role="group" aria-label="Tickets en cours"></div>
     <input class="recherche" id="recherche" type="search" placeholder="Rechercher une prestation" aria-label="Rechercher une prestation" autocomplete="off">
     <div class="chips" id="chips" role="group" aria-label="Catégories"></div>
     <div class="tuiles" id="tuiles"></div>
@@ -147,7 +153,9 @@
   import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
   import { idEspaceActif, chargerBrand } from './theme.js';
   import { calculerTotaux, MENTION_FRANCHISE_TVA } from './document-render.js';
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const DEMO = new URLSearchParams(location.search).get('demo') === '1';
+  let supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  let reinitialiserDemo = () => {};
 
   const $ = s => document.querySelector(s);
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
@@ -161,6 +169,8 @@
 
   let espaceId = null, session = null, params = {}, brand = {}, prestations = [], clients = [];
   let panier = [], client = null, categorie = '';
+  // Tickets en cours : plusieurs clients à la fois, chacun avec son panier, gardés sur l'appareil (localStorage) jusqu'à l'encaissement.
+  let tickets = [], courant = null;
   const assujetti = () => !!params.assujetti_tva;
   const tauxDefaut = () => Number(params.tva_taux_defaut) || 0;
   const ttcUnitaire = (ht, tva) => assujetti() ? ht * (1 + (Number(tva) || 0) / 100) : ht;
@@ -178,9 +188,10 @@
 
   // ---------------------------------------------------------------- chargement
   async function charger(){
-    espaceId = await idEspaceActif(supabase);
+    if(DEMO){ const m = await import('./demo-caisse.js'); supabase = m.creerFauxSupabase(); reinitialiserDemo = m.reinitialiserDemoCaisse; }
+    espaceId = DEMO ? 'demo' : await idEspaceActif(supabase);
     const [b, f, sess, pr, cl] = await Promise.all([
-      chargerBrand(supabase, espaceId),
+      DEMO ? { business_name:'Maison Éloïse' } : chargerBrand(supabase, espaceId),
       supabase.from('parametres_facturation').select('*').eq('owner_id', espaceId).maybeSingle(),
       supabase.from('caisse_sessions').select('*').eq('owner_id', espaceId).is('cloturee_le', null).maybeSingle(),
       supabase.from('prestations').select('id,libelle,prix_unitaire,tva_taux,categorie,actif,position').eq('owner_id', espaceId).eq('actif', true).order('position').then(r => r.error
@@ -260,6 +271,49 @@
   const lignesFacture = () => panier.map((l, i) => ({ description: l.libelle + (l.remise ? ` (remise ${l.remise} %)` : ''), quantite:l.qte, prix_unitaire:prixLigneHT(l), tva_taux:l.tva, position:i }));
   const totaux = () => { const t = calculerTotaux(lignesFacture(), params); return { ...t, totalTTC:r2(t.totalTTC), totalHT:r2(t.totalHT), totalTVA:r2(t.totalTVA) }; };
 
+  // ---- tickets en cours
+  const cleTickets = () => 'mirrio-caisse-tickets-' + espaceId;
+  const totalPanier = pn => { const t = calculerTotaux(pn.map(l => ({ quantite:l.qte, prix_unitaire:prixLigneHT(l), tva_taux:l.tva })), params); return r2(t.totalTTC); };
+  function sauverTickets(){
+    if(!courant) return;
+    courant.panier = panier; courant.client = client ? { id:client.id, full_name:client.full_name } : null;
+    try{ localStorage.setItem(cleTickets(), JSON.stringify({ tickets, courant:courant.id })); }catch(e){}
+  }
+  function nouveauTicket(){
+    const n = tickets.reduce((m, t) => Math.max(m, t.numero || 0), 0) + 1;
+    return { id:crypto.randomUUID(), numero:n, panier:[], client:null };
+  }
+  function chargerTickets(){
+    try{
+      const r = JSON.parse(localStorage.getItem(cleTickets()) || 'null');
+      if(r && Array.isArray(r.tickets)) tickets = r.tickets.filter(t => t && Array.isArray(t.panier));
+      courant = tickets.find(t => t.id === (r && r.courant)) || null;
+    }catch(e){ tickets = []; }
+    if(!tickets.length) tickets = [nouveauTicket()];
+    courant = courant || tickets[0];
+    panier = courant.panier; client = courant.client;
+  }
+  function basculerTicket(id){
+    sauverTickets(); courant = tickets.find(t => t.id === id) || courant;
+    panier = courant.panier; client = courant.client; dessinerPanier();
+  }
+  function ajouterTicket(){ sauverTickets(); const t = nouveauTicket(); tickets.push(t); courant = t; panier = t.panier; client = null; dessinerPanier(); }
+  function terminerTicket(){   // après encaissement : le ticket disparaît, un ticket vide prend la place
+    tickets = tickets.filter(t => t !== courant);
+    if(!tickets.length) tickets = [nouveauTicket()];
+    courant = tickets[0]; panier = courant.panier; client = courant.client;
+  }
+  function dessinerTickets(){
+    $('#tickets').innerHTML = tickets.map(t => {
+      const n = t.panier.reduce((s, l) => s + l.qte, 0), nom = t.client ? t.client.full_name : 'Ticket ' + t.numero;
+      return `<button class="ticket-chip" type="button" data-id="${t.id}" aria-pressed="${t === courant}"><b>${esc(nom)}</b><small>${n ? n + ' article' + (n > 1 ? 's' : '') + ' · ' + eur(totalPanier(t.panier)) : 'vide'}</small></button>`;
+    }).join('') + '<button class="ticket-plus" type="button" id="b-ticket-plus" aria-label="Nouveau ticket">+</button>';
+  }
+  $('#tickets').addEventListener('click', e => {
+    if(e.target.closest('#b-ticket-plus')){ ajouterTicket(); return; }
+    const b = e.target.closest('.ticket-chip'); if(b) basculerTicket(b.dataset.id);
+  });
+
   function dessinerPanier(){
     const t = totaux();
     $('#lignes').innerHTML = panier.length ? panier.map(l => `<div class="ligne" data-k="${l.cle}">
@@ -274,6 +328,7 @@
     $('#bm-n').textContent = `Panier (${n})`; $('#bm-total').textContent = eur(t.totalTTC);
     $('#b-encaisser').disabled = !session || !panier.length;
     $('#b-client').textContent = client ? client.full_name : 'Client';
+    sauverTickets(); dessinerTickets();
   }
   $('#lignes').addEventListener('click', async e => {
     const b = e.target.closest('button[data-a]'); if(!b) return;
@@ -292,7 +347,7 @@
     }
     dessinerPanier();
   });
-  $('#b-vider').onclick = () => { panier = []; client = null; dessinerPanier(); };
+  $('#b-vider').onclick = () => { panier.length = 0; client = null; dessinerPanier(); };
   $('#b-voir-panier').onclick = () => $('#panier').classList.add('ouvert');
   $('#b-fermer-panier').onclick = () => $('#panier').classList.remove('ouvert');
 
@@ -377,7 +432,7 @@
     };
     maj();
     const vente = await fin;
-    if(vente){ panier = []; client = null; $('#panier').classList.remove('ouvert'); dessinerPanier(); await ticket(vente); }
+    if(vente){ terminerTicket(); $('#panier').classList.remove('ouvert'); dessinerPanier(); await ticket(vente); }
   }
 
   async function enregistrerVente(t, paiements){
@@ -445,7 +500,8 @@
   };
 
   $('#b-cloture').onclick = async () => {
-    if(panier.length && !confirm('Le panier en cours sera perdu. Continuer la clôture ?')) return;
+    const enCours = tickets.filter(t => t.panier.length).length;
+    if(enCours && !confirm(enCours + ' ticket' + (enCours > 1 ? 's' : '') + ' en cours non encaissé' + (enCours > 1 ? 's' : '') + ' ser' + (enCours > 1 ? 'ont' : 'a') + ' conservé' + (enCours > 1 ? 's' : '') + ' sur cet appareil. Clôturer quand même ?')) return;
     const { pay, docs, lignes } = await ventesSession();
     const parMode = {}; pay.forEach(p => { parMode[p.mode] = r2((parMode[p.mode] || 0) + Number(p.montant)); });
     const t = totauxVente(lignes), especes = parMode.especes || 0, attendues = r2(Number(session.fond_caisse) + especes);
@@ -472,7 +528,7 @@
     };
     const rapport = await fin;
     if(rapport){
-      session = null; panier = []; client = null; majSession(); dessinerPanier();
+      session = null; majSession(); dessinerPanier();
       const nom = brand.business_name || params.emetteur_nom || 'Mirrio';
       imprimer(`<h1>${esc(nom)}</h1><p class="c"><b>CLÔTURE DE CAISSE (Z)</b></p><hr><p>Ouverture : ${esc(jourHeure(rapport.ouverte_le))}<br>Clôture : ${esc(jourHeure(rapport.cloturee_le))}</p><hr>
         <table><tr><td>Ventes</td><td class="r">${rapport.nb_ventes}</td></tr>${rapport.assujetti_tva ? `<tr><td>CA HT</td><td class="r">${eur(rapport.total_ht)}</td></tr>${rapport.ventilation_tva.map(x => `<tr><td>TVA ${x.taux} %</td><td class="r">${eur(x.montant)}</td></tr>`).join('')}` : ''}<tr><td><b>CA TTC</b></td><td class="r"><b>${eur(rapport.total_ttc)}</b></td></tr></table><hr>
@@ -482,11 +538,24 @@
     }
   };
 
+  function montrerBandeauDemo(){
+    $('#bandeau-demo').hidden = false;
+    $('#b-demo-reset').onclick = () => { reinitialiserDemo(); try{ localStorage.removeItem(cleTickets()); localStorage.removeItem(cleTickets() + '-init'); }catch(e){} location.reload(); };
+    document.querySelector('header a.btn').href = 'demo.html';
+  }
+
   // ---------------------------------------------------------------- démarrage
   (async function init(){
-    const { data } = await supabase.auth.getSession();
-    if(!data.session){ location.href = 'login.html'; return; }
+    if(!DEMO){ const { data } = await supabase.auth.getSession(); if(!data.session){ location.href = 'login.html'; return; } }
     const ok = await charger();
+    if(DEMO) montrerBandeauDemo();
+    chargerTickets();
+    if(DEMO && !localStorage.getItem(cleTickets() + '-init')){
+      try{ localStorage.setItem(cleTickets() + '-init', '1'); }catch(e){}
+      const pr = id => prestations.find(x => x.id === id), ligne = (id, qte = 1) => ({ cle:crypto.randomUUID(), pid:id, libelle:pr(id).libelle, ht:Number(pr(id).prix_unitaire), tva:0, qte, remise:0 });
+      courant.panier = panier = [ligne('d1')]; courant.client = client = clients[0];
+      const t2 = nouveauTicket(); t2.panier = [ligne('d9')]; t2.client = { id:clients[2].id, full_name:clients[2].full_name }; tickets.push(t2);
+    }
     dessinerCatalogue(); dessinerPanier(); majSession();
     $('#avert-nf525').hidden = !(ok && assujetti());
     if(ok && !session) ouvrirCaisse();
