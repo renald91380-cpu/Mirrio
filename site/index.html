@@ -52,13 +52,15 @@
 
   /* ---------- navigation flottante ---------- */
   header{ position:sticky; top:14px; z-index:40; padding:0 14px; }
-  .nav{ max-width:1100px; height:64px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:0 12px 0 24px;
-    border-radius:var(--pill); background:color-mix(in srgb, var(--bg) 72%, transparent); backdrop-filter:blur(18px) saturate(160%); -webkit-backdrop-filter:blur(18px) saturate(160%);
+  .nav{ max-width:1200px; height:64px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:0 12px 0 24px;
+    border-radius:var(--pill); background:color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter:blur(18px) saturate(160%); -webkit-backdrop-filter:blur(18px) saturate(160%);
     border:1px solid var(--line); box-shadow:0 10px 30px -14px rgba(16,18,22,.25); }
   @media (prefers-reduced-transparency: reduce){ .nav{ background:var(--bg); backdrop-filter:none; -webkit-backdrop-filter:none; } }
   .logo{ font-family:var(--display); font-weight:800; font-size:21px; letter-spacing:-.04em; }
   .logo b{ color:var(--accent); }
-  .nav ul{ display:flex; gap:26px; list-style:none; font-size:14.5px; color:var(--muted); font-weight:500; }
+  .nav ul{ display:flex; gap:24px; list-style:none; font-size:14.5px; color:color-mix(in srgb, var(--ink) 80%, transparent); font-weight:500; }
+  /* Le logo s'aligne sur la colonne de texte de la page (.wrap : 24 px de marge) quand le bandeau occupe toute la largeur. */
+  @media(max-width:1228px){ .nav{ padding-left:10px; } }
   .nav ul a:hover{ color:var(--ink); }
   @media(max-width:1180px){ .nav ul{ display:none; } }
   .nav ul, .nav .connexion{ white-space:nowrap; }
@@ -262,8 +264,9 @@
   .faq summary::after{ content:"+"; font:500 26px var(--display); color:var(--icone); transition:transform .3s var(--ease); }
   .faq details[open] summary::after{ transform:rotate(45deg); }
   .faq details p{ color:var(--muted); padding:0 0 22px; max-width:62ch; }
-  .nav .connexion{ font-size:14.5px; font-weight:500; color:var(--muted); padding:0 6px; } .nav .connexion:hover{ color:var(--ink); }
+  .nav .connexion{ font-size:14.5px; font-weight:500; color:color-mix(in srgb, var(--ink) 80%, transparent); padding:0 6px; } .nav .connexion:hover{ color:var(--ink); }
   .nav .droite{ display:flex; align-items:center; gap:10px; }
+  @media(max-width:1319px){ .nav .connexion[href="mon-espace.html"]{ display:none; } }   /* le bandeau ne doit jamais déborder : « Mes rendez-vous » passe dans le pied de page sous 1320 px */
   @media(max-width:560px){ .nav .connexion{ display:none; } }
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -295,14 +298,11 @@
     <a class="logo" href="index.html">Mirrio<b>.</b></a>
     <ul>
       <li><a href="#fonctions">Fonctions</a></li>
-      <li><a href="#salons">Exemples</a></li>
-      <li><a href="#metiers">Métiers</a></li>
-      <li><a href="#catalogue">Catalogue</a></li>
       <li><a href="#tarifs">Tarifs</a></li>
       <li><a href="demos.html">Démo</a></li>
+      <li><a href="explorer.html">Trouver un salon</a></li>
       <li><a href="bouche.html">Boulangerie</a></li>
       <li><a href="mariage.html">Mariage</a></li>
-      <li><a href="explorer.html">Trouver un salon</a></li>
     </ul>
     <div class="droite"><a class="connexion" href="mon-espace.html">Mes rendez-vous</a><a class="connexion" href="login.html">Espace salon</a><a class="btn petit" href="signup.html">Créer mon salon</a></div>
   </nav>
@@ -525,7 +525,7 @@
 </main>
 
 <div class="meandre" aria-hidden="true"></div>
-<footer><div class="wrap"><span>© Mirrio</span><span><a href="cgu.html">CGU</a> &nbsp; <a href="confidentialite.html">Confidentialité</a> &nbsp; <a href="#" data-cookies>Gérer les cookies</a> &nbsp; <a href="explorer.html">Trouver un salon</a> &nbsp; <a href="mon-espace.html">Mes rendez-vous</a> &nbsp; <a href="#" data-installer>Installer l'app</a> &nbsp; <a href="demo.html">Démo</a> &nbsp; <a href="login.html">Espace salon</a></span></div></footer>
+<footer><div class="wrap"><span>© Mirrio</span><span><a href="cgu.html">CGU</a> &nbsp; <a href="confidentialite.html">Confidentialité</a> &nbsp; <a href="#" data-cookies>Gérer les cookies</a> &nbsp; <a href="mon-espace.html">Mes rendez-vous</a> &nbsp; <a href="explorer.html">Trouver un salon</a> &nbsp; <a href="mon-espace.html">Mes rendez-vous</a> &nbsp; <a href="#" data-installer>Installer l'app</a> &nbsp; <a href="demo.html">Démo</a> &nbsp; <a href="login.html">Espace salon</a></span></div></footer>
 
 <script>
   // ---- Catalogue : onglets Femme / Homme (exemples réalistes, prix indicatifs)
