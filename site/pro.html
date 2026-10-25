@@ -69,6 +69,12 @@
   .presta{ display:flex; justify-content:space-between; align-items:center; gap:14px; padding:18px 0; border-top:1px solid var(--trait); }
   .presta:first-child, .cat + .presta{ border-top:none; }
   .presta small{ display:block; color:var(--muted); font-size:13px; }
+  .prochaine{ margin-top:10px; font-size:15px; } .prochaine a{ font-weight:600; text-decoration:underline; text-underline-offset:3px; }
+  .prochaines{ margin:0 0 16px; } .prochaines h3{ font-size:16px; margin:0 0 4px; } .prochaines .sous{ color:var(--muted); font-size:13px; margin:0 0 10px; }
+  .prochaines .jour-h{ margin:10px 0 6px; font-size:14px; font-weight:600; }
+  .chips-h{ display:flex; flex-wrap:wrap; gap:8px; }
+  .chip-h{ min-height:44px; padding:0 15px; border-radius:var(--rayon); border:1px solid var(--trait); background:var(--surface); color:inherit; text-decoration:none; font-weight:600; display:inline-flex; align-items:center; }
+  .chip-h:hover, .chip-h:focus-visible{ background:var(--c); color:var(--c-texte); border-color:transparent; outline:none; }
   .choisir{ flex:none; display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:0 20px; border-radius:var(--rayon); background:var(--c); color:var(--c-texte); font-weight:600; font-size:15px; text-decoration:none; }
   .choisir:hover{ filter:brightness(1.07); } .choisir:focus-visible{ outline:3px solid var(--c); outline-offset:3px; }
   .presta .droite-presta{ display:flex; align-items:center; gap:14px; flex:none; }
@@ -218,6 +224,31 @@
     sc.textContent = JSON.stringify(ld);
   }
 
+  // Prochaines disponibilités : trois jours de créneaux libres pour la prestation la plus courte, « premier disponible ». Un clic mène à la réservation, déjà placée à cette heure.
+  async function chargerProchaines(d){
+    if(apercu || !(d.prestations || []).length) return;
+    try{
+      const r = await fetch('/api/reservation-disponibilites?slug=' + encodeURIComponent(d.slug || slug) + '&prochains=1');
+      const j = await r.json(); if(!r.ok || !j.jours || !j.jours.length) return;
+      const presta = d.prestations.find(p => p.id === j.prestation_id), tz = { timeZone:'Europe/Paris' };
+      const jourParis = dt => new Intl.DateTimeFormat('en-CA', { ...tz, year:'numeric', month:'2-digit', day:'2-digit' }).format(dt);
+      const auj = jourParis(new Date()), dem = jourParis(new Date(Date.now() + 86400000));
+      const heure = iso => new Intl.DateTimeFormat('fr-FR', { ...tz, hour:'2-digit', minute:'2-digit' }).format(new Date(iso));
+      const lien = iso => `reservation.html?p=${encodeURIComponent(d.slug || slug)}&prestations=${encodeURIComponent(j.prestation_id)}&creneau=${encodeURIComponent(iso)}`;
+      const majuscule = t => t.charAt(0).toUpperCase() + t.slice(1);
+      const libelle = date => date === auj ? "Aujourd'hui" : date === dem ? 'Demain' : majuscule(new Date(date + 'T12:00:00Z').toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', timeZone:'UTC' }));
+      const premier = j.jours[0].creneaux[0];
+      const h = document.getElementById('prochaine-hero');
+      if(h){ h.innerHTML = `Prochaine disponibilité : <a href="${lien(premier)}">${esc(libelle(j.jours[0].date).toLowerCase())} à ${heure(premier)}</a>`; h.hidden = false; }
+      const z = document.getElementById('prochaines');
+      if(z){
+        z.innerHTML = `<h3>Prochaines disponibilités</h3><p class="sous">${presta ? `Pour « ${esc(presta.libelle)} » (${presta.duree_minutes} min), avec le premier disponible. ` : ''}Une autre prestation ? Touchez « Choisir » ci-dessous.</p>`
+          + j.jours.map(x => `<div class="jour-h">${esc(libelle(x.date))}</div><div class="chips-h">${x.creneaux.map(iso => `<a class="chip-h" href="${lien(iso)}">${heure(iso)}</a>`).join('')}</div>`).join('');
+        z.hidden = false;
+      }
+    }catch(e){ /* sans disponibilités affichées, la page reste utilisable */ }
+  }
+
   function rendre(d){
     const v = d.vitrine || {};
     const couleur = /^#[0-9a-fA-F]{6}$/.test(v.couleur || '') ? v.couleur : (ACCENTS[d.accent] || ACCENTS.ambre);
@@ -254,7 +285,8 @@
     const sousTitre = [libMetier, d.ville].filter(Boolean).map(esc).join(' · ');
     const infos = `<h1>${esc(d.nom)}</h1>
       ${v.accroche ? `<div class="accroche">${esc(v.accroche)}</div>` : ''}
-      <div class="meta">${sousTitre}${nbAvis ? `${sousTitre ? ' · ' : ''}<span class="etoiles">${etoiles(note)}</span> ${note} (${nbAvis})` : ''}${niveauPrix(d.prestations) ? `${sousTitre || nbAvis ? ' · ' : ''}<span class="niveau-prix" title="Niveau de prix du salon">${niveauPrix(d.prestations)}</span>` : ''}</div>`;
+      <div class="meta">${sousTitre}${nbAvis ? `${sousTitre ? ' · ' : ''}<span class="etoiles">${etoiles(note)}</span> ${note} (${nbAvis})` : ''}${niveauPrix(d.prestations) ? `${sousTitre || nbAvis ? ' · ' : ''}<span class="niveau-prix" title="Niveau de prix du salon">${niveauPrix(d.prestations)}</span>` : ''}</div>
+      <div class="prochaine" id="prochaine-hero" hidden></div>`;
     const boutons = `<div class="actions"><a class="btn" href="${ctaHref}">${cta}</a>${reseaux ? `<div class="reseaux">${reseaux}</div>` : ''}</div>`;
 
     let entete;
@@ -278,6 +310,7 @@
       a_propos: () => v.a_propos ? `<section id="a-propos"><h2>À propos</h2><div class="texte">${esc(v.a_propos).split(/\n+/).map(p => `<p>${p}</p>`).join('')}</div></section>` : '',
       prestations: () => (d.prestations || []).length ? `<section id="prestations"><h2>Prestations</h2>
           ${notesTarifs(d.tarifs)}
+          <div class="prochaines" id="prochaines" hidden></div>
           <div id="zone-onglets"></div><div class="carte-s" id="liste-presta"></div>
           <div class="actions"><a class="btn" href="${ctaHref}">${cta}</a></div></section>` : '',
       galerie: () => {
@@ -320,6 +353,7 @@
     const md = document.querySelector('meta[name=description]');
     if(md) md.content = (v.accroche || `Réservez en ligne chez ${d.nom}.`).slice(0, 160);
     referencement(d, v);
+    chargerProchaines(d);
 
     // Prestations : onglets Femme / Homme + catégories
     if(document.getElementById('liste-presta')){

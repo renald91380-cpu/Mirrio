@@ -110,7 +110,15 @@ export default async function handler(req, res){
   //                       (la page n'affiche le calendrier que s'il en reste).
   // `intervenant` = id d'un membre de l'équipe, ou `any` (premier disponible).
   const modeJours = url.searchParams.get('jours') === '1';
-  if(prestationIds.length || dateStr || modeJours){
+  // - `prochains=1`     : les premiers créneaux libres des tout prochains jours (3 jours, 8 créneaux par jour au plus), pour la page du salon.
+  //                       Sans `prestation_ids`, on prend la prestation la plus courte du salon (« la prochaine place libre »).
+  const modeProchains = url.searchParams.get('prochains') === '1';
+  if(prestationIds.length || dateStr || modeJours || modeProchains){
+    if(modeProchains && !prestationIds.length){
+      const [courte] = await supabase(`prestations?owner_id=eq.${ownerId}&actif=eq.true&select=id&order=duree_minutes.asc&limit=1`).catch(() => []);
+      if(!courte) return json(res, 200, { jours: [], raison: 'aucune_prestation' });
+      prestationIds.push(courte.id);
+    }
     const idValide = id => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     if(!prestationIds.length || !prestationIds.every(idValide)){
       return json(res, 400, { error: 'Prestation invalide.' });
@@ -153,6 +161,24 @@ export default async function handler(req, res){
         if(creneauxDuJour(ctx, busy, c, intervenantId).length) jours.push(d.toISOString().slice(0, 10));
       }
       return json(res, 200, { jours, raison: jours.length ? null : 'complet' });
+    }
+
+    if(modeProchains){
+      const { annee: a0, mois: m0, jour: j0 } = composantsParis(new Date());
+      const horizon = Math.min(reglage.horizon_jours || 30, 21);
+      const debutReq = new Date(parisVersUtc(a0, m0, j0, 0, 0).getTime() - 12 * 3600000).toISOString();
+      const finReq = new Date(parisVersUtc(a0, m0, j0 + horizon + 1, 24, 0).getTime() + 12 * 3600000).toISOString();
+      let busy;
+      try{ busy = await occupes(ownerId, debutReq, finReq); }
+      catch(e){ return json(res, 503, { error: 'Page de réservation temporairement indisponible.' }); }
+      const jours = [];
+      for(let i = 0; i <= horizon && jours.length < 3; i++){
+        const d = new Date(Date.UTC(a0, m0 - 1, j0 + i));
+        const c = { annee: d.getUTCFullYear(), mois: d.getUTCMonth() + 1, jour: d.getUTCDate() };
+        const creneaux = creneauxDuJour(ctx, busy, c, intervenantId).map(x => x.iso);
+        if(creneaux.length) jours.push({ date: d.toISOString().slice(0, 10), creneaux: creneaux.slice(0, 8) });
+      }
+      return json(res, 200, { prestation_id: prestationIds[0], jours, raison: jours.length ? null : 'complet' });
     }
 
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);

@@ -318,6 +318,17 @@
     // Disponibilités
     if(chemin === '/api/reservation-disponibilites'){
       var idsParam = q.get('prestation_ids');
+      if(q.get('prochains') === '1'){
+        await wait(200);
+        var lp = listePrestations(salon).slice().sort(function(a, b){ return a.duree_minutes - b.duree_minutes; });
+        var idsP = idsParam ? idsParam.split(',').filter(Boolean) : (lp[0] ? [lp[0].id] : []);
+        var dureeP = dureeDe(salon, idsP), prochains = [];
+        for(var dp = 0; dp <= 21 && prochains.length < 3; dp++){
+          var dsp = jourStr(dp), cs = creneaux(salon, idsP, dureeP, dsp, 'any').map(function(x){ return x.iso; });
+          if(cs.length) prochains.push({ date: dsp, creneaux: cs.slice(0, 8) });
+        }
+        return reponse({ prestation_id: idsP[0] || null, jours: prochains, raison: prochains.length ? null : 'complet' });
+      }
       if(!idsParam){
         await wait(250);
         return reponse({

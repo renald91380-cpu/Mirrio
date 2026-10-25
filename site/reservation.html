@@ -338,6 +338,7 @@
   // l'itemisation (facture, reçu Stripe) suive le même ordre.
   let prestationsChoisies = [];
   let dateChoisie = null;
+  let creneauPre = null;   // créneau ISO présélectionné par ?creneau=…
   let creneauChoisi = null;
   let publicFiltre = '';
   let etapeCourante = 'etape-prestation';
@@ -583,9 +584,18 @@
     scroll.innerHTML = html;
     scroll.querySelectorAll('.jour-btn:not(:disabled)').forEach(btn => btn.addEventListener('click', () => selectionnerJour(btn)));
     $('calendrier').hidden = false;
-    // Premier jour disponible sélectionné d'office : jamais d'écran vide.
-    const premier = scroll.querySelector('.jour-btn:not(:disabled)');
-    if(premier) selectionnerJour(premier);
+    // Premier jour disponible sélectionné d'office : jamais d'écran vide. Si un créneau était présélectionné et qu'il est encore libre, on le prend.
+    let cible = scroll.querySelector('.jour-btn:not(:disabled)');
+    if(creneauPre){
+      const jourPre = new Intl.DateTimeFormat('en-CA', { timeZone:'Europe/Paris', year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date(creneauPre));
+      const b = scroll.querySelector(`.jour-btn[data-date="${jourPre}"]:not(:disabled)`); if(b) cible = b;
+    }
+    if(cible) await selectionnerJour(cible);
+    if(creneauPre){
+      const voulu = [...document.querySelectorAll('.creneau-btn')].find(el => el.dataset.iso === creneauPre); creneauPre = null;
+      if(voulu) voulu.click();
+      else { $('date-sub').textContent = 'Ce créneau vient d\'être pris. Choisissez une autre heure.'; }
+    }
   }
 
   async function selectionnerJour(btn){
@@ -786,6 +796,14 @@
       if(el && !prestationsChoisies.some(p => p.id === id)) basculerPrestation(el);
     });
     if(q.get('avec') && intervenantParId(q.get('avec'))) intervenantChoisi = q.get('avec');
+    // Créneau choisi sur la page du salon (« prochaines disponibilités ») : on saute directement à ce jour et à cette heure, avec « sans préférence ».
+    if(q.get('creneau') && prestationsChoisies.length && !fermee){
+      creneauPre = q.get('creneau');
+      intervenantChoisi = 'any';
+      $('etat-chargement').hidden = true; $('app').hidden = false;
+      await ouvrirEtapeDate();
+      return;
+    }
     afficherEtape('etape-prestation', { focus:false });
     $('etat-chargement').hidden = true;
     $('app').hidden = false;
