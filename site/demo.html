@@ -92,6 +92,7 @@
   .msg{ position:relative; margin-top:30px; padding:28px; border-radius:var(--r); background:var(--surface); border:1px solid var(--line); box-shadow:var(--ombre); }
   .msg pre{ white-space:pre-wrap; font:15px/1.65 var(--body); color:var(--ink); }
   .msg .btn{ margin-top:18px; }
+  .sombre .msg pre{ color:var(--sombre-ink); }   /* le message vit dans une section sombre : texte clair, quel que soit le thème */
   details{ border-top:1px solid var(--line); padding:18px 0; } details:last-of-type{ border-bottom:1px solid var(--line); }
   summary{ cursor:pointer; font-weight:600; font-size:17px; min-height:32px; display:flex; align-items:center; justify-content:space-between; list-style:none; gap:12px; }
   summary::-webkit-details-marker{ display:none; } summary::after{ content:"+"; font:600 24px var(--display); color:var(--icone); } details[open] summary::after{ content:"\2212"; }
