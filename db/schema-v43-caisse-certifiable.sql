@@ -38,7 +38,7 @@ create table if not exists public.caisse_journal (
   id            uuid primary key default gen_random_uuid(),
   owner_id      uuid not null,
   seq           bigint not null,
-  type          text not null check (type in ('ouverture','vente','avoir','formation','duplicata','cloture_z','cloture_mensuelle','cloture_annuelle','archive','verification')),
+  type          text not null check (type in ('ouverture','vente','avoir','formation','duplicata','cloture_z','cloture_mensuelle','cloture_annuelle','archive','verification','attestation')),
   session_id    uuid,
   ticket_id     uuid,
   numero        text,
@@ -53,6 +53,9 @@ create table if not exists public.caisse_journal (
   auteur        uuid,
   unique (owner_id, seq)
 );
+-- Tables déjà créées avant l'ajout du type « attestation » : on remplace la contrainte.
+alter table public.caisse_journal drop constraint if exists caisse_journal_type_check;
+alter table public.caisse_journal add constraint caisse_journal_type_check check (type in ('ouverture','vente','avoir','formation','duplicata','cloture_z','cloture_mensuelle','cloture_annuelle','archive','verification','attestation'));
 create index if not exists caisse_journal_owner_date on public.caisse_journal(owner_id, created_at);
 alter table public.caisse_journal enable row level security;
 drop policy if exists "Caisse : lire le journal de l'espace" on public.caisse_journal;
@@ -502,33 +505,42 @@ begin
   return r;
 end $$;
 
-create or replace function public.caisse_cloturer(p_session uuid, p_comptees numeric, p_notes text default null)
+-- Noyau de la clôture Z, partagé par la clôture manuelle (caisse_cloturer) et la clôture automatique de nuit (caisse_cloturer_auto).
+-- Clôture automatique : les espèces comptées sont présumées égales aux attendues (écart 0) et le rapport le dit : un humain doit recompter.
+create or replace function public.caisse__cloturer_core(p_owner uuid, p_session uuid, p_comptees numeric, p_notes text, p_auto boolean, p_auteur uuid)
 returns jsonb language plpgsql security definer set search_path = public, extensions as $$
-declare e uuid := public.caisse__espace(); s public.caisse_sessions; agg jsonb; especes numeric; attendues numeric; v_ecart numeric; n bigint; maintenant timestamptz := clock_timestamp();
-        v_rapport jsonb; j public.caisse_journal; assuj boolean;
+declare s public.caisse_sessions; agg jsonb; especes numeric; attendues numeric; v_ecart numeric; n bigint; maintenant timestamptz := clock_timestamp(); v_rapport jsonb; j public.caisse_journal; assuj boolean; v_comptees numeric;
 begin
-  select * into s from public.caisse_sessions where id = p_session and owner_id = e and cloturee_le is null;
+  select * into s from public.caisse_sessions where id = p_session and owner_id = p_owner and cloturee_le is null;
   if s.id is null then raise exception 'Aucune session de caisse ouverte.'; end if;
-  if p_comptees is null or p_comptees < 0 then raise exception 'Comptez les espèces du tiroir avant de clôturer.'; end if;
-  perform public.caisse__verrou(e);
-  agg := public.caisse__agregat(e, s.id, null, null);
+  if not p_auto and (p_comptees is null or p_comptees < 0) then raise exception 'Comptez les espèces du tiroir avant de clôturer.'; end if;
+  perform public.caisse__verrou(p_owner);
+  agg := public.caisse__agregat(p_owner, s.id, null, null);
   especes := coalesce((agg->'par_mode'->>'especes')::numeric, 0);
   attendues := s.fond_caisse + especes;
-  v_ecart := round(p_comptees - attendues, 2);
-  select coalesce(assujetti_tva, false) into assuj from public.parametres_facturation where owner_id = e;
-  update public.caisse_chaine set n_z = n_z + 1 where owner_id = e returning n_z into n;
-  v_rapport := agg || jsonb_build_object('numero_z', 'Z-' || lpad(n::text, 6, '0'), 'fond_caisse', s.fond_caisse, 'especes_attendues', round(attendues, 2), 'especes_comptees', round(p_comptees, 2),
-              'ecart', v_ecart, 'ouverte_le', s.ouverte_le, 'cloturee_le', maintenant, 'assujetti_tva', coalesce(assuj, false));
-  j := public.caisse__ecrire(e, 'cloture_z', s.id, null, v_rapport->>'numero_z', (agg->>'total_ttc')::numeric, v_rapport, false);
+  v_comptees := case when p_auto then attendues else p_comptees end;
+  v_ecart := round(v_comptees - attendues, 2);
+  select coalesce(assujetti_tva, false) into assuj from public.parametres_facturation where owner_id = p_owner;
+  update public.caisse_chaine set n_z = n_z + 1 where owner_id = p_owner returning n_z into n;
+  v_rapport := agg || jsonb_build_object('numero_z', 'Z-' || lpad(n::text, 6, '0'), 'fond_caisse', s.fond_caisse, 'especes_attendues', round(attendues, 2), 'especes_comptees', round(v_comptees, 2),
+              'ecart', v_ecart, 'ouverte_le', s.ouverte_le, 'cloturee_le', maintenant, 'assujetti_tva', coalesce(assuj, false), 'automatique', coalesce(p_auto, false));
+  j := public.caisse__ecrire(p_owner, 'cloture_z', s.id, null, v_rapport->>'numero_z', (agg->>'total_ttc')::numeric, v_rapport, false);
   v_rapport := v_rapport || jsonb_build_object('gt_perpetuel', j.gt_perpetuel, 'gt_absolu', j.gt_absolu, 'journal_seq', j.seq, 'hash', j.hash, 'signature', j.signature);
-  update public.caisse_sessions set cloturee_le = maintenant, cloturee_par = auth.uid(), especes_comptees = round(p_comptees, 2), ecart = v_ecart, notes = left(p_notes, 500), rapport = v_rapport where id = s.id;
+  update public.caisse_sessions set cloturee_le = maintenant, cloturee_par = p_auteur, especes_comptees = round(v_comptees, 2), ecart = v_ecart,
+         notes = left(case when p_auto then 'Clôture automatique : espèces comptées présumées égales aux attendues, à recompter. ' || coalesce(p_notes, '') else p_notes end, 500), rapport = v_rapport where id = s.id;
   return v_rapport;
 end $$;
 
--- Clôture mensuelle ou annuelle : fige les totaux d'une période révolue (toutes sessions closes), une seule fois par période.
-create or replace function public.caisse_cloturer_periode(p_type text, p_annee int, p_mois int default null)
+create or replace function public.caisse_cloturer(p_session uuid, p_comptees numeric, p_notes text default null)
 returns jsonb language plpgsql security definer set search_path = public, extensions as $$
-declare e uuid := public.caisse__espace(); d0 timestamptz; d1 timestamptz; per text; agg jsonb; j public.caisse_journal; nbs int; payload jsonb;
+begin
+  return public.caisse__cloturer_core(public.caisse__espace(), p_session, p_comptees, p_notes, false, auth.uid());
+end $$;
+
+-- Clôture mensuelle ou annuelle : fige les totaux d'une période révolue (toutes sessions closes), une seule fois par période.
+create or replace function public.caisse__periode_core(e uuid, p_type text, p_annee int, p_mois int, p_auto boolean)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare d0 timestamptz; d1 timestamptz; per text; agg jsonb; j public.caisse_journal; nbs int; v_payload jsonb;
 begin
   if p_type not in ('mensuelle', 'annuelle') then raise exception 'Type de clôture inconnu.'; end if;
   if p_type = 'mensuelle' then
@@ -544,9 +556,42 @@ begin
   if exists (select 1 from public.caisse_sessions where owner_id = e and cloturee_le is null and ouverte_le < d1) then raise exception 'Une session de caisse est encore ouverte : clôturez-la d''abord.'; end if;
   agg := public.caisse__agregat(e, null, d0, d1);
   select count(*) into nbs from public.caisse_sessions where owner_id = e and cloturee_le >= d0 and cloturee_le < d1;
-  payload := agg || jsonb_build_object('periode', per, 'type', p_type, 'nb_sessions', nbs, 'debut', d0, 'fin', d1);
-  j := public.caisse__ecrire(e, 'cloture_' || p_type, null, null, per, (agg->>'total_ttc')::numeric, payload, false);
-  return payload || jsonb_build_object('gt_perpetuel', j.gt_perpetuel, 'journal_seq', j.seq, 'hash', j.hash, 'signature', j.signature);
+  v_payload := agg || jsonb_build_object('periode', per, 'type', p_type, 'nb_sessions', nbs, 'debut', d0, 'fin', d1, 'automatique', coalesce(p_auto, false));
+  j := public.caisse__ecrire(e, 'cloture_' || p_type, null, null, per, (agg->>'total_ttc')::numeric, v_payload, false);
+  return v_payload || jsonb_build_object('gt_perpetuel', j.gt_perpetuel, 'journal_seq', j.seq, 'hash', j.hash, 'signature', j.signature);
+end $$;
+
+create or replace function public.caisse_cloturer_periode(p_type text, p_annee int, p_mois int default null)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+begin
+  return public.caisse__periode_core(public.caisse__espace(), p_type, p_annee, p_mois, false);
+end $$;
+
+-- Tâche de nuit (clé de service uniquement, appelée par api/relances.js ?tache=clotures) : pour chaque salon, ferme les journées oubliées
+-- (session ouverte avant minuit, heure de Paris), puis clôture chaque mois révolu et chaque année révolue qui a des ventes et n'a pas encore été clôturé.
+create or replace function public.caisse_cloturer_auto()
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare c record; s record; m record; y record; nz int := 0; nm int := 0; na int := 0; ne int := 0; limite timestamptz := date_trunc('day', now() at time zone 'Europe/Paris') at time zone 'Europe/Paris';
+begin
+  for c in select owner_id from public.caisse_chaine loop
+    for s in select id from public.caisse_sessions where owner_id = c.owner_id and cloturee_le is null and ouverte_le < limite loop
+      begin perform public.caisse__cloturer_core(c.owner_id, s.id, null, null, true, null); nz := nz + 1;
+      exception when others then ne := ne + 1; end;
+    end loop;
+    for m in select distinct extract(year from date_ticket at time zone 'Europe/Paris')::int a, extract(month from date_ticket at time zone 'Europe/Paris')::int mo
+               from public.caisse_tickets where owner_id = c.owner_id and not formation
+                and date_ticket < date_trunc('month', now() at time zone 'Europe/Paris') at time zone 'Europe/Paris' order by 1, 2 loop
+      begin perform public.caisse__periode_core(c.owner_id, 'mensuelle', m.a, m.mo, true); nm := nm + 1;
+      exception when others then if sqlerrm not like '%déjà clôturée%' then ne := ne + 1; end if; end;
+    end loop;
+    for y in select distinct extract(year from date_ticket at time zone 'Europe/Paris')::int a
+               from public.caisse_tickets where owner_id = c.owner_id and not formation
+                and date_ticket < date_trunc('year', now() at time zone 'Europe/Paris') at time zone 'Europe/Paris' order by 1 loop
+      begin perform public.caisse__periode_core(c.owner_id, 'annuelle', y.a, null, true); na := na + 1;
+      exception when others then if sqlerrm not like '%déjà clôturée%' then ne := ne + 1; end if; end;
+    end loop;
+  end loop;
+  return jsonb_build_object('sessions_fermees', nz, 'mois_clotures', nm, 'annees_cloturees', na, 'erreurs', ne);
 end $$;
 
 -- ---------------------------------------------------------------------------------------------------------------- vérification et archive
@@ -632,20 +677,120 @@ begin
                      from public.caisse_terminal_paiements where owner_id = e and statut = 'reussi' and ticket_id is null and created_at > now() - interval '3 days'), '[]'::jsonb);
 end $$;
 
+-- ---------------------------------------------------------------------------------------------------------------- audit technique ISCA
+-- Autocontrôle des quatre critères (Inaltérabilité, Sécurisation, Conservation, Archivage) sur la base réelle de l'espace : protections actives
+-- (triggers, policies, droits d'exécution), chaîne, signatures, empreintes des tickets, numérotation, clôtures, archives. Jamais une preuve
+-- d'audit par un organisme : c'est le rapport à joindre à la demande de certificat ou d'attestation (voir docs/audit-isca.md).
+create or replace function public.caisse__version() returns text language sql immutable as $$ select '1.0' $$;
+create or replace function public.caisse__chk(res jsonb, p_critere text, p_code text, p_libelle text, p_ok boolean, p_detail text)
+returns jsonb language sql immutable as $$
+  select res || jsonb_build_array(jsonb_build_object('critere', p_critere, 'code', p_code, 'libelle', p_libelle, 'ok', p_ok, 'detail', p_detail))
+$$;
+
+create or replace function public.caisse_audit_isca()
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare e uuid := public.caisse__espace(); res jsonb := '[]'::jsonb; ver jsonb; c public.caisse_chaine; n int; n2 int; detail text; hier timestamptz := date_trunc('day', now() at time zone 'Europe/Paris') at time zone 'Europe/Paris';
+        mois_courant timestamptz := date_trunc('month', now() at time zone 'Europe/Paris') at time zone 'Europe/Paris'; an_courant timestamptz := date_trunc('year', now() at time zone 'Europe/Paris') at time zone 'Europe/Paris';
+        ok_n int := 0; ko_n int := 0; av_n int := 0; x jsonb; fonctions text[] := array['caisse_encaisser(uuid,uuid,jsonb,jsonb,boolean,uuid)', 'caisse_avoir(uuid,jsonb,text,jsonb)', 'caisse_cloturer(uuid,numeric,text)', 'caisse_archiver(date,date)'];
+        internes text[] := array['caisse__ecrire(uuid,text,uuid,uuid,text,numeric,jsonb,boolean)', 'caisse__totaux(uuid,jsonb,boolean)', 'caisse__verrou(uuid)', 'caisse__paiements(jsonb,numeric)'];
+        f text; acces boolean := false;
+begin
+  ver := public.caisse_verifier();
+  select * into c from public.caisse_chaine where owner_id = e;
+
+  -- I : inaltérabilité
+  select count(*) into n from pg_trigger t join pg_class k on k.oid = t.tgrelid join pg_namespace s on s.oid = k.relnamespace
+    where s.nspname = 'public' and k.relname in ('caisse_journal', 'caisse_tickets', 'caisse_paiements') and t.tgname = 'caisse_immuable' and t.tgenabled = 'O';
+  select count(*) into n2 from pg_trigger t join pg_class k on k.oid = t.tgrelid join pg_namespace s on s.oid = k.relnamespace
+    where s.nspname = 'public' and k.relname in ('caisse_journal', 'caisse_tickets', 'caisse_paiements') and t.tgname = 'caisse_immuable_trunc' and t.tgenabled = 'O';
+  res := public.caisse__chk(res, 'I', 'I1', 'Modification et suppression interdites sur le journal, les tickets et les paiements (triggers actifs)', n = 3 and n2 = 3, n || ' triggers update/delete et ' || n2 || ' triggers truncate actifs sur 3 tables');
+  select count(*) into n from pg_policies where schemaname = 'public' and tablename in ('caisse_journal', 'caisse_tickets', 'caisse_paiements', 'caisse_sessions', 'caisse_chaine', 'caisse_secrets') and cmd <> 'SELECT';
+  res := public.caisse__chk(res, 'I', 'I2', 'Aucune écriture directe possible depuis un navigateur (lecture seule par RLS)', n = 0, n || ' policy d''écriture sur les tables de caisse');
+  select count(*) into n from pg_trigger t join pg_class k on k.oid = t.tgrelid join pg_namespace s on s.oid = k.relnamespace
+    where s.nspname = 'public' and k.relname in ('documents', 'document_lignes') and t.tgname = 'caisse_document_verrou' and t.tgenabled = 'O';
+  res := public.caisse__chk(res, 'I', 'I3', 'Les factures miroirs des ventes de caisse sont verrouillées', n = 2, n || ' / 2 triggers de verrouillage actifs');
+  select count(*) into n from public.caisse_tickets t join public.caisse_journal j on j.owner_id = t.owner_id and j.seq = t.journal_seq
+    where t.owner_id = e and public.caisse__empreinte(t.lignes, t.paiements, t.total_ht, t.total_tva, t.total_ttc, t.client_nom) is distinct from j.payload->>'empreinte';
+  res := public.caisse__chk(res, 'I', 'I4', 'Le contenu de chaque ticket correspond à l''empreinte scellée dans le journal', n = 0, n || ' ticket(s) dont le contenu diffère de l''empreinte scellée');
+  select count(*) into n from public.caisse_tickets where owner_id = e and not formation and type = 'vente'; select count(*) into n2 from public.caisse_tickets where owner_id = e and type = 'avoir';
+  res := public.caisse__chk(res, 'I', 'I5', 'Numérotation continue des tickets et des avoirs, sans trou', c.owner_id is null or (c.n_ticket = n and c.n_avoir = n2), coalesce(c.n_ticket, 0) || ' ticket(s) attendus, ' || n || ' présents ; ' || coalesce(c.n_avoir, 0) || ' avoir(s) attendus, ' || n2 || ' présents');
+
+  -- S : sécurisation
+  res := public.caisse__chk(res, 'S', 'S1', 'Chaîne de hachage et signatures du journal valides, grands totaux cohérents', (ver->>'ok')::boolean,
+    case when (ver->>'ok')::boolean then (ver->>'entrees') || ' entrée(s) vérifiée(s)' else coalesce(ver->'defaut'->>'raison', 'anomalie') end);
+  select count(*) into n from pg_class k join pg_namespace s on s.oid = k.relnamespace
+    where s.nspname = 'public' and k.relname in ('caisse_journal', 'caisse_tickets', 'caisse_paiements', 'caisse_sessions', 'caisse_chaine', 'caisse_secrets', 'caisse_terminal_config', 'caisse_terminal_paiements') and k.relrowsecurity;
+  res := public.caisse__chk(res, 'S', 'S2', 'Sécurité par ligne (RLS) activée sur toutes les tables de caisse', n = 8, n || ' / 8 tables');
+  select count(*) into n from pg_policies where schemaname = 'public' and tablename in ('caisse_secrets', 'caisse_terminal_config', 'caisse_terminal_paiements');
+  res := public.caisse__chk(res, 'S', 'S3', 'Clé de signature et identifiants du terminal illisibles par un navigateur', n = 0 and exists (select 1 from public.caisse_secrets where owner_id = e) or (c.owner_id is null and n = 0), n || ' policy sur les tables secrètes');
+  acces := false;
+  foreach f in array internes loop acces := acces or has_function_privilege('anon', 'public.' || f, 'execute') or has_function_privilege('authenticated', 'public.' || f, 'execute'); end loop;
+  res := public.caisse__chk(res, 'S', 'S4', 'Les fonctions internes d''écriture ne sont exécutables par aucun navigateur', not acces, case when acces then 'une fonction interne est exécutable' else '4 fonctions internes protégées' end);
+  acces := false;
+  foreach f in array fonctions loop acces := acces or has_function_privilege('anon', 'public.' || f, 'execute'); end loop;
+  res := public.caisse__chk(res, 'S', 'S5', 'Les fonctions de caisse exigent une connexion (aucun accès anonyme)', not acces, case when acces then 'une fonction est ouverte aux visiteurs anonymes' else 'accès anonyme refusé' end);
+
+  -- C : conservation (clôtures journalière, mensuelle, annuelle ; données cumulatives)
+  select count(*) into n from public.caisse_sessions where owner_id = e and cloturee_le is null and ouverte_le < hier;
+  res := public.caisse__chk(res, 'C', 'C1', 'Aucune journée de caisse restée ouverte', n = 0, n || ' session(s) ouverte(s) depuis avant aujourd''hui (la clôture automatique de nuit les ferme)');
+  select count(*) into n from public.caisse_sessions s where s.owner_id = e and s.cloturee_le is not null and not exists (select 1 from public.caisse_journal j where j.owner_id = e and j.type = 'cloture_z' and j.session_id = s.id);
+  res := public.caisse__chk(res, 'C', 'C2', 'Chaque session fermée a son Z scellé dans le journal', n = 0, n || ' session(s) fermée(s) sans Z au journal');
+  select count(*) into n from (select distinct to_char(date_ticket at time zone 'Europe/Paris', 'YYYY-MM') p from public.caisse_tickets where owner_id = e and not formation and date_ticket < mois_courant) q
+    where not exists (select 1 from public.caisse_journal j where j.owner_id = e and j.type = 'cloture_mensuelle' and j.payload->>'periode' = q.p);
+  res := public.caisse__chk(res, 'C', 'C3', 'Chaque mois révolu avec des ventes est clôturé', n = 0, n || ' mois révolu(s) sans clôture mensuelle');
+  select count(*) into n from (select distinct to_char(date_ticket at time zone 'Europe/Paris', 'YYYY') p from public.caisse_tickets where owner_id = e and not formation and date_ticket < an_courant) q
+    where not exists (select 1 from public.caisse_journal j where j.owner_id = e and j.type = 'cloture_annuelle' and j.payload->>'periode' = q.p);
+  res := public.caisse__chk(res, 'C', 'C4', 'Chaque année révolue avec des ventes est clôturée', n = 0, n || ' année(s) révolue(s) sans clôture annuelle');
+  res := public.caisse__chk(res, 'C', 'C5', 'Le grand total perpétuel égale la somme signée de tous les tickets', c.owner_id is null or c.gt_perpetuel = coalesce((select sum(total_ttc) from public.caisse_tickets where owner_id = e and not formation), 0),
+    'grand total ' || coalesce(c.gt_perpetuel, 0) || ' / somme des tickets ' || coalesce((select sum(total_ttc) from public.caisse_tickets where owner_id = e and not formation), 0));
+  select count(*) into n from public.caisse_journal j where j.owner_id = e and j.type in ('cloture_mensuelle', 'cloture_annuelle', 'cloture_z') and j.payload ? 'automatique' and (j.payload->>'automatique')::boolean;
+  res := public.caisse__chk(res, 'C', 'C6', 'Clôtures automatiques tracées (information)', true, n || ' clôture(s) automatique(s) au journal');
+
+  -- A : archivage (date certaine, intégrité dans le temps)
+  select count(*) into n from public.caisse_journal where owner_id = e and type = 'archive' and coalesce(payload->>'empreinte', '') = '';
+  res := public.caisse__chk(res, 'A', 'A1', 'Toute archive produite est scellée dans le journal par son empreinte (date certaine)', n = 0, n || ' archive(s) sans empreinte');
+  select count(*) into n from (select distinct extract(year from date_ticket at time zone 'Europe/Paris')::int a from public.caisse_tickets where owner_id = e and not formation and date_ticket < an_courant) q
+    where not exists (select 1 from public.caisse_journal j where j.owner_id = e and j.type = 'archive' and (j.payload->>'debut')::date <= make_date(q.a, 1, 1) and (j.payload->>'fin')::date >= make_date(q.a, 12, 31));
+  res := public.caisse__chk(res, 'A', 'A2', 'Chaque année révolue avec des ventes a été archivée (au plus une archive par an)', n = 0, n || ' année(s) révolue(s) sans archive téléchargée');
+  res := public.caisse__chk(res, 'A', 'A3', 'Conservation des archives pendant 6 ans : sauvegardes et stockage à contrôler hors du logiciel', null, 'À vérifier : politique de sauvegarde Supabase, copie des archives par le salon');
+
+  for x in select * from jsonb_array_elements(res) loop
+    if x->'ok' = 'null'::jsonb then av_n := av_n + 1; elsif (x->>'ok')::boolean then ok_n := ok_n + 1; else ko_n := ko_n + 1; end if;
+  end loop;
+  return jsonb_build_object('logiciel', 'Mirrio Caisse', 'version', public.caisse__version(), 'genere_le', now(), 'espace', e,
+    'resume', jsonb_build_object('conformes', ok_n, 'anomalies', ko_n, 'a_verifier', av_n), 'controles', res);
+end $$;
+
+-- Remise d'une attestation à un salon : la trace entre dans le journal chaîné (qui l'a retirée, quand, pour quelle version).
+create or replace function public.caisse_attestation_enregistrer(p_version text)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare e uuid := public.caisse__espace(); j public.caisse_journal;
+begin
+  if coalesce(p_version, '') <> public.caisse__version() then raise exception 'Version du logiciel inattendue.'; end if;
+  j := public.caisse__ecrire(e, 'attestation', null, null, null, null, jsonb_build_object('version', p_version), false);
+  return jsonb_build_object('seq', j.seq, 'date', j.created_at, 'hash', j.hash);
+end $$;
+
 -- ---------------------------------------------------------------------------------------------------------------- droits d'exécution
 do $$
 declare f text;
 begin
   foreach f in array array[
     'caisse__espace()', 'caisse__verrou(uuid)', 'caisse__ecrire(uuid,text,uuid,uuid,text,numeric,jsonb,boolean)', 'caisse__totaux(uuid,jsonb,boolean)',
-    'caisse__paiements(jsonb,numeric)', 'caisse__agregat(uuid,uuid,timestamptz,timestamptz)'] loop
+    'caisse__paiements(jsonb,numeric)', 'caisse__agregat(uuid,uuid,timestamptz,timestamptz)',
+    'caisse__cloturer_core(uuid,uuid,numeric,text,boolean,uuid)', 'caisse__periode_core(uuid,text,int,int,boolean)', 'caisse_cloturer_auto()'] loop
     execute format('revoke all on function public.%s from public, anon, authenticated', f);
   end loop;
   foreach f in array array[
     'caisse_ouvrir(numeric)', 'caisse_encaisser(uuid,uuid,jsonb,jsonb,boolean,uuid)', 'caisse_avoir(uuid,jsonb,text,jsonb)', 'caisse_duplicata(uuid)', 'caisse_cloturer(uuid,numeric,text)',
     'caisse_cloturer_periode(text,int,int)', 'caisse_verifier()', 'caisse_archiver(date,date)',
-    'caisse_terminal_statut()', 'caisse_terminal_lire(uuid)', 'caisse_terminal_orphelins()'] loop
+    'caisse_terminal_statut()', 'caisse_terminal_lire(uuid)', 'caisse_terminal_orphelins()', 'caisse_audit_isca()', 'caisse_attestation_enregistrer(text)'] loop
     execute format('revoke all on function public.%s from public, anon', f);
     execute format('grant execute on function public.%s to authenticated', f);
   end loop;
+end $$;
+
+-- La clôture automatique ne s'appelle qu'avec la clé de service (tâche planifiée de nuit).
+do $$ begin
+  if exists (select 1 from pg_roles where rolname = 'service_role') then grant execute on function public.caisse_cloturer_auto() to service_role; end if;
 end $$;

@@ -141,6 +141,7 @@
       <button type="button" role="menuitem" id="b-terminal-cfg">Terminal de paiement</button>
       <button type="button" role="menuitem" id="b-formation" aria-pressed="false" title="Les tickets de formation ne sont pas comptabilisés">Mode formation</button>
       <button type="button" role="menuitem" id="b-conformite">Conformité et archives</button>
+      <a role="menuitem" id="b-attestation" href="attestation-caisse.html">Attestation de conformité</a>
       <a role="menuitem" id="b-compta" href="export-comptable.html">Export pour le comptable</a>
     </div>
   </div>
@@ -176,6 +177,7 @@
   import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
   import { idEspaceActif, chargerBrand } from './theme.js';
   import { calculerTotaux, MENTION_FRANCHISE_TVA } from './document-render.js';
+  import { htmlRapport, STYLE_RAPPORT } from './audit-isca.js';
   const DEMO = new URLSearchParams(location.search).get('demo') === '1';
   let supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   let reinitialiserDemo = () => {};
@@ -945,7 +947,10 @@
     const { d, fin } = ouvrir(`<h2>Conformité de la caisse</h2><div id="etat-integrite" class="rang" role="status"><span>Vérification de l'intégrité…</span></div>
       <div id="chiffres" class="muted" style="font-size:14px;margin:6px 0 12px"></div>
       <div id="orphelins" role="alert"></div>
-      <h3 style="font-size:16px;margin:10px 0 6px">Archives (à conserver 6 ans)</h3>
+      <h3 style="font-size:16px;margin:10px 0 6px">Audit technique ISCA</h3>
+      <p class="muted" style="font-size:13px;margin-bottom:8px">Contrôle des quatre critères de la loi (inaltérabilité, sécurisation, conservation, archivage) sur les données réelles de ce salon.</p>
+      <button class="btn" id="audit" type="button">Lancer l'audit</button><div id="audit-res" style="margin-top:8px"></div>
+      <h3 style="font-size:16px;margin:14px 0 6px">Archives (à conserver 6 ans)</h3>
       <div class="champ"><label for="arch-p">Période</label><select id="arch-p"><option value="mois">Ce mois-ci</option><option value="moisprec">Mois dernier</option><option value="annee">Cette année</option><option value="anneeprec">Année dernière</option></select></div>
       <button class="btn" id="arch" type="button">Télécharger l'archive (JSON signé)</button>
       <h3 style="font-size:16px;margin:14px 0 6px">Clôtures de période</h3>
@@ -960,6 +965,20 @@
       z.innerHTML = data.ok ? `<span>Intégrité du journal</span><b style="color:var(--ok)">Conforme</b>` : `<span>Intégrité du journal</span><b style="color:var(--alerte)">ANOMALIE</b>`;
       d.querySelector('#chiffres').innerHTML = data.ok ? `${data.entrees} entrées chaînées et signées · ${data.tickets} ventes · ${data.avoirs} avoirs<br>Grand total perpétuel : ${eur(data.gt_perpetuel)} · absolu : ${eur(data.gt_absolu)}`
         : `<span style="color:var(--alerte)">${esc(data.defaut && data.defaut.raison)}${data.defaut && data.defaut.seq ? ' (entrée ' + data.defaut.seq + ')' : ''}. Ne continuez pas à encaisser avant d'avoir contacté le support.</span>`;
+    };
+    d.querySelector('#audit').onclick = async () => {
+      const zone = d.querySelector('#audit-res'); zone.innerHTML = '<span class="muted">Audit en cours…</span>';
+      const { data: a, error } = await supabase.rpc('caisse_audit_isca');
+      if(error || !a){ zone.innerHTML = '<span style="color:var(--alerte)">Audit impossible (migration schema-v43 exécutée ?).</span>'; return; }
+      const r = a.resume;
+      zone.innerHTML = `<div class="rang"><span>Contrôles conformes</span><b style="color:var(--ok)">${r.conformes}</b></div><div class="rang"><span>Anomalies</span><b style="color:${r.anomalies ? 'var(--alerte)' : 'inherit'}">${r.anomalies}</b></div><div class="rang"><span>À vérifier hors du logiciel</span><b>${r.a_verifier}</b></div>
+        ${a.controles.filter(c => c.ok !== true).map(c => `<p style="font-size:13px;margin:6px 0"><b style="color:${c.ok === false ? 'var(--alerte)' : 'inherit'}">${c.ok === false ? 'Anomalie' : 'À vérifier'} ${esc(c.code)}</b> : ${esc(c.libelle)}<br><span class="muted">${esc(c.detail)}</span></p>`).join('')}
+        <button class="btn petit" id="audit-print" type="button" style="margin-top:8px">Imprimer le rapport d'audit</button>`;
+      d.querySelector('#audit-print').onclick = () => {
+        const w = window.open('', '_blank'); if(!w){ toast('Autorisez les fenêtres pour imprimer le rapport.'); return; }
+        w.document.write(`<!doctype html><html lang="fr"><meta charset="utf-8"><title>Rapport d'audit ISCA</title><style>${STYLE_RAPPORT}</style><body>${htmlRapport(a, brand.business_name || params.emetteur_nom || '')}</body></html>`);
+        w.document.close(); setTimeout(() => w.print(), 300);
+      };
     };
     d.querySelector('#re').onclick = verifier; d.querySelector('#non').onclick = () => d.fermer(null); verifier();
     supabase.rpc('caisse_terminal_orphelins').then(({ data }) => {
@@ -990,7 +1009,7 @@
   function montrerBandeauDemo(){
     $('#bandeau-demo').hidden = false;
     $('#b-demo-reset').onclick = () => { reinitialiserDemo(); try{ localStorage.removeItem(cleTickets()); localStorage.removeItem(cleTickets() + '-init'); }catch(e){} location.reload(); };
-    $('#b-quitter').href = 'demos.html'; $('#b-compta').hidden = true;
+    $('#b-quitter').href = 'demos.html'; $('#b-compta').hidden = true; $('#b-attestation').hidden = true;
   }
 
   // ---------------------------------------------------------------- démarrage

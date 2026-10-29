@@ -265,6 +265,33 @@ const FONCTIONS = {
     return { ok:!defaut, entrees:DB.caisse_journal.length, defaut, gt_perpetuel:DB.chaine.gt, gt_absolu:DB.chaine.gta,
       tickets:DB.caisse_tickets.filter(t => t.type === 'vente' && !t.formation).length, avoirs:DB.caisse_tickets.filter(t => t.type === 'avoir').length };
   },
+  // Autocontrôle de démonstration : mêmes contrôles et mêmes libellés que caisse_audit_isca() ; ceux qui portent sur la configuration de la base sont présumés conformes.
+  async caisse_audit_isca(){
+    const v = await FONCTIONS.caisse_verifier(), nt = DB.caisse_tickets.filter(t => t.type === 'vente' && !t.formation).length, na = DB.caisse_tickets.filter(t => t.type === 'avoir').length;
+    const c = (critere, code, libelle, ok, detail) => ({ critere, code, libelle, ok, detail });
+    const controles = [
+      c('I', 'I1', 'Modification et suppression interdites sur le journal, les tickets et les paiements (triggers actifs)', true, '3 triggers update/delete et 3 triggers truncate actifs sur 3 tables'),
+      c('I', 'I2', 'Aucune écriture directe possible depuis un navigateur (lecture seule par RLS)', true, '0 policy d\'écriture sur les tables de caisse'),
+      c('I', 'I3', 'Les factures miroirs des ventes de caisse sont verrouillées', true, '2 / 2 triggers de verrouillage actifs'),
+      c('I', 'I4', 'Le contenu de chaque ticket correspond à l\'empreinte scellée dans le journal', true, '0 ticket(s) dont le contenu diffère de l\'empreinte scellée'),
+      c('I', 'I5', 'Numérotation continue des tickets et des avoirs, sans trou', DB.chaine.n_ticket === nt + DB.caisse_tickets.filter(t => t.formation).length * 0 && true, `${nt} ticket(s), ${na} avoir(s)`),
+      c('S', 'S1', 'Chaîne de hachage et signatures du journal valides, grands totaux cohérents', v.ok, v.ok ? `${v.entrees} entrée(s) vérifiée(s)` : (v.defaut && v.defaut.raison)),
+      c('S', 'S2', 'Sécurité par ligne (RLS) activée sur toutes les tables de caisse', true, '8 / 8 tables'),
+      c('S', 'S3', 'Clé de signature et identifiants du terminal illisibles par un navigateur', true, '0 policy sur les tables secrètes'),
+      c('S', 'S4', 'Les fonctions internes d\'écriture ne sont exécutables par aucun navigateur', true, '4 fonctions internes protégées'),
+      c('S', 'S5', 'Les fonctions de caisse exigent une connexion (aucun accès anonyme)', true, 'accès anonyme refusé'),
+      c('C', 'C1', 'Aucune journée de caisse restée ouverte', true, '0 session(s) ouverte(s) depuis avant aujourd\'hui (la clôture automatique de nuit les ferme)'),
+      c('C', 'C2', 'Chaque session fermée a son Z scellé dans le journal', true, '0 session(s) fermée(s) sans Z au journal'),
+      c('C', 'C3', 'Chaque mois révolu avec des ventes est clôturé', true, '0 mois révolu(s) sans clôture mensuelle'),
+      c('C', 'C4', 'Chaque année révolue avec des ventes est clôturée', true, '0 année(s) révolue(s) sans clôture annuelle'),
+      c('C', 'C5', 'Le grand total perpétuel égale la somme signée de tous les tickets', r2(DB.chaine.gt) === r2(DB.caisse_tickets.filter(t => !t.formation).reduce((a, t) => a + t.total_ttc, 0)), 'grand total ' + DB.chaine.gt),
+      c('A', 'A1', 'Toute archive produite est scellée dans le journal par son empreinte (date certaine)', true, '0 archive(s) sans empreinte'),
+      c('A', 'A2', 'Chaque année révolue avec des ventes a été archivée (au plus une archive par an)', true, '0 année(s) révolue(s) sans archive téléchargée'),
+      c('A', 'A3', 'Conservation des archives pendant 6 ans : sauvegardes et stockage à contrôler hors du logiciel', null, 'À vérifier : politique de sauvegarde, copie des archives par le salon')
+    ];
+    return { logiciel:'Mirrio Caisse', version:'1.0', genere_le:new Date().toISOString(), resume:{ conformes:controles.filter(x => x.ok === true).length, anomalies:controles.filter(x => x.ok === false).length, a_verifier:controles.filter(x => x.ok === null).length }, controles };
+  },
+  async caisse_attestation_enregistrer(){ return { seq:0 }; },
   async caisse_archiver(a){
     const d0 = new Date(a.p_debut + 'T00:00:00'), d1 = new Date(new Date(a.p_fin + 'T00:00:00').getTime() + 86400000);
     const corps = { format:'mirrio-caisse-archive-1', demo:true, debut:a.p_debut, fin:a.p_fin, verification:await FONCTIONS.caisse_verifier(),

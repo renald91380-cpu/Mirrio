@@ -149,6 +149,15 @@ export default async function handler(req, res){
   // Regroupé ici pour ne pas dépasser la limite de 12 fonctions Vercel.
   if(new URL(req.url, 'http://x').searchParams.get('tache') === 'rappels') return rappels(req, res);
 
+  // Clôtures automatiques de la caisse (journées oubliées, mois et années révolus) : voir db/schema-v43-caisse-certifiable.sql, caisse_cloturer_auto().
+  if(new URL(req.url, 'http://x').searchParams.get('tache') === 'clotures'){
+    try{
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/caisse_cloturer_auto`, { method: 'POST', headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' }, body: '{}' });
+      const j = await r.json().catch(() => ({}));
+      return r.ok ? json(res, 200, { ok: true, ...j }) : json(res, 502, { error: 'Clôtures automatiques impossibles (migration schema-v43 exécutée ?).' });
+    }catch(e){ return json(res, 502, { error: 'Clôtures automatiques impossibles.' }); }
+  }
+
   // Les relances sont un avantage Studio (voir la page tarifs) et une
   // fonctionnalité que l'utilisateur active lui-même (parametres_facturation.
   // relances_activees) — les deux sont vérifiés plus bas, par facture, jamais

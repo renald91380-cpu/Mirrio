@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Attestation de conformité de la caisse | Mirrio</title>
+<style>
+  :root{ --bg:#F5F5F3; --ink:#101216; --muted:#5B606B; --line:rgba(16,18,22,.14); --accent:#E2A63D; }
+  *{ box-sizing:border-box; } body{ margin:0; background:var(--bg); color:var(--ink); font:16px/1.55 'Geist',system-ui,-apple-system,sans-serif; }
+  header{ display:flex; align-items:center; gap:12px; padding:14px 20px; border-bottom:1px solid var(--line); background:#fff; } header a{ color:inherit; text-decoration:none; }
+  .logo{ font-weight:800; font-size:20px; } .logo b{ color:var(--accent); } .btn{ min-height:44px; padding:0 20px; border-radius:99px; border:1px solid var(--line); background:#fff; font:600 15px inherit; font-family:inherit; cursor:pointer; display:inline-flex; align-items:center; }
+  .btn.p{ background:var(--accent); border-color:transparent; } .barre{ margin-left:auto; display:flex; gap:10px; }
+  main{ max-width:860px; margin:24px auto; padding:0 16px; } .carte{ background:#fff; border:1px solid var(--line); border-radius:20px; padding:26px; }
+  .doc{ background:#fff; padding:44px 52px; border:1px solid var(--line); border-radius:6px; font:15px/1.6 Georgia,'Times New Roman',serif; }
+  .doc h1{ font:700 21px/1.3 Georgia,serif; text-align:center; margin:0 0 6px; } .doc .sous{ text-align:center; color:#444; margin:0 0 26px; font-size:14px; } .doc p{ margin:0 0 14px; } .doc .sign{ margin-top:46px; display:flex; justify-content:space-between; gap:20px; }
+  .doc .sign img{ max-height:80px; } .doc ul{ margin:0 0 14px 20px; padding:0; } .avert{ background:rgba(226,166,61,.16); border:1px solid rgba(226,166,61,.6); border-radius:12px; padding:12px 16px; margin-bottom:14px; }
+  .annexe{ margin-top:26px; } @media print{ header, .barre, .hors-impression{ display:none !important; } body{ background:#fff; } main{ margin:0; max-width:none; padding:0; } .doc{ border:0; padding:0; } .annexe{ page-break-before:always; } }
+</style>
+</head>
+<body>
+<header><a class="logo" href="caisse.html">Mirrio<b>.</b></a><span>Attestation de conformité de la caisse</span><span class="barre"><button class="btn p" id="imprimer" type="button" hidden>Imprimer ou enregistrer en PDF</button><a class="btn" href="caisse.html">Retour à la caisse</a></span></header>
+<main id="contenu"><div class="carte">Chargement…</div></main>
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+  import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
+  import { idEspaceActif, chargerBrand } from './theme.js';
+  import { ATTESTATION } from './attestation-config.js';
+  import { htmlRapport, STYLE_RAPPORT } from './audit-isca.js';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const $ = s => document.querySelector(s);
+  const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  const afficher = h => { $('#contenu').innerHTML = h; };
+  (async function(){
+    const { data: s } = await supabase.auth.getSession(); if(!s.session){ location.href = 'login.html'; return; }
+    const espace = await idEspaceActif(supabase);
+    const [{ data: f }, brand, audit] = await Promise.all([
+      supabase.from('parametres_facturation').select('*').eq('owner_id', espace).maybeSingle(),
+      chargerBrand(supabase, espace),
+      supabase.rpc('caisse_audit_isca')
+    ]);
+    const p = f || {}, salon = (brand && brand.business_name) || p.emetteur_nom || 'Salon';
+    if(!p.assujetti_tva){ afficher('<div class="carte"><h2>Vous n\'avez pas besoin de cette attestation</h2><p>Votre salon est en <b>franchise en base de TVA</b> : l\'obligation d\'utiliser un logiciel de caisse certifié ou attesté ne s\'applique pas. Si votre situation change (passage à la TVA), revenez sur cette page.</p></div>'); return; }
+    if(!ATTESTATION.active){ afficher(`<div class="carte"><h2>Attestation pas encore délivrée</h2><p>L'éditeur de Mirrio Caisse n'a pas encore délivré d'attestation individuelle de conformité ni de certificat NF525. Vous pouvez la réclamer à l'éditeur (c'est son obligation), et en attendant utiliser une caisse déjà certifiée en parallèle.</p><p>Ce que la caisse vérifie déjà sur vos données : <a href="caisse.html">menu, Conformité et archives, audit ISCA</a>.</p></div>`); return; }
+    const e = ATTESTATION.editeur, restants = Object.values(e).filter(v => String(v).includes('[À COMPLÉTER')).length;
+    if(restants){ afficher('<div class="carte"><h2>Attestation indisponible</h2><p>L\'identité de l\'éditeur n\'est pas complète. Merci de réessayer plus tard.</p></div>'); return; }
+    if(audit.error || !audit.data){ afficher('<div class="carte"><h2>Audit indisponible</h2><p>Le contrôle de conformité de votre caisse n\'a pas pu être exécuté (migration schema-v43 ?).</p></div>'); return; }
+    const a = audit.data;
+    if(a.resume.anomalies > 0){ afficher(`<div class="carte"><h2>Anomalies détectées</h2><p>L'attestation ne peut pas être éditée tant que le contrôle de votre caisse relève des anomalies. Contactez l'éditeur.</p><ul>${a.controles.filter(c => c.ok === false).map(c => `<li><b>${esc(c.code)}</b> ${esc(c.libelle)} : ${esc(c.detail)}</li>`).join('')}</ul></div>`); return; }
+    const adresse = [p.emetteur_adresse, [p.emetteur_cp, p.emetteur_ville].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+    const dateJour = new Date().toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
+    afficher(`<div class="hors-impression avert">Document à conserver et à présenter en cas de contrôle fiscal. L'impression est enregistrée dans le journal de votre caisse.</div>
+      <article class="doc"><h1>ATTESTATION INDIVIDUELLE<br>logiciel ou système de caisse</h1><p class="sous">Article 286, I, 3° bis du code général des impôts</p>
+        <p>Je soussigné(e) <b>${esc(e.representant)}</b>, ${esc(e.qualite)} de la société <b>${esc(e.nom)}</b> (${esc(e.forme)}), dont le siège est situé ${esc(e.adresse)} (${esc(e.pays)}), immatriculée ${esc(e.immatriculation)},</p>
+        <p>éditeur du logiciel de caisse <b>« ${esc(ATTESTATION.logiciel)} »</b>, version <b>${esc(a.version)}</b>,</p>
+        <p><b>atteste</b> que ce logiciel satisfait aux conditions d'inaltérabilité, de sécurisation, de conservation et d'archivage des données en vue du contrôle de l'administration fiscale, prévues au 3° bis du I de l'article 286 du code général des impôts.</p>
+        <p>La présente attestation est délivrée à <b>${esc(salon)}</b>${p.siret ? ', SIRET ' + esc(p.siret) : ''}${adresse ? ', ' + esc(adresse) : ''}, en sa qualité d'utilisateur du logiciel.</p>
+        <p>Elle porte sur les fonctions de caisse et d'encaissement du logiciel (écran de caisse, enregistrement des ventes, avoirs, duplicata, clôtures journalière, mensuelle et annuelle, archivage), à l'exclusion des autres fonctions (agenda, réservation, pages publiques).</p>
+        <p>Au ${esc(new Date(a.genere_le).toLocaleDateString('fr-FR'))}, le contrôle technique de la caisse de ce salon relève <b>${a.resume.conformes} point(s) conforme(s) et aucune anomalie</b> (rapport joint en annexe).</p>
+        <div class="sign"><div>Fait à ${esc(e.lieu)}, le ${esc(dateJour)}</div><div>${esc(e.representant)}<br>${esc(e.qualite)}<br>${ATTESTATION.signature ? `<img src="${esc(ATTESTATION.signature)}" alt="Signature">` : '<br><br>'}</div></div>
+      </article>
+      <article class="doc annexe"><style>${STYLE_RAPPORT.replace(/body\{[^}]*\}/, '')}</style>${htmlRapport(a, salon)}</article>`);
+    const bt = $('#imprimer'); bt.hidden = false;
+    bt.onclick = async () => { await supabase.rpc('caisse_attestation_enregistrer', { p_version:a.version }); window.print(); };
+  })();
+</script>
+</body>
+</html>
