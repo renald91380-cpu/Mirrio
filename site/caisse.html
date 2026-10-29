@@ -33,6 +33,13 @@
   /* barre du haut */
   header{ flex:none; display:flex; align-items:center; gap:12px; padding:10px 16px; padding-top:max(10px, env(safe-area-inset-top)); background:var(--surface); border-bottom:1px solid var(--line); flex-wrap:wrap; }
   header .logo{ font:800 20px var(--display); text-decoration:none; color:inherit; } header .logo b{ color:var(--accent); }
+  .menu-wrap{ position:relative; }
+  .menu-caisse{ position:absolute; right:0; top:calc(100% + 8px); z-index:40; min-width:250px; padding:6px; background:var(--surface); border:1px solid var(--line); border-radius:18px; box-shadow:0 18px 50px -12px rgba(0,0,0,.35); }
+  .menu-caisse[hidden], .menu-caisse > [hidden]{ display:none; }
+  .menu-caisse > *{ display:flex; align-items:center; justify-content:space-between; width:100%; min-height:48px; padding:0 14px; border:0; border-radius:12px; background:transparent; color:inherit; font:600 15px var(--body); text-align:left; text-decoration:none; cursor:pointer; box-sizing:border-box; }
+  .menu-caisse > *:hover, .menu-caisse > *:focus-visible{ background:rgba(226,166,61,.18); outline:none; }
+  .menu-caisse #b-formation[aria-pressed=true]{ background:#B3402A; color:#fff; }
+  .menu-caisse #b-formation[aria-pressed=true]::after{ content:'Activé'; font-size:12px; }
   header .salon{ font-weight:600; color:var(--muted); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
   .puce{ display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:99px; border:1px solid var(--line); font-size:14px; font-weight:600; white-space:nowrap; }
   .puce.ok{ color:var(--ok); border-color:currentColor; } .puce.ko{ color:var(--alerte); border-color:currentColor; }
@@ -124,14 +131,19 @@
   <span class="salon" id="salon"></span>
   <span class="puce" id="etat-session" role="status"></span>
   <button class="btn petit" id="b-historique" type="button">Ventes</button>
-  <button class="btn petit" id="b-formation" type="button" aria-pressed="false" title="Les tickets de formation ne sont pas comptabilisés">Formation</button>
   <button class="btn petit" id="b-scan" type="button" title="Scanner un code-barres : ajoute le produit au ticket">Scanner</button>
-  <button class="btn petit" id="b-produits" type="button">Produits</button>
-  <button class="btn petit" id="b-terminal-cfg" type="button">Terminal</button>
-  <button class="btn petit" id="b-conformite" type="button">Conformité</button>
-  <a class="btn petit" id="b-compta" href="export-comptable.html">Comptable</a>
   <button class="btn petit danger" id="b-cloture" type="button" hidden>Clôturer la caisse</button>
-  <a class="btn petit" href="dashboard.html">Quitter</a>
+  <div class="menu-wrap">
+    <button class="btn petit" id="b-menu" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="menu-caisse">Menu <span aria-hidden="true">▾</span></button>
+    <div class="menu-caisse" id="menu-caisse" role="menu" hidden>
+      <button type="button" role="menuitem" id="b-produits">Produits en vente</button>
+      <button type="button" role="menuitem" id="b-terminal-cfg">Terminal de paiement</button>
+      <button type="button" role="menuitem" id="b-formation" aria-pressed="false" title="Les tickets de formation ne sont pas comptabilisés">Mode formation</button>
+      <button type="button" role="menuitem" id="b-conformite">Conformité et archives</button>
+      <a role="menuitem" id="b-compta" href="export-comptable.html">Export pour le comptable</a>
+    </div>
+  </div>
+  <a class="btn petit" id="b-quitter" href="dashboard.html">Quitter</a>
 </header>
 
 <main>
@@ -834,8 +846,22 @@
   const cleFormation = () => 'mirrio-caisse-formation-' + espaceId;
   function majFormation(){
     $('#b-formation').setAttribute('aria-pressed', formation); $('#bandeau-formation').hidden = !formation;
-    $('#b-formation').style.background = formation ? '#B3402A' : ''; $('#b-formation').style.color = formation ? '#fff' : '';
+    declencheur.style.outline = formation ? '2px solid #B3402A' : '';
   }
+  // Menu de réglages : ouvre et ferme au clic, Échap, clic ailleurs ; flèches pour passer d'une entrée à l'autre.
+  const menu = $('#menu-caisse'), declencheur = $('#b-menu');
+  const fermerMenu = (rendre) => { menu.hidden = true; declencheur.setAttribute('aria-expanded', 'false'); if(rendre) declencheur.focus(); };
+  declencheur.onclick = () => { const ouvert = menu.hidden; menu.hidden = !ouvert; declencheur.setAttribute('aria-expanded', String(ouvert)); if(ouvert) menu.querySelector('[role=menuitem]').focus(); };
+  menu.addEventListener('click', () => fermerMenu(false));
+  document.addEventListener('click', e => { if(!menu.hidden && !e.target.closest('.menu-wrap')) fermerMenu(false); });
+  document.addEventListener('keydown', e => {
+    if(menu.hidden) return;
+    if(e.key === 'Escape'){ fermerMenu(true); return; }
+    if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+      e.preventDefault(); const it = [...menu.querySelectorAll('[role=menuitem]')], i = it.indexOf(document.activeElement);
+      it[(i + (e.key === 'ArrowDown' ? 1 : -1) + it.length) % it.length].focus();
+    }
+  });
   $('#b-formation').onclick = () => {
     if(!formation && !confirm('Passer en mode formation ? Les ventes saisies ne seront pas comptabilisées (ticket « formation », hors chiffre d\'affaires et grand total).')) return;
     formation = !formation; try{ localStorage.setItem(cleFormation(), formation ? '1' : '0'); }catch(e){} majFormation();
@@ -891,7 +917,7 @@
   function montrerBandeauDemo(){
     $('#bandeau-demo').hidden = false;
     $('#b-demo-reset').onclick = () => { reinitialiserDemo(); try{ localStorage.removeItem(cleTickets()); localStorage.removeItem(cleTickets() + '-init'); }catch(e){} location.reload(); };
-    document.querySelector('header a.btn:last-of-type').href = 'demos.html'; $('#b-compta').hidden = true;
+    $('#b-quitter').href = 'demos.html'; $('#b-compta').hidden = true;
   }
 
   // ---------------------------------------------------------------- démarrage
