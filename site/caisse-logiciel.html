@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Logiciel de caisse pour salons de coiffure et de beauté | Mirrio</title>
+<meta name="description" content="Caisse pour coiffeurs, barbiers et instituts : tickets, avoirs, clôtures, terminal SumUp, produits avec code-barres. Conçue pour la certification NF525, incluse dans tous les forfaits.">
+<link rel="canonical" href="https://cadence-site-cadence-65cc.vercel.app/caisse-logiciel.html">
+<meta name="color-scheme" content="light dark">
+<meta property="og:title" content="Le logiciel de caisse pour coiffeurs, barbiers et instituts de beauté">
+<meta property="og:description" content="Tickets, avoirs, clôtures, terminal de paiement SumUp, produits et code-barres. Inclus dans tous les forfaits Mirrio.">
+<meta property="og:image" content="https://cadence-site-cadence-65cc.vercel.app/img/og-mirrio.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://unpkg.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1" defer></script>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#101216">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<style>
+  :root{
+    --bg:#F5F5F3; --surface:#FBFBFA; --ink:#101216; --muted:#5B606B; --line:rgba(16,18,22,.12);
+    --accent:#E2A63D; --accent-ink:#101216; --icone:#A1700A; --sombre:#202124; --sombre-ink:#F5F5F3; --sombre-muted:#B4B8C0;
+    --ombre:0 1px 2px rgba(16,18,22,.05), 0 12px 30px -14px rgba(16,18,22,.18); --r:22px; --pill:999px;
+    --display:'Bricolage Grotesque', system-ui, sans-serif; --body:'Geist', system-ui, sans-serif; --ease:cubic-bezier(.16,1,.3,1);
+  }
+  @media (prefers-color-scheme: dark){ :root{ --bg:#0D0F13; --surface:#15181E; --ink:#F1F1EE; --muted:#9CA2AE; --line:rgba(255,255,255,.12); --icone:#E2A63D; --sombre:#181A1F; --ombre:0 1px 2px rgba(0,0,0,.3), 0 14px 34px -14px rgba(0,0,0,.6); } }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html{ scroll-behavior:smooth; scroll-padding-top:96px; }
+  body{ overflow-x:clip; background:var(--bg); color:var(--ink); font-family:var(--body); line-height:1.6; -webkit-font-smoothing:antialiased; }
+  a{ color:inherit; text-decoration:none; }
+  i.ph{ font-size:1.25em; line-height:1; }
+  .wrap{ max-width:1200px; margin:0 auto; padding:0 24px; }
+  h1,h2,h3{ font-family:var(--display); letter-spacing:-.03em; line-height:1.06; }
+  :focus-visible{ outline:3px solid var(--accent); outline-offset:3px; border-radius:6px; }
+  .evitement{ position:absolute; left:16px; top:-80px; z-index:100; background:var(--ink); color:var(--bg); padding:12px 20px; border-radius:var(--pill); font-weight:600; }
+  .evitement:focus{ top:12px; }
+  .btn{ display:inline-flex; align-items:center; justify-content:center; gap:10px; min-height:48px; background:var(--accent); color:var(--accent-ink); font:600 15.5px var(--body); padding:14px 26px; border-radius:var(--pill); border:none; cursor:pointer; transition:transform .35s var(--ease); }
+  .btn:hover{ transform:translateY(-2px); } .btn.petit{ padding:11px 22px; font-size:14.5px; min-height:44px; }
+  .btn.blanc{ background:#fff; color:#101216; border-radius:16px; box-shadow:0 0 0 1px rgba(0,0,0,.4); }
+  .btn.discret{ background:transparent; color:inherit; box-shadow:inset 0 0 0 1.5px currentColor; }
+
+  /* navigation flottante (la même que l'accueil) */
+  header{ position:sticky; top:14px; z-index:40; padding:0 14px; }
+  .nav{ max-width:1200px; height:64px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:0 12px 0 24px; border-radius:var(--pill);
+    background:color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter:blur(18px) saturate(160%); -webkit-backdrop-filter:blur(18px) saturate(160%); border:1px solid var(--line); box-shadow:0 10px 30px -14px rgba(16,18,22,.25); }
+  .logo{ font-family:var(--display); font-weight:800; font-size:21px; letter-spacing:-.04em; } .logo b{ color:var(--accent); }
+  .nav ul{ display:flex; gap:24px; list-style:none; font-size:14.5px; color:color-mix(in srgb, var(--ink) 80%, transparent); font-weight:500; white-space:nowrap; }
+  .nav ul a:hover{ color:var(--ink); }
+  .nav .droite{ display:flex; align-items:center; gap:10px; } .nav .connexion{ font-size:14.5px; font-weight:500; color:color-mix(in srgb, var(--ink) 80%, transparent); padding:0 6px; white-space:nowrap; }
+  @media(max-width:1180px){ .nav ul{ display:none; } } @media(max-width:560px){ .nav .connexion{ display:none; } }
+
+  /* héros sombre : titre immense, trois points, un bouton blanc */
+  .hero{ background:var(--sombre); color:var(--sombre-ink); margin-top:-92px; padding:190px 0 100px; }
+  .hero h1{ font-size:clamp(40px, 6.4vw, 92px); font-weight:500; letter-spacing:-.045em; max-width:15ch; margin-bottom:44px; }
+  .hero ul{ list-style:none; display:grid; gap:18px; margin-bottom:48px; }
+  .hero li{ display:flex; gap:16px; align-items:center; font-size:clamp(17px, 1.9vw, 22px); color:var(--sombre-muted); }
+  .hero li i{ color:var(--sombre-ink); font-size:1.4em; }
+  .hero .actions{ display:flex; gap:14px; flex-wrap:wrap; }
+  .hero small{ display:block; margin-top:26px; color:var(--sombre-muted); font-size:14px; max-width:60ch; }
+
+  section.bloc{ padding:92px 0; }
+  .titre{ font-size:clamp(30px, 4.2vw, 50px); font-weight:800; max-width:18ch; margin-bottom:14px; }
+  .lead{ font-size:18px; color:var(--muted); max-width:56ch; margin-bottom:44px; }
+  .grille{ display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; }
+  @media(max-width:900px){ .grille{ grid-template-columns:1fr 1fr; } } @media(max-width:600px){ .grille{ grid-template-columns:1fr; } }
+  .carte{ background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:30px; box-shadow:var(--ombre); }
+  .carte i.ph{ font-size:30px; color:var(--icone); } .carte h3{ font-size:22px; font-weight:700; margin:18px 0 8px; } .carte p{ color:var(--muted); font-size:15.5px; }
+  .bande{ background:var(--sombre); color:var(--sombre-ink); border-radius:44px; margin:0 14px; padding:84px 0; }
+  .bande .lead{ color:var(--sombre-muted); } .bande .carte{ background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.14); box-shadow:none; }
+  .bande .carte p{ color:var(--sombre-muted); } .bande .carte i.ph{ color:var(--accent); }
+  .deux{ display:grid; grid-template-columns:1fr 1fr; gap:48px; align-items:start; } @media(max-width:900px){ .deux{ grid-template-columns:1fr; gap:28px; } }
+  .etat{ list-style:none; display:grid; gap:12px; } .etat li{ display:flex; gap:12px; align-items:flex-start; } .etat i{ margin-top:3px; } .etat .ok i{ color:#2E7D5B; } .etat .non i{ color:#B3402A; }
+  .tarif{ display:flex; gap:16px; flex-wrap:wrap; margin-top:12px; } .tarif .carte{ flex:1; min-width:200px; } .tarif b{ font:800 38px var(--display); letter-spacing:-.04em; display:block; }
+  .final{ text-align:center; padding:96px 0; } .final .titre{ margin-inline:auto; } .final .actions{ display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:26px; }
+  footer{ border-top:1px solid var(--line); padding:30px 0; font-size:14px; color:var(--muted); } footer .wrap{ display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap; }
+  .rv{ opacity:0; transform:translateY(16px); transition:opacity .6s var(--ease), transform .6s var(--ease); } .rv.in{ opacity:1; transform:none; }
+  @media (prefers-reduced-motion:reduce){ .rv{ opacity:1; transform:none; transition:none; } html{ scroll-behavior:auto; } }
+  @media (scripting:none){ .rv{ opacity:1; transform:none; } }
+</style>
+<script src="/cookies.js" defer></script>
+<script src="/solutions-menu.js" defer></script>
+</head>
+<body>
+<a class="evitement" href="#contenu">Aller au contenu</a>
+<header>
+  <nav class="nav" aria-label="Navigation principale">
+    <a class="logo" href="index.html">Mirrio<b>.</b></a>
+    <ul>
+      <li><a href="index.html#tarifs">Tarifs</a></li>
+      <li><a href="demos.html">Démo</a></li>
+      <li><a href="explorer.html">Trouver un salon</a></li>
+      <li><a href="bouche.html">Boulangerie</a></li>
+      <li><a href="mariage.html">Mariage</a></li>
+    </ul>
+    <div class="droite"><a class="connexion" href="login.html">Espace salon</a><a class="btn petit" href="signup.html">Créer mon salon</a></div>
+  </nav>
+</header>
+
+<main id="contenu">
+  <section class="hero" aria-labelledby="titre">
+    <div class="wrap">
+      <h1 id="titre">Le logiciel de caisse pour coiffeurs, barbiers et instituts de beauté</h1>
+      <ul>
+        <li><i class="ph ph-check" aria-hidden="true"></i>Conçue pour la certification NF525</li>
+        <li><i class="ph ph-check" aria-hidden="true"></i>Rapports de ventes et clôtures complets</li>
+        <li><i class="ph ph-check" aria-hidden="true"></i>Terminal de paiement SumUp, sans commission de notre part</li>
+      </ul>
+      <div class="actions"><a class="btn blanc" href="#solution">Découvrir la solution</a><a class="btn discret" href="caisse.html?demo=1">Essayer la caisse</a></div>
+      <small>Mirrio Caisse applique les protections techniques de la loi anti-fraude à la TVA. Le certificat NF525 n'est pas encore délivré : voir « Où en est la certification » plus bas.</small>
+    </div>
+  </section>
+
+  <section class="bloc" id="solution" aria-labelledby="t-solution">
+    <div class="wrap">
+      <h2 class="titre rv" id="t-solution">Une caisse faite pour le salon</h2>
+      <p class="lead rv">Plusieurs clients à la fois, des prestations et des produits dans le même ticket, des paiements mixtes. Sur iPad, sur ordinateur ou sur téléphone.</p>
+      <div class="grille">
+        <div class="carte rv"><i class="ph ph-receipt" aria-hidden="true"></i><h3>Tickets en cours</h3><p>Ajoutez une prestation pendant la coupe, passez d'un client à l'autre : chaque ticket garde son panier jusqu'à l'encaissement.</p></div>
+        <div class="carte rv"><i class="ph ph-arrow-u-up-left" aria-hidden="true"></i><h3>Avoirs et duplicata</h3><p>Un ticket ne se modifie pas : on le corrige par un avoir, partiel ou total. Toute réimpression est notée « duplicata ».</p></div>
+        <div class="carte rv"><i class="ph ph-lock-key" aria-hidden="true"></i><h3>Journal inaltérable</h3><p>Chaque opération est chaînée à la précédente et signée. Un bouton vérifie l'intégrité de tout l'historique.</p></div>
+        <div class="carte rv"><i class="ph ph-calendar-check" aria-hidden="true"></i><h3>Clôtures Z, mensuelles, annuelles</h3><p>Chiffre d'affaires, TVA par taux, moyens de paiement et espèces comptées, avec l'écart.</p></div>
+        <div class="carte rv"><i class="ph ph-graduation-cap" aria-hidden="true"></i><h3>Mode formation</h3><p>Formez une nouvelle recrue sans fausser la comptabilité : les tickets sont marqués et hors chiffre d'affaires.</p></div>
+        <div class="carte rv"><i class="ph ph-storefront" aria-hidden="true"></i><h3>Un salon, une caisse</h3><p>Chaque salon d'un groupe a sa propre caisse, ses produits et son terminal.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bande" id="terminal" aria-labelledby="t-terminal">
+    <div class="wrap deux">
+      <div>
+        <h2 class="titre rv" id="t-terminal">Encaissez sur un terminal SumUp</h2>
+        <p class="lead rv">La caisse envoie le montant au SumUp Solo, le client paie, le ticket est enregistré avec la référence de la transaction. Votre argent va directement sur votre compte SumUp : nous ne touchons à rien et ne prélevons aucune commission.</p>
+      </div>
+      <div class="grille" style="grid-template-columns:1fr">
+        <div class="carte rv"><i class="ph ph-contactless-payment" aria-hidden="true"></i><h3>Un geste, une vente</h3><p>Le bouton « Terminal carte » lance le paiement. Dès qu'il réussit, la vente est validée.</p></div>
+        <div class="carte rv"><i class="ph ph-shield-check" aria-hidden="true"></i><h3>Preuve d'encaissement</h3><p>La référence du paiement est inscrite sur le ticket et dans le journal. Une carte refusée ne crée aucune vente.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bloc" id="produits" aria-labelledby="t-produits">
+    <div class="wrap">
+      <h2 class="titre rv" id="t-produits">Vos produits, vendus en deux secondes</h2>
+      <p class="lead rv">Shampoings, soins, huiles à barbe : un catalogue avec vos prix, scanné à la caméra de l'iPhone ou d'un téléphone Android, ou avec un lecteur USB ou Bluetooth.</p>
+      <div class="grille">
+        <div class="carte rv"><i class="ph ph-barcode" aria-hidden="true"></i><h3>Scan de code-barres</h3><p>Un code connu s'ajoute au ticket. Un code inconnu propose de créer le produit, déjà rempli.</p></div>
+        <div class="carte rv"><i class="ph ph-seal-percent" aria-hidden="true"></i><h3>Remise possible</h3><p>Fixez la remise que vous pouvez accorder : elle s'affiche sur la caisse et s'applique d'un geste, jamais toute seule.</p></div>
+        <div class="carte rv"><i class="ph ph-package" aria-hidden="true"></i><h3>TVA et prix TTC</h3><p>Saisissez le prix TTC, la caisse calcule le hors taxes et ventile la TVA par taux.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bloc" id="compta" aria-labelledby="t-compta" style="padding-top:0">
+    <div class="wrap deux">
+      <div>
+        <h2 class="titre rv" id="t-compta">Où en est la certification</h2>
+        <p class="lead rv" style="margin-bottom:0">En France, un salon assujetti à la TVA doit utiliser une caisse certifiée NF525 ou attestée par son éditeur. Voici l'état réel de Mirrio Caisse.</p>
+      </div>
+      <ul class="etat rv">
+        <li class="ok"><i class="ph ph-check-circle" aria-hidden="true"></i><span>Journal chaîné et signé, tickets inaltérables, numérotation sans trou, grands totaux perpétuels</span></li>
+        <li class="ok"><i class="ph ph-check-circle" aria-hidden="true"></i><span>Avoirs, duplicata, clôtures journalière, mensuelle et annuelle, archives à conserver 6 ans</span></li>
+        <li class="ok"><i class="ph ph-check-circle" aria-hidden="true"></i><span>Export pour le comptable et lien en lecture seule</span></li>
+        <li class="non"><i class="ph ph-warning-circle" aria-hidden="true"></i><span><b>Certificat NF525 : pas encore délivré.</b> La démarche auprès d'un organisme accrédité reste à faire. En franchise en base de TVA, l'obligation ne s'applique pas.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="bloc" id="tarifs" aria-labelledby="t-tarifs" style="padding-top:0">
+    <div class="wrap">
+      <h2 class="titre rv" id="t-tarifs">Incluse dans tous les forfaits</h2>
+      <p class="lead rv">Pas de module caisse à payer en plus : elle est livrée avec l'agenda, la réservation en ligne et la page de votre salon.</p>
+      <div class="tarif">
+        <div class="carte rv"><b>19 €</b>par mois · Solo, 1 professionnel</div>
+        <div class="carte rv"><b>39 €</b>par mois · Équipe, jusqu'à 5 professionnels</div>
+        <div class="carte rv"><b>79 €</b>par mois · Groupe, jusqu'à 10 salons</div>
+      </div>
+      <p class="lead rv" style="margin:14px 0 0;font-size:14.5px">Deux mois offerts en paiement annuel. Aucune commission sur vos rendez-vous.</p>
+    </div>
+  </section>
+
+  <section class="final" aria-labelledby="t-final">
+    <div class="wrap">
+      <h2 class="titre rv" id="t-final">Essayez la caisse, sans compte</h2>
+      <p class="lead rv" style="margin-inline:auto">La démonstration est entièrement utilisable : tickets, avoirs, clôture, terminal simulé.</p>
+      <div class="actions"><a class="btn" href="caisse.html?demo=1">Ouvrir la caisse de démonstration</a><a class="btn discret" href="signup.html">Créer mon salon</a></div>
+    </div>
+  </section>
+</main>
+<footer><div class="wrap"><span>© Mirrio · La plateforme qu'il vous faut</span><span><a href="cgu.html">CGU</a> &nbsp; <a href="confidentialite.html">Confidentialité</a> &nbsp; <a href="#" data-cookies>Gérer les cookies</a></span></div></footer>
+<script>
+  const io = new IntersectionObserver(es => es.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold:.15 });
+  document.querySelectorAll('.rv').forEach(el => io.observe(el));
+</script>
+<script src="/pwa.js" defer></script>
+</body>
+</html>
