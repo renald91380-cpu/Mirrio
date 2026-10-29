@@ -30,6 +30,8 @@
   @media(max-width:980px){ .cadre{ grid-template-columns:1fr; } .apercu{ display:none; } }
   .progression{ display:flex; gap:8px; list-style:none; margin-bottom:26px; flex-wrap:wrap; }
   .progression li{ font-size:13px; font-weight:600; color:var(--muted); padding:6px 12px; border-radius:999px; border:1.5px solid var(--line); }
+  .photo-membre{ display:flex; gap:14px; align-items:center; margin:2px 0 12px; } .vignette{ width:64px; height:64px; border-radius:50%; background:var(--line); display:grid; place-items:center; font:800 24px var(--display); overflow:hidden; flex:none; } .vignette img{ width:100%; height:100%; object-fit:cover; }
+  textarea{ width:100%; padding:12px 14px; border-radius:12px; border:1px solid var(--line); background:var(--bg); color:var(--ink); font:inherit; resize:vertical; }
   .progression li[aria-current="step"]{ background:var(--ink); color:var(--bg); border-color:var(--ink); }
   .progression li.fait{ color:var(--ok); border-color:color-mix(in srgb, var(--ok) 50%, transparent); }
   h1{ font-size:clamp(30px, 4.4vw, 46px); font-weight:800; margin-bottom:8px; }
@@ -138,7 +140,7 @@
     ['Paiement', 'Comment vos clients règlent', 'Toujours en direct : l\'argent va sur votre compte, sans commission.']
   ];
 
-  var etat = { creux: true, i: 0, nom: 'Studio Aurore', ville: 'Nantes', metier: 'coiffure', prestations: [], equipe: [], couleur: '#E2A63D', fond: 'clair', mode: 'acompte', acompte: 5 };
+  var etat = { creux: true, i: 0, nom: 'Studio Aurore', ville: 'Nantes', accroche: '', apropos: '', metier: 'coiffure', prestations: [], equipe: [], couleur: '#E2A63D', fond: 'clair', mode: 'acompte', acompte: 5 };
   var idRef = 0;
   function chargerCatalogue(){
     etat.prestations = (CATALOGUES[etat.metier] || []).map(function(p, k){ return { id: 'p' + (++idRef), libelle: p[0], categorie: p[1], prix: p[2], duree: p[3], public: p[4], actif: true }; });
@@ -153,9 +155,9 @@
     var presta = actives().map(function(p){ return { id: p.id, libelle: p.libelle, duree_minutes: p.duree, prix_unitaire: p.prix, public_cible: p.public, categorie: p.categorie }; });
     return { slug:'demo', nom: etat.nom || 'Votre salon', metier: etat.metier === 'therapeute' ? 'massage' : etat.metier, logo_url:null, accent:'ambre', ville: etat.ville || '',
       horaires:{ jours:[2,3,4,5,6], debut:'09:30:00', fin:'19:00:00' }, adresse:null, latitude:null, longitude:null,
-      vitrine:{ accroche:'', a_propos:null, cover_url:null, galerie:[], mise_en_page:'classique', police:'moderne', couleur: etat.couleur, fond: etat.fond, boutons:'pilule', texte_bouton:'Prendre rendez-vous', bandeau_actif:false, bandeau_texte:null,
-        sections:{ a_propos:false, galerie:false, equipe:true, horaires:false, carte:false, avis:false, prestations:true }, ordre:['prestations','equipe'] },
-      equipe: etat.equipe.filter(function(m){ return m.nom; }).map(function(m){ return { nom:m.nom, role:m.role }; }), prestations: presta, avis: [] };
+      vitrine:{ accroche: etat.accroche.trim(), a_propos: etat.apropos.trim() || null, cover_url:null, galerie:[], mise_en_page:'classique', police:'moderne', couleur: etat.couleur, fond: etat.fond, boutons:'pilule', texte_bouton:'Prendre rendez-vous', bandeau_actif:false, bandeau_texte:null,
+        sections:{ a_propos:!!etat.apropos.trim(), galerie:false, equipe:true, horaires:false, carte:false, avis:false, prestations:true }, ordre:['a_propos','prestations','equipe'] },
+      equipe: etat.equipe.filter(function(m){ return m.nom; }).map(function(m){ return { nom:m.nom, role:m.role, bio:m.bio || '', photo_url:m.photo || null }; }), prestations: presta, avis: [] };
   }
   function envoyerApercu(){ if(pret && cadre.contentWindow) cadre.contentWindow.postMessage({ type:'cadence-vitrine', data: donnees() }, location.origin); }
   window.addEventListener('message', function(e){ if(e.origin === location.origin && e.data && e.data.type === 'cadence-vitrine-ready'){ pret = true; envoyerApercu(); } });
@@ -169,7 +171,9 @@
       '<div class="champ"><label class="t" for="f-ville">Ville</label><input type="text" id="f-ville" value="' + esc(etat.ville) + '" maxlength="60" autocomplete="off"></div></div>' +
       '<div class="champ"><span class="t" id="l-metier">Votre métier</span><div class="choix" role="radiogroup" aria-labelledby="l-metier">' +
       METIERS.map(function(m){ return '<label><input type="radio" name="metier" value="' + m[0] + '"' + (etat.metier === m[0] ? ' checked' : '') + '>' + m[1] + '</label>'; }).join('') + '</div>' +
-      '<p class="note">Changer de métier recharge le catalogue type.</p></div>';
+      '<p class="note">Changer de métier recharge le catalogue type.</p></div>' +
+      '<div class="champ"><label class="t" for="f-accroche">Une phrase d\'accroche <span class="note" style="font-weight:400">(facultatif)</span></label><input type="text" id="f-accroche" value="' + esc(etat.accroche) + '" maxlength="120" placeholder="Coiffure mixte, colorations végétales" autocomplete="off"></div>' +
+      '<div class="champ"><label class="t" for="f-apropos">Présentez votre salon <span class="note" style="font-weight:400">(facultatif)</span></label><textarea id="f-apropos" maxlength="600" rows="4" placeholder="Votre histoire, votre approche, ce qui vous distingue : vos clients le lisent avant de réserver.">' + esc(etat.apropos) + '</textarea><p class="note"><span id="n-apropos">' + etat.apropos.length + '</span> / 600 caractères</p></div>';
   }
   function vuePrestations(){
     return '<div class="lignes">' + etat.prestations.map(function(p){
@@ -190,6 +194,10 @@
         '<div><label class="t" for="n-' + m.id + '">Prénom</label><input type="text" id="n-' + m.id + '" value="' + esc(m.nom) + '" maxlength="40" data-champ="nom"></div>' +
         '<div><label class="t" for="r-' + m.id + '">Rôle</label><input type="text" id="r-' + m.id + '" value="' + esc(m.role) + '" maxlength="40" placeholder="Coloriste" data-champ="role"></div>' +
         (etat.equipe.length > 1 ? '<button type="button" class="btn discret petit" data-retirer="' + m.id + '" aria-label="Retirer ' + esc(m.nom || 'cette personne') + '">Retirer</button>' : '') + '</div>' +
+        '<div class="photo-membre"><span class="vignette" aria-hidden="true">' + (m.photo ? '<img src="' + m.photo + '" alt="">' : esc((m.nom || '?').charAt(0).toUpperCase())) + '</span>' +
+        '<div><label class="btn discret petit" for="ph-' + m.id + '" style="cursor:pointer">' + (m.photo ? 'Changer la photo' : 'Importer une photo') + '</label><input type="file" id="ph-' + m.id + '" accept="image/jpeg,image/png,image/webp" data-photo="' + m.id + '" hidden>' +
+        (m.photo ? ' <button type="button" class="btn discret petit" data-retirer-photo="' + m.id + '">Retirer la photo</button>' : '') + '<p class="note" style="margin:6px 0 0">JPEG, PNG ou WebP, réduite automatiquement.</p></div></div>' +
+        '<div class="champ" style="margin:12px 0"><label class="t" for="b-' + m.id + '">Présentation de ' + esc(m.nom || 'cette personne') + ' <span class="note" style="font-weight:400">(facultatif)</span></label><textarea id="b-' + m.id + '" data-champ="bio" maxlength="200" rows="2" placeholder="10 ans d\'expérience, spécialiste du balayage et des coupes courtes.">' + esc(m.bio || '') + '</textarea></div>' +
         '<div class="t" style="font-size:13px;font-weight:600;margin-bottom:8px">Spécialités (ce qu\'elle réalise)</div><div class="puces">' +
         a.map(function(p){ return '<label><input type="checkbox" data-spec="' + m.id + '" value="' + p.id + '"' + (m.presta.indexOf(p.id) >= 0 ? ' checked' : '') + '>' + esc(p.libelle) + '</label>'; }).join('') + '</div></div>';
     }).join('') + (etat.equipe.length < 5 ? '<button type="button" class="btn discret petit" id="ajout">+ Ajouter une personne</button>' : '');
@@ -225,12 +233,20 @@
     var e = $('etape');
     var nom = $('f-nom'); if(nom) nom.addEventListener('input', function(){ etat.nom = nom.value; envoyerApercu(); });
     var ville = $('f-ville'); if(ville) ville.addEventListener('input', function(){ etat.ville = ville.value; envoyerApercu(); });
+    var accr = $('f-accroche'); if(accr) accr.addEventListener('input', function(){ etat.accroche = accr.value; envoyerApercu(); });
+    var apr = $('f-apropos'); if(apr) apr.addEventListener('input', function(){ etat.apropos = apr.value; $('n-apropos').textContent = apr.value.length; envoyerApercu(); });
     e.querySelectorAll('input[name=metier]').forEach(function(r){ r.addEventListener('change', function(){ etat.metier = r.value; chargerCatalogue(); envoyerApercu(); }); });
     e.querySelectorAll('[data-id]').forEach(function(c){ c.addEventListener('change', function(){ etat.prestations.forEach(function(p){ if(p.id === c.dataset.id) p.actif = c.checked; }); etat.equipe = []; envoyerApercu(); }); });
     e.querySelectorAll('[data-prix]').forEach(function(c){ c.addEventListener('input', function(){ etat.prestations.forEach(function(p){ if(p.id === c.dataset.prix) p.prix = Math.max(0, Number(c.value) || 0); }); envoyerApercu(); }); });
     e.querySelectorAll('.pers').forEach(function(bloc){
       var m = etat.equipe.filter(function(x){ return x.id === bloc.dataset.m; })[0];
       bloc.querySelectorAll('[data-champ]').forEach(function(i){ i.addEventListener('input', function(){ m[i.dataset.champ] = i.value; envoyerApercu(); }); });
+      bloc.querySelectorAll('[data-photo]').forEach(function(f){ f.addEventListener('change', function(){
+        var fichier = f.files && f.files[0]; if(!fichier) return;
+        if(!/^image\/(jpeg|png|webp)$/.test(fichier.type)){ alerte('Choisissez une image JPEG, PNG ou WebP.'); return; }
+        reduirePhoto(fichier, function(url){ if(!url){ alerte('Cette image n\'a pas pu être lue.'); return; } m.photo = url; afficher(false); envoyerApercu(); });
+      }); });
+      bloc.querySelectorAll('[data-retirer-photo]').forEach(function(b){ b.addEventListener('click', function(){ m.photo = null; afficher(false); envoyerApercu(); }); });
       bloc.querySelectorAll('[data-spec]').forEach(function(i){ i.addEventListener('change', function(){ m.presta = i.checked ? m.presta.concat(i.value) : m.presta.filter(function(v){ return v !== i.value; }); }); });
     });
     e.querySelectorAll('[data-retirer]').forEach(function(b){ b.addEventListener('click', function(){ etat.equipe = etat.equipe.filter(function(x){ return x.id !== b.dataset.retirer; }); afficher(false); }); });
@@ -241,6 +257,24 @@
     var cr = $('f-creux'); if(cr) cr.addEventListener('change', function(){ etat.creux = cr.checked; });
     var ac = $('f-acompte'); if(ac) ac.addEventListener('input', function(){ etat.acompte = Math.max(5, Number(ac.value) || 5); });
   }
+
+  // Photo d'un membre : lue dans le navigateur, recadrée en carré et réduite (480 px, JPEG) avant d'être gardée ; rien n'est envoyé ailleurs.
+  function reduirePhoto(fichier, fin){
+    var lecteur = new FileReader();
+    lecteur.onerror = function(){ fin(null); };
+    lecteur.onload = function(){
+      var img = new Image();
+      img.onerror = function(){ fin(null); };
+      img.onload = function(){
+        var cote = Math.min(img.width, img.height), cv = document.createElement('canvas'); cv.width = cv.height = 480;
+        cv.getContext('2d').drawImage(img, (img.width - cote) / 2, (img.height - cote) / 2, cote, cote, 0, 0, 480, 480);
+        fin(cv.toDataURL('image/jpeg', 0.82));
+      };
+      img.src = lecteur.result;
+    };
+    lecteur.readAsDataURL(fichier);
+  }
+  function alerte(t){ var e = $('erreur'); e.textContent = t; e.hidden = false; }
 
   function valider(){
     if(etat.i === 0){ if(!etat.nom.trim()){ return ['Donnez un nom à votre salon.', 'f-nom']; } }
@@ -258,10 +292,10 @@
   function terminer(){
     var cfg = {
       nom: etat.nom.trim(), ville: etat.ville.trim() || 'Votre ville', metier: etat.metier === 'therapeute' ? 'massage' : etat.metier, couleur: etat.couleur, fond: etat.fond,
-      accroche: 'Réservez en ligne, 24h/24.',
+      accroche: etat.accroche.trim() || 'Réservez en ligne, 24h/24.', a_propos: etat.apropos.trim() || null,
       creux: etat.creux ? { pourcentage: 15, jours: [2,3,4], debut: '09:30', fin: '12:00' } : null,
       paiement: { en_ligne: true, especes: etat.mode !== 'carte', acompte_minimum: Math.max(5, etat.acompte), acompte_pourcentage: 0 },
-      equipe: etat.equipe.map(function(m, k){ return { id: 'n-' + k, nom: m.nom.trim(), role: m.role.trim() || 'Praticien·ne', bio: '', presta: m.presta.map(function(id){ return id; }) }; }),
+      equipe: etat.equipe.map(function(m, k){ return { id: 'n-' + k, nom: m.nom.trim(), role: m.role.trim() || 'Praticien·ne', bio: (m.bio || '').trim(), photo_url: m.photo || null, presta: m.presta.map(function(id){ return id; }) }; }),
       prestations: actives().map(function(p){ return { id: p.id, categorie: p.categorie, libelle: p.libelle, prix: p.prix, duree: p.duree, public: p.public }; })
     };
     try{ sessionStorage.setItem('mirrio-demo-salon', JSON.stringify(cfg)); }catch(e){}
@@ -270,7 +304,7 @@
     document.querySelector('.actions').hidden = true;
     var ou = { carte: 'carte à la réservation', acompte: 'acompte puis solde sur place' }[etat.mode];
     $('etape').innerHTML = '<div class="fin"><h2 id="fin-titre" tabindex="-1">' + esc(cfg.nom) + ' est en ligne.</h2>' +
-      '<p class="intro" style="margin:0">' + cfg.prestations.length + ' prestations, ' + cfg.equipe.length + ' personnes, règlement : ' + ou + '. Voyez maintenant ce que vivent vos clients.</p>' +
+      '<p class="intro" style="margin:0">' + cfg.prestations.length + ' prestations, ' + cfg.equipe.length + ' personne' + (cfg.equipe.length > 1 ? 's' : '') + ', règlement : ' + ou + '. Voyez maintenant ce que vivent vos clients.</p>' +
       '<div class="liens"><a class="lien fort" href="reservation.html?p=demo-nouveau"><i class="ph ph-calendar-check" aria-hidden="true"></i><span><b>Prendre un rendez-vous comme un client</b><small>Choisissez prestations, personne et créneau sur votre salon</small></span></a>' +
       '<a class="lien" href="pro.html?p=demo-nouveau"><i class="ph ph-storefront" aria-hidden="true"></i><span><b>Voir la page de mon salon</b><small>Ce que vos clients découvrent en premier</small></span></a>' +
       '<a class="lien" href="explorer.html?demo=1"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><span><b>Me retrouver dans l\'annuaire</b><small>Votre salon apparaît à côté des autres</small></span></a>' +

@@ -525,7 +525,7 @@
   // ------------------------------------------------------------- intervenant
   function ouvrirEtapeIntervenant(el){
     const carte = (id, nom, role, photo) => `<button type="button" class="interv" data-id="${id}" aria-pressed="${intervenantChoisi === id}">
-      <span class="ph">${photo && /^https:\/\//i.test(photo) ? `<img src="${echapperHtml(photo)}" alt="">` : echapperHtml((nom || '?').charAt(0).toUpperCase())}</span>
+      <span class="ph">${photo && (/^https:\/\//i.test(photo) || (slug.startsWith('demo') && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(photo))) ? `<img src="${echapperHtml(photo)}" alt="">` : echapperHtml((nom || '?').charAt(0).toUpperCase())}</span>
       <b>${echapperHtml(nom)}</b>${role ? `<small>${echapperHtml(role)}</small>` : ''}</button>`;
     $('liste-intervenants').innerHTML = carte('any', 'Sans préférence', 'Premier disponible', null).replace(/<span class="ph">[^<]*<\/span>/, '<span class="ph" aria-hidden="true">&#10022;</span>')
       + el.map(i => carte(i.id, i.nom, i.role, i.photo_url)).join('');

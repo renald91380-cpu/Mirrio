@@ -42,7 +42,7 @@ export function reponseCreation(corps){
   if(nom.length < 2 || nom.length > 80) return reponse(400, { error:'Le nom du salon doit faire entre 2 et 80 caractères.' });
   if(DB.salons.length >= MAX_SALONS) return reponse(400, { error:`Limite de ${MAX_SALONS} salons atteinte. Contactez-nous pour aller au-delà.` });
   const id = 's-nouveau-' + (DB.n++);
-  DB.salons.push({ id, nom, metier:corps.metier || 'coiffure', ville:String(corps.ville || '').trim() || null, plan:'studio', principal:false, slug:null, stats:{ nb_clients:0, rdv_mois:0, rdv_7j:0, ca_mois:0, nb_equipe:0 } });
+  DB.salons.push({ id, nom, metier:corps.metier || 'coiffure', ville:String(corps.ville || '').trim() || null, plan:'studio', principal:false, slug:null, description:String(corps.description || '').trim().slice(0, 600) || null, stats:{ nb_clients:0, rdv_mois:0, rdv_7j:0, ca_mois:0, nb_equipe:0 } });
   sauver();
   return reponse(200, { id, nom });
 }

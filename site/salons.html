@@ -163,6 +163,8 @@
         <div class="champ"><label for="f-metier">Activité</label><select id="f-metier">${METIERS.map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></div>
         <p class="muted" style="margin-bottom:14px">Votre forfait Groupe de <b>${eur2(FORFAIT_GROUPE)} par mois</b> couvre tous vos salons, sans supplément par salon ajouté.</p>
         <div class="champ"><label for="f-ville">Ville <span class="muted" style="font-weight:400">(facultatif)</span></label><input id="f-ville" maxlength="80"></div>
+        <div class="champ"><label for="f-desc">Présentation du salon <span class="muted" style="font-weight:400">(facultatif)</span></label><textarea id="f-desc" maxlength="600" rows="3" placeholder="Votre histoire, votre approche, ce qui distingue ce salon." style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;resize:vertical"></textarea></div>
+        <p class="muted" style="font-size:13px;margin:-4px 0 12px">L'équipe, la photo et la présentation de chaque technicien se complètent ensuite dans « Ma page », une fois ce salon ouvert.</p>
         <p class="erreur" id="f-err" role="alert"></p>
         <div class="actions" style="justify-content:flex-end;margin:6px 0 0"><button class="btn" type="button" id="non">Annuler</button><button class="btn principal" type="submit" id="ok">Créer le salon</button></div></form>`;
       document.body.appendChild(d);
@@ -174,7 +176,7 @@
         const nom = d.querySelector('#f-nom').value.trim();
         if(nom.length < 2){ d.querySelector('#f-err').textContent = 'Indiquez le nom du salon.'; return; }
         d.querySelector('#ok').disabled = true; d.querySelector('#ok').textContent = 'Création…';
-        const corps = { nom, metier:d.querySelector('#f-metier').value, ville:d.querySelector('#f-ville').value.trim() };
+        const corps = { nom, metier:d.querySelector('#f-metier').value, ville:d.querySelector('#f-ville').value.trim(), description:d.querySelector('#f-desc').value.trim() };
         const r = DEMO ? demoMod.reponseCreation(corps) : await fetch('/api/salons', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Bearer ' + session.access_token }, body:JSON.stringify(corps) });
         const j = await r.json().catch(() => ({}));
         if(!r.ok){ d.querySelector('#f-err').textContent = j.error || 'Création impossible pour le moment.'; d.querySelector('#ok').disabled = false; d.querySelector('#ok').textContent = 'Créer le salon'; return; }

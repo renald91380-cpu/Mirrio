@@ -32,10 +32,11 @@ export default async function handler(req, res){
     if(!user) return json(res, 401, { error: 'Connexion requise.' });
 
     let corps = req.body; if(typeof corps === 'string'){ try{ corps = JSON.parse(corps); }catch(e){ corps = {}; } }
-    const nom = String((corps && corps.nom) || '').trim(), ville = String((corps && corps.ville) || '').trim();
+    const nom = String((corps && corps.nom) || '').trim(), ville = String((corps && corps.ville) || '').trim(), description = String((corps && corps.description) || '').trim();
     const metier = METIERS.includes(corps && corps.metier) ? corps.metier : 'coiffure';
     if(nom.length < 2 || nom.length > 80) return json(res, 400, { error: 'Le nom du salon doit faire entre 2 et 80 caractères.' });
     if(ville.length > 80) return json(res, 400, { error: 'Ville trop longue.' });
+    if(description.length > 600) return json(res, 400, { error: 'La présentation est limitée à 600 caractères.' });
 
     const [profil] = await (await rest(`profiles?id=eq.${user.id}&select=plan,compte_technique`)).json();
     if(!profil) return json(res, 403, { error: 'Profil introuvable.' });
@@ -56,6 +57,8 @@ export default async function handler(req, res){
     const p = await rest(`profiles?id=eq.${nouveau}`, { method: 'PATCH', body: JSON.stringify({ business_name: nom, metier, plan: 'studio', compte_technique: true, cree_par: user.id }) });
     if(!p.ok) throw new Error('profil');
     if(ville) await rest(`parametres_facturation?owner_id=eq.${nouveau}`, { method: 'PATCH', body: JSON.stringify({ emetteur_ville: ville, emetteur_nom: nom }) });
+    // Présentation du salon : première ligne de sa vitrine (best-effort, la vitrine se complète ensuite dans « Ma page »).
+    if(description) await rest('vitrine', { method: 'POST', body: JSON.stringify({ owner_id: nouveau, a_propos: description }), headers: { Prefer: 'resolution=merge-duplicates,return=representation' } }).catch(() => {});
     const g = await rest('salon_gestionnaires', { method: 'POST', body: JSON.stringify({ salon_id: nouveau, user_id: user.id }) });
     if(!g.ok) throw new Error('gestionnaire');
     return json(res, 200, { id: nouveau, nom });

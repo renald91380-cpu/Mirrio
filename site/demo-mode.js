@@ -141,7 +141,7 @@
     return {
       nom: cfg.nom, metier: cfg.metier, ville: cfg.ville, accent: 'ambre', adresse: cfg.ville, latitude: null, longitude: null,
       jours: [2,3,4,5,6], debut: '09:30', fin: '19:00', pas: 30,
-      style: { accroche: cfg.accroche || '', mise_en_page: 'classique', police: 'moderne', couleur: cfg.couleur, fond: cfg.fond, boutons: 'pilule', texte_bouton: 'Prendre rendez-vous', cover_url: photo, galerie: [], a_propos: null },
+      style: { accroche: cfg.accroche || '', mise_en_page: 'classique', police: 'moderne', couleur: cfg.couleur, fond: cfg.fond, boutons: 'pilule', texte_bouton: 'Prendre rendez-vous', cover_url: photo, galerie: [], a_propos: cfg.a_propos || null },
       creux: cfg.creux || null,
       paiement: cfg.paiement, equipe: cfg.equipe, prestations: cfg.prestations, avis: []
     };
@@ -310,7 +310,7 @@
         vitrine: { accroche: v.accroche, a_propos: v.a_propos, cover_url: v.cover_url, galerie: v.galerie, mise_en_page: v.mise_en_page, police: v.police, couleur: v.couleur, fond: v.fond, boutons: v.boutons,
           texte_bouton: v.texte_bouton, bandeau_actif: !!v.bandeau_actif, bandeau_texte: v.bandeau_texte || null, instagram: v.instagram, whatsapp: v.whatsapp || '06 12 34 56 78', telephone_public: v.telephone_public, email_public: v.email_public || null,
           sections: { a_propos: true, prestations: true, galerie: true, equipe: true, avis: true, horaires: true, carte: true }, ordre: ['a_propos', 'prestations', 'galerie', 'equipe', 'horaires', 'carte', 'avis'] },
-        equipe: salon.equipe.map(function(i){ return { nom: i.nom, role: i.role, bio: i.bio, photo_url: null }; }),
+        equipe: salon.equipe.map(function(i){ return { nom: i.nom, role: i.role, bio: i.bio, photo_url: i.photo_url || null }; }),
         prestations: listePrestations(salon), avis: avisListe(salon)
       });
     }
@@ -334,7 +334,7 @@
         return reponse({
           praticien: { business_name: salon.nom, logo_url: null, accent: salon.accent, metier: salon.metier },
           style: stylePourReservation(salon),
-          intervenants: salon.equipe.map(function(i){ return { id: i.id, nom: i.nom, role: i.role, photo_url: null }; }),
+          intervenants: salon.equipe.map(function(i){ return { id: i.id, nom: i.nom, role: i.role, photo_url: i.photo_url || null }; }),
           validation_auto: true, prestations: listePrestations(salon),
           creux: salon.creux ? { pourcentage: salon.creux.pourcentage, jours: salon.creux.jours, debut: salon.creux.debut, fin: salon.creux.fin } : null,
           tarifs: salon.tarifs || { enfant: null, etudiant: null },

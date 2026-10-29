@@ -135,6 +135,8 @@
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const https = u => (typeof u === 'string' && /^https:\/\//i.test(u)) ? u : '';
   // Niveau de prix du salon (« € » à « €€€€ »), d'après le prix médian de ses prestations : repère rapide, comme sur les annuaires de réservation.
+  // Photo d'un membre de l'équipe : https uniquement, sauf en démonstration et en aperçu où une image importée dans le navigateur (data:image) est acceptée.
+  const photoMembre = u => https(u) || ((apercu || (slug || '').startsWith('demo')) && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(u || '') ? u : '');
   const niveauPrix = liste => { const v = (liste || []).map(x => Number(x.prix_unitaire)).filter(n => n > 0).sort((a, b) => a - b); if(!v.length) return ''; const m = v[Math.floor(v.length / 2)]; return m <= 30 ? '€' : m <= 70 ? '€€' : m <= 150 ? '€€€' : '€€€€'; };
   const prix = n => Number(n || 0).toFixed(2).replace('.00', '').replace('.', ',') + ' €';
   const etoiles = n => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n));
@@ -319,7 +321,7 @@
           `<button type="button" data-src="${esc(u)}" aria-label="Agrandir la photo ${imgs.indexOf(u) + 1} sur ${imgs.length}"><img src="${esc(u)}" alt="" loading="lazy" decoding="async"></button>`).join('')}</div></section>` : '';
       },
       equipe: () => (d.equipe || []).length ? `<section id="equipe"><h2>L'équipe</h2><div class="equipe">${d.equipe.map(m => `
-          <div class="membre"><div class="ph">${https(m.photo_url) ? `<img src="${esc(https(m.photo_url))}" alt="">` : esc((m.nom || '?').charAt(0).toUpperCase())}</div>
+          <div class="membre"><div class="ph">${photoMembre(m.photo_url) ? `<img src="${esc(photoMembre(m.photo_url))}" alt="">` : esc((m.nom || '?').charAt(0).toUpperCase())}</div>
           <b>${esc(m.nom)}</b>${m.role ? `<small>${esc(m.role)}</small>` : ''}${m.bio ? `<p>${esc(m.bio)}</p>` : ''}</div>`).join('')}</div></section>` : '',
       horaires: () => {
         const h = d.horaires; if(!h || !h.jours) return '';
