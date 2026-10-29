@@ -7,6 +7,7 @@
 
 import { ACCENTS, ACCENT_DEFAUT } from './theme.js';
 
+import { formaterMontant, profil, definirProfil } from './pays-profils.js';
 const PARAMS_DEFAUT = {
   emetteur_nom:'', emetteur_adresse:'', emetteur_cp:'', emetteur_ville:'',
   emetteur_pays:'France', emetteur_email:'', emetteur_tel:'',
@@ -20,7 +21,7 @@ const PARAMS_DEFAUT = {
 };
 
 // Mention obligatoire pour un émetteur non assujetti (franchise en base, art. 293 B du CGI).
-export const MENTION_FRANCHISE_TVA = 'TVA non applicable, art. 293 B du CGI.';
+export const MENTION_FRANCHISE_TVA = 'TVA non applicable, art. 293 B du CGI.';   // profil FR ; les autres pays passent par profil().mentionFranchise
 
 // Rappel légal par défaut pour les retards de paiement entre professionnels
 // (art. L441-10 et D441-5 du code de commerce).
@@ -35,7 +36,7 @@ export function echapper(str){
 }
 
 export function formatMontant(n){
-  return new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR' }).format(Number(n) || 0);
+  return formaterMontant(n);   // monnaie du profil pays du salon émetteur (pays-profils.js)
 }
 
 export function formatDate(d){
@@ -177,6 +178,7 @@ export function stylesDocument(couleur, modele){
 
 export function rendreDocument({ doc, lignes, client, params, brand }){
   const p = { ...PARAMS_DEFAUT, ...(params || {}) };
+  definirProfil(p.profil_pays || 'FR');   // monnaie, mentions et identifiant du pays de l'émetteur
   const couleur = couleurDocument(p, brand);
   const estDevis = (doc?.type || 'devis') === 'devis';
   // 'paye' est le même statut que gère déjà l'écran Devis & factures (case
@@ -221,9 +223,9 @@ export function rendreDocument({ doc, lignes, client, params, brand }){
 
   const mentionsLegales = [
     p.forme_juridique,
-    p.siret ? `SIRET ${p.siret}` : '',
+    p.siret ? `${profil().identifiantCourt} ${p.siret}` : '',
     p.rcs_ville ? `RCS ${p.rcs_ville}` : '',
-    p.assujetti_tva ? (p.tva_numero ? `TVA ${p.tva_numero}` : '') : MENTION_FRANCHISE_TVA
+    p.assujetti_tva ? (p.tva_numero ? `TVA ${p.tva_numero}` : '') : profil().mentionFranchise
   ].filter(Boolean).join(' · ');
 
   const conditions = p.conditions_paiement

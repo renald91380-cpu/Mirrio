@@ -19,6 +19,7 @@
 // Un color picker libre laisserait l'utilisateur choisir un vert qui rendrait
 // ses pastilles « Payé » illisibles — la contrainte est ici un service rendu.
 
+import { definirProfil } from './pays-profils.js';
 export const ACCENTS = {
   ambre:  { hex:'#E2A63D', texte:'#1C2333', doux:'#F0C98A', nom:'Ambre',      note:'Le réglage d’origine de Mirrio' },
   marine: { hex:'#244990', texte:'#F5F1E7', doux:'#8FA6D4', nom:'Marine',     note:'Sobre, orienté conseil' },
@@ -398,6 +399,7 @@ export async function initTheme(supabase, ongletActif){
     brand.groupe = brand.salons.length > 1 || (!!principal && principal.plan === 'studio');
   }catch(e){ brand.salons = []; }
   try{ const { data: r } = await supabase.rpc('mon_role'); brand.role = r || 'proprietaire'; }catch(e){ brand.role = 'proprietaire'; }
+  try{ const { data: pf } = await supabase.from('parametres_facturation').select('profil_pays').eq('owner_id', espaceId).maybeSingle(); definirProfil((pf && pf.profil_pays) || 'FR'); }catch(e){ definirProfil('FR'); }
   clientSupabase = supabase;
   appliquerTheme(brand);
   monterEntete(brand, ongletActif, estAdmin);
