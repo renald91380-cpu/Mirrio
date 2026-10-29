@@ -33,6 +33,7 @@ create function public.current_workspace_id() returns uuid language sql stable a
 create function public.est_gestionnaire(p uuid) returns boolean language sql stable as $$ select false $$;
 create function public.new_feed_token() returns text language sql as $$ select encode(extensions.gen_random_bytes(12), 'hex') $$;
 create table public.profiles (id uuid primary key, plan text);
+create table public.vitrine_equipe (id uuid primary key default gen_random_uuid(), owner_id uuid not null, nom text, position int default 0);
 create table public.workspace_members (id uuid primary key default gen_random_uuid(), workspace_id uuid not null, user_id uuid, email text not null, role text not null default 'collaborateur',
   statut text not null default 'invite', invite_token text unique, invited_at timestamptz default now(), joined_at timestamptz);
 create table public.clients(id uuid primary key default gen_random_uuid(), owner_id uuid, full_name text);
@@ -57,6 +58,7 @@ await db.exec(lire('schema-v43-caisse-certifiable.sql'));
 await db.exec(lire('schema-v43-caisse-certifiable.sql'));        // rejouable sans effet de bord
 await db.exec(lire('schema-v44-produits.sql'));
 await db.exec(lire('schema-v45-equipes-roles.sql'));
+await db.exec(lire('schema-v46-absences.sql'));
 await db.exec(`insert into auth.users values ('${U}'); insert into public.profiles values ('${U}', 'studio'); insert into public.parametres_facturation values ('${U}', true); set app.uid = '${U}';`);
 
 // ---------------------------------------------------------------- scénarios légitimes
@@ -129,6 +131,11 @@ let invites = 0; for (let i = 0; i < 25; i++) { const e = await refuse(() => q(`
 verif('S', 'Équipe : 20 professionnels au plus, propriétaire et membres existants compris', invites === 17, invites + ' invitations acceptées');
 verif('S', 'Invitation : rôle inconnu refusé', /Rôle inconnu/.test(await refuse(() => q(`select public.inviter_collaborateur('zz@x.fr', 'proprietaire')`)) || ''));
 await db.exec(`delete from public.workspace_members where email like 'p%@x.fr'`);
+
+// ---------------------------------------------------------------- absences : plage cohérente exigée
+const pro1 = (await un(`insert into public.vitrine_equipe (owner_id, nom) values ($1, 'Léa') returning id`, [U])).id;
+verif('S', 'Absence : une fin avant le début est refusée', /check/i.test(await refuse(() => q(`insert into public.absences (owner_id, intervenant_id, debut, fin) values ($1, $2, now(), now() - interval '1 day')`, [U, pro1])) || ''));
+verif('S', 'Absence : une plage valide est acceptée', (await refuse(() => q(`insert into public.absences (owner_id, intervenant_id, debut, fin, motif) values ($1, $2, now(), now() + interval '2 days', 'Congés')`, [U, pro1]))) === null);
 
 // ---------------------------------------------------------------- S : sécurisation
 const ok0 = (await un(`select public.caisse_verifier() r`)).r;

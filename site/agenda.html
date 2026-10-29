@@ -260,6 +260,7 @@
   .eq-pay.reste{ background:rgba(226,166,61,.28); color:#6B4600; }
   .eq-pay.du{ background:rgba(181,56,31,.13); color:#8C2A14; }
   .eq-bloc.attente{ border-style:dashed; background:repeating-linear-gradient(135deg, #fff 0 8px, color-mix(in srgb, var(--c) 10%, #fff) 8px 16px); }
+  .eq-absent{ position:absolute; left:0; right:0; pointer-events:none; background:repeating-linear-gradient(45deg, rgba(179,64,42,.13) 0 6px, transparent 6px 12px); border-block:1px dashed rgba(179,64,42,.5); font-size:12px; font-weight:700; color:#8c2f1c; padding:4px 8px; overflow:hidden; }
   .eq-ferme{ position:absolute; left:0; right:0; pointer-events:none; background:repeating-linear-gradient(135deg, rgba(16,18,22,.05) 0 6px, transparent 6px 12px); }
   .eq-ferme.tout::after{ content:"Fermé"; position:absolute; top:10px; left:0; right:0; text-align:center; font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:rgba(16,18,22,.4); }
   .eq-bloc{ cursor:grab; touch-action:manipulation; user-select:none; -webkit-user-select:none; }
@@ -342,6 +343,7 @@
         <h2 class="date-titre" id="eq-date"></h2>
         <div class="eq-actions">
           <button type="button" id="eq-prec" aria-label="Jour précédent">‹</button>
+          <button type="button" id="eq-absences" title="Congés et absences de l'équipe">Absences</button>
           <button type="button" id="eq-auj">Aujourd'hui</button>
           <button type="button" id="eq-suiv" aria-label="Jour suivant">›</button>
         </div>
@@ -1190,6 +1192,42 @@
     }));
   }
 
+  // ---- congés et absences par personne
+  async function gererAbsences(){
+    if(!membres.length){ showToast('Ajoutez d\'abord les membres de l\'équipe dans « Ma page ».'); return; }
+    const d = document.createElement('dialog'); d.setAttribute('aria-labelledby', 'abs-t');
+    d.style.cssText = 'border:none;border-radius:22px;padding:24px;width:min(560px,96vw);max-height:90vh;overflow:auto';
+    document.body.appendChild(d);
+    const fmt = x => new Date(x).toLocaleString('fr-FR', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+    const dessiner = async () => {
+      const { data, error } = await supabase.from('absences').select('*').gt('fin', new Date().toISOString()).order('debut');
+      const liste = error ? [] : (data || []);
+      d.innerHTML = `<h2 id="abs-t" style="margin:0 0 6px">Congés et absences</h2><p style="color:#5B606B;margin:0 0 12px;font-size:14px">Une personne absente n'est plus proposée à la réservation en ligne et apparaît barrée dans l'agenda.${error ? ' <b>(Migration schema-v46 à exécuter.)</b>' : ''}</p>
+        <div>${liste.length ? liste.map(x => `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid rgba(16,18,22,.1)"><span><b>${escapeHtml((membres.find(m => m.id === x.intervenant_id) || {}).nom || '?')}</b> · ${escapeHtml(fmt(x.debut))} → ${escapeHtml(fmt(x.fin))}${x.motif ? '<br><span style="color:#5B606B;font-size:13px">' + escapeHtml(x.motif) + '</span>' : ''}</span><button type="button" class="abs-del" data-id="${x.id}" style="border:1px solid rgba(16,18,22,.2);background:none;border-radius:99px;padding:6px 12px;cursor:pointer">Retirer</button></div>`).join('') : '<p>Aucune absence à venir.</p>'}</div>
+        <form id="abs-form" style="margin-top:14px;display:grid;gap:10px">
+          <label>Personne <select name="p" style="width:100%;min-height:42px">${membres.map(m => `<option value="${m.id}">${escapeHtml(m.nom)}</option>`).join('')}</select></label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><label>Du <input type="date" name="du" required style="width:100%;min-height:42px"></label><label>Au (inclus) <input type="date" name="au" required style="width:100%;min-height:42px"></label></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><label>De (heure, facultatif) <input type="time" name="h0" style="width:100%;min-height:42px"></label><label>À (heure, facultatif) <input type="time" name="h1" style="width:100%;min-height:42px"></label></div>
+          <label>Motif (facultatif) <input name="motif" maxlength="80" placeholder="Congés payés, formation…" style="width:100%;min-height:42px"></label>
+          <p id="abs-err" role="alert" style="color:#B3402A;margin:0"></p>
+          <div style="display:flex;gap:10px;justify-content:flex-end"><button type="button" id="abs-x" style="min-height:44px;padding:0 18px;border-radius:99px;border:1px solid rgba(16,18,22,.2);background:none;cursor:pointer">Fermer</button><button type="submit" style="min-height:44px;padding:0 18px;border-radius:99px;border:0;background:#E2A63D;font-weight:600;cursor:pointer">Ajouter l'absence</button></div></form>`;
+      d.querySelector('#abs-x').onclick = () => { d.close(); d.remove(); rendreEquipe(); };
+      d.querySelectorAll('.abs-del').forEach(b => b.onclick = async () => { await supabase.from('absences').delete().eq('id', b.dataset.id); dessiner(); });
+      d.querySelector('#abs-form').onsubmit = async e => {
+        e.preventDefault(); const f = new FormData(e.target), err = d.querySelector('#abs-err');
+        const [a0, m0, j0] = f.get('du').split('-').map(Number), [a1, m1, j1] = f.get('au').split('-').map(Number), h0 = f.get('h0'), h1 = f.get('h1');
+        const debut = h0 ? new Date(a0, m0 - 1, j0, ...h0.split(':').map(Number)) : new Date(a0, m0 - 1, j0, 0, 0);
+        const fin = h1 ? new Date(a1, m1 - 1, j1, ...h1.split(':').map(Number)) : new Date(a1, m1 - 1, j1 + 1, 0, 0);
+        if(!(fin > debut)){ err.textContent = 'La fin doit être après le début.'; return; }
+        const { error } = await supabase.from('absences').insert({ owner_id:espaceId, intervenant_id:f.get('p'), debut:debut.toISOString(), fin:fin.toISOString(), motif:f.get('motif').trim() || null });
+        if(error){ err.textContent = /row-level|policy/i.test(error.message) ? 'Seul un responsable du salon peut ajouter une absence.' : 'Enregistrement impossible.'; return; }
+        dessiner();
+      };
+    };
+    await dessiner(); d.showModal();
+  }
+  document.getElementById('eq-absences').addEventListener('click', gererAbsences);
+
   async function rendreEquipe(){
     const debut = new Date(jourEquipe), fin = new Date(jourEquipe); fin.setDate(fin.getDate() + 1);
     document.getElementById('eq-date').textContent =
@@ -1201,6 +1239,9 @@
     const grille = document.getElementById('eq-grille');
     if(error){ grille.innerHTML = '<div style="padding:30px;">Impossible de charger la journée.</div>'; return; }
     const rdvs = (data || []).filter(a => a.statut !== 'annule');
+    // Congés et absences du jour (schema-v46) : table absente = aucune.
+    let absJour = [];
+    try{ const r = await supabase.from('absences').select('*').lt('debut', fin.toISOString()).gt('fin', debut.toISOString()); absJour = r.error ? [] : (r.data || []); }catch(e){}
     // Avec une équipe, les rendez-vous sans intervenant s'affichent dans une colonne « Non attribué ».
     const colonnes = membres.length && rdvs.some(a => !a.intervenant_id) ? [...equipe, { id: espaceId, nom: 'Non attribué' }] : equipe;
     const couleurDe = i => COULEURS_EQ[i % COULEURS_EQ.length];
@@ -1226,7 +1267,13 @@
         `<span style="top:${i * PXH}px;">${String(H_DEBUT + i).padStart(2,'0')}:00</span>`).join('') + '</div>';
     colonnes.forEach((m, i) => {
       const siens = rdvs.filter(a => (a.intervenant_id || espaceId) === m.id);
-      html += `<div class="eq-col" data-collab="${m.id}" style="height:${hauteur}px; --c:${couleurDe(i)}">` + voileFerme(m) + siens.map(a => {
+      const absentes = absJour.filter(x => x.intervenant_id === m.id).map(x => {
+        const d0 = Math.max(new Date(x.debut), debut), d1 = Math.min(new Date(x.fin), fin);
+        const t0 = new Date(d0).getHours() * 60 + new Date(d0).getMinutes(), t1 = d1 >= fin.getTime() ? 24 * 60 : new Date(d1).getHours() * 60 + new Date(d1).getMinutes();
+        const top = Math.max(0, (t0 - H_DEBUT * 60) * PX_MIN), bas = Math.min(hauteur, (t1 - H_DEBUT * 60) * PX_MIN);
+        return bas > top ? `<div class="eq-absent" style="top:${top}px; height:${bas - top}px;">Absent${x.motif ? ' : ' + escapeHtml(x.motif) : ''}</div>` : '';
+      }).join('');
+      html += `<div class="eq-col" data-collab="${m.id}" style="height:${hauteur}px; --c:${couleurDe(i)}">` + voileFerme(m) + absentes + siens.map(a => {
         const d = new Date(a.date_debut), f = new Date(a.date_fin);
         const top = Math.max(0, (d.getHours() * 60 + d.getMinutes() - H_DEBUT * 60) * PX_MIN);
         const h = Math.max(30, ((f - d) / 60000) * PX_MIN - 3);

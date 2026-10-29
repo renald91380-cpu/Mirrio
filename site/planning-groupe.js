@@ -108,7 +108,8 @@ export function monterPlanning(zone, fournisseur, options = {}){
   function creneauxLibres(salon, personne, jr, duree){
     const h = salon.horaires; if(!h || !(h.jours || []).includes(jourIso(jr))) return [];
     const ouv = minutes(h.debut), clo = minutes(h.fin), base = debutJour(jr).getTime(), res = [];
-    const pris = salon.rdv.filter(r => cle(r.d) === cle(jr) && (!personne || r.intervenant_id == null || r.intervenant_id === personne.id));
+    const pris = salon.rdv.filter(r => cle(r.d) === cle(jr) && (!personne || r.intervenant_id == null || r.intervenant_id === personne.id))
+      .concat((salon.absences || []).filter(x => personne && x.intervenant_id === personne.id).map(x => ({ d:new Date(x.debut), f:new Date(x.fin) })));
     const maintenant = Date.now();
     for(let m = ouv; m + duree <= clo; m += PAS){
       const d = base + m * 60000, f = d + duree * 60000;

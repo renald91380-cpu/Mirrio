@@ -79,10 +79,17 @@ export async function occupes(ownerId, debutIso, finIso){
     lignes = await get(`rendez_vous?owner_id=eq.${ownerId}&date_debut=lt.${finIso}&date_fin=gt.${debutIso}&select=date_debut,date_fin,statut,paiement_statut,expire_le`);
   }
   const now = Date.now();
-  return lignes
+  const rdv = lignes
     .filter(r => r.statut !== 'annule')
     .filter(r => !(r.paiement_statut === 'en_attente' && r.expire_le && new Date(r.expire_le).getTime() < now))
     .map(r => ({ debut:new Date(r.date_debut).getTime(), fin:new Date(r.date_fin).getTime(), intervenant:r.intervenant_id || null }));
+  // Congés et absences (schema-v46) : une personne absente est « occupée » sur la période, comme avec un rendez-vous. Table absente : on ignore.
+  let absences = [];
+  try{
+    absences = (await get(`absences?owner_id=eq.${ownerId}&debut=lt.${finIso}&fin=gt.${debutIso}&select=debut,fin,intervenant_id`))
+      .map(x => ({ debut:new Date(x.debut).getTime(), fin:new Date(x.fin).getTime(), intervenant:x.intervenant_id }));
+  }catch(e){ absences = []; }
+  return rdv.concat(absences);
 }
 
 // Fenêtre de plage horaire d'une ressource pour un jour donné (null = fermé).
