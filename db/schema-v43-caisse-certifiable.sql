@@ -28,6 +28,7 @@ create table if not exists public.caisse_chaine (
   n_formation   bigint        not null default 0,
   n_z           bigint        not null default 0
 );
+alter table public.caisse_chaine add column if not exists n_mouvement bigint not null default 0;
 create table if not exists public.caisse_secrets (owner_id uuid primary key, cle text not null);
 alter table public.caisse_chaine enable row level security;
 alter table public.caisse_secrets enable row level security;   -- aucune policy : illisible pour tout client
@@ -38,7 +39,7 @@ create table if not exists public.caisse_journal (
   id            uuid primary key default gen_random_uuid(),
   owner_id      uuid not null,
   seq           bigint not null,
-  type          text not null check (type in ('ouverture','vente','avoir','formation','duplicata','cloture_z','cloture_mensuelle','cloture_annuelle','archive','verification','attestation')),
+  type          text not null check (type in ('ouverture','vente','avoir','formation','duplicata','cloture_z','cloture_mensuelle','cloture_annuelle','archive','verification','attestation','mouvement')),
   session_id    uuid,
   ticket_id     uuid,
   numero        text,
@@ -55,7 +56,7 @@ create table if not exists public.caisse_journal (
 );
 -- Tables déjà créées avant l'ajout du type « attestation » : on remplace la contrainte.
 alter table public.caisse_journal drop constraint if exists caisse_journal_type_check;
-alter table public.caisse_journal add constraint caisse_journal_type_check check (type in ('ouverture','vente','avoir','formation','duplicata','cloture_z','cloture_mensuelle','cloture_annuelle','archive','verification','attestation'));
+alter table public.caisse_journal add constraint caisse_journal_type_check check (type in ('ouverture','vente','avoir','formation','duplicata','cloture_z','cloture_mensuelle','cloture_annuelle','archive','verification','attestation','mouvement'));
 create index if not exists caisse_journal_owner_date on public.caisse_journal(owner_id, created_at);
 alter table public.caisse_journal enable row level security;
 drop policy if exists "Caisse : lire le journal de l'espace" on public.caisse_journal;
@@ -95,6 +96,28 @@ alter table public.caisse_tickets add column if not exists vendeur text;
 alter table public.caisse_tickets enable row level security;
 drop policy if exists "Caisse : lire les tickets de l'espace" on public.caisse_tickets;
 create policy "Caisse : lire les tickets de l'espace" on public.caisse_tickets for select using (owner_id = public.current_workspace_id());
+
+-- Mouvements d'espèces hors vente : apport de monnaie, retrait ou dépôt en banque, dépense payée en espèces. Inaltérables comme le reste ; ils entrent dans les
+-- espèces attendues du Z. Réservés aux responsables (caisse_mouvement).
+create table if not exists public.caisse_mouvements (
+  id            uuid primary key default gen_random_uuid(),
+  owner_id      uuid not null,
+  session_id    uuid not null references public.caisse_sessions(id) on delete restrict,
+  numero        text not null,
+  type          text not null check (type in ('apport', 'retrait', 'depense')),
+  montant       numeric(12,2) not null check (montant > 0),
+  motif         text not null check (length(btrim(motif)) between 3 and 120),
+  vendeur       text,
+  journal_seq   bigint not null,
+  journal_hash  text not null,
+  created_at    timestamptz not null default now(),
+  created_by    uuid,
+  unique (owner_id, numero)
+);
+create index if not exists caisse_mouvements_session on public.caisse_mouvements(session_id);
+alter table public.caisse_mouvements enable row level security;
+drop policy if exists "Caisse : lire les mouvements de l'espace" on public.caisse_mouvements;
+create policy "Caisse : lire les mouvements de l'espace" on public.caisse_mouvements for select using (owner_id = public.current_workspace_id());
 
 -- Un montant de paiement peut maintenant être négatif (remboursement d'un avoir).
 alter table public.caisse_paiements drop constraint if exists caisse_paiements_montant_check;
@@ -154,7 +177,7 @@ end $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['caisse_journal', 'caisse_tickets', 'caisse_paiements'] loop
+  foreach t in array array['caisse_journal', 'caisse_tickets', 'caisse_paiements', 'caisse_mouvements'] loop
     execute format('drop trigger if exists caisse_immuable on public.%I', t);
     execute format('create trigger caisse_immuable before update or delete on public.%I for each row execute function public.caisse__immuable()', t);
     execute format('drop trigger if exists caisse_immuable_trunc on public.%I', t);
@@ -531,6 +554,36 @@ begin
   return public.caisse__ticket_json(t, j, n);
 end $$;
 
+-- ---------------------------------------------------------------------------------------------------------------- mouvements d'espèces
+create or replace function public.caisse_mouvement(p_session uuid, p_type text, p_montant numeric, p_motif text)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare e uuid := public.caisse__espace(); s public.caisse_sessions; n bigint; num text; mv public.caisse_mouvements; j public.caisse_journal; motif text := btrim(coalesce(p_motif, '')); mt numeric := round(p_montant, 2);
+        agg jsonb; presents numeric; vend text; mid uuid := gen_random_uuid();
+begin
+  perform public.caisse__exiger_responsable();
+  if p_type not in ('apport', 'retrait', 'depense') then raise exception 'Type de mouvement inconnu.'; end if;
+  if mt is null or mt <= 0 or mt > 100000 then raise exception 'Montant invalide.'; end if;
+  if length(motif) < 3 or length(motif) > 120 then raise exception 'Indiquez le motif du mouvement (3 à 120 caractères).'; end if;
+  select * into s from public.caisse_sessions where id = p_session and owner_id = e and cloturee_le is null;
+  if s.id is null then raise exception 'Aucune session de caisse ouverte.'; end if;
+  perform public.caisse__verrou(e);
+  -- On ne peut pas sortir plus d'espèces qu'il n'y en a (fond + encaissements espèces + apports - sorties déjà faites).
+  if p_type <> 'apport' then
+    agg := public.caisse__agregat(e, s.id, null, null);
+    select s.fond_caisse + coalesce((agg->'par_mode'->>'especes')::numeric, 0)
+           + coalesce(sum(case when x.type = 'apport' then x.montant else -x.montant end), 0) into presents from public.caisse_mouvements x where x.session_id = s.id;
+    if mt > presents then raise exception 'Espèces insuffisantes dans le tiroir (% € attendus).', round(presents, 2); end if;
+  end if;
+  update public.caisse_chaine set n_mouvement = n_mouvement + 1 where owner_id = e returning n_mouvement into n;
+  num := 'M-' || lpad(n::text, 6, '0');
+  select coalesce(nullif(btrim(full_name), ''), 'Responsable') into vend from public.profiles where id = auth.uid();
+  j := public.caisse__ecrire(e, 'mouvement', s.id, mid, num, case when p_type = 'apport' then mt else -mt end,
+        jsonb_build_object('type', p_type, 'montant', mt, 'motif', motif, 'vendeur', vend), false);
+  insert into public.caisse_mouvements (id, owner_id, session_id, numero, type, montant, motif, vendeur, journal_seq, journal_hash, created_by)
+  values (mid, e, s.id, num, p_type, mt, motif, vend, j.seq, j.hash, auth.uid()) returning * into mv;
+  return jsonb_build_object('id', mv.id, 'numero', mv.numero, 'type', mv.type, 'montant', mv.montant, 'motif', mv.motif, 'vendeur', mv.vendeur, 'date', mv.created_at, 'hash', j.hash, 'signature', j.signature);
+end $$;
+
 -- ---------------------------------------------------------------------------------------------------------------- clôture Z
 create or replace function public.caisse__agregat(p_owner uuid, p_filtre_session uuid, p_debut timestamptz, p_fin timestamptz)
 returns jsonb language plpgsql stable security definer set search_path = public as $$
@@ -562,7 +615,7 @@ end $$;
 -- Clôture automatique : les espèces comptées sont présumées égales aux attendues (écart 0) et le rapport le dit : un humain doit recompter.
 create or replace function public.caisse__cloturer_core(p_owner uuid, p_session uuid, p_comptees numeric, p_notes text, p_auto boolean, p_auteur uuid)
 returns jsonb language plpgsql security definer set search_path = public, extensions as $$
-declare s public.caisse_sessions; agg jsonb; especes numeric; attendues numeric; v_ecart numeric; n bigint; maintenant timestamptz := clock_timestamp(); v_rapport jsonb; j public.caisse_journal; assuj boolean; v_comptees numeric;
+declare s public.caisse_sessions; agg jsonb; especes numeric; attendues numeric; v_ecart numeric; n bigint; maintenant timestamptz := clock_timestamp(); v_rapport jsonb; j public.caisse_journal; assuj boolean; v_comptees numeric; v_apports numeric; v_retraits numeric; v_depenses numeric;
 begin
   select * into s from public.caisse_sessions where id = p_session and owner_id = p_owner and cloturee_le is null;
   if s.id is null then raise exception 'Aucune session de caisse ouverte.'; end if;
@@ -570,13 +623,15 @@ begin
   perform public.caisse__verrou(p_owner);
   agg := public.caisse__agregat(p_owner, s.id, null, null);
   especes := coalesce((agg->'par_mode'->>'especes')::numeric, 0);
-  attendues := s.fond_caisse + especes;
+  select coalesce(sum(montant) filter (where type = 'apport'), 0), coalesce(sum(montant) filter (where type = 'retrait'), 0), coalesce(sum(montant) filter (where type = 'depense'), 0)
+    into v_apports, v_retraits, v_depenses from public.caisse_mouvements where session_id = s.id;
+  attendues := s.fond_caisse + especes + v_apports - v_retraits - v_depenses;
   v_comptees := case when p_auto then attendues else p_comptees end;
   v_ecart := round(v_comptees - attendues, 2);
   select coalesce(assujetti_tva, false) into assuj from public.parametres_facturation where owner_id = p_owner;
   update public.caisse_chaine set n_z = n_z + 1 where owner_id = p_owner returning n_z into n;
   v_rapport := agg || jsonb_build_object('numero_z', 'Z-' || lpad(n::text, 6, '0'), 'fond_caisse', s.fond_caisse, 'especes_attendues', round(attendues, 2), 'especes_comptees', round(v_comptees, 2),
-              'ecart', v_ecart, 'ouverte_le', s.ouverte_le, 'cloturee_le', maintenant, 'assujetti_tva', coalesce(assuj, false), 'automatique', coalesce(p_auto, false));
+              'apports', v_apports, 'retraits', v_retraits, 'depenses', v_depenses, 'ecart', v_ecart, 'ouverte_le', s.ouverte_le, 'cloturee_le', maintenant, 'assujetti_tva', coalesce(assuj, false), 'automatique', coalesce(p_auto, false));
   j := public.caisse__ecrire(p_owner, 'cloture_z', s.id, null, v_rapport->>'numero_z', (agg->>'total_ttc')::numeric, v_rapport, false);
   v_rapport := v_rapport || jsonb_build_object('gt_perpetuel', j.gt_perpetuel, 'gt_absolu', j.gt_absolu, 'journal_seq', j.seq, 'hash', j.hash, 'signature', j.signature);
   update public.caisse_sessions set cloturee_le = maintenant, cloturee_par = p_auteur, especes_comptees = round(v_comptees, 2), ecart = v_ecart,
@@ -696,7 +751,9 @@ begin
     ticket_origine, motif, journal_seq, journal_hash from public.caisse_tickets where owner_id = e and date_ticket >= d0 and date_ticket < d1) q;
   select coalesce(jsonb_agg(to_jsonb(q) order by q.ouverte_le), '[]'::jsonb) into ss from (select ouverte_le, cloturee_le, fond_caisse, especes_comptees, ecart, rapport
     from public.caisse_sessions where owner_id = e and ouverte_le >= d0 and ouverte_le < d1) q;
-  corps := jsonb_build_object('format', 'mirrio-caisse-archive-1', 'espace', e, 'debut', p_debut, 'fin', p_fin, 'genere_le', now(), 'verification', ver, 'journal', jr, 'tickets', tk, 'sessions', ss);
+  corps := jsonb_build_object('format', 'mirrio-caisse-archive-1', 'espace', e, 'debut', p_debut, 'fin', p_fin, 'genere_le', now(), 'verification', ver, 'journal', jr, 'tickets', tk, 'sessions', ss,
+    'mouvements', coalesce((select jsonb_agg(jsonb_build_object('numero', m.numero, 'type', m.type, 'montant', m.montant, 'motif', m.motif, 'vendeur', m.vendeur, 'date', m.created_at, 'journal_seq', m.journal_seq) order by m.created_at)
+                              from public.caisse_mouvements m where m.owner_id = e and m.created_at >= d0 and m.created_at < d1), '[]'::jsonb));
   -- L'empreinte du fichier est scellée dans le journal chaîné : elle donne date certaine à l'archive et permet de prouver plus tard qu'elle n'a pas changé.
   emp := encode(extensions.digest(corps::text, 'sha256'), 'hex');
   perform public.caisse__ecrire(e, 'archive', null, null, null, null, jsonb_build_object('debut', p_debut, 'fin', p_fin, 'nb_entrees', jsonb_array_length(jr), 'nb_tickets', jsonb_array_length(tk), 'empreinte', emp), false);
@@ -771,6 +828,9 @@ begin
   select count(*) into n from public.caisse_tickets where owner_id = e and not formation and type = 'vente'; select count(*) into n2 from public.caisse_tickets where owner_id = e and type = 'avoir';
   res := public.caisse__chk(res, 'I', 'I5', 'Numérotation continue des tickets et des avoirs, sans trou', c.owner_id is null or (c.n_ticket = n and c.n_avoir = n2), coalesce(c.n_ticket, 0) || ' ticket(s) attendus, ' || n || ' présents ; ' || coalesce(c.n_avoir, 0) || ' avoir(s) attendus, ' || n2 || ' présents');
 
+  select count(*) into n from public.caisse_mouvements m where m.owner_id = e and not exists (select 1 from public.caisse_journal j where j.owner_id = e and j.seq = m.journal_seq and j.hash = m.journal_hash and j.type = 'mouvement');
+  res := public.caisse__chk(res, 'I', 'I6', 'Chaque mouvement d''espèces est scellé dans le journal', n = 0, n || ' mouvement(s) non relié(s) au journal');
+
   -- S : sécurisation
   res := public.caisse__chk(res, 'S', 'S1', 'Chaîne de hachage et signatures du journal valides, grands totaux cohérents', (ver->>'ok')::boolean,
     case when (ver->>'ok')::boolean then (ver->>'entrees') || ' entrée(s) vérifiée(s)' else coalesce(ver->'defaut'->>'raison', 'anomalie') end);
@@ -841,7 +901,7 @@ begin
   foreach f in array array[
     'caisse_ouvrir(numeric)', 'caisse_encaisser(uuid,uuid,jsonb,jsonb,boolean,uuid,uuid)', 'caisse_avoir(uuid,jsonb,text,jsonb)', 'caisse_duplicata(uuid)', 'caisse_cloturer(uuid,numeric,text)',
     'caisse_cloturer_periode(text,int,int)', 'caisse_verifier()', 'caisse_archiver(date,date)',
-    'caisse_terminal_statut()', 'caisse_terminal_lire(uuid)', 'caisse_terminal_orphelins()', 'caisse_audit_isca()', 'caisse_attestation_enregistrer(text)', 'mon_role()', 'est_manager()'] loop
+    'caisse_mouvement(uuid,text,numeric,text)', 'caisse_terminal_statut()', 'caisse_terminal_lire(uuid)', 'caisse_terminal_orphelins()', 'caisse_audit_isca()', 'caisse_attestation_enregistrer(text)', 'mon_role()', 'est_manager()'] loop
     execute format('revoke all on function public.%s from public, anon', f);
     execute format('grant execute on function public.%s to authenticated', f);
   end loop;

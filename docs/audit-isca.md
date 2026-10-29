@@ -36,7 +36,7 @@ cp <dépôt>/scripts/audit-isca.mjs . && ROOT=<dépôt> node audit-isca.mjs
 
 ## 3. Résultat du dernier passage du script
 
-Exécuté le 2026-10-29 sur la version 1.0 : **82 contrôles réussis, 0 échec** (rôles, stock, statistiques d'équipe, absences et fiche technique compris en plus des quatre critères).
+Exécuté le 2026-10-29 sur la version 1.0 : **88 contrôles réussis, 0 échec** (rôles, stock, statistiques d'équipe, absences et fiche technique et mouvements d'espèces compris en plus des quatre critères).
 Le script a révélé et fait corriger, avant toute mise en production (liste non exhaustive) : un verrou de factures qui bloquait toute modification de la table `documents`, deux ambiguïtés de variables
 dans les clôtures de période, une archive non scellée dans le journal.
 

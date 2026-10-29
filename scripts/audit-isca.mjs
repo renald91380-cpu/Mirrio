@@ -164,6 +164,17 @@ verif('S', 'Fiche technique : le bucket des photos de clients est privé', (awai
 verif('S', 'Fiche technique : une note avec formule et photos est acceptée', (await refuse(() => q(`insert into public.client_notes (owner_id, client_id, titre, formule, photos) values ($1, $2, 'Balayage', '8.1 + 9 vol', array['a/b.jpg'])`, [U, cli]))) === null);
 verif('S', 'Fiche technique : plus de 6 photos par note refusé', /check/i.test(await refuse(() => q(`insert into public.client_notes (owner_id, client_id, photos) values ($1, $2, array['1','2','3','4','5','6','7'])`, [U, cli])) || ''));
 
+// ---------------------------------------------------------------- mouvements d'espèces (apport, retrait, dépense)
+const mvA = (await un(`select public.caisse_mouvement($1, 'apport', 20, 'Monnaie ajoutée') r`, [ses.id])).r;
+const mvR = (await un(`select public.caisse_mouvement($1, 'retrait', 15, 'Dépôt en banque') r`, [ses.id])).r;
+verif('I', 'Mouvements d\'espèces numérotés et signés', mvA.numero === 'M-000001' && mvR.numero === 'M-000002' && /^[0-9a-f]{64}$/.test(mvA.signature));
+verif('I', 'Refus : retirer plus d\'espèces qu\'il n\'y en a dans le tiroir', /insuffisantes/.test(await refuse(() => q(`select public.caisse_mouvement($1, 'depense', 100000, 'Trop')`, [ses.id])) || ''));
+verif('I', 'Refus : un mouvement sans motif', /motif/.test(await refuse(() => q(`select public.caisse_mouvement($1, 'apport', 5, 'a')`, [ses.id])) || ''));
+verif('I', 'Refus : modifier ou supprimer un mouvement', /inaltérable/.test(await refuse(() => db.exec(`update public.caisse_mouvements set montant = 1`)) || '') && /inaltérable/.test(await refuse(() => db.exec(`delete from public.caisse_mouvements`)) || ''));
+await db.exec(`set app.uid = '${V}'; set app.ws = '${U}';`);
+verif('S', 'Refus au vendeur : mouvement d\'espèces', /Réservé au responsable/.test(await refuse(() => q(`select public.caisse_mouvement($1, 'apport', 5, 'Test vendeur')`, [ses.id])) || ''));
+await db.exec(`set app.uid = '${U}'; set app.ws = '';`);
+
 // ---------------------------------------------------------------- S : sécurisation
 const ok0 = (await un(`select public.caisse_verifier() r`)).r;
 verif('S', 'Vérification : chaîne, signatures, grands totaux, numérotation', ok0.ok === true, `${ok0.entrees} entrées`);
@@ -174,7 +185,7 @@ verif('S', 'caisse_cloturer_auto n\'est exécutable ni par anon ni par authentic
 // ---------------------------------------------------------------- C : conservation (clôtures)
 const z = (await un(`select public.caisse_cloturer($1, 190, null) r`, [ses.id])).r;
 verif('C', 'Clôture Z : numérotée, signée, totaux calculés par le serveur', z.numero_z === 'Z-000001' && /^[0-9a-f]{64}$/.test(z.signature), `${z.nb_ventes} ventes, ${z.nb_avoirs} avoir(s), CA ${z.total_ttc}`);
-verif('C', 'Z : espèces = encaissements moins remboursement (30 + 10 + 50 - 11,36 - 10)', Number(z.par_mode.especes) === 68.64);
+verif('C', 'Z : espèces attendues = fond 100 + encaissements 68,64 + apport 20 - retrait 15', Number(z.par_mode.especes) === 68.64 && Number(z.especes_attendues) === 173.64 && Number(z.apports) === 20 && Number(z.retraits) === 15);
 verif('C', 'Refus : clôturer un mois non terminé', /pas terminée/.test(await refuse(() => q(`select public.caisse_cloturer_periode('mensuelle', 2026, 12)`)) || ''));
 
 // Données d'un autre mois : on antidate (superuser, triggers suspendus) pour éprouver la clôture automatique, puis on rétablit la protection.

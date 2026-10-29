@@ -3,7 +3,7 @@
 // Réimplémente juste ce que caisse.html demande à Supabase (select / eq / is / in / order / limit / maybeSingle / single / insert / update / delete)
 // sur quelques tables, avec le salon fictif Maison Éloïse (coiffure mixte, franchise de TVA). L'état survit au rechargement
 // (sessionStorage) pour pouvoir présenter une journée entière ; `reinitialiserDemoCaisse()` remet tout à zéro.
-const CLE = 'mirrio-demo-caisse-v7';
+const CLE = 'mirrio-demo-caisse-v8';
 const WS = 'demo';
 
 // Rendez-vous d'aujourd'hui pour montrer « Encaisser depuis l'agenda » : un simple, un avec acompte déjà versé en ligne (facture émise), un déjà réglé en ligne.
@@ -34,7 +34,7 @@ function donneesInitiales(){
       ['Spray coiffant', 'Schwarzkopf', 'Coiffants', 14.9, 4], ['Huile à barbe 30 ml', 'Proraso', 'Barbe', 16.5, 5], ['Brosse démêlante', 'Tangle Teezer', 'Accessoires', 12, 6]
     ].map(([nom, marque, categorie, ttc, position], i) => ({ id:'pr' + i, owner_id:WS, nom, marque, categorie, reference:'34746300000' + String(10 + i), remise_pct:[10, 15, 0, 0, 10, 0][i] || null, stock:[12, 2, 0, null, 7, 25][i], stock_min:[3, 3, 2, null, 2, 5][i], prix_unitaire:ttc, tva_taux:0, actif:true, position })),
     vitrine_equipe: [['q1', 'Éloïse', 1], ['q2', 'Karim', 2], ['q3', 'Léa', 3]].map(([id, nom, position]) => ({ id, owner_id:WS, nom, position, role:null, jours_ouvres:[1, 2, 3, 4, 5, 6], heure_debut:'09:30', heure_fin:'19:00' })),
-    stock_mouvements: [], equipe_remuneration: [{ intervenant_id:'q1', commission_prestations_pct:40, commission_produits_pct:10 }, { intervenant_id:'q2', commission_prestations_pct:35, commission_produits_pct:10 }, { intervenant_id:'q3', commission_prestations_pct:30, commission_produits_pct:8 }],
+    stock_mouvements: [], caisse_mouvements: [], equipe_remuneration: [{ intervenant_id:'q1', commission_prestations_pct:40, commission_produits_pct:10 }, { intervenant_id:'q2', commission_prestations_pct:35, commission_produits_pct:10 }, { intervenant_id:'q3', commission_prestations_pct:30, commission_produits_pct:8 }],
     terminal: { configure:true, reader_pret:true, lien_pret:true, reader_name:'Solo (démo)', merchant_code:'DEMO0001', app_id:'app.mirrio.caisse' }, terminaux: [],
     ...rendezVousDuJour(),
     chaine: { seq:0, hash:'GENESIS', gt:0, gta:0, n_ticket:0, n_avoir:0, n_formation:0, n_z:0, cle:'cle-demo' },
@@ -230,8 +230,9 @@ const FONCTIONS = {
   async caisse_cloturer(a){
     const s = sessionOuverte(a.p_session); if(!s) echec('Aucune session de caisse ouverte.');
     if(!(a.p_comptees >= 0)) echec('Comptez les espèces du tiroir avant de clôturer.');
-    const agg = agregat(t => t.session_id === s.id), att = r2(s.fond_caisse + (agg.par_mode.especes || 0)), c = DB.chaine, maintenant = new Date().toISOString();
-    const rapport = { ...agg, numero_z:'Z-' + String(++c.n_z).padStart(6, '0'), fond_caisse:s.fond_caisse, especes_attendues:att, especes_comptees:r2(a.p_comptees), ecart:r2(a.p_comptees - att),
+    const agg = agregat(t => t.session_id === s.id), mvts = DB.caisse_mouvements.filter(x => x.session_id === s.id), som = t => r2(mvts.filter(x => x.type === t).reduce((q, x) => q + x.montant, 0));
+    const att = r2(s.fond_caisse + (agg.par_mode.especes || 0) + som('apport') - som('retrait') - som('depense')), c = DB.chaine, maintenant = new Date().toISOString();
+    const rapport = { ...agg, numero_z:'Z-' + String(++c.n_z).padStart(6, '0'), fond_caisse:s.fond_caisse, apports:som('apport'), retraits:som('retrait'), depenses:som('depense'), especes_attendues:att, especes_comptees:r2(a.p_comptees), ecart:r2(a.p_comptees - att),
       ouverte_le:s.ouverte_le, cloturee_le:maintenant, assujetti_tva:!!DB.parametres_facturation[0].assujetti_tva };
     const j = await ecrire('cloture_z', s.id, null, rapport.numero_z, agg.total_ttc, rapport, false);
     Object.assign(rapport, { gt_perpetuel:j.gt_perpetuel, gt_absolu:j.gt_absolu, journal_seq:j.seq, hash:j.hash, signature:j.signature });
@@ -248,6 +249,21 @@ const FONCTIONS = {
     return { ...payload, gt_perpetuel:j.gt_perpetuel, journal_seq:j.seq, hash:j.hash, signature:j.signature };
   },
   async mon_role(){ return 'proprietaire'; },
+  async caisse_mouvement(a){
+    const s = sessionOuverte(a.p_session); if(!s) echec('Aucune session de caisse ouverte.');
+    const mt = r2(a.p_montant), motif = String(a.p_motif || '').trim();
+    if(!['apport', 'retrait', 'depense'].includes(a.p_type)) echec('Type de mouvement inconnu.');
+    if(!(mt > 0) || mt > 100000) echec('Montant invalide.');
+    if(motif.length < 3) echec('Indiquez le motif du mouvement (3 à 120 caractères).');
+    const mv = DB.caisse_mouvements.filter(x => x.session_id === s.id);
+    const presents = r2(s.fond_caisse + (agregat(t => t.session_id === s.id).par_mode.especes || 0) + mv.reduce((q, x) => q + (x.type === 'apport' ? x.montant : -x.montant), 0));
+    if(a.p_type !== 'apport' && mt > presents) echec(`Espèces insuffisantes dans le tiroir (${presents.toFixed(2)} € attendus).`);
+    const num = 'M-' + String(++DB.chaine.n_mouvement || (DB.chaine.n_mouvement = 1)).padStart(6, '0');
+    const j = await ecrire('mouvement', s.id, null, num, a.p_type === 'apport' ? mt : -mt, { type:a.p_type, montant:mt, motif, vendeur:'Éloïse (démo)' }, false);
+    const m = { id:'mv' + (DB.n++), owner_id:WS, session_id:s.id, numero:num, type:a.p_type, montant:mt, motif, vendeur:'Éloïse (démo)', journal_seq:j.seq, journal_hash:j.hash, created_at:new Date().toISOString() };
+    DB.caisse_mouvements.push(m);
+    return { id:m.id, numero:num, type:m.type, montant:mt, motif, vendeur:m.vendeur, date:m.created_at, hash:j.hash, signature:j.signature };
+  },
   async stock_ajuster(a){
     const p = DB.produits.find(x => x.id === a.p_produit); if(!p) echec('Produit introuvable.');
     p.stock = r2((p.stock || 0) + a.p_delta); DB.stock_mouvements.push({ id:'sm' + (DB.n++), produit_id:p.id, delta:a.p_delta, motif:a.p_motif }); return p.stock;

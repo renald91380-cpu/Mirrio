@@ -137,6 +137,7 @@
   <div class="menu-wrap">
     <button class="btn petit" id="b-menu" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="menu-caisse">Menu <span aria-hidden="true">▾</span></button>
     <div class="menu-caisse" id="menu-caisse" role="menu" hidden>
+      <button type="button" role="menuitem" id="b-mouvement">Mouvement d'espèces</button>
       <button type="button" role="menuitem" id="b-produits">Produits en vente</button>
       <button type="button" role="menuitem" id="b-terminal-cfg">Terminal de paiement</button>
       <button type="button" role="menuitem" id="b-formation" aria-pressed="false" title="Les tickets de formation ne sont pas comptabilisés">Mode formation</button>
@@ -230,7 +231,7 @@
     try{ const { data: eq } = await supabase.from('vitrine_equipe').select('id,nom').eq('owner_id', espaceId).order('position'); equipe = eq || []; }catch(e){ equipe = []; }
     try{ const { data: r } = await supabase.rpc('mon_role'); monRole = r || 'proprietaire'; }catch(e){}
     const responsable = ['proprietaire', 'gestionnaire', 'manager'].includes(monRole);
-    ['#b-produits', '#b-terminal-cfg', '#b-conformite', '#b-attestation', '#b-compta'].forEach(id => { const el = $(id); if(el) el.hidden = !responsable; });   // l'affichage suit le rôle ; les droits réels sont dans la base
+    ['#b-mouvement', '#b-produits', '#b-terminal-cfg', '#b-conformite', '#b-attestation', '#b-compta'].forEach(id => { const el = $(id); if(el) el.hidden = !responsable; });   // l'affichage suit le rôle ; les droits réels sont dans la base
     $('#salon').textContent = brand.business_name || params.emetteur_nom || '';
     if(sess.error){ $('#etat-session').textContent = 'Base non préparée'; $('#etat-session').className = 'puce ko'; toast('Exécuter db/schema-v39-caisse.sql dans Supabase.'); return false; }
     session = sess.data || null;
@@ -917,14 +918,17 @@
     const { data: tk } = await supabase.from('caisse_tickets').select('*').eq('session_id', session.id).order('date_ticket');
     const reels = (tk || []).filter(x => !x.formation);
     const parMode = {}; reels.forEach(x => x.paiements.forEach(p => { parMode[p.mode] = r2((parMode[p.mode] || 0) + (x.type === 'avoir' ? -1 : 1) * Number(p.montant)); }));
-    const som = c => r2(reels.reduce((a, x) => a + Number(x[c]), 0)), especes = parMode.especes || 0, attendues = r2(Number(session.fond_caisse) + especes);
+    const { data: mvts } = await supabase.from('caisse_mouvements').select('*').eq('session_id', session.id).order('created_at');
+    const sMv = t => r2((mvts || []).filter(x => x.type === t).reduce((a, x) => a + Number(x.montant), 0)), apports = sMv('apport'), sorties = r2(sMv('retrait') + sMv('depense'));
+    const som = c => r2(reels.reduce((a, x) => a + Number(x[c]), 0)), especes = parMode.especes || 0, attendues = r2(Number(session.fond_caisse) + especes + apports - sorties);
     const { d, fin } = ouvrir(`<h2>Clôture de la caisse</h2>
       <div class="rang"><span>Ventes</span><b>${reels.filter(x => x.type === 'vente').length}</b></div>
       <div class="rang"><span>Avoirs</span><b>${reels.filter(x => x.type === 'avoir').length}</b></div>
       ${assujetti() ? `<div class="rang"><span>Chiffre d'affaires HT</span><b>${eur(som('total_ht'))}</b></div><div class="rang"><span>TVA collectée</span><b>${eur(som('total_tva'))}</b></div>` : ''}
       <div class="rang"><span>Chiffre d'affaires TTC</span><b>${eur(som('total_ttc'))}</b></div>
       ${Object.entries(parMode).map(([k, v]) => `<div class="rang"><span>${MODES[k]}</span><b>${eur(v)}</b></div>`).join('')}
-      <div class="rang"><span>Espèces attendues (fond ${eur(session.fond_caisse)} + encaissements - remboursements)</span><b>${eur(attendues)}</b></div>
+      ${apports ? `<div class="rang"><span>Apports d'espèces</span><b>${eur(apports)}</b></div>` : ''}${sorties ? `<div class="rang"><span>Retraits et dépenses en espèces</span><b>-${eur(sorties)}</b></div>` : ''}
+      <div class="rang"><span>Espèces attendues (fond ${eur(session.fond_caisse)} + encaissements - remboursements ± mouvements)</span><b>${eur(attendues)}</b></div>
       <div class="champ" style="margin-top:12px"><label for="cpt">Espèces comptées dans le tiroir (€)</label><input id="cpt" inputmode="decimal" autofocus></div>
       <div class="rang"><span>Écart</span><b id="ecart">—</b></div>
       <p class="muted" style="font-size:13px">La clôture est définitive : le Z est numéroté, signé et ajouté au journal inaltérable.</p>
@@ -945,10 +949,41 @@
       imprimer(`<h1>${esc(nom)}</h1><p class="c"><b>CLÔTURE DE CAISSE (Z)</b><br>${esc(rapport.numero_z)}</p><hr><p>Ouverture : ${esc(jourHeure(rapport.ouverte_le))}<br>Clôture : ${esc(jourHeure(rapport.cloturee_le))}</p><hr>
         <table><tr><td>Ventes</td><td class="r">${rapport.nb_ventes}</td></tr><tr><td>Avoirs</td><td class="r">${rapport.nb_avoirs}</td></tr>${rapport.premier_ticket ? `<tr><td>Tickets</td><td class="r">${esc(rapport.premier_ticket)} à ${esc(rapport.dernier_ticket)}</td></tr>` : ''}${rapport.assujetti_tva ? `<tr><td>CA HT</td><td class="r">${eur(rapport.total_ht)}</td></tr>${(rapport.ventilation_tva || []).map(x => `<tr><td>TVA ${x.taux} %</td><td class="r">${eur(x.montant)}</td></tr>`).join('')}` : ''}<tr><td><b>CA TTC</b></td><td class="r"><b>${eur(rapport.total_ttc)}</b></td></tr></table><hr>
         <table>${Object.entries(rapport.par_mode || {}).map(([k, v]) => `<tr><td>${MODES[k]}</td><td class="r">${eur(v)}</td></tr>`).join('')}</table><hr>
-        <table><tr><td>Fond de caisse</td><td class="r">${eur(rapport.fond_caisse)}</td></tr><tr><td>Espèces attendues</td><td class="r">${eur(rapport.especes_attendues)}</td></tr><tr><td>Espèces comptées</td><td class="r">${eur(rapport.especes_comptees)}</td></tr><tr><td><b>Écart</b></td><td class="r"><b>${eur(rapport.ecart)}</b></td></tr></table><hr>
+        <table><tr><td>Fond de caisse</td><td class="r">${eur(rapport.fond_caisse)}</td></tr>${Number(rapport.apports) ? `<tr><td>Apports</td><td class="r">${eur(rapport.apports)}</td></tr>` : ''}${Number(rapport.retraits) ? `<tr><td>Retraits</td><td class="r">-${eur(rapport.retraits)}</td></tr>` : ''}${Number(rapport.depenses) ? `<tr><td>Dépenses</td><td class="r">-${eur(rapport.depenses)}</td></tr>` : ''}<tr><td>Espèces attendues</td><td class="r">${eur(rapport.especes_attendues)}</td></tr><tr><td>Espèces comptées</td><td class="r">${eur(rapport.especes_comptees)}</td></tr><tr><td><b>Écart</b></td><td class="r"><b>${eur(rapport.ecart)}</b></td></tr></table><hr>
         <table><tr><td>Grand total perpétuel</td><td class="r">${eur(rapport.gt_perpetuel)}</td></tr>${rapport.nb_formation ? `<tr><td>Tickets de formation (hors total)</td><td class="r">${rapport.nb_formation}</td></tr>` : ''}</table>
         <hr><p class="c" style="font-size:10px">Signature ${esc((rapport.signature || '').slice(0, 16))}</p>`);
       toast('Caisse clôturée.');
+    }
+  };
+
+  // ---------------------------------------------------------------- mouvements d'espèces hors vente
+  const TYPES_MVT = { apport:'Apport de monnaie (entrée)', retrait:'Retrait ou dépôt en banque (sortie)', depense:'Dépense payée en espèces (sortie)' };
+  $('#b-mouvement').onclick = async () => {
+    if(!session){ toast('Ouvrez d\'abord la caisse.'); return; }
+    const { d, fin } = ouvrir(`<h2>Mouvement d'espèces</h2>
+      <p class="muted" style="margin-bottom:10px">Pour tout ce qui entre ou sort du tiroir sans être une vente. Il est numéroté, signé, ne peut plus être modifié, et change les espèces attendues à la clôture.</p>
+      <div class="champ"><label for="mv-t">Type</label><select id="mv-t">${Object.entries(TYPES_MVT).map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></div>
+      <div class="champ"><label for="mv-m">Montant (€)</label><input id="mv-m" inputmode="decimal" autofocus></div>
+      <div class="champ"><label for="mv-o">Motif (obligatoire)</label><input id="mv-o" maxlength="120" placeholder="Ex. dépôt du jeudi, achat de café, monnaie de la banque"></div>
+      <p class="erreur" id="err" role="alert"></p>
+      <div class="actions"><button class="btn" id="non" type="button">Annuler</button><button class="btn principal" id="ok" type="button">Enregistrer</button></div>`);
+    d.querySelector('#non').onclick = () => d.fermer(null);
+    d.querySelector('#ok').onclick = async () => {
+      const m = num(d.querySelector('#mv-m').value), o = d.querySelector('#mv-o').value.trim();
+      if(!(m > 0)){ d.querySelector('#err').textContent = 'Indiquez un montant.'; return; }
+      if(o.length < 3){ d.querySelector('#err').textContent = 'Indiquez le motif.'; return; }
+      const { data, error } = await supabase.rpc('caisse_mouvement', { p_session:session.id, p_type:d.querySelector('#mv-t').value, p_montant:m, p_motif:o });
+      if(error){ d.querySelector('#err').textContent = /insuffisantes|Réservé|motif|Montant/.test(error.message) ? error.message.replace(/^.*?(Espèces|Réservé|Indiquez|Montant)/, '$1') : 'Enregistrement impossible.'; return; }
+      d.fermer(data);
+    };
+    const mv = await fin;
+    if(mv){
+      toast(`${mv.numero} enregistré.`);
+      if(confirm('Imprimer le bon de mouvement ?')){
+        const nom = brand.business_name || params.emetteur_nom || 'Mirrio';
+        imprimer(`<h1>${esc(nom)}</h1><p class="c"><b>BON DE MOUVEMENT D'ESPÈCES</b><br>${esc(mv.numero)}</p><hr><p>${esc(jourHeure(mv.date))}<br>${esc(TYPES_MVT[mv.type])}</p><hr>
+          <table><tr><td><b>Montant</b></td><td class="r"><b>${mv.type === 'apport' ? '+' : '-'}${eur(mv.montant)}</b></td></tr></table><p>Motif : ${esc(mv.motif)}<br>Par : ${esc(mv.vendeur || '')}</p><hr><p class="c" style="font-size:10px">Signature ${esc((mv.signature || '').slice(0, 16))}</p>`);
+      }
     }
   };
 
