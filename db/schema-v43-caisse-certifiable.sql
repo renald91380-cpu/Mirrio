@@ -84,10 +84,14 @@ create table if not exists public.caisse_tickets (
   ticket_origine uuid references public.caisse_tickets(id) on delete restrict,
   motif          text,
   created_by     uuid,
+  intervenant_id uuid,          -- la personne qui a réalisé la prestation (statistiques et commissions)
+  vendeur        text,          -- qui a encaissé : nom du compte au moment de la vente
   unique (owner_id, numero)
 );
 create index if not exists caisse_tickets_session on public.caisse_tickets(session_id);
 create index if not exists caisse_tickets_origine on public.caisse_tickets(ticket_origine);
+alter table public.caisse_tickets add column if not exists intervenant_id uuid;
+alter table public.caisse_tickets add column if not exists vendeur text;
 alter table public.caisse_tickets enable row level security;
 drop policy if exists "Caisse : lire les tickets de l'espace" on public.caisse_tickets;
 create policy "Caisse : lire les tickets de l'espace" on public.caisse_tickets for select using (owner_id = public.current_workspace_id());
@@ -251,7 +255,9 @@ begin
     if pu < 0 or pu > 100000 then raise exception 'Ligne %: prix invalide.', i; end if;
     if tx < 0 or tx > 30 then raise exception 'Ligne %: taux de TVA invalide.', i; end if;
     norm := norm || jsonb_build_array(jsonb_build_object('description', d, 'quantite', q, 'prix_unitaire', pu, 'tva_taux', tx,
-      'remise_pct', coalesce((e->>'remise_pct')::numeric, 0), 'index_origine', e->'index_origine'));
+      'remise_pct', coalesce((e->>'remise_pct')::numeric, 0), 'index_origine', e->'index_origine',
+      'type', case when e->>'type' = 'produit' then 'produit' else 'prestation' end,
+      'produit_id', case when (e->>'produit_id') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then e->>'produit_id' else null end));
   end loop;
   select coalesce(jsonb_agg(jsonb_build_object('taux', taux, 'base', round(base, 2), 'montant', round(base * taux / 100, 2)) order by taux), '[]'::jsonb),
          coalesce(sum(round(base, 2)), 0), coalesce(sum(round(base * taux / 100, 2)), 0)
@@ -299,6 +305,7 @@ returns jsonb language sql stable set search_path = public as $$
     'lignes', t.lignes, 'total_ht', t.total_ht, 'total_tva', t.total_tva, 'total_ttc', t.total_ttc, 'ventilation', t.ventilation, 'paiements', t.paiements,
     'assujetti', t.assujetti_tva, 'motif', t.motif, 'ticket_origine', t.ticket_origine, 'document_id', t.document_id,
     'origine_numero', (select o.numero from public.caisse_tickets o where o.id = t.ticket_origine),
+    'vendeur', t.vendeur, 'intervenant_id', t.intervenant_id,
     'journal_seq', t.journal_seq, 'hash', t.journal_hash, 'signature', j.signature, 'gt_perpetuel', j.gt_perpetuel, 'duplicata', duplicata)
 $$;
 
@@ -338,10 +345,11 @@ end $$;
 
 -- ---------------------------------------------------------------------------------------------------------------- vente
 drop function if exists public.caisse_encaisser(uuid, uuid, jsonb, jsonb, boolean);
-create or replace function public.caisse_encaisser(p_session uuid, p_client uuid, p_lignes jsonb, p_paiements jsonb, p_formation boolean default false, p_rdv uuid default null)
+drop function if exists public.caisse_encaisser(uuid, uuid, jsonb, jsonb, boolean, uuid);
+create or replace function public.caisse_encaisser(p_session uuid, p_client uuid, p_lignes jsonb, p_paiements jsonb, p_formation boolean default false, p_rdv uuid default null, p_intervenant uuid default null)
 returns jsonb language plpgsql security definer set search_path = public, extensions as $$
 declare e uuid := public.caisse__espace(); c public.caisse_chaine; tot jsonb; pay jsonb; ttc numeric; n bigint; num text; tid uuid := gen_random_uuid();
-        did uuid; cn text; j public.caisse_journal; t public.caisse_tickets; maintenant timestamptz := clock_timestamp(); an text; px jsonb; tp public.caisse_terminal_paiements; rv public.rendez_vous; rd public.documents; acompte numeric := 0; tdoc jsonb;
+        did uuid; cn text; j public.caisse_journal; t public.caisse_tickets; maintenant timestamptz := clock_timestamp(); an text; px jsonb; tp public.caisse_terminal_paiements; rv public.rendez_vous; rd public.documents; acompte numeric := 0; tdoc jsonb; vend text; iv uuid; pq numeric;
 begin
   if not exists (select 1 from public.caisse_sessions s where s.id = p_session and s.owner_id = e and s.cloturee_le is null) then raise exception 'Aucune session de caisse ouverte.'; end if;
   -- Encaissement d'un rendez-vous de l'agenda : une seule fois, jamais déjà réglé en ligne ; l'acompte versé en ligne est déduit (montant lu en base).
@@ -359,6 +367,9 @@ begin
     if p_client is null then p_client := rv.client_id; end if;
   end if;
   if p_client is not null then select full_name into cn from public.clients where id = p_client and owner_id = e; if cn is null then p_client := null; end if; end if;
+  iv := coalesce(p_intervenant, rv.intervenant_id);
+  if iv is not null and not exists (select 1 from public.vitrine_equipe q where q.id = iv and q.owner_id = e) then iv := null; end if;
+  select coalesce(nullif(btrim(full_name), ''), 'Vendeur') into vend from public.profiles where id = auth.uid();
   tot := public.caisse__totaux(e, p_lignes, false);
   ttc := (tot->>'total_ttc')::numeric;
   if ttc <= 0 then raise exception 'Le total du ticket doit être positif.'; end if;
@@ -413,13 +424,24 @@ begin
   end if;
   j := public.caisse__ecrire(e, case when coalesce(p_formation, false) then 'formation' else 'vente' end, p_session, tid, num, ttc,
         jsonb_build_object('empreinte', public.caisse__empreinte(tot->'lignes', pay, (tot->>'total_ht')::numeric, (tot->>'total_tva')::numeric, ttc, cn),
-                           'nb_lignes', jsonb_array_length(tot->'lignes'), 'modes', (select jsonb_agg(p->>'mode') from jsonb_array_elements(pay) p)),
+                           'nb_lignes', jsonb_array_length(tot->'lignes'), 'modes', (select jsonb_agg(p->>'mode') from jsonb_array_elements(pay) p),
+                           'intervenant', iv, 'vendeur', vend),
         not coalesce(p_formation, false));
   insert into public.caisse_tickets (id, owner_id, session_id, journal_seq, journal_hash, type, formation, numero, date_ticket, client_id, client_nom, lignes, total_ht, total_tva, total_ttc,
-                                     ventilation, paiements, assujetti_tva, document_id, created_by)
+                                     ventilation, paiements, assujetti_tva, document_id, created_by, intervenant_id, vendeur)
   values (tid, e, p_session, j.seq, j.hash, 'vente', coalesce(p_formation, false), num, maintenant, p_client, cn, tot->'lignes', (tot->>'total_ht')::numeric, (tot->>'total_tva')::numeric, ttc,
-          tot->'ventilation', pay, (tot->>'assujetti')::boolean, did, auth.uid())
+          tot->'ventilation', pay, (tot->>'assujetti')::boolean, did, auth.uid(), iv, vend)
   returning * into t;
+  -- Stock des produits suivis (colonne produits.stock non nulle) : décrémenté à chaque vente réelle, avec une ligne de mouvement (schema-v44).
+  if not coalesce(p_formation, false) and to_regclass('public.stock_mouvements') is not null then
+    for px in select * from jsonb_array_elements(tot->'lignes') loop
+      if px->>'produit_id' is not null then
+        pq := (px->>'quantite')::numeric;
+        with u as (update public.produits set stock = stock - pq where id = (px->>'produit_id')::uuid and owner_id = e and stock is not null returning id)
+        insert into public.stock_mouvements (owner_id, produit_id, delta, motif, ticket_id, par) select e, u.id, -pq, 'vente', tid, auth.uid() from u;
+      end if;
+    end loop;
+  end if;
   if p_rdv is not null then
     update public.rendez_vous set caisse_ticket_id = tid, reste_sur_place = 0, reste_encaisse_le = coalesce(reste_encaisse_le, now()) where id = p_rdv;
   end if;
@@ -437,7 +459,7 @@ end $$;
 create or replace function public.caisse_avoir(p_ticket uuid, p_selection jsonb, p_motif text, p_paiements jsonb)
 returns jsonb language plpgsql security definer set search_path = public, extensions as $$
 declare e uuid := public.caisse__espace(); o public.caisse_tickets; sess uuid; tot jsonb; pay jsonb; ttc numeric; n bigint; num text; tid uuid := gen_random_uuid(); did uuid; j public.caisse_journal;
-        t public.caisse_tickets; maintenant timestamptz := clock_timestamp(); lignes jsonb := '[]'::jsonb; l jsonb; i int := 0; deja numeric; reste numeric; dmd numeric; sel jsonb; motif text := btrim(coalesce(p_motif, ''));
+        t public.caisse_tickets; maintenant timestamptz := clock_timestamp(); lignes jsonb := '[]'::jsonb; l jsonb; i int := 0; deja numeric; reste numeric; dmd numeric; sel jsonb; ax jsonb; motif text := btrim(coalesce(p_motif, ''));
 begin
   perform public.caisse__exiger_responsable();
   select * into o from public.caisse_tickets where id = p_ticket and owner_id = e and type = 'vente' and not formation;
@@ -476,14 +498,23 @@ begin
     from jsonb_array_elements(tot->'lignes') with ordinality as q(x, k);
   j := public.caisse__ecrire(e, 'avoir', sess, tid, num, ttc,
         jsonb_build_object('empreinte', public.caisse__empreinte(tot->'lignes', pay, (tot->>'total_ht')::numeric, (tot->>'total_tva')::numeric, ttc, o.client_nom),
-                           'ticket_origine', o.numero, 'motif', motif), true);
+                           'ticket_origine', o.numero, 'motif', motif, 'intervenant', o.intervenant_id), true);
   insert into public.caisse_tickets (id, owner_id, session_id, journal_seq, journal_hash, type, numero, date_ticket, client_id, client_nom, lignes, total_ht, total_tva, total_ttc, ventilation,
-                                     paiements, assujetti_tva, document_id, ticket_origine, motif, created_by)
+                                     paiements, assujetti_tva, document_id, ticket_origine, motif, created_by, intervenant_id, vendeur)
   values (tid, e, sess, j.seq, j.hash, 'avoir', num, maintenant, o.client_id, o.client_nom, tot->'lignes', (tot->>'total_ht')::numeric, (tot->>'total_tva')::numeric, ttc, tot->'ventilation',
-          pay, (tot->>'assujetti')::boolean, did, o.id, motif, auth.uid())
+          pay, (tot->>'assujetti')::boolean, did, o.id, motif, auth.uid(), o.intervenant_id, (select coalesce(nullif(btrim(full_name), ''), 'Responsable') from public.profiles where id = auth.uid()))
   returning * into t;
   insert into public.caisse_paiements (owner_id, session_id, document_id, ticket_id, mode, montant, recu)
   select e, sess, did, tid, p->>'mode', -(p->>'montant')::numeric, null from jsonb_array_elements(pay) p;
+  -- Un avoir sur un produit suivi remet la quantité en stock (à corriger par une « perte » si le produit rendu est inutilisable).
+  if to_regclass('public.stock_mouvements') is not null then
+    for ax in select * from jsonb_array_elements(tot->'lignes') loop
+      if ax->>'produit_id' is not null then
+        with u as (update public.produits set stock = stock + abs((ax->>'quantite')::numeric) where id = (ax->>'produit_id')::uuid and owner_id = e and stock is not null returning id)
+        insert into public.stock_mouvements (owner_id, produit_id, delta, motif, ticket_id, par) select e, u.id, abs((ax->>'quantite')::numeric), 'avoir', tid, auth.uid() from u;
+      end if;
+    end loop;
+  end if;
   return public.caisse__ticket_json(t, j, 0);
 end $$;
 
@@ -715,7 +746,7 @@ create or replace function public.caisse_audit_isca()
 returns jsonb language plpgsql security definer set search_path = public, extensions as $$
 declare e uuid := public.caisse__espace(); res jsonb := '[]'::jsonb; ver jsonb; c public.caisse_chaine; n int; n2 int; detail text; hier timestamptz := date_trunc('day', now() at time zone 'Europe/Paris') at time zone 'Europe/Paris';
         mois_courant timestamptz := date_trunc('month', now() at time zone 'Europe/Paris') at time zone 'Europe/Paris'; an_courant timestamptz := date_trunc('year', now() at time zone 'Europe/Paris') at time zone 'Europe/Paris';
-        ok_n int := 0; ko_n int := 0; av_n int := 0; x jsonb; fonctions text[] := array['caisse_encaisser(uuid,uuid,jsonb,jsonb,boolean,uuid)', 'caisse_avoir(uuid,jsonb,text,jsonb)', 'caisse_cloturer(uuid,numeric,text)', 'caisse_archiver(date,date)'];
+        ok_n int := 0; ko_n int := 0; av_n int := 0; x jsonb; fonctions text[] := array['caisse_encaisser(uuid,uuid,jsonb,jsonb,boolean,uuid,uuid)', 'caisse_avoir(uuid,jsonb,text,jsonb)', 'caisse_cloturer(uuid,numeric,text)', 'caisse_archiver(date,date)'];
         internes text[] := array['caisse__ecrire(uuid,text,uuid,uuid,text,numeric,jsonb,boolean)', 'caisse__totaux(uuid,jsonb,boolean)', 'caisse__verrou(uuid)', 'caisse__paiements(jsonb,numeric)'];
         f text; acces boolean := false;
 begin
@@ -808,7 +839,7 @@ begin
     execute format('revoke all on function public.%s from public, anon, authenticated', f);
   end loop;
   foreach f in array array[
-    'caisse_ouvrir(numeric)', 'caisse_encaisser(uuid,uuid,jsonb,jsonb,boolean,uuid)', 'caisse_avoir(uuid,jsonb,text,jsonb)', 'caisse_duplicata(uuid)', 'caisse_cloturer(uuid,numeric,text)',
+    'caisse_ouvrir(numeric)', 'caisse_encaisser(uuid,uuid,jsonb,jsonb,boolean,uuid,uuid)', 'caisse_avoir(uuid,jsonb,text,jsonb)', 'caisse_duplicata(uuid)', 'caisse_cloturer(uuid,numeric,text)',
     'caisse_cloturer_periode(text,int,int)', 'caisse_verifier()', 'caisse_archiver(date,date)',
     'caisse_terminal_statut()', 'caisse_terminal_lire(uuid)', 'caisse_terminal_orphelins()', 'caisse_audit_isca()', 'caisse_attestation_enregistrer(text)', 'mon_role()', 'est_manager()'] loop
     execute format('revoke all on function public.%s from public, anon', f);

@@ -32,8 +32,9 @@ create role authenticated; create role anon;
 create function public.current_workspace_id() returns uuid language sql stable as $$ select coalesce(nullif(current_setting('app.ws', true), '')::uuid, auth.uid()) $$;
 create function public.est_gestionnaire(p uuid) returns boolean language sql stable as $$ select false $$;
 create function public.new_feed_token() returns text language sql as $$ select encode(extensions.gen_random_bytes(12), 'hex') $$;
-create table public.profiles (id uuid primary key, plan text);
-create table public.vitrine_equipe (id uuid primary key default gen_random_uuid(), owner_id uuid not null, nom text, position int default 0);
+create table public.profiles (id uuid primary key, plan text, full_name text);
+create table public.vitrine_equipe (id uuid primary key default gen_random_uuid(), owner_id uuid not null, nom text, role text, jours_ouvres int[], heure_debut time, heure_fin time, position int default 0);
+create table public.parametres_reservation (owner_id uuid primary key, jours_ouvres int[] default '{1,2,3,4,5}', heure_debut time default '09:00', heure_fin time default '18:00');
 create table public.workspace_members (id uuid primary key default gen_random_uuid(), workspace_id uuid not null, user_id uuid, email text not null, role text not null default 'collaborateur',
   statut text not null default 'invite', invite_token text unique, invited_at timestamptz default now(), joined_at timestamptz);
 create table public.clients(id uuid primary key default gen_random_uuid(), owner_id uuid, full_name text);
@@ -46,7 +47,7 @@ create table public.document_lignes (id uuid primary key default gen_random_uuid
   quantite numeric not null default 1, prix_unitaire numeric not null default 0, position int not null default 0, tva_taux numeric not null default 0);
 create table public.document_counters (owner_id uuid not null, type text not null, year int not null, last_number int not null default 0, primary key (owner_id, type, year));
 create table public.rendez_vous (id uuid primary key default gen_random_uuid(), owner_id uuid not null, client_id uuid, titre text, statut text, document_id uuid, paiement_mode text,
-  paiement_montant numeric, reste_sur_place numeric, reste_encaisse_le timestamptz);
+  paiement_montant numeric, reste_sur_place numeric, reste_encaisse_le timestamptz, intervenant_id uuid, date_debut timestamptz, date_fin timestamptz);
 create function public.gen_num() returns trigger language plpgsql as $$ begin
   if new.numero is null then
     insert into public.document_counters (owner_id, type, year, last_number) values (new.owner_id, new.type, 2026, 1) on conflict (owner_id, type, year) do update set last_number = document_counters.last_number + 1;
@@ -59,7 +60,8 @@ await db.exec(lire('schema-v43-caisse-certifiable.sql'));        // rejouable sa
 await db.exec(lire('schema-v44-produits.sql'));
 await db.exec(lire('schema-v45-equipes-roles.sql'));
 await db.exec(lire('schema-v46-absences.sql'));
-await db.exec(`insert into auth.users values ('${U}'); insert into public.profiles values ('${U}', 'studio'); insert into public.parametres_facturation values ('${U}', true); set app.uid = '${U}';`);
+await db.exec(lire('schema-v47-stats-equipe.sql'));
+await db.exec(`insert into auth.users values ('${U}'); insert into public.parametres_reservation (owner_id) values ('${U}'); insert into public.profiles values ('${U}', 'studio'); insert into public.parametres_facturation values ('${U}', true); set app.uid = '${U}';`);
 
 // ---------------------------------------------------------------- scénarios légitimes
 const ses = (await un(`select public.caisse_ouvrir(100) r`)).r;
@@ -137,17 +139,33 @@ const pro1 = (await un(`insert into public.vitrine_equipe (owner_id, nom) values
 verif('S', 'Absence : une fin avant le début est refusée', /check/i.test(await refuse(() => q(`insert into public.absences (owner_id, intervenant_id, debut, fin) values ($1, $2, now(), now() - interval '1 day')`, [U, pro1])) || ''));
 verif('S', 'Absence : une plage valide est acceptée', (await refuse(() => q(`insert into public.absences (owner_id, intervenant_id, debut, fin, motif) values ($1, $2, now(), now() + interval '2 days', 'Congés')`, [U, pro1]))) === null);
 
+// ---------------------------------------------------------------- stock, statistiques et commissions par personne
+const prod = (await un(`insert into public.produits (owner_id, nom, prix_unitaire, tva_taux, stock, stock_min) values ($1, 'Shampoing', 10, 0, 10, 3) returning id`, [U])).id;
+const Lp = JSON.stringify([{ description: 'Shampoing', quantite: 2, prix_unitaire: 10, tva_taux: 0, type: 'produit', produit_id: prod }, ligne('Coupe', 1, 30, 0)]);
+const vs = (await un(`select public.caisse_encaisser($1,null,$2::jsonb,$3::jsonb,false,null,$4) r`, [ses.id, Lp, JSON.stringify([{ mode: 'especes', montant: 50, recu: 50 }]), pro1])).r;
+verif('I', 'Stock : une vente décrémente le produit suivi (10 - 2 = 8) avec son mouvement', Number((await un(`select stock s from public.produits where id=$1`, [prod])).s) === 8 && Number((await un(`select count(*) n from public.stock_mouvements where produit_id=$1 and delta=-2 and motif='vente'`, [prod])).n) === 1);
+await q(`select public.caisse_avoir($1,'[{"index":1,"quantite":1}]'::jsonb,'Produit rendu',$2::jsonb)`, [vs.ticket_id, JSON.stringify([{ mode: 'especes' }])]);
+verif('I', 'Stock : un avoir remet le produit en stock (8 + 1 = 9)', Number((await un(`select stock s from public.produits where id=$1`, [prod])).s) === 9);
+verif('I', 'Le vendeur et la personne qui a réalisé la vente sont scellés dans le journal', (await un(`select payload->>'intervenant' i from public.caisse_journal where numero = $1`, [vs.numero])).i === pro1);
+const st = (await un(`select public.stats_equipe(current_date - 1, current_date + 1) r`)).r;
+const mLea = st.membres.find(m => m.id === pro1);
+verif('C', 'Statistiques : chiffre d\'affaires par personne, net de l\'avoir (prestations 30 €, produits 20 € - 10 € rendu)', mLea && Number(mLea.ca_prestations_ht) === 30 && Number(mLea.ca_produits_ht) === 10, mLea ? `${mLea.ca_prestations_ht} / ${mLea.ca_produits_ht}` : 'personne absente');
+await db.exec(`set app.uid = '${V}'; set app.ws = '${U}';`);
+verif('S', 'Refus au vendeur : statistiques d\'équipe et ajustement de stock', /Réservé au responsable/.test(await refuse(() => q(`select public.stats_equipe(current_date - 1, current_date)`)) || '') && /Réservé au responsable/.test(await refuse(() => q(`select public.stock_ajuster($1, 5, 'reception')`, [prod])) || ''));
+await db.exec(`set app.uid = '${U}'; set app.ws = '';`);
+verif('I', 'Ajustement de stock par un responsable (réception +5 = 14)', Number((await un(`select public.stock_ajuster($1, 5, 'reception', 'Livraison') r`, [prod])).r) === 14);
+
 // ---------------------------------------------------------------- S : sécurisation
 const ok0 = (await un(`select public.caisse_verifier() r`)).r;
 verif('S', 'Vérification : chaîne, signatures, grands totaux, numérotation', ok0.ok === true, `${ok0.entrees} entrées`);
 verif('S', 'Les fonctions internes ne sont exécutables ni par anon ni par authenticated', !(await un(`select has_function_privilege('anon','public.caisse__ecrire(uuid,text,uuid,uuid,text,numeric,jsonb,boolean)','execute') or has_function_privilege('authenticated','public.caisse__ecrire(uuid,text,uuid,uuid,text,numeric,jsonb,boolean)','execute') a`)).a);
-verif('S', 'caisse_encaisser n\'est pas exécutable par anon', !(await un(`select has_function_privilege('anon','public.caisse_encaisser(uuid,uuid,jsonb,jsonb,boolean,uuid)','execute') a`)).a);
+verif('S', 'caisse_encaisser n\'est pas exécutable par anon', !(await un(`select has_function_privilege('anon','public.caisse_encaisser(uuid,uuid,jsonb,jsonb,boolean,uuid,uuid)','execute') a`)).a);
 verif('S', 'caisse_cloturer_auto n\'est exécutable ni par anon ni par authenticated', !(await un(`select has_function_privilege('anon','public.caisse_cloturer_auto()','execute') or has_function_privilege('authenticated','public.caisse_cloturer_auto()','execute') a`)).a);
 
 // ---------------------------------------------------------------- C : conservation (clôtures)
 const z = (await un(`select public.caisse_cloturer($1, 190, null) r`, [ses.id])).r;
 verif('C', 'Clôture Z : numérotée, signée, totaux calculés par le serveur', z.numero_z === 'Z-000001' && /^[0-9a-f]{64}$/.test(z.signature), `${z.nb_ventes} ventes, ${z.nb_avoirs} avoir(s), CA ${z.total_ttc}`);
-verif('C', 'Z : espèces = encaissements moins remboursement (30 + 10 - 11,36)', Number(z.par_mode.especes) === 28.64);
+verif('C', 'Z : espèces = encaissements moins remboursement (30 + 10 + 50 - 11,36 - 10)', Number(z.par_mode.especes) === 68.64);
 verif('C', 'Refus : clôturer un mois non terminé', /pas terminée/.test(await refuse(() => q(`select public.caisse_cloturer_periode('mensuelle', 2026, 12)`)) || ''));
 
 // Données d'un autre mois : on antidate (superuser, triggers suspendus) pour éprouver la clôture automatique, puis on rétablit la protection.

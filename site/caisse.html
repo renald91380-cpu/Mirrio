@@ -159,6 +159,7 @@
   </section>
   <aside class="panier" id="panier" aria-label="Panier">
     <h2>Panier <span style="display:flex;gap:8px"><button class="btn petit" id="b-client" type="button">Client</button><button class="btn petit mobile-seul" id="b-fermer-panier" type="button">Fermer</button></span></h2>
+    <div id="zone-interv" style="padding:0 16px 8px"></div>
     <div class="lignes" id="lignes" aria-live="polite"></div>
     <div class="totaux">
       <div class="l" id="ligne-ht"><span>Total HT</span><span id="t-ht"></span></div>
@@ -193,7 +194,7 @@
   const MODES = { especes:'Espèces', carte:'Carte', cheque:'Chèque', virement:'Virement', autre:'Autre', acompte:'Acompte en ligne' };   // « acompte » : posé par le serveur, jamais proposé
 
   let espaceId = null, session = null, params = {}, brand = {}, prestations = [], clients = [];
-  let monRole = 'proprietaire', panier = [], client = null, categorie = '', formation = false, vueCat = 'prestations', produits = [], terminal = { configure:false }, demoTerm = null;
+  let monRole = 'proprietaire', equipe = [], panier = [], client = null, categorie = '', formation = false, vueCat = 'prestations', produits = [], terminal = { configure:false }, demoTerm = null;
   // Tickets en cours : plusieurs clients à la fois, chacun avec son panier, gardés sur l'appareil (localStorage) jusqu'à l'encaissement.
   let tickets = [], courant = null;
   const assujetti = () => !!params.assujetti_tva;
@@ -226,6 +227,7 @@
     ]);
     brand = b || {}; params = f.data || {}; prestations = pr.data || []; clients = cl.data || []; produits = pd.data || [];
     await lireTerminal();
+    try{ const { data: eq } = await supabase.from('vitrine_equipe').select('id,nom').eq('owner_id', espaceId).order('position'); equipe = eq || []; }catch(e){ equipe = []; }
     try{ const { data: r } = await supabase.rpc('mon_role'); monRole = r || 'proprietaire'; }catch(e){}
     const responsable = ['proprietaire', 'gestionnaire', 'manager'].includes(monRole);
     ['#b-produits', '#b-terminal-cfg', '#b-conformite', '#b-attestation', '#b-compta'].forEach(id => { const el = $(id); if(el) el.hidden = !responsable; });   // l'affichage suit le rôle ; les droits réels sont dans la base
@@ -261,7 +263,7 @@
   // ---------------------------------------------------------------- catalogue
   // Prestations et produits se vendent de la même façon : on les ramène à { id, libelle, prix_unitaire (HT), tva_taux, categorie }.
   const articles = () => vueCat === 'produits'
-    ? produits.map(p => ({ id:p.id, libelle:p.nom + (p.marque ? ' · ' + p.marque : ''), prix_unitaire:p.prix_unitaire, tva_taux:p.tva_taux, categorie:p.categorie, remise_pct:Number(p.remise_pct) || 0 }))
+    ? produits.map(p => ({ id:p.id, libelle:p.nom + (p.marque ? ' · ' + p.marque : ''), prix_unitaire:p.prix_unitaire, tva_taux:p.tva_taux, categorie:p.categorie, remise_pct:Number(p.remise_pct) || 0, stock:p.stock == null ? null : Number(p.stock), stock_min:Number(p.stock_min) || 0 }))
     : prestations;
   function dessinerCatalogue(){
     const src = articles();
@@ -272,7 +274,7 @@
     const liste = src.filter(p => (!categorie || p.categorie === categorie) && (!q || p.libelle.toLowerCase().includes(q)));
     $('#tuiles').innerHTML = (vueCat === 'produits' && !produits.length
       ? '<p class="vide" style="grid-column:1/-1">Aucun produit en vente. <button class="btn petit principal" type="button" data-gerer="1">Ajouter des produits</button></p>'
-      : liste.map(p => `<button class="tuile" type="button" data-id="${p.id}"><b>${esc(p.libelle)}</b><span>${eur(ttcUnitaire(Number(p.prix_unitaire), p.tva_taux))}</span>${p.remise_pct ? `<small class="rem">Remise possible −${p.remise_pct} %</small>` : ''}</button>`).join(''))
+      : liste.map(p => `<button class="tuile" type="button" data-id="${p.id}"><b>${esc(p.libelle)}</b><span>${eur(ttcUnitaire(Number(p.prix_unitaire), p.tva_taux))}</span>${p.remise_pct ? `<small class="rem">Remise possible −${p.remise_pct} %</small>` : ''}${p.stock != null && p.stock <= p.stock_min ? `<small class="rem" style="background:rgba(179,64,42,.14);border-color:rgba(179,64,42,.5)">${p.stock <= 0 ? 'Rupture' : 'Stock bas : ' + p.stock}</small>` : ''}</button>`).join(''))
       + (vueCat === 'produits' ? '' : `<button class="tuile libre" type="button" data-libre="1"><b>Montant libre</b><span>+</span></button>`);
   }
   $('#vue-cat').addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if(b){ vueCat = b.dataset.v; categorie = ''; dessinerCatalogue(); } });
@@ -285,7 +287,7 @@
     if(b.dataset.libre){ await montantLibre(); return; }
     const p = articles().find(x => x.id === b.dataset.id); if(!p) return;
     const l = panier.find(x => x.pid === p.id && !x.remise);
-    if(l) l.qte++; else panier.push({ cle:crypto.randomUUID(), pid:p.id, libelle:p.libelle, ht:Number(p.prix_unitaire), tva:Number(p.tva_taux) || 0, qte:1, remise:0, remisePossible:p.remise_pct || 0 });
+    if(l) l.qte++; else panier.push({ cle:crypto.randomUUID(), pid:p.id, libelle:p.libelle, ht:Number(p.prix_unitaire), tva:Number(p.tva_taux) || 0, qte:1, remise:0, remisePossible:p.remise_pct || 0, produit:vueCat === 'produits', produit_id:vueCat === 'produits' ? p.id : null });
     dessinerPanier();
   });
 
@@ -308,7 +310,7 @@
 
   // ---------------------------------------------------------------- panier
   const prixLigneHT = l => r2(l.ht * (1 - (l.remise || 0) / 100));
-  const lignesFacture = () => panier.map((l, i) => ({ description: l.libelle + (l.remise ? ` (remise ${l.remise} %)` : ''), quantite:l.qte, prix_unitaire:prixLigneHT(l), tva_taux:l.tva, position:i }));
+  const lignesFacture = () => panier.map((l, i) => ({ description: l.libelle + (l.remise ? ` (remise ${l.remise} %)` : ''), quantite:l.qte, prix_unitaire:prixLigneHT(l), tva_taux:l.tva, position:i, type:l.produit ? 'produit' : 'prestation', produit_id:l.produit_id || null }));
   const totaux = () => { const t = calculerTotaux(lignesFacture(), params); return { ...t, totalTTC:r2(t.totalTTC), totalHT:r2(t.totalHT), totalTVA:r2(t.totalTVA) }; };
 
   // ---- tickets en cours
@@ -367,6 +369,8 @@
     $('#t-ht').textContent = eur(t.totalHT); $('#t-tva').textContent = eur(t.totalTVA); $('#t-ttc').textContent = eur(t.totalTTC);
     const n = panier.reduce((s, l) => s + l.qte, 0);
     $('#bm-n').textContent = `Panier (${n})`; $('#bm-total').textContent = eur(t.totalTTC);
+    $('#zone-interv').innerHTML = equipe.length ? `<label class="muted" style="font-size:13px;display:block;margin-bottom:3px" for="sel-interv">Réalisé par</label><select id="sel-interv" style="width:100%;min-height:42px;border-radius:12px;border:1px solid var(--line);padding:0 10px;font:inherit;background:var(--bg);color:inherit"><option value="">Non précisé</option>${equipe.map(m => `<option value="${esc(m.id)}"${courant && courant.intervenant === m.id ? ' selected' : ''}>${esc(m.nom)}</option>`).join('')}</select>` : '';
+    const si = $('#sel-interv'); if(si) si.onchange = () => { if(courant){ courant.intervenant = si.value || null; sauverTickets(); } };
     $('#b-encaisser').disabled = !session || !panier.length;
     $('#b-client').textContent = client ? client.full_name : 'Client';
     sauverTickets(); dessinerTickets();
@@ -559,6 +563,7 @@
     sauverTickets();
     if(!(courant && !courant.panier.length && !courant.rdv)){ const tk = nouveauTicket(); tickets.push(tk); courant = tk; }
     const cl = clients.find(c => c.id === r.client_id);
+    courant.intervenant = r.intervenant_id || courant.intervenant || null;
     courant.rdv = { id:r.id, titre:r.titre || 'Rendez-vous', heure:heure(r.date_debut), acompte, facture };
     courant.panier = panier = lignes.map(l => ({ cle:crypto.randomUUID(), pid:null, ...l, remise:0 }));
     courant.client = client = cl ? { id:cl.id, full_name:cl.full_name } : null;
@@ -574,16 +579,40 @@
     const ttc = p => ttcUnitaire(Number(p.prix_unitaire), p.tva_taux);
     const { d, fin } = ouvrir(`<h2>Produits en vente</h2>
       <p class="muted" style="margin-bottom:10px">Les produits vendus au salon (shampoings, soins, huiles…). Ils apparaissent dans l'onglet « Produits » de la caisse, avec leur prix${assujetti() ? ' TTC' : ''}.</p>
-      <div id="liste-prod">${tout.length ? tout.map(p => `<div class="rang"><span><b>${esc(p.nom)}</b>${p.marque ? ' · ' + esc(p.marque) : ''}${p.actif ? '' : ' <span class="muted">(retiré de la vente)</span>'}<br><span class="muted" style="font-size:13px">${esc(p.categorie || 'Sans catégorie')}${p.remise_pct ? ' · remise possible ' + p.remise_pct + ' %' : ''}${p.reference ? ' · réf. ' + esc(p.reference) : ''}</span></span>
-        <span><b>${eur(ttc(p))}</b> <button class="btn petit" data-ed="${p.id}" type="button">Modifier</button></span></div>`).join('') : '<p class="vide">Aucun produit pour l\'instant.</p>'}</div>
+      <div id="liste-prod">${tout.length ? tout.map(p => `<div class="rang"><span><b>${esc(p.nom)}</b>${p.marque ? ' · ' + esc(p.marque) : ''}${p.actif ? '' : ' <span class="muted">(retiré de la vente)</span>'}<br><span class="muted" style="font-size:13px">${esc(p.categorie || 'Sans catégorie')}${p.remise_pct ? ' · remise possible ' + p.remise_pct + ' %' : ''}${p.stock != null ? ` · <b style="color:${Number(p.stock) <= Number(p.stock_min || 0) ? 'var(--alerte)' : 'inherit'}">stock ${esc(p.stock)}${Number(p.stock) <= Number(p.stock_min || 0) ? ' (bas)' : ''}</b>` : ''}${p.reference ? ' · réf. ' + esc(p.reference) : ''}</span></span>
+        <span><b>${eur(ttc(p))}</b> ${p.stock != null ? `<button class="btn petit" data-st="${p.id}" type="button">Stock</button>` : ''} <button class="btn petit" data-ed="${p.id}" type="button">Modifier</button></span></div>`).join('') : '<p class="vide">Aucun produit pour l\'instant.</p>'}</div>
       <div class="actions"><button class="btn" id="non" type="button">Fermer</button><button class="btn principal" id="nv" type="button">Ajouter un produit</button></div>`);
     d.querySelector('#non').onclick = () => d.fermer(null);
     d.querySelector('#nv').onclick = () => d.fermer({ edit:null, tout });
-    d.addEventListener('click', e => { const b = e.target.closest('button[data-ed]'); if(b) d.fermer({ edit:tout.find(x => x.id === b.dataset.ed), tout }); });
+    d.addEventListener('click', e => {
+      const b = e.target.closest('button[data-ed]'); if(b) d.fermer({ edit:tout.find(x => x.id === b.dataset.ed), tout });
+      const st = e.target.closest('button[data-st]'); if(st) d.fermer({ stock:tout.find(x => x.id === st.dataset.st), tout });
+    });
     const r = await fin;
+    if(r && r.stock){ await ajusterStock(r.stock); return gererProduits(); }
     if(r){ await formProduit(r.edit, r.tout); return gererProduits(); }
     const { data: actifs } = await supabase.from('produits').select('*').eq('owner_id', espaceId).eq('actif', true).order('position');
     produits = actifs || []; dessinerCatalogue();
+  }
+  async function ajusterStock(p){
+    const { d, fin } = ouvrir(`<h2>Stock : ${esc(p.nom)}</h2><p class="muted" style="margin-bottom:10px">Stock actuel : <b>${esc(p.stock)}</b>. Les ventes le diminuent toutes seules, les avoirs le remettent.</p>
+      <div class="champ"><label for="sm">Motif</label><select id="sm"><option value="reception">Réception de marchandise (+)</option><option value="inventaire">Inventaire (nouvelle quantité)</option><option value="perte">Perte ou casse (-)</option><option value="correction">Correction (+ ou -)</option></select></div>
+      <div class="champ"><label for="sq" id="sq-l">Quantité</label><input id="sq" inputmode="decimal" autofocus></div>
+      <div class="champ"><label for="sn">Note (facultatif)</label><input id="sn" maxlength="120"></div>
+      <p class="erreur" id="err" role="alert"></p>
+      <div class="actions"><button class="btn" id="non" type="button">Annuler</button><button class="btn principal" id="ok" type="button">Enregistrer</button></div>`);
+    d.querySelector('#non').onclick = () => d.fermer(null);
+    d.querySelector('#sm').onchange = e => { d.querySelector('#sq-l').textContent = e.target.value === 'inventaire' ? 'Quantité comptée' : 'Quantité'; };
+    d.querySelector('#ok').onclick = async () => {
+      const m = d.querySelector('#sm').value, q = Number(String(d.querySelector('#sq').value).replace(',', '.'));
+      if(!isFinite(q) || (m !== 'correction' && m !== 'inventaire' && q <= 0) || (m === 'inventaire' && q < 0) || d.querySelector('#sq').value.trim() === ''){ d.querySelector('#err').textContent = 'Indiquez une quantité valide.'; return; }
+      const delta = m === 'inventaire' ? r2(q - Number(p.stock)) : m === 'perte' ? -q : q;
+      if(delta === 0){ d.fermer(null); return; }
+      const { error } = await supabase.rpc('stock_ajuster', { p_produit:p.id, p_delta:delta, p_motif:m, p_note:d.querySelector('#sn').value.trim() || null });
+      if(error){ d.querySelector('#err').textContent = /Réservé/.test(error.message) ? 'Réservé au responsable du salon.' : 'Ajustement impossible.'; return; }
+      d.fermer(true);
+    };
+    await fin;
   }
   async function formProduit(p, tout, preset = {}){
     const cats = [...new Set(tout.map(x => x.categorie).filter(Boolean))];
@@ -595,6 +624,8 @@
       <div class="champ"><label for="pp">Prix de vente${assujetti() ? ' TTC' : ''} (€)</label><input id="pp" inputmode="decimal" value="${prixAffiche === '' ? '' : String(prixAffiche).replace('.', ',')}"></div>
       <div class="champ"><label for="pd">Remise possible (%), facultatif</label><input id="pd" inputmode="decimal" maxlength="5" value="${p && p.remise_pct ? String(p.remise_pct).replace('.', ',') : ''}" placeholder="Ex. 10">
         <span class="muted" style="font-size:13px">Affichée sur la caisse comme repère : elle n'est jamais appliquée sans votre action (bouton « −10 % » sur la ligne).</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div class="champ"><label for="ps">Stock actuel (facultatif)</label><input id="ps" inputmode="decimal" value="${p && p.stock != null ? String(p.stock).replace('.', ',') : ''}" placeholder="Vide = non suivi"></div>
+        <div class="champ"><label for="psm">Alerte à partir de</label><input id="psm" inputmode="decimal" value="${p && p.stock_min != null ? String(p.stock_min).replace('.', ',') : ''}" placeholder="Ex. 3"></div></div>
       ${assujetti() ? `<div class="champ"><label for="pt">TVA (%)</label><select id="pt">${[20, 10, 5.5, 2.1, 0].map(t => `<option value="${t}"${t === (p ? Number(p.tva_taux) : tauxDefaut()) ? ' selected' : ''}>${t} %</option>`).join('')}</select></div>` : ''}
       <div class="champ"><label for="pr">Code-barres ou référence (facultatif)</label><div style="display:flex;gap:8px"><input id="pr" maxlength="40" inputmode="numeric" autocomplete="off" value="${esc(p ? p.reference || '' : preset.reference || '')}" style="flex:1"><button class="btn" id="scan" type="button">Scanner</button></div>
         <span class="muted" style="font-size:13px">Scannez avec la caméra, ou avec un lecteur USB ou Bluetooth (il saisit le code et valide).</span></div>
@@ -617,7 +648,8 @@
       if(doublon){ d.querySelector('#err').textContent = `Ce code est déjà celui de « ${doublon.nom} ».`; return; }
       const rem = num(d.querySelector('#pd').value);
       if(rem > 90){ d.querySelector('#err').textContent = 'La remise possible ne peut pas dépasser 90 %.'; return; }
-      const ligne = { nom, remise_pct:rem > 0 ? rem : null, marque:d.querySelector('#pm').value.trim() || null, categorie:d.querySelector('#pc').value.trim() || null, reference:d.querySelector('#pr').value.trim() || null,
+      const sTxt = d.querySelector('#ps').value.trim(), smTxt = d.querySelector('#psm').value.trim();
+      const ligne = { nom, remise_pct:rem > 0 ? rem : null, stock:sTxt === '' ? null : num(sTxt), stock_min:smTxt === '' ? null : num(smTxt), marque:d.querySelector('#pm').value.trim() || null, categorie:d.querySelector('#pc').value.trim() || null, reference:d.querySelector('#pr').value.trim() || null,
         prix_unitaire:Math.round((assujetti() ? saisi / (1 + tva / 100) : saisi) * 10000) / 10000, tva_taux:tva, actif:d.querySelector('#pa').checked };
       const q = p ? supabase.from('produits').update(ligne).eq('id', p.id) : supabase.from('produits').insert({ ...ligne, owner_id:espaceId, position:tout.reduce((m, x) => Math.max(m, x.position || 0), 0) + 1 });
       const { error } = await q;
@@ -679,7 +711,7 @@
     const p = produits.find(x => normaliserCode(x.reference) === normaliserCode(code));
     if(p){
       const lib = p.nom + (p.marque ? ' · ' + p.marque : ''), l = panier.find(x => x.pid === p.id && !x.remise);
-      if(l) l.qte++; else panier.push({ cle:crypto.randomUUID(), pid:p.id, libelle:lib, ht:Number(p.prix_unitaire), tva:Number(p.tva_taux) || 0, qte:1, remise:0, remisePossible:Number(p.remise_pct) || 0 });
+      if(l) l.qte++; else panier.push({ cle:crypto.randomUUID(), pid:p.id, libelle:lib, ht:Number(p.prix_unitaire), tva:Number(p.tva_taux) || 0, qte:1, remise:0, remisePossible:Number(p.remise_pct) || 0, produit:true, produit_id:p.id });
       dessinerPanier(); toast('Ajouté : ' + lib); return;
     }
     if(!confirm(`Le code ${code} n'est pas dans votre catalogue. Créer ce produit maintenant ?`)) return;
@@ -793,7 +825,7 @@
 
   async function enregistrerVente(t, paiements){
     const { data, error } = await supabase.rpc('caisse_encaisser', { p_session:session.id, p_client:client ? client.id : null, p_lignes:lignesFacture(),
-      p_paiements:paiements.map(x => ({ mode:x.mode, montant:x.montant, recu:x.recu, terminal_id:x.terminal_id || null })), p_formation:formation, p_rdv:courant && courant.rdv ? courant.rdv.id : null });
+      p_paiements:paiements.map(x => ({ mode:x.mode, montant:x.montant, recu:x.recu, terminal_id:x.terminal_id || null })), p_formation:formation, p_rdv:courant && courant.rdv ? courant.rdv.id : null, p_intervenant:courant && courant.intervenant || null });
     if(error || !data) throw error || new Error('vente');
     return venteDepuis(data);
   }
@@ -801,7 +833,7 @@
   // ---------------------------------------------------------------- ticket
   // Un ticket affiché ou imprimé vient TOUJOURS de la réponse du serveur (numéro, totaux, signature) : jamais recalculé ici.
   const venteDepuis = r => ({ ticket_id:r.ticket_id, numero:r.numero, type:r.type, formation:!!r.formation, date:r.date, motif:r.motif || null, origine:r.origine_numero || null, duplicata:r.duplicata || 0,
-    lignes:r.lignes, client:r.client_nom ? { full_name:r.client_nom } : null, signature:r.signature || '', gt:Number(r.gt_perpetuel),
+    lignes:r.lignes, client:r.client_nom ? { full_name:r.client_nom } : null, vendeur:r.vendeur || null, signature:r.signature || '', gt:Number(r.gt_perpetuel),
     totaux:{ assujetti:!!r.assujetti, totalHT:Number(r.total_ht), totalTVA:Number(r.total_tva), totalTTC:Number(r.total_ttc), ventilation:(r.ventilation || []).map(x => ({ taux:Number(x.taux), montant:Number(x.montant) })) },
     paiements:(r.paiements || []).map(p => ({ mode:p.mode, montant:Number(p.montant), recu:p.recu == null ? null : Number(p.recu), reference:p.reference || null, source:p.source || null })) });
   const depuisLigne = x => venteDepuis({ ...x, ticket_id:x.id, date:x.date_ticket, origine_numero:null, assujetti:x.assujetti_tva, gt_perpetuel:0, signature:'' });
@@ -814,7 +846,7 @@
     const marque = (v.formation ? '<p class="c"><b>*** TICKET DE FORMATION ***<br>Non comptabilisé</b></p>' : '') + (v.duplicata ? `<p class="c"><b>DUPLICATA n°${v.duplicata}</b><br>Ticket original déjà remis</p>` : '') + (avoir ? `<p class="c"><b>AVOIR</b>${v.origine ? '<br>sur ticket ' + esc(v.origine) : ''}${v.motif ? '<br>' + esc(v.motif) : ''}</p>` : '');
     const sceau = v.signature ? `<hr><p class="c" style="font-size:10px">Signature ${esc(v.signature.slice(0, 16))}${v.formation ? '' : '<br>Grand total perpétuel ' + eur(v.gt)}</p>` : '';
     return `<h1>${esc(nom)}</h1><p class="c">${esc(params.emetteur_adresse || '')}</p><hr>${marque}
-      <p>${esc(jourHeure(v.date))}${v.numero ? ' · ' + esc(v.numero) : ''}${v.client ? '<br>Client : ' + esc(v.client.full_name) : ''}</p><hr>
+      <p>${esc(jourHeure(v.date))}${v.numero ? ' · ' + esc(v.numero) : ''}${v.client ? '<br>Client : ' + esc(v.client.full_name) : ''}${v.vendeur ? '<br>Vendeur : ' + esc(v.vendeur) : ''}</p><hr>
       <table>${l}</table><hr>
       <table>${v.totaux.assujetti ? `<tr><td>Total HT</td><td class="r">${eur(v.totaux.totalHT)}</td></tr>${ven}` : ''}<tr><td><b>TOTAL</b></td><td class="r"><b>${eur(v.totaux.totalTTC)}</b></td></tr></table><hr>
       <table>${pay}</table>${v.totaux.assujetti ? '' : `<hr><p class="c" style="font-size:10px">${esc(MENTION_FRANCHISE_TVA)}</p>`}${sceau}<hr><p class="c">Merci de votre visite</p>`;

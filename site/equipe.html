@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+  // Applique le style d'interface mis en cache AVANT le premier rendu, pour
+  // éviter un flash de l'identité par défaut (Atelier, nav du haut) au clic
+  // sur un lien de nav : appliquerThemeEnCache() dans theme.js fait la même
+  // chose, mais trop tard — ce script module est différé et ne s'exécute
+  // qu'après que le navigateur a déjà peint le DOM. Doublon volontaire et
+  // minimal (un seul attribut), pas une dépendance vers theme.js.
+  (function(){
+    try{
+      var b = JSON.parse(sessionStorage.getItem('cadence:brand'));
+      if(b && b.style_interface) document.documentElement.setAttribute('data-style', b.style_interface);
+    }catch(e){}
+  })();
+</script>
+<title>Équipe | Mirrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="chrome.css">
+<style>
+  :root{
+    --ink:#1C2333;
+    --ink-soft:#2A3346;
+    --parchment:#F5F1E7;
+    --parchment-dim:#EAE4D4;
+    --slate:#8B8F98;
+    --amber:#E2A63D;
+    --amber-soft:#f0c98a;
+    --teal:#3E7C74;
+    --brick:#B5533F;
+    --display:'Fraunces', Georgia, serif;
+    --body:'Inter', Arial, sans-serif;
+    --mono:'IBM Plex Mono', 'Courier New', monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:var(--body);
+    background:var(--parchment);
+    color:var(--ink);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  img,svg{display:block;}
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit;}
+
+  .logo{
+    font-family:var(--display); font-weight:700; font-size:20px;
+    display:flex; align-items:baseline; gap:2px;
+  }
+  .logo .dot{ color:var(--amber); animation:pulseDot 1.6s ease-in-out infinite; }
+  @keyframes pulseDot{
+    0%, 70%, 100%{ transform:scale(1); opacity:0.3; }
+    35%{ transform:scale(1.9); opacity:1; background:var(--amber); }
+  }
+  @media (prefers-reduced-motion: reduce){ .logo .dot{ animation:none !important; opacity:0.6 !important; } }
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    padding:12px 20px; border-radius:6px; font-weight:600; font-size:14.5px;
+    border:none; cursor:pointer; min-height:44px;
+    transition:transform .15s ease, box-shadow .15s ease, background .15s ease, opacity .15s ease;
+  }
+  .btn-primary{ background:var(--amber); color:var(--ink); }
+  .btn-primary:hover{ transform:translateY(-1px); box-shadow:0 8px 18px rgba(226,166,61,0.28); }
+  .btn-ghost{ background:transparent; color:var(--parchment); border:1px solid rgba(245,241,231,0.28); }
+  .btn-ghost:hover{ border-color:rgba(245,241,231,0.6); }
+  .btn:focus-visible, a:focus-visible, button:focus-visible{
+    outline:2px solid var(--teal); outline-offset:2px;
+  }
+
+  /* ---------- App header ---------- */
+  .app-header{
+    background:var(--ink); color:var(--parchment);
+    padding:16px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px;
+  }
+  .app-header-left{ display:flex; align-items:center; gap:28px; }
+  .app-nav{ display:none; gap:20px; font-size:14px; font-weight:500; overflow-x:auto; }
+  @media(min-width:640px){ .app-nav{ display:flex; } }
+  .app-nav a{ color:rgba(245,241,231,0.6); padding:6px 0; border-bottom:2px solid transparent; white-space:nowrap; }
+  .app-nav a:hover{ color:var(--parchment); }
+  .app-nav a.active{ color:var(--parchment); border-bottom-color:var(--amber); }
+  .app-header-right{ display:flex; align-items:center; gap:16px; }
+  .user-name{ font-size:13px; color:rgba(245,241,231,0.55); display:none; }
+  @media(min-width:640px){ .user-name{ display:block; } }
+  .btn-icon{ width:38px; height:38px; padding:0; min-height:0; flex-shrink:0; }
+  .btn-icon svg{ width:17px; height:17px; }
+
+  /* ---------- Main ---------- */
+  .app-main{ padding:36px 20px 60px; }
+  .app-container{ max-width:980px; margin:0 auto; }
+  .page-head{ margin-bottom:32px; }
+  .page-head h1{ font-family:var(--display); font-weight:700; font-size:30px; margin-bottom:6px; }
+  .page-head p{ font-size:14.5px; color:rgba(28,35,51,0.6); }
+
+  .loading-state{ text-align:center; padding:72px 20px; color:rgba(28,35,51,0.5); font-size:14px; }
+
+  /* ---------- Stat cards ---------- */
+  .stat-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:20px; }
+  @media(max-width:760px){ .stat-row{ grid-template-columns:1fr; } }
+  .stat-card{
+    background:#fff; border:1px solid rgba(28,35,51,0.09); border-radius:12px; padding:20px 22px;
+  }
+  .stat-label{
+    font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.05em;
+    color:rgba(28,35,51,0.5); margin-bottom:10px;
+  }
+  .stat-value{ font-family:var(--display); font-size:30px; font-weight:700; line-height:1.1; }
+  .stat-sub{ font-size:12.5px; color:rgba(28,35,51,0.5); margin-top:6px; }
+  .stat-sub.up{ color:var(--teal); }
+  .stat-sub.down{ color:var(--brick); }
+
+  /* ---------- Chart card ---------- */
+  .card{
+    background:#fff; border:1px solid rgba(28,35,51,0.09); border-radius:12px;
+    padding:22px 24px; margin-bottom:20px;
+  }
+  .card h2{ font-family:var(--display); font-size:19px; font-weight:700; margin-bottom:4px; }
+  .card-sub{ font-size:13.5px; color:rgba(28,35,51,0.55); margin-bottom:22px; }
+
+  .chart-bars{ display:flex; align-items:flex-end; gap:14px; height:160px; }
+  .chart-col{ flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; height:100%; justify-content:flex-end; }
+  .chart-col .bar-track{ flex:1; width:100%; display:flex; align-items:flex-end; }
+  .chart-col .bar{
+    width:100%; border-radius:4px 4px 0 0; min-height:3px;
+    background:linear-gradient(180deg, var(--accent-soft, var(--amber-soft)), var(--accent, var(--amber)));
+    position:relative;
+  }
+  .chart-col.current .bar{ background:linear-gradient(180deg, #fff, var(--accent, var(--amber))); }
+  .chart-col .bar-value{
+    font-family:var(--mono); font-size:11px; color:rgba(28,35,51,0.55);
+    position:absolute; top:-19px; left:0; right:0; text-align:center; white-space:nowrap;
+  }
+  .chart-col .bar-label{ font-size:12px; color:rgba(28,35,51,0.55); text-transform:capitalize; }
+
+  /* ---------- Retard list ---------- */
+  .retard-list{ display:flex; flex-direction:column; gap:8px; }
+  .retard-row{
+    display:flex; align-items:center; gap:14px; padding:12px 14px;
+    background:rgba(181,83,63,0.05); border:1px solid rgba(181,83,63,0.15); border-radius:9px;
+  }
+  .retard-row .rr-main{ flex:1; min-width:0; }
+  .retard-row .rr-client{ font-size:14px; font-weight:600; }
+  .retard-row .rr-meta{ font-size:12.5px; color:rgba(28,35,51,0.55); margin-top:2px; }
+  .retard-row .rr-montant{ font-family:var(--mono); font-size:14px; font-weight:600; color:var(--brick); white-space:nowrap; }
+  .retard-row .rr-jours{
+    font-size:11px; font-weight:600; color:var(--brick); background:rgba(181,83,63,0.12);
+    padding:3px 9px; border-radius:20px; white-space:nowrap;
+  }
+  .retard-empty{
+    text-align:center; padding:28px 20px; color:rgba(28,35,51,0.5); font-size:13.5px;
+  }
+  .retard-empty svg{ margin:0 auto 10px; stroke:var(--teal); }
+
+  /* ---------- Mur payant (formule Solo) ---------- */
+  .plan-gate{ text-align:center; padding:56px 20px; }
+  .plan-gate strong{ display:block; font-family:var(--display); font-size:22px; margin-bottom:10px; }
+  .plan-gate p{ font-size:14.5px; color:rgba(28,35,51,0.6); max-width:440px; margin:0 auto 22px; line-height:1.6; }
+
+  .eq-table{ width:100%; border-collapse:collapse; font-size:14.5px; } .eq-table th{ text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:#5B606B; padding:8px 10px; border-bottom:2px solid rgba(16,18,22,.14); white-space:nowrap; }
+  .eq-table td{ padding:11px 10px; border-bottom:1px solid rgba(16,18,22,.09); vertical-align:middle; } .eq-table td.n, .eq-table th.n{ text-align:right; font-variant-numeric:tabular-nums; }
+  .eq-table tr.total td{ font-weight:700; border-top:2px solid rgba(16,18,22,.2); border-bottom:0; }
+  .barre-remp{ display:inline-block; width:90px; height:9px; border-radius:99px; background:rgba(16,18,22,.1); vertical-align:middle; margin-right:8px; overflow:hidden; } .barre-remp i{ display:block; height:100%; background:#E2A63D; }
+  .eq-pct{ width:64px; min-height:38px; border:1px solid rgba(16,18,22,.2); border-radius:10px; padding:0 8px; font:inherit; text-align:right; }
+  .periode{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; align-items:end; } .periode select, .periode input{ min-height:42px; border:1px solid rgba(16,18,22,.2); border-radius:12px; padding:0 10px; font:inherit; background:#fff; }
+  .scroll-x{ overflow-x:auto; } .note-eq{ font-size:13px; color:#5B606B; margin-top:12px; }
+</style>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#1C2333">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mirrio">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<script src="/pwa.js" defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<script src="/cookies.js" defer></script>
+<meta name="robots" content="noindex, nofollow">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-header-left">
+    <span class="logo">Mirrio<span class="dot">.</span></span>
+    <nav class="app-nav"></nav>
+  </div>
+  <div class="app-header-right">
+    <span class="user-name" id="user-name"></span>
+  </div>
+</header>
+
+<div class="app-shell">
+  <aside class="app-sidebar">
+    <div class="logo">Mirrio<span class="dot">.</span></div>
+    <div class="logo-badge" aria-hidden="true"></div>
+    <nav class="sidebar-nav"></nav>
+    <div class="sidebar-spacer"></div>
+    <div class="sidebar-user"><span class="sidebar-avatar" id="sidebar-avatar">–</span><div class="sidebar-user-text"><div class="name" id="sidebar-name">…</div><div class="email" id="sidebar-email"></div></div></div>
+  </aside>
+
+<main class="app-main">
+  <div class="app-container">
+    <div class="page-head">
+      <h1>Équipe</h1>
+      <p>Activité, chiffre d'affaires et commissions de chaque personne, sur la période de votre choix.</p>
+    </div>
+    <div id="demo-note" class="card" hidden style="margin-bottom:16px"><b>Démonstration.</b> Chiffres fictifs plus ce que vous encaissez dans la caisse de démo. <a href="caisse.html?demo=1">Retour à la caisse</a></div>
+    <div id="loading-state" class="loading-state">Chargement…</div>
+    <div id="refus" class="card" hidden><b>Réservé au responsable du salon.</b> Cet écran montre le chiffre d'affaires et les commissions de chaque personne.</div>
+
+    <div id="contenu" hidden>
+      <div class="periode" role="group" aria-label="Période">
+        <label>Période<br><select id="per"><option value="mois">Ce mois-ci</option><option value="moisprec">Mois dernier</option><option value="trim">3 derniers mois</option><option value="annee">Cette année</option><option value="libre">Dates libres</option></select></label>
+        <label id="l-du" hidden>Du<br><input type="date" id="du"></label><label id="l-au" hidden>Au<br><input type="date" id="au"></label>
+      </div>
+      <div class="stat-row" id="tuiles"></div>
+      <div class="card">
+        <h2>Par personne</h2>
+        <p class="card-sub">Chiffre d'affaires hors taxes des ventes passées en caisse, net des remboursements. Le taux de remplissage compare les heures réservées aux heures d'ouverture de la personne, absences déduites.</p>
+        <div class="scroll-x"><table class="eq-table" id="table"></table></div>
+        <p class="note-eq">Commissions : prestations et produits à des taux différents, réglés ici par personne. Elles se calculent sur le hors taxes ; le calcul est indicatif et ne remplace ni un contrat ni une fiche de paie. Les ventes sans personne indiquée en caisse apparaissent dans « Non attribué ».</p>
+        <div class="actions" style="margin-top:12px"><button class="btn btn-outline btn-sm" id="csv" type="button">Exporter en CSV</button></div>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+  import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
+  import { initTheme, idEspaceActif, formaterNomAffichage, initiales, prenomConnecte } from './theme.js';
+  const DEMO = new URLSearchParams(location.search).get('demo') === '1';
+  let supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const $ = s => document.querySelector(s);
+  const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  const eur = n => (Number(n) || 0).toLocaleString('fr-FR', { style:'currency', currency:'EUR', maximumFractionDigits:2 });
+  const r2 = n => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+  const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  let stats = null, espaceId = null;
+
+  function periode(){
+    const n = new Date(), v = $('#per').value;
+    if(v === 'mois') return [new Date(n.getFullYear(), n.getMonth(), 1), n];
+    if(v === 'moisprec') return [new Date(n.getFullYear(), n.getMonth() - 1, 1), new Date(n.getFullYear(), n.getMonth(), 0)];
+    if(v === 'trim') return [new Date(n.getFullYear(), n.getMonth() - 2, 1), n];
+    if(v === 'annee') return [new Date(n.getFullYear(), 0, 1), n];
+    return [new Date($('#du').value || n), new Date($('#au').value || n)];
+  }
+  // Minutes d'ouverture d'une personne sur la période : ses horaires (ou ceux du salon), jour par jour, moins ses absences.
+  function capacite(m, salon, absences, debut, fin){
+    const jours = m.jours_ouvres || (salon && salon.jours) || [1, 2, 3, 4, 5], h0 = String(m.heure_debut || (salon && salon.debut) || '09:00'), h1 = String(m.heure_fin || (salon && salon.fin) || '18:00');
+    const mn = t => { const [h, x] = t.split(':').map(Number); return h * 60 + (x || 0); };
+    let total = 0;
+    for(let d = new Date(debut.getFullYear(), debut.getMonth(), debut.getDate()); d <= fin; d.setDate(d.getDate() + 1)){
+      if(!jours.includes(d.getDay())) continue;
+      const a = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, mn(h0)), b = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, mn(h1));
+      let minutes = (b - a) / 60000;
+      absences.filter(x => x.intervenant_id === m.id).forEach(x => { const s = Math.max(a, new Date(x.debut)), e = Math.min(b, new Date(x.fin)); if(e > s) minutes -= (e - s) / 60000; });
+      total += Math.max(0, minutes);
+    }
+    return total;
+  }
+  function calculer(){
+    const [debut, fin] = periode();
+    return stats.membres.map(m => {
+      const cap = capacite(m, stats.salon, stats.absences || [], debut, fin), ca = Number(m.ca_prestations_ht) + Number(m.ca_produits_ht);
+      const comm = r2(Number(m.ca_prestations_ht) * m.commission_prestations_pct / 100 + Number(m.ca_produits_ht) * m.commission_produits_pct / 100);
+      return { ...m, cap, taux:cap > 0 ? Math.min(100, Math.round(Number(m.minutes_rdv) / cap * 100)) : null, ca, comm, panier:m.nb_tickets > 0 ? ca / m.nb_tickets : 0 };
+    });
+  }
+  function dessiner(){
+    const l = calculer(), na = stats.non_attribue || {};
+    const caTot = l.reduce((s, m) => s + m.ca, 0) + Number(na.ca_prestations_ht || 0) + Number(na.ca_produits_ht || 0), commTot = l.reduce((s, m) => s + m.comm, 0);
+    $('#tuiles').innerHTML = `<div class="stat-card"><div class="stat-label">Chiffre d'affaires HT</div><div class="stat-value">${eur(caTot)}</div></div>
+      <div class="stat-card"><div class="stat-label">Rendez-vous réalisés</div><div class="stat-value">${l.reduce((s, m) => s + Number(m.nb_rdv), 0)}</div></div>
+      <div class="stat-card"><div class="stat-label">Commissions dues (indicatif)</div><div class="stat-value">${eur(commTot)}</div></div>`;
+    $('#table').innerHTML = `<thead><tr><th>Personne</th><th class="n">RDV</th><th class="n">Heures réservées</th><th>Remplissage</th><th class="n">CA prestations</th><th class="n">CA produits</th><th class="n">Panier moyen</th><th class="n">Commission prestations</th><th class="n">Commission produits</th><th class="n">À verser</th></tr></thead>
+      <tbody>${l.map(m => `<tr data-id="${esc(m.id)}"><td><b>${esc(m.nom)}</b></td><td class="n">${m.nb_rdv}</td><td class="n">${r2(m.minutes_rdv / 60)} h</td>
+        <td>${m.taux == null ? '—' : `<span class="barre-remp"><i style="width:${m.taux}%"></i></span>${m.taux} %`}</td><td class="n">${eur(m.ca_prestations_ht)}</td><td class="n">${eur(m.ca_produits_ht)}</td><td class="n">${eur(m.panier)}</td>
+        <td class="n"><input class="eq-pct" data-k="commission_prestations_pct" inputmode="decimal" value="${String(m.commission_prestations_pct).replace('.', ',')}" aria-label="Commission prestations de ${esc(m.nom)} en pourcentage"> %</td>
+        <td class="n"><input class="eq-pct" data-k="commission_produits_pct" inputmode="decimal" value="${String(m.commission_produits_pct).replace('.', ',')}" aria-label="Commission produits de ${esc(m.nom)} en pourcentage"> %</td><td class="n"><b>${eur(m.comm)}</b></td></tr>`).join('')}
+        <tr><td>Non attribué</td><td class="n">—</td><td class="n">—</td><td>—</td><td class="n">${eur(na.ca_prestations_ht)}</td><td class="n">${eur(na.ca_produits_ht)}</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td></tr>
+        <tr class="total"><td>Total</td><td class="n">${l.reduce((s, m) => s + Number(m.nb_rdv), 0)}</td><td class="n">${r2(l.reduce((s, m) => s + Number(m.minutes_rdv), 0) / 60)} h</td><td></td><td class="n">${eur(l.reduce((s, m) => s + Number(m.ca_prestations_ht), 0) + Number(na.ca_prestations_ht || 0))}</td><td class="n">${eur(l.reduce((s, m) => s + Number(m.ca_produits_ht), 0) + Number(na.ca_produits_ht || 0))}</td><td></td><td></td><td></td><td class="n">${eur(commTot)}</td></tr></tbody>`;
+    $('#table').querySelectorAll('.eq-pct').forEach(inp => inp.onchange = async () => {
+      const id = inp.closest('tr').dataset.id, v = Math.max(0, Math.min(100, Number(String(inp.value).replace(',', '.')) || 0)), m = stats.membres.find(x => x.id === id);
+      m[inp.dataset.k] = v;
+      const { error } = await supabase.from('equipe_remuneration').upsert({ intervenant_id:id, owner_id:espaceId, commission_prestations_pct:m.commission_prestations_pct, commission_produits_pct:m.commission_produits_pct });
+      if(error) alert('Enregistrement du taux impossible (migration schema-v47 ?).');
+      dessiner();
+    });
+  }
+  async function charger(){
+    const [debut, fin] = periode();
+    const { data, error } = await supabase.rpc('stats_equipe', { p_debut:iso(debut), p_fin:iso(fin) });
+    $('#loading-state').hidden = true;
+    if(error || !data){ $('#refus').hidden = false; $('#contenu').hidden = true; if(!/Réservé/.test((error && error.message) || '')) $('#refus').innerHTML = '<b>Statistiques indisponibles.</b> Exécuter db/schema-v47-stats-equipe.sql dans Supabase.'; return; }
+    stats = data; $('#refus').hidden = true; $('#contenu').hidden = false; dessiner();
+  }
+  $('#per').onchange = () => { const libre = $('#per').value === 'libre'; $('#l-du').hidden = $('#l-au').hidden = !libre; charger(); };
+  $('#du').onchange = $('#au').onchange = charger;
+  $('#csv').onclick = () => {
+    const l = calculer(), ligne = a => a.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(';');
+    const lignes = [ligne(['Personne', 'RDV', 'Heures reservees', 'Remplissage %', 'CA prestations HT', 'CA produits HT', 'Commission prestations %', 'Commission produits %', 'A verser'])]
+      .concat(l.map(m => ligne([m.nom, m.nb_rdv, r2(m.minutes_rdv / 60), m.taux == null ? '' : m.taux, m.ca_prestations_ht, m.ca_produits_ht, m.commission_prestations_pct, m.commission_produits_pct, m.comm]).replace(/\./g, ',')));
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff' + lignes.join('\r\n')], { type:'text/csv;charset=utf-8' })); a.download = 'equipe-' + iso(new Date()) + '.csv'; document.body.appendChild(a); a.click(); a.remove();
+  };
+  (async function init(){
+    if(DEMO){ const m = await import('./demo-caisse.js'); supabase = m.creerFauxSupabase(); espaceId = 'demo'; $('#demo-note').hidden = false; $('#user-name').textContent = 'Démonstration'; }
+    else {
+      const { data } = await supabase.auth.getSession();
+      if(!data.session){ window.location.href = 'login.html'; return; }
+      $('#user-name').textContent = await prenomConnecte(supabase, data.session); $('#sidebar-email').textContent = data.session.user.email;
+      const brand = await initTheme(supabase, 'equipe');
+      const nom = brand.business_name && brand.business_name !== 'Mirrio' ? brand.business_name : (brand.full_name ? formaterNomAffichage(brand.full_name) : data.session.user.email);
+      $('#sidebar-name').textContent = nom; $('#sidebar-avatar').textContent = initiales(nom);
+      espaceId = await idEspaceActif(supabase);
+    }
+    await charger();
+  })();
+</script>
+</body>
+</html>

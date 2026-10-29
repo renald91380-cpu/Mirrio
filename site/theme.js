@@ -207,6 +207,7 @@ const ONGLET_ADMIN = { cle:'admin', href:'admin.html', libelle:'Back-office' };
 const ICONES_ONGLETS = {
   dashboard: '<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>',
   clients: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+  equipe: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
   agenda: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
   documents: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>',
   caisse: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/>',
@@ -245,6 +246,8 @@ export function monterEntete(brand, actif, estAdmin){
   let base = b.metier === 'patisserie'
     ? [...ONGLETS.slice(0, 3), ONGLET_COMMANDES, ...ONGLETS.slice(3)]
     : ONGLETS;
+  // Onglet « Équipe » (statistiques et commissions par personne) : formule Équipe ou Groupe, c'est-à-dire un salon qui a (ou peut avoir) plusieurs personnes.
+  if(b.plan === 'studio'){ const i = base.findIndex(o => o.cle === 'agenda'); base = [...base.slice(0, i + 1), { cle:'equipe', href:'equipe.html', libelle:'Équipe' }, ...base.slice(i + 1)]; }
   const supplements = [];
   if(b.groupe) supplements.push({ cle:'salons', href:'salons.html', libelle:'Salons' });
   if(b.mariages) supplements.push({ cle:'mariages', href:'mariage-pro.html', libelle:'Mariages' });

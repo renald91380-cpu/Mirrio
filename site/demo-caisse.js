@@ -3,7 +3,7 @@
 // Réimplémente juste ce que caisse.html demande à Supabase (select / eq / is / in / order / limit / maybeSingle / single / insert / update / delete)
 // sur quelques tables, avec le salon fictif Maison Éloïse (coiffure mixte, franchise de TVA). L'état survit au rechargement
 // (sessionStorage) pour pouvoir présenter une journée entière ; `reinitialiserDemoCaisse()` remet tout à zéro.
-const CLE = 'mirrio-demo-caisse-v6';
+const CLE = 'mirrio-demo-caisse-v7';
 const WS = 'demo';
 
 // Rendez-vous d'aujourd'hui pour montrer « Encaisser depuis l'agenda » : un simple, un avec acompte déjà versé en ligne (facture émise), un déjà réglé en ligne.
@@ -13,10 +13,10 @@ function rendezVousDuJour(){
   const doc = (id, statut, description, prix) => ({ id, owner_id:WS, type:'facture', statut, numero:'FAC-2026-9' + id.slice(-1), created_at:new Date().toISOString() });
   return {
     rendez_vous: [
-      rdv('rv1', 'Shampoing, coupe, brushing', 'c0', 9, 30, { prestation_id:'d1' }),
-      rdv('rv2', 'Coloration racines', 'c1', 11, 0, { prestation_id:'d2', paiement_mode:'sur_place', paiement_montant:5, reste_sur_place:53, reste_encaisse_le:null, document_id:'dr2' }),
+      rdv('rv1', 'Shampoing, coupe, brushing', 'c0', 9, 30, { prestation_id:'d1', intervenant_id:'q1' }),
+      rdv('rv2', 'Coloration racines', 'c1', 11, 0, { prestation_id:'d2', paiement_mode:'sur_place', paiement_montant:5, reste_sur_place:53, reste_encaisse_le:null, document_id:'dr2', intervenant_id:'q2' }),
       rdv('rv3', 'Coupe homme', 'c2', 14, 0, { prestation_id:'d7', paiement_mode:'en_ligne', paiement_montant:28, document_id:'dr3' }),
-      rdv('rv4', 'Brushing', 'c3', 16, 30, { prestation_id:'d4' })
+      rdv('rv4', 'Brushing', 'c3', 16, 30, { prestation_id:'d4', intervenant_id:'q3' })
     ],
     documents_rdv: [doc('dr2', 'envoye'), doc('dr3', 'paye')],
     lignes_rdv: [{ id:'lr2', document_id:'dr2', description:'Coloration racines', quantite:1, prix_unitaire:58, tva_taux:0, position:1 }, { id:'lr3', document_id:'dr3', description:'Coupe homme', quantite:1, prix_unitaire:28, tva_taux:0, position:1 }]
@@ -32,7 +32,9 @@ function donneesInitiales(){
     produits: [
       ['Shampoing réparateur 250 ml', 'Kérastase', 'Shampoings', 24.9, 3], ['Masque nutrition 200 ml', 'Kérastase', 'Soins', 32, 2], ['Huile sèche 100 ml', 'Moroccanoil', 'Soins', 38.5, 1],
       ['Spray coiffant', 'Schwarzkopf', 'Coiffants', 14.9, 4], ['Huile à barbe 30 ml', 'Proraso', 'Barbe', 16.5, 5], ['Brosse démêlante', 'Tangle Teezer', 'Accessoires', 12, 6]
-    ].map(([nom, marque, categorie, ttc, position], i) => ({ id:'pr' + i, owner_id:WS, nom, marque, categorie, reference:'34746300000' + String(10 + i), remise_pct:[10, 15, 0, 0, 10, 0][i] || null, prix_unitaire:ttc, tva_taux:0, actif:true, position })),
+    ].map(([nom, marque, categorie, ttc, position], i) => ({ id:'pr' + i, owner_id:WS, nom, marque, categorie, reference:'34746300000' + String(10 + i), remise_pct:[10, 15, 0, 0, 10, 0][i] || null, stock:[12, 2, 0, null, 7, 25][i], stock_min:[3, 3, 2, null, 2, 5][i], prix_unitaire:ttc, tva_taux:0, actif:true, position })),
+    vitrine_equipe: [['q1', 'Éloïse', 1], ['q2', 'Karim', 2], ['q3', 'Léa', 3]].map(([id, nom, position]) => ({ id, owner_id:WS, nom, position, role:null, jours_ouvres:[1, 2, 3, 4, 5, 6], heure_debut:'09:30', heure_fin:'19:00' })),
+    stock_mouvements: [], equipe_remuneration: [{ intervenant_id:'q1', commission_prestations_pct:40, commission_produits_pct:10 }, { intervenant_id:'q2', commission_prestations_pct:35, commission_produits_pct:10 }, { intervenant_id:'q3', commission_prestations_pct:30, commission_produits_pct:8 }],
     terminal: { configure:true, reader_pret:true, lien_pret:true, reader_name:'Solo (démo)', merchant_code:'DEMO0001', app_id:'app.mirrio.caisse' }, terminaux: [],
     ...rendezVousDuJour(),
     chaine: { seq:0, hash:'GENESIS', gt:0, gta:0, n_ticket:0, n_avoir:0, n_formation:0, n_z:0, cle:'cle-demo' },
@@ -118,7 +120,7 @@ function totaux(lignes, neg){
     if(!d) echec(`Ligne ${i + 1}: libellé manquant.`);
     if(!q || Math.abs(q) > 10000 || (!neg && q < 0) || (neg && q > 0)) echec(`Ligne ${i + 1}: quantité invalide.`);
     if(pu < 0 || pu > 100000 || tx < 0 || tx > 30) echec(`Ligne ${i + 1}: prix ou TVA invalide.`);
-    return { description:d, quantite:q, prix_unitaire:pu, tva_taux:tx, remise_pct:Number(l.remise_pct) || 0, index_origine:l.index_origine ?? null };
+    return { description:d, quantite:q, prix_unitaire:pu, tva_taux:tx, remise_pct:Number(l.remise_pct) || 0, index_origine:l.index_origine ?? null, type:l.type === 'produit' ? 'produit' : 'prestation', produit_id:l.produit_id || null };
   });
   const par = new Map(); norm.forEach(l => par.set(l.tva_taux, (par.get(l.tva_taux) || 0) + l.quantite * l.prix_unitaire));
   const ventilation = [...par.entries()].sort((a, b) => a[0] - b[0]).map(([taux, base]) => ({ taux, base:r2(base), montant:r2(base * taux / 100) }));
@@ -141,7 +143,7 @@ function paiements(p, cible){
 }
 const jsonTicket = (t, j, dup) => ({ ticket_id:t.id, numero:t.numero, type:t.type, formation:t.formation, date:t.date_ticket, client_nom:t.client_nom, lignes:t.lignes, total_ht:t.total_ht, total_tva:t.total_tva,
   total_ttc:t.total_ttc, ventilation:t.ventilation, paiements:t.paiements, assujetti:t.assujetti_tva, motif:t.motif, origine_numero:(DB.caisse_tickets.find(o => o.id === t.ticket_origine) || {}).numero || null,
-  hash:t.journal_hash, signature:j.signature, gt_perpetuel:j.gt_perpetuel, duplicata:dup });
+  hash:t.journal_hash, signature:j.signature, gt_perpetuel:j.gt_perpetuel, duplicata:dup, vendeur:t.vendeur || null, intervenant_id:t.intervenant_id || null });
 const sessionOuverte = id => DB.caisse_sessions.find(s => s.id === id && !s.cloturee_le);
 function agregat(f){
   const tk = DB.caisse_tickets.filter(t => !t.formation && f(t)), somme = c => r2(tk.reduce((a, t) => a + t[c], 0)), par = {}, vent = new Map();
@@ -192,7 +194,9 @@ const FONCTIONS = {
     const id = 't' + (DB.n++);
     const j = await ecrire(formation ? 'formation' : 'vente', a.p_session, id, numero, tot.total_ttc, { nb_lignes:tot.lignes.length }, !formation);
     const t = { id, owner_id:WS, session_id:a.p_session, journal_seq:j.seq, journal_hash:j.hash, type:'vente', formation, numero, date_ticket:now.toISOString(), client_id:cl ? cl.id : null, client_nom:cl ? cl.full_name : null,
-      lignes:tot.lignes, total_ht:tot.total_ht, total_tva:tot.total_tva, total_ttc:tot.total_ttc, ventilation:tot.ventilation, paiements:pay, assujetti_tva:tot.assujetti, ticket_origine:null, motif:null };
+      lignes:tot.lignes, total_ht:tot.total_ht, total_tva:tot.total_tva, total_ttc:tot.total_ttc, ventilation:tot.ventilation, paiements:pay, assujetti_tva:tot.assujetti, ticket_origine:null, motif:null,
+      intervenant_id:(DB.vitrine_equipe.find(m => m.id === (a.p_intervenant || (rv && rv.intervenant_id))) || {}).id || null, vendeur:'Éloïse (démo)' };
+    if(!formation) tot.lignes.forEach(l => { const pr = l.produit_id && DB.produits.find(x => x.id === l.produit_id); if(pr && pr.stock != null){ pr.stock = r2(pr.stock - l.quantite); DB.stock_mouvements.push({ id:'sm' + (DB.n++), produit_id:pr.id, delta:-l.quantite, motif:'vente', ticket_id:id }); } });
     if(rv){ rv.caisse_ticket_id = id; rv.reste_encaisse_le = now.toISOString(); rv.reste_sur_place = 0; if(doc) doc.statut = 'paye'; }
     DB.caisse_tickets.push(t); pay.forEach(x => { const tp = x.terminal_id && DB.terminaux.find(z => z.id === x.terminal_id); if(tp) tp.ticket_id = id; }); return jsonTicket(t, j, 0);
   },
@@ -212,7 +216,9 @@ const FONCTIONS = {
     const numero = `AV-${now.getFullYear()}-` + String(++c.n_avoir).padStart(6, '0'), id = 't' + (DB.n++);
     const j = await ecrire('avoir', sess.id, id, numero, tot.total_ttc, { ticket_origine:o.numero, motif }, true);
     const t = { id, owner_id:WS, session_id:sess.id, journal_seq:j.seq, journal_hash:j.hash, type:'avoir', formation:false, numero, date_ticket:now.toISOString(), client_id:o.client_id, client_nom:o.client_nom,
-      lignes:tot.lignes, total_ht:tot.total_ht, total_tva:tot.total_tva, total_ttc:tot.total_ttc, ventilation:tot.ventilation, paiements:pay, assujetti_tva:tot.assujetti, ticket_origine:o.id, motif };
+      lignes:tot.lignes, total_ht:tot.total_ht, total_tva:tot.total_tva, total_ttc:tot.total_ttc, ventilation:tot.ventilation, paiements:pay, assujetti_tva:tot.assujetti, ticket_origine:o.id, motif,
+      intervenant_id:o.intervenant_id || null, vendeur:'Éloïse (démo)' };
+    tot.lignes.forEach(l => { const pr = l.produit_id && DB.produits.find(x => x.id === l.produit_id); if(pr && pr.stock != null){ pr.stock = r2(pr.stock + Math.abs(l.quantite)); DB.stock_mouvements.push({ id:'sm' + (DB.n++), produit_id:pr.id, delta:Math.abs(l.quantite), motif:'avoir', ticket_id:id }); } });
     DB.caisse_tickets.push(t); return jsonTicket(t, j, 0);
   },
   async caisse_duplicata(a){
@@ -240,6 +246,23 @@ const FONCTIONS = {
     const agg = agregat(t => new Date(t.date_ticket) >= debut && new Date(t.date_ticket) < fin), payload = { ...agg, periode:per, type:a.p_type };
     const j = await ecrire('cloture_' + a.p_type, null, null, per, agg.total_ttc, payload, false);
     return { ...payload, gt_perpetuel:j.gt_perpetuel, journal_seq:j.seq, hash:j.hash, signature:j.signature };
+  },
+  async mon_role(){ return 'proprietaire'; },
+  async stock_ajuster(a){
+    const p = DB.produits.find(x => x.id === a.p_produit); if(!p) echec('Produit introuvable.');
+    p.stock = r2((p.stock || 0) + a.p_delta); DB.stock_mouvements.push({ id:'sm' + (DB.n++), produit_id:p.id, delta:a.p_delta, motif:a.p_motif }); return p.stock;
+  },
+  // Statistiques d'équipe de démonstration : les rendez-vous d'aujourd'hui + des ventes fictives plausibles sur le mois, plus ce qui est encaissé dans la session.
+  async stats_equipe(a){
+    const fictif = { q1:[38, 9200, 640, 61], q2:[44, 7400, 410, 52], q3:[29, 5100, 380, 58] };
+    return { debut:a.p_debut, fin:a.p_fin, salon:{ jours:[1, 2, 3, 4, 5, 6], debut:'09:30', fin:'19:00' }, absences:[], non_attribue:{ nb_tickets:2, ca_prestations_ht:120, ca_produits_ht:0 },
+      membres: DB.vitrine_equipe.map(m => {
+        const mine = DB.caisse_tickets.filter(t => !t.formation && t.intervenant_id === m.id), f = fictif[m.id] || [0, 0, 0, 0], rem = DB.equipe_remuneration.find(x => x.intervenant_id === m.id) || {};
+        const somme = type => mine.reduce((acc, t) => acc + t.lignes.filter(l => (l.type === 'produit') === (type === 'produit')).reduce((q, l) => q + l.quantite * l.prix_unitaire, 0), 0);
+        return { id:m.id, nom:m.nom, role:null, jours_ouvres:m.jours_ouvres, heure_debut:m.heure_debut, heure_fin:m.heure_fin, nb_rdv:f[0] + DB.rendez_vous.filter(r => r.intervenant_id === m.id).length,
+          minutes_rdv:(f[0] + 1) * 62, nb_tickets:mine.filter(t => t.type === 'vente').length + Math.round(f[0] * .9), ca_prestations_ht:r2(f[1] + somme('prestation')), ca_produits_ht:r2(f[2] + somme('produit')),
+          commission_prestations_pct:rem.commission_prestations_pct || 0, commission_produits_pct:rem.commission_produits_pct || 0 };
+      }) };
   },
   async caisse_terminal_statut(){ return DB.terminal; },
   async caisse_terminal_lire(a){
