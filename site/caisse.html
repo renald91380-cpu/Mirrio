@@ -53,6 +53,7 @@
   .chips{ display:flex; gap:8px; overflow-x:auto; padding-bottom:12px; scrollbar-width:none; }
   .chips button{ flex:none; min-height:42px; padding:0 16px; border-radius:99px; border:1px solid var(--line); background:var(--surface); font-weight:600; }
   .modes button.terminal{ border-color:var(--accent); background:rgba(226,166,61,.14); }
+  .tuile .rem{ align-self:flex-start; margin-top:4px; padding:2px 8px; border-radius:99px; background:rgba(226,166,61,.2); border:1px solid rgba(226,166,61,.6); font-size:12px; font-weight:700; }
   .chips button[aria-pressed=true]{ background:var(--ink); color:var(--bg); border-color:transparent; }
   .tuiles{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; }
   .tuile{ min-height:96px; padding:12px 14px; border-radius:18px; border:1px solid var(--line); background:var(--surface); box-shadow:var(--ombre); text-align:left; display:flex; flex-direction:column; justify-content:space-between; gap:6px; user-select:none; -webkit-user-select:none; }
@@ -242,7 +243,7 @@
   // ---------------------------------------------------------------- catalogue
   // Prestations et produits se vendent de la même façon : on les ramène à { id, libelle, prix_unitaire (HT), tva_taux, categorie }.
   const articles = () => vueCat === 'produits'
-    ? produits.map(p => ({ id:p.id, libelle:p.nom + (p.marque ? ' · ' + p.marque : ''), prix_unitaire:p.prix_unitaire, tva_taux:p.tva_taux, categorie:p.categorie }))
+    ? produits.map(p => ({ id:p.id, libelle:p.nom + (p.marque ? ' · ' + p.marque : ''), prix_unitaire:p.prix_unitaire, tva_taux:p.tva_taux, categorie:p.categorie, remise_pct:Number(p.remise_pct) || 0 }))
     : prestations;
   function dessinerCatalogue(){
     const src = articles();
@@ -253,7 +254,7 @@
     const liste = src.filter(p => (!categorie || p.categorie === categorie) && (!q || p.libelle.toLowerCase().includes(q)));
     $('#tuiles').innerHTML = (vueCat === 'produits' && !produits.length
       ? '<p class="vide" style="grid-column:1/-1">Aucun produit en vente. <button class="btn petit principal" type="button" data-gerer="1">Ajouter des produits</button></p>'
-      : liste.map(p => `<button class="tuile" type="button" data-id="${p.id}"><b>${esc(p.libelle)}</b><span>${eur(ttcUnitaire(Number(p.prix_unitaire), p.tva_taux))}</span></button>`).join(''))
+      : liste.map(p => `<button class="tuile" type="button" data-id="${p.id}"><b>${esc(p.libelle)}</b><span>${eur(ttcUnitaire(Number(p.prix_unitaire), p.tva_taux))}</span>${p.remise_pct ? `<small class="rem">Remise possible −${p.remise_pct} %</small>` : ''}</button>`).join(''))
       + (vueCat === 'produits' ? '' : `<button class="tuile libre" type="button" data-libre="1"><b>Montant libre</b><span>+</span></button>`);
   }
   $('#vue-cat').addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if(b){ vueCat = b.dataset.v; categorie = ''; dessinerCatalogue(); } });
@@ -266,7 +267,7 @@
     if(b.dataset.libre){ await montantLibre(); return; }
     const p = articles().find(x => x.id === b.dataset.id); if(!p) return;
     const l = panier.find(x => x.pid === p.id && !x.remise);
-    if(l) l.qte++; else panier.push({ cle:crypto.randomUUID(), pid:p.id, libelle:p.libelle, ht:Number(p.prix_unitaire), tva:Number(p.tva_taux) || 0, qte:1, remise:0 });
+    if(l) l.qte++; else panier.push({ cle:crypto.randomUUID(), pid:p.id, libelle:p.libelle, ht:Number(p.prix_unitaire), tva:Number(p.tva_taux) || 0, qte:1, remise:0, remisePossible:p.remise_pct || 0 });
     dessinerPanier();
   });
 
@@ -338,10 +339,10 @@
   function dessinerPanier(){
     const t = totaux();
     $('#lignes').innerHTML = panier.length ? panier.map(l => `<div class="ligne" data-k="${l.cle}">
-      <div><div class="nom">${esc(l.libelle)}</div><div class="sous">${eur(ttcUnitaire(prixLigneHT(l), l.tva))} l'unité${l.remise ? ` · remise ${l.remise} %` : ''}</div></div>
+      <div><div class="nom">${esc(l.libelle)}</div><div class="sous">${eur(ttcUnitaire(prixLigneHT(l), l.tva))} l'unité${l.remise ? ` · remise ${l.remise} %` : ''}${l.remisePossible && !l.remise ? ` · <span class="muted">remise possible ${l.remisePossible} %</span>` : ''}</div></div>
       <div style="text-align:right;font-weight:700">${eur(ttcUnitaire(prixLigneHT(l), l.tva) * l.qte)}</div>
       <div class="qte"><button type="button" data-a="moins" aria-label="Retirer un ${esc(l.libelle)}">−</button><span>${l.qte}</span><button type="button" data-a="plus" aria-label="Ajouter un ${esc(l.libelle)}">+</button></div>
-      <div style="display:flex;gap:6px;justify-content:flex-end"><button class="btn petit" type="button" data-a="remise">Remise</button><button class="btn petit danger" type="button" data-a="sup" aria-label="Supprimer ${esc(l.libelle)}">×</button></div></div>`).join('')
+      <div style="display:flex;gap:6px;justify-content:flex-end">${l.remisePossible && !l.remise ? `<button class="btn petit" type="button" data-a="remise-possible" title="Appliquer la remise prévue pour ce produit">−${l.remisePossible} %</button>` : ''}<button class="btn petit" type="button" data-a="remise">Remise</button><button class="btn petit danger" type="button" data-a="sup" aria-label="Supprimer ${esc(l.libelle)}">×</button></div></div>`).join('')
       : '<p class="vide">Touchez une prestation pour l\'ajouter.</p>';
     $('#ligne-ht').style.display = $('#ligne-tva').style.display = t.assujetti ? '' : 'none';
     $('#t-ht').textContent = eur(t.totalHT); $('#t-tva').textContent = eur(t.totalTVA); $('#t-ttc').textContent = eur(t.totalTTC);
@@ -357,9 +358,10 @@
     if(b.dataset.a === 'plus') l.qte++;
     else if(b.dataset.a === 'moins'){ l.qte--; if(l.qte <= 0) panier = panier.filter(x => x !== l); }
     else if(b.dataset.a === 'sup') panier = panier.filter(x => x !== l);
+    else if(b.dataset.a === 'remise-possible') l.remise = l.remisePossible;
     else if(b.dataset.a === 'remise'){
       const { d, fin } = ouvrir(`<h2>Remise sur « ${esc(l.libelle)} »</h2><div class="champ"><label for="rm">Remise en %</label><input id="rm" inputmode="decimal" value="${l.remise || ''}" autofocus></div>
-        <div class="rapides">${[5, 10, 15, 20, 50].map(p => `<button type="button" data-p="${p}">${p} %</button>`).join('')}</div>
+        <div class="rapides">${[...new Set([l.remisePossible, 5, 10, 15, 20, 50].filter(Boolean))].map(p => `<button type="button" data-p="${p}">${p} %</button>`).join('')}</div>
         <div class="actions"><button class="btn" id="non" type="button">Annuler</button><button class="btn principal" id="ok" type="button">Appliquer</button></div>`);
       d.querySelectorAll('[data-p]').forEach(x => x.onclick = () => { d.querySelector('#rm').value = x.dataset.p; });
       d.querySelector('#non').onclick = () => d.fermer(null);
@@ -492,7 +494,7 @@
     const ttc = p => ttcUnitaire(Number(p.prix_unitaire), p.tva_taux);
     const { d, fin } = ouvrir(`<h2>Produits en vente</h2>
       <p class="muted" style="margin-bottom:10px">Les produits vendus au salon (shampoings, soins, huiles…). Ils apparaissent dans l'onglet « Produits » de la caisse, avec leur prix${assujetti() ? ' TTC' : ''}.</p>
-      <div id="liste-prod">${tout.length ? tout.map(p => `<div class="rang"><span><b>${esc(p.nom)}</b>${p.marque ? ' · ' + esc(p.marque) : ''}${p.actif ? '' : ' <span class="muted">(retiré de la vente)</span>'}<br><span class="muted" style="font-size:13px">${esc(p.categorie || 'Sans catégorie')}${p.reference ? ' · réf. ' + esc(p.reference) : ''}</span></span>
+      <div id="liste-prod">${tout.length ? tout.map(p => `<div class="rang"><span><b>${esc(p.nom)}</b>${p.marque ? ' · ' + esc(p.marque) : ''}${p.actif ? '' : ' <span class="muted">(retiré de la vente)</span>'}<br><span class="muted" style="font-size:13px">${esc(p.categorie || 'Sans catégorie')}${p.remise_pct ? ' · remise possible ' + p.remise_pct + ' %' : ''}${p.reference ? ' · réf. ' + esc(p.reference) : ''}</span></span>
         <span><b>${eur(ttc(p))}</b> <button class="btn petit" data-ed="${p.id}" type="button">Modifier</button></span></div>`).join('') : '<p class="vide">Aucun produit pour l\'instant.</p>'}</div>
       <div class="actions"><button class="btn" id="non" type="button">Fermer</button><button class="btn principal" id="nv" type="button">Ajouter un produit</button></div>`);
     d.querySelector('#non').onclick = () => d.fermer(null);
@@ -511,6 +513,8 @@
       <div class="champ"><label for="pm">Marque (facultatif)</label><input id="pm" maxlength="60" value="${esc(p ? p.marque || '' : '')}"></div>
       <div class="champ"><label for="pc">Catégorie</label><input id="pc" maxlength="40" list="cats-prod" value="${esc(p ? p.categorie || '' : '')}" placeholder="Ex. Shampoings"><datalist id="cats-prod">${cats.map(c => `<option value="${esc(c)}">`).join('')}</datalist></div>
       <div class="champ"><label for="pp">Prix de vente${assujetti() ? ' TTC' : ''} (€)</label><input id="pp" inputmode="decimal" value="${prixAffiche === '' ? '' : String(prixAffiche).replace('.', ',')}"></div>
+      <div class="champ"><label for="pd">Remise possible (%), facultatif</label><input id="pd" inputmode="decimal" maxlength="5" value="${p && p.remise_pct ? String(p.remise_pct).replace('.', ',') : ''}" placeholder="Ex. 10">
+        <span class="muted" style="font-size:13px">Affichée sur la caisse comme repère : elle n'est jamais appliquée sans votre action (bouton « −10 % » sur la ligne).</span></div>
       ${assujetti() ? `<div class="champ"><label for="pt">TVA (%)</label><select id="pt">${[20, 10, 5.5, 2.1, 0].map(t => `<option value="${t}"${t === (p ? Number(p.tva_taux) : tauxDefaut()) ? ' selected' : ''}>${t} %</option>`).join('')}</select></div>` : ''}
       <div class="champ"><label for="pr">Code-barres ou référence (facultatif)</label><div style="display:flex;gap:8px"><input id="pr" maxlength="40" inputmode="numeric" autocomplete="off" value="${esc(p ? p.reference || '' : preset.reference || '')}" style="flex:1"><button class="btn" id="scan" type="button">Scanner</button></div>
         <span class="muted" style="font-size:13px">Scannez avec la caméra, ou avec un lecteur USB ou Bluetooth (il saisit le code et valide).</span></div>
@@ -531,7 +535,9 @@
       if(d.querySelector('#pp').value.trim() === '' || saisi > 100000){ d.querySelector('#err').textContent = 'Indiquez un prix valide.'; return; }
       const code = d.querySelector('#pr').value.trim(), doublon = code && tout.find(x => (!p || x.id !== p.id) && normaliserCode(x.reference) === normaliserCode(code));
       if(doublon){ d.querySelector('#err').textContent = `Ce code est déjà celui de « ${doublon.nom} ».`; return; }
-      const ligne = { nom, marque:d.querySelector('#pm').value.trim() || null, categorie:d.querySelector('#pc').value.trim() || null, reference:d.querySelector('#pr').value.trim() || null,
+      const rem = num(d.querySelector('#pd').value);
+      if(rem > 90){ d.querySelector('#err').textContent = 'La remise possible ne peut pas dépasser 90 %.'; return; }
+      const ligne = { nom, remise_pct:rem > 0 ? rem : null, marque:d.querySelector('#pm').value.trim() || null, categorie:d.querySelector('#pc').value.trim() || null, reference:d.querySelector('#pr').value.trim() || null,
         prix_unitaire:Math.round((assujetti() ? saisi / (1 + tva / 100) : saisi) * 10000) / 10000, tva_taux:tva, actif:d.querySelector('#pa').checked };
       const q = p ? supabase.from('produits').update(ligne).eq('id', p.id) : supabase.from('produits').insert({ ...ligne, owner_id:espaceId, position:tout.reduce((m, x) => Math.max(m, x.position || 0), 0) + 1 });
       const { error } = await q;
@@ -593,7 +599,7 @@
     const p = produits.find(x => normaliserCode(x.reference) === normaliserCode(code));
     if(p){
       const lib = p.nom + (p.marque ? ' · ' + p.marque : ''), l = panier.find(x => x.pid === p.id && !x.remise);
-      if(l) l.qte++; else panier.push({ cle:crypto.randomUUID(), pid:p.id, libelle:lib, ht:Number(p.prix_unitaire), tva:Number(p.tva_taux) || 0, qte:1, remise:0 });
+      if(l) l.qte++; else panier.push({ cle:crypto.randomUUID(), pid:p.id, libelle:lib, ht:Number(p.prix_unitaire), tva:Number(p.tva_taux) || 0, qte:1, remise:0, remisePossible:Number(p.remise_pct) || 0 });
       dessinerPanier(); toast('Ajouté : ' + lib); return;
     }
     if(!confirm(`Le code ${code} n'est pas dans votre catalogue. Créer ce produit maintenant ?`)) return;

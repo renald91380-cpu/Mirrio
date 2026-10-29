@@ -11,10 +11,14 @@ create table if not exists public.produits (
   reference     text check (reference is null or length(reference) <= 40),     -- code article ou code-barres, libre
   prix_unitaire numeric(12,4) not null check (prix_unitaire >= 0 and prix_unitaire <= 100000),   -- HT ; quatre décimales pour retomber sur un prix TTC rond
   tva_taux      numeric not null default 0 check (tva_taux >= 0 and tva_taux <= 30),
+  remise_pct    numeric check (remise_pct is null or (remise_pct > 0 and remise_pct <= 90)),   -- remise que le salon PEUT accorder (jamais appliquée seule)
   actif         boolean not null default true,
   position      int not null default 0,
   created_at    timestamptz not null default now()
 );
+alter table public.produits add column if not exists remise_pct numeric;
+alter table public.produits drop constraint if exists produits_remise_pct_check;
+alter table public.produits add constraint produits_remise_pct_check check (remise_pct is null or (remise_pct > 0 and remise_pct <= 90));
 create index if not exists produits_owner on public.produits(owner_id, position);
 alter table public.produits enable row level security;
 drop policy if exists "Produits : l'espace gère son catalogue" on public.produits;
