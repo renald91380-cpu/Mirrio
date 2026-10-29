@@ -213,12 +213,25 @@ export function monterPlanning(zone, fournisseur, options = {}){
     const jr = jour || debutJour(new Date());
     const dlg = document.createElement('dialog'); dlg.className = 'pg-dlg'; dlg.setAttribute('aria-labelledby', 'pg-dt');
     const optsPrestas = s => `<option value="">Rendez-vous (sans prestation)</option>${s.prestations.map(p => `<option value="${esc(p.id)}" data-d="${p.duree}"${norm(p.libelle) === norm(prestaChoisie) ? ' selected' : ''}>${esc(p.libelle)} (${p.duree} min)</option>`).join('')}`;
-    const optsPers = s => `<option value="">Non attribué</option>${s.equipe.map(e => `<option value="${esc(e.id)}"${String(e.id) === String(init.personne) ? ' selected' : ''}>${esc(e.nom)}</option>`).join('')}`;
+    // Une personne dont le planning est complet (ou fermé, ou déjà prise à l'heure choisie) ne peut pas être sélectionnée.
+    const statutPers = (s, e, dStr, hStr, du) => {
+      const [a, m, j] = (dStr || '').split('-').map(Number); if(!a) return '';
+      const jr = new Date(a, m - 1, j), h = s.horaires;
+      if(!h || !(h.jours || []).includes(jourIso(jr))) return 'fermé';
+      if(!creneauxLibres(s, e, jr, du >= 5 ? du : 30).length) return 'complet';
+      const [hh, mi] = (hStr || '').split(':').map(Number); if(isNaN(hh)) return '';
+      const d = new Date(a, m - 1, j, hh, mi), f = new Date(d.getTime() + (du >= 5 ? du : 30) * 60000);
+      return s.rdv.some(r => r.d < f && r.f > d && (r.intervenant_id == null || r.intervenant_id === e.id)) ? 'occupé à cette heure' : '';
+    };
+    const optsPers = (s, dStr, hStr, du, courant) => `<option value="">Non attribué</option>${s.equipe.map(e => {
+      const st = statutPers(s, e, dStr, hStr, du);
+      return `<option value="${esc(e.id)}"${st ? ' disabled' : ''}${!st && String(e.id) === String(courant) ? ' selected' : ''}>${esc(e.nom)}${st ? ` (${st})` : ''}</option>`;
+    }).join('')}`;
     dlg.innerHTML = `<form method="dialog" novalidate><h3 id="pg-dt">Ajouter un rendez-vous</h3><p class="sous">Client venu sur place ou au téléphone.</p>
       <p class="pg-erreur" role="alert" hidden></p>
       <div class="pg-champ"><label for="pg-s">Salon</label><select id="pg-s">${choix.map(s => `<option value="${esc(s.id)}"${s.id === salonInit.id ? ' selected' : ''}>${esc(s.nom)}</option>`).join('')}</select></div>
       <div class="pg-champ"><label for="pg-pr">Prestation</label><select id="pg-pr">${optsPrestas(salonInit)}</select></div>
-      <div class="pg-champ"><label for="pg-pe">Avec</label><select id="pg-pe">${optsPers(salonInit)}</select></div>
+      <div class="pg-champ"><label for="pg-pe">Avec</label><select id="pg-pe"></select></div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
         <div class="pg-champ"><label for="pg-d">Jour</label><input id="pg-d" type="date" value="${cle(jr)}"></div>
         <div class="pg-champ"><label for="pg-h">Heure</label><input id="pg-h" type="time" step="900" value="${init.minute != null ? `${String(Math.floor(init.minute / 60)).padStart(2, '0')}:${String(init.minute % 60).padStart(2, '0')}` : '10:00'}"></div>
@@ -230,9 +243,15 @@ export function monterPlanning(zone, fournisseur, options = {}){
     document.body.appendChild(dlg);
     const $d = s => dlg.querySelector(s), err = $d('.pg-erreur');
     const salon = () => choix.find(s => s.id === $d('#pg-s').value);
-    $d('#pg-s').onchange = () => { $d('#pg-pr').innerHTML = optsPrestas(salon()); $d('#pg-pe').innerHTML = optsPers(salon()); majDuree(); };
-    function majDuree(){ const o = $d('#pg-pr').selectedOptions[0]; if(o && o.dataset.d) $d('#pg-du').value = o.dataset.d; }
-    $d('#pg-pr').onchange = majDuree; if(init.duree == null) majDuree();
+    let choisie = init.personne;
+    const majPers = () => { const sel = $d('#pg-pe');
+      sel.innerHTML = optsPers(salon(), $d('#pg-d').value, $d('#pg-h').value, +$d('#pg-du').value, choisie);
+      if(choisie && !sel.value) { /* personne devenue indisponible : retour à « Non attribué » */ } };
+    $d('#pg-s').onchange = () => { choisie = null; $d('#pg-pr').innerHTML = optsPrestas(salon()); majDuree(); majPers(); };
+    $d('#pg-pe').onchange = e => { choisie = e.target.value; };
+    ['#pg-d', '#pg-h', '#pg-du'].forEach(id => $d(id).addEventListener('input', majPers));
+    function majDuree(){ const o = $d('#pg-pr').selectedOptions[0]; if(o && o.dataset.d) $d('#pg-du').value = o.dataset.d; majPers(); }
+    $d('#pg-pr').onchange = majDuree; if(init.duree == null) majDuree(); else majPers();
     const fermer = () => { dlg.close(); dlg.remove(); };
     $d('[data-x]').onclick = fermer; dlg.addEventListener('cancel', () => dlg.remove());
     $d('form').onsubmit = async e => {
