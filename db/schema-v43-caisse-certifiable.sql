@@ -100,6 +100,37 @@ drop policy if exists "Caisse : lire les sessions de l'espace" on public.caisse_
 create policy "Caisse : lire les sessions de l'espace" on public.caisse_sessions for select using (owner_id = public.current_workspace_id());
 drop policy if exists "Caisse : enregistrer un paiement dans l'espace" on public.caisse_paiements;
 
+-- ---------------------------------------------------------------------------------------------------------------- terminal de paiement (SumUp)
+-- Identifiants SumUp du salon : jamais lisibles par un navigateur (RLS sans policy), uniquement par api/_terminal.js (clé de service).
+create table if not exists public.caisse_terminal_config (
+  owner_id      uuid primary key,
+  merchant_code text not null,
+  api_key       text not null,
+  affiliate_key text not null,
+  app_id        text not null,
+  reader_id     text,
+  reader_name   text,
+  maj_le        timestamptz not null default now()
+);
+alter table public.caisse_terminal_config enable row level security;
+create table if not exists public.caisse_terminal_paiements (
+  id                    uuid primary key default gen_random_uuid(),
+  owner_id              uuid not null,
+  session_id            uuid,
+  montant               numeric(12,2) not null check (montant > 0),
+  statut                text not null default 'en_attente' check (statut in ('en_attente', 'reussi', 'echoue', 'annule')),
+  secret                text not null,                 -- porté par l'URL du webhook : propre à chaque paiement
+  client_transaction_id text,
+  transaction_code      text,
+  failure_reason        text,
+  ticket_id             uuid,                          -- renseigné quand une vente utilise ce paiement (un paiement ne sert qu'une fois)
+  created_at            timestamptz not null default now(),
+  updated_at            timestamptz not null default now(),
+  created_by            uuid
+);
+create index if not exists caisse_terminal_paiements_owner on public.caisse_terminal_paiements(owner_id, created_at desc);
+alter table public.caisse_terminal_paiements enable row level security;
+
 -- ---------------------------------------------------------------------------------------------------------------- inaltérabilité
 create or replace function public.caisse__immuable()
 returns trigger language plpgsql as $$
@@ -234,7 +265,8 @@ begin
     if m is null or m <= 0 then raise exception 'Montant de paiement invalide.'; end if;
     if md = 'especes' and r is not null and r < m then raise exception 'Espèces reçues insuffisantes.'; end if;
     s := s + m;
-    out := out || jsonb_build_array(jsonb_build_object('mode', md, 'montant', m, 'recu', case when md = 'especes' then coalesce(r, m) else null end));
+    out := out || jsonb_build_array(jsonb_build_object('mode', md, 'montant', m, 'recu', case when md = 'especes' then coalesce(r, m) else null end,
+                                                              'terminal_id', nullif(e->>'terminal_id', '')));
   end loop;
   if abs(s - p_cible) > 0.011 then raise exception 'Le total des paiements (%) ne correspond pas au montant du ticket (%).', s, p_cible; end if;
   if s <> p_cible then
@@ -277,7 +309,7 @@ end $$;
 create or replace function public.caisse_encaisser(p_session uuid, p_client uuid, p_lignes jsonb, p_paiements jsonb, p_formation boolean default false)
 returns jsonb language plpgsql security definer set search_path = public, extensions as $$
 declare e uuid := public.caisse__espace(); c public.caisse_chaine; tot jsonb; pay jsonb; ttc numeric; n bigint; num text; tid uuid := gen_random_uuid();
-        did uuid; cn text; j public.caisse_journal; t public.caisse_tickets; maintenant timestamptz := clock_timestamp(); an text;
+        did uuid; cn text; j public.caisse_journal; t public.caisse_tickets; maintenant timestamptz := clock_timestamp(); an text; px jsonb; tp public.caisse_terminal_paiements;
 begin
   if not exists (select 1 from public.caisse_sessions s where s.id = p_session and s.owner_id = e and s.cloturee_le is null) then raise exception 'Aucune session de caisse ouverte.'; end if;
   if p_client is not null then select full_name into cn from public.clients where id = p_client and owner_id = e; if cn is null then p_client := null; end if; end if;
@@ -285,6 +317,22 @@ begin
   ttc := (tot->>'total_ttc')::numeric;
   if ttc <= 0 then raise exception 'Le total du ticket doit être positif.'; end if;
   pay := public.caisse__paiements(p_paiements, ttc);
+  -- Un paiement par terminal ne sert que s'il est réussi, pas déjà utilisé, du même montant, et jamais en mode formation.
+  if exists (select 1 from jsonb_array_elements(pay) q where q->>'terminal_id' is not null) then
+    if coalesce(p_formation, false) then raise exception 'Le terminal de paiement n''est pas utilisable en mode formation.'; end if;
+    for px in select * from jsonb_array_elements(pay) loop
+      if px->>'terminal_id' is not null then
+        if px->>'mode' <> 'carte' then raise exception 'Un paiement terminal est un paiement par carte.'; end if;
+        select * into tp from public.caisse_terminal_paiements where id = (px->>'terminal_id')::uuid and owner_id = e for update;
+        if tp.id is null or tp.statut <> 'reussi' or tp.ticket_id is not null or tp.montant <> (px->>'montant')::numeric then
+          raise exception 'Paiement terminal invalide ou déjà utilisé.';
+        end if;
+      end if;
+    end loop;
+    pay := (select jsonb_agg(case when q.p->>'terminal_id' is not null
+                 then q.p || jsonb_build_object('reference', coalesce((select t2.transaction_code from public.caisse_terminal_paiements t2 where t2.id = (q.p->>'terminal_id')::uuid), ''))
+                 else q.p end order by q.o) from jsonb_array_elements(pay) with ordinality as q(p, o));
+  end if;
   c := public.caisse__verrou(e);
   an := to_char(maintenant at time zone 'Europe/Paris', 'YYYY');
   if coalesce(p_formation, false) then
@@ -308,6 +356,8 @@ begin
   values (tid, e, p_session, j.seq, j.hash, 'vente', coalesce(p_formation, false), num, maintenant, p_client, cn, tot->'lignes', (tot->>'total_ht')::numeric, (tot->>'total_tva')::numeric, ttc,
           tot->'ventilation', pay, (tot->>'assujetti')::boolean, did, auth.uid())
   returning * into t;
+  update public.caisse_terminal_paiements set ticket_id = tid, updated_at = now()
+    where owner_id = e and id in (select (q->>'terminal_id')::uuid from jsonb_array_elements(pay) q where q->>'terminal_id' is not null);
   if not coalesce(p_formation, false) then
     insert into public.caisse_paiements (owner_id, session_id, document_id, ticket_id, mode, montant, recu)
     select e, p_session, did, tid, p->>'mode', (p->>'montant')::numeric, nullif(p->>'recu', '')::numeric from jsonb_array_elements(pay) p;
@@ -508,6 +558,34 @@ begin
   return corps || jsonb_build_object('empreinte', encode(extensions.digest(corps::text, 'sha256'), 'hex'));
 end $$;
 
+-- ---------------------------------------------------------------------------------------------------------------- terminal : lecture sans secret
+create or replace function public.caisse_terminal_statut()
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare e uuid := public.caisse__espace(); c public.caisse_terminal_config;
+begin
+  select * into c from public.caisse_terminal_config where owner_id = e;
+  if c.owner_id is null then return jsonb_build_object('configure', false, 'reader_pret', false); end if;
+  return jsonb_build_object('configure', true, 'reader_pret', c.reader_id is not null, 'reader_name', c.reader_name, 'merchant_code', c.merchant_code, 'app_id', c.app_id);
+end $$;
+
+create or replace function public.caisse_terminal_lire(p_id uuid)
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare e uuid := public.caisse__espace(); p public.caisse_terminal_paiements;
+begin
+  select * into p from public.caisse_terminal_paiements where id = p_id and owner_id = e;
+  if p.id is null then raise exception 'Paiement introuvable.'; end if;
+  return jsonb_build_object('statut', p.statut, 'montant', p.montant, 'reference', p.transaction_code, 'utilise', p.ticket_id is not null);
+end $$;
+
+-- Paiements réussis sur le terminal mais jamais rattachés à une vente (3 derniers jours) : à régulariser, ils ont été débités.
+create or replace function public.caisse_terminal_orphelins()
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare e uuid := public.caisse__espace();
+begin
+  return coalesce((select jsonb_agg(jsonb_build_object('id', id, 'montant', montant, 'reference', transaction_code, 'date', created_at) order by created_at desc)
+                     from public.caisse_terminal_paiements where owner_id = e and statut = 'reussi' and ticket_id is null and created_at > now() - interval '3 days'), '[]'::jsonb);
+end $$;
+
 -- ---------------------------------------------------------------------------------------------------------------- droits d'exécution
 do $$
 declare f text;
@@ -519,7 +597,8 @@ begin
   end loop;
   foreach f in array array[
     'caisse_ouvrir(numeric)', 'caisse_encaisser(uuid,uuid,jsonb,jsonb,boolean)', 'caisse_avoir(uuid,jsonb,text,jsonb)', 'caisse_duplicata(uuid)', 'caisse_cloturer(uuid,numeric,text)',
-    'caisse_cloturer_periode(text,int,int)', 'caisse_verifier()', 'caisse_archiver(date,date)'] loop
+    'caisse_cloturer_periode(text,int,int)', 'caisse_verifier()', 'caisse_archiver(date,date)',
+    'caisse_terminal_statut()', 'caisse_terminal_lire(uuid)', 'caisse_terminal_orphelins()'] loop
     execute format('revoke all on function public.%s from public, anon', f);
     execute format('grant execute on function public.%s to authenticated', f);
   end loop;

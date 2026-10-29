@@ -52,6 +52,7 @@
   .recherche{ width:100%; min-height:48px; padding:0 16px; border-radius:14px; border:1px solid var(--line); background:var(--surface); margin-bottom:12px; }
   .chips{ display:flex; gap:8px; overflow-x:auto; padding-bottom:12px; scrollbar-width:none; }
   .chips button{ flex:none; min-height:42px; padding:0 16px; border-radius:99px; border:1px solid var(--line); background:var(--surface); font-weight:600; }
+  .modes button.terminal{ border-color:var(--accent); background:rgba(226,166,61,.14); }
   .chips button[aria-pressed=true]{ background:var(--ink); color:var(--bg); border-color:transparent; }
   .tuiles{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; }
   .tuile{ min-height:96px; padding:12px 14px; border-radius:18px; border:1px solid var(--line); background:var(--surface); box-shadow:var(--ombre); text-align:left; display:flex; flex-direction:column; justify-content:space-between; gap:6px; user-select:none; -webkit-user-select:none; }
@@ -123,6 +124,8 @@
   <span class="puce" id="etat-session" role="status"></span>
   <button class="btn petit" id="b-historique" type="button">Ventes</button>
   <button class="btn petit" id="b-formation" type="button" aria-pressed="false" title="Les tickets de formation ne sont pas comptabilisés">Formation</button>
+  <button class="btn petit" id="b-produits" type="button">Produits</button>
+  <button class="btn petit" id="b-terminal-cfg" type="button">Terminal</button>
   <button class="btn petit" id="b-conformite" type="button">Conformité</button>
   <a class="btn petit" id="b-compta" href="export-comptable.html">Comptable</a>
   <button class="btn petit danger" id="b-cloture" type="button" hidden>Clôturer la caisse</button>
@@ -133,6 +136,7 @@
   <section class="catalogue" id="catalogue" aria-label="Catalogue">
     <div class="avert" id="avert-nf525" hidden><b>Caisse prête pour la certification, pas encore certifiée.</b> Votre salon est assujetti à la TVA : en France, un logiciel de caisse doit être certifié NF525 ou faire l'objet d'une attestation individuelle de l'éditeur. Mirrio Caisse applique les protections exigées (journal chaîné et signé, tickets inaltérables, avoirs, clôtures, archives, grand total perpétuel), mais le certificat n'est pas encore délivré : voir « Conformité ».</div>
     <div class="tickets" id="tickets" role="group" aria-label="Tickets en cours"></div>
+    <div class="chips" id="vue-cat" role="group" aria-label="Type d'article"><button type="button" data-v="prestations" aria-pressed="true">Prestations</button><button type="button" data-v="produits" aria-pressed="false">Produits</button></div>
     <input class="recherche" id="recherche" type="search" placeholder="Rechercher une prestation" aria-label="Rechercher une prestation" autocomplete="off">
     <div class="chips" id="chips" role="group" aria-label="Catégories"></div>
     <div class="tuiles" id="tuiles"></div>
@@ -172,7 +176,7 @@
   const MODES = { especes:'Espèces', carte:'Carte', cheque:'Chèque', virement:'Virement', autre:'Autre' };
 
   let espaceId = null, session = null, params = {}, brand = {}, prestations = [], clients = [];
-  let panier = [], client = null, categorie = '', formation = false;
+  let panier = [], client = null, categorie = '', formation = false, vueCat = 'prestations', produits = [], terminal = { configure:false }, demoTerm = null;
   // Tickets en cours : plusieurs clients à la fois, chacun avec son panier, gardés sur l'appareil (localStorage) jusqu'à l'encaissement.
   let tickets = [], courant = null;
   const assujetti = () => !!params.assujetti_tva;
@@ -192,17 +196,19 @@
 
   // ---------------------------------------------------------------- chargement
   async function charger(){
-    if(DEMO){ const m = await import('./demo-caisse.js'); supabase = m.creerFauxSupabase(); reinitialiserDemo = m.reinitialiserDemoCaisse; }
+    if(DEMO){ const m = await import('./demo-caisse.js'); supabase = m.creerFauxSupabase(); reinitialiserDemo = m.reinitialiserDemoCaisse; demoTerm = m.appelTerminalDemo; }
     espaceId = DEMO ? 'demo' : await idEspaceActif(supabase);
-    const [b, f, sess, pr, cl] = await Promise.all([
+    const [b, f, sess, pr, cl, pd] = await Promise.all([
       DEMO ? { business_name:'Maison Éloïse' } : chargerBrand(supabase, espaceId),
       supabase.from('parametres_facturation').select('*').eq('owner_id', espaceId).maybeSingle(),
       supabase.from('caisse_sessions').select('*').eq('owner_id', espaceId).is('cloturee_le', null).maybeSingle(),
       supabase.from('prestations').select('id,libelle,prix_unitaire,tva_taux,categorie,actif,position').eq('owner_id', espaceId).eq('actif', true).order('position').then(r => r.error
         ? supabase.from('prestations').select('id,libelle,prix_unitaire,tva_taux,actif,position').eq('owner_id', espaceId).eq('actif', true).order('position') : r),
-      supabase.from('clients').select('id,full_name,phone,email').eq('owner_id', espaceId).order('full_name').limit(1000)
+      supabase.from('clients').select('id,full_name,phone,email').eq('owner_id', espaceId).order('full_name').limit(1000),
+      supabase.from('produits').select('*').eq('owner_id', espaceId).eq('actif', true).order('position').then(r => r.error ? { data:[] } : r)
     ]);
-    brand = b || {}; params = f.data || {}; prestations = pr.data || []; clients = cl.data || [];
+    brand = b || {}; params = f.data || {}; prestations = pr.data || []; clients = cl.data || []; produits = pd.data || [];
+    await lireTerminal();
     $('#salon').textContent = brand.business_name || params.emetteur_nom || '';
     if(sess.error){ $('#etat-session').textContent = 'Base non préparée'; $('#etat-session').className = 'puce ko'; toast('Exécuter db/schema-v39-caisse.sql dans Supabase.'); return false; }
     session = sess.data || null;
@@ -233,21 +239,31 @@
   }
 
   // ---------------------------------------------------------------- catalogue
+  // Prestations et produits se vendent de la même façon : on les ramène à { id, libelle, prix_unitaire (HT), tva_taux, categorie }.
+  const articles = () => vueCat === 'produits'
+    ? produits.map(p => ({ id:p.id, libelle:p.nom + (p.marque ? ' · ' + p.marque : ''), prix_unitaire:p.prix_unitaire, tva_taux:p.tva_taux, categorie:p.categorie }))
+    : prestations;
   function dessinerCatalogue(){
-    const cats = [...new Set(prestations.map(p => p.categorie).filter(Boolean))];
+    const src = articles();
+    $('#vue-cat').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === vueCat));
+    const cats = [...new Set(src.map(p => p.categorie).filter(Boolean))];
     $('#chips').innerHTML = cats.length ? [['', 'Tout'], ...cats.map(c => [c, c])].map(([k, l]) => `<button type="button" data-c="${esc(k)}" aria-pressed="${categorie === k}">${esc(l)}</button>`).join('') : '';
     const q = $('#recherche').value.trim().toLowerCase();
-    const liste = prestations.filter(p => (!categorie || p.categorie === categorie) && (!q || p.libelle.toLowerCase().includes(q)));
-    $('#tuiles').innerHTML = liste.map(p => `<button class="tuile" type="button" data-id="${p.id}"><b>${esc(p.libelle)}</b><span>${eur(ttcUnitaire(Number(p.prix_unitaire), p.tva_taux))}</span></button>`).join('')
-      + `<button class="tuile libre" type="button" data-libre="1"><b>Montant libre</b><span>+</span></button>`;
+    const liste = src.filter(p => (!categorie || p.categorie === categorie) && (!q || p.libelle.toLowerCase().includes(q)));
+    $('#tuiles').innerHTML = (vueCat === 'produits' && !produits.length
+      ? '<p class="vide" style="grid-column:1/-1">Aucun produit en vente. <button class="btn petit principal" type="button" data-gerer="1">Ajouter des produits</button></p>'
+      : liste.map(p => `<button class="tuile" type="button" data-id="${p.id}"><b>${esc(p.libelle)}</b><span>${eur(ttcUnitaire(Number(p.prix_unitaire), p.tva_taux))}</span></button>`).join(''))
+      + (vueCat === 'produits' ? '' : `<button class="tuile libre" type="button" data-libre="1"><b>Montant libre</b><span>+</span></button>`);
   }
+  $('#vue-cat').addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if(b){ vueCat = b.dataset.v; categorie = ''; dessinerCatalogue(); } });
   $('#chips').addEventListener('click', e => { const b = e.target.closest('button[data-c]'); if(b){ categorie = b.dataset.c; dessinerCatalogue(); } });
   $('#recherche').addEventListener('input', dessinerCatalogue);
   $('#tuiles').addEventListener('click', async e => {
     const b = e.target.closest('button'); if(!b) return;
+    if(b.dataset.gerer){ gererProduits(); return; }
     if(!session){ toast('Ouvrez d\'abord la caisse.'); ouvrirCaisse(); return; }
     if(b.dataset.libre){ await montantLibre(); return; }
-    const p = prestations.find(x => x.id === b.dataset.id); if(!p) return;
+    const p = articles().find(x => x.id === b.dataset.id); if(!p) return;
     const l = panier.find(x => x.pid === p.id && !x.remise);
     if(l) l.qte++; else panier.push({ cle:crypto.randomUUID(), pid:p.id, libelle:p.libelle, ht:Number(p.prix_unitaire), tva:Number(p.tva_taux) || 0, qte:1, remise:0 });
     dessinerPanier();
@@ -377,6 +393,149 @@
     const r = await fin; if(r === 'aucun') client = null; else if(r) client = r; dessinerPanier();
   };
 
+  // ---------------------------------------------------------------- terminal de paiement SumUp
+  async function lireTerminal(){
+    const { data, error } = await supabase.rpc('caisse_terminal_statut');
+    terminal = error || !data ? { configure:false } : data;
+  }
+  async function appelTerminal(action, corps = {}){
+    if(DEMO) return demoTerm(action, corps);
+    const { data } = await supabase.auth.getSession();
+    try{
+      const r = await fetch('/api/caisse-terminal', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Bearer ' + data.session.access_token }, body:JSON.stringify({ action, ...corps }) });
+      const j = await r.json().catch(() => ({}));
+      return r.ok ? j : { error:j.error || 'Terminal indisponible.' };
+    }catch(e){ return { error:'Terminal injoignable : vérifiez la connexion internet.' }; }
+  }
+  // Envoie le montant au Solo et attend le résultat (webhook de SumUp relu en base, avec une vérification directe en renfort). Renvoie { terminal_id, reference } ou null.
+  async function payerSurTerminal(montant){
+    const { d, fin } = ouvrir(`<h2>Paiement sur le terminal</h2><p class="gros" style="margin:6px 0">${eur(montant)}</p>
+      <p id="etat-term" class="muted" role="status">Envoi du montant au terminal…</p><p class="erreur" id="err" role="alert"></p>
+      <div class="actions"><button class="btn danger" id="ann" type="button">Annuler le paiement</button></div>`);
+    let id = null, fini = false, essais = 0, minuteur = null;
+    const etat = t => { d.querySelector('#etat-term').textContent = t; };
+    const clore = r => { if(fini) return; fini = true; clearInterval(minuteur); d.fermer(r); };
+    d.querySelector('#ann').onclick = async () => {
+      if(!id){ clore(null); return; }
+      d.querySelector('#ann').disabled = true; etat('Annulation…');
+      await appelTerminal('annuler', { id });
+      const { data } = await supabase.rpc('caisse_terminal_lire', { p_id:id });   // le client a pu payer entre-temps
+      if(data && data.statut === 'reussi') clore({ terminal_id:id, reference:data.reference }); else clore(null);
+    };
+    (async () => {
+      const r = await appelTerminal('payer', { session_id:session.id, montant });
+      if(fini) return;
+      if(r.error || !r.id){ d.querySelector('#err').textContent = r.error || 'Paiement impossible.'; d.querySelector('#ann').textContent = 'Fermer'; id = null; return; }
+      id = r.id; etat('Présentez la carte sur le terminal.');
+      minuteur = setInterval(async () => {
+        if(fini) return; essais++;
+        if(essais % 5 === 0) await appelTerminal('verifier', { id });
+        const { data } = await supabase.rpc('caisse_terminal_lire', { p_id:id });
+        if(!data || fini) return;
+        if(data.statut === 'reussi') clore({ terminal_id:id, reference:data.reference });
+        else if(data.statut === 'echoue' || data.statut === 'annule'){ id = null; etat('Le paiement n\'a pas abouti (carte refusée ou opération interrompue).'); d.querySelector('#ann').textContent = 'Fermer'; clearInterval(minuteur); }
+        else if(essais > 80) etat('Toujours en attente. Vérifiez le terminal, ou annulez le paiement.');
+      }, 1500);
+    })();
+    const res = await fin;
+    if(!fini && id){ fini = true; clearInterval(minuteur); await appelTerminal('annuler', { id }); }   // fenêtre fermée au clavier : on libère le terminal
+    return res;
+  }
+
+  $('#b-terminal-cfg').onclick = async () => {
+    await lireTerminal();
+    const { d, fin } = ouvrir(`<h2>Terminal de paiement SumUp</h2>
+      <p class="muted" style="margin-bottom:10px">Le paiement par carte se fait sur un terminal <b>SumUp Solo</b> : la caisse envoie le montant, le client paie, la vente est enregistrée avec la référence de la transaction. L'argent va directement sur <b>votre</b> compte SumUp.</p>
+      <div class="rang"><span>État</span><b id="etat">${terminal.configure ? (terminal.reader_pret ? 'Prêt : ' + esc(terminal.reader_name || 'Solo') : 'Compte relié, aucun lecteur appairé') : 'Non configuré'}</b></div>
+      <details ${terminal.configure ? '' : 'open'} style="margin:8px 0"><summary><b>1. Relier votre compte SumUp</b></summary>
+        <p class="muted" style="font-size:13px;margin:6px 0">Dans votre compte SumUp (me.sumup.com), menu Paramètres, <i>Pour les développeurs</i>, <i>Toolkit</i> : créez une <b>clé API</b>, notez votre <b>code marchand</b>, puis créez une <b>clé d'affiliation</b> avec l'identifiant d'application ci-dessous.</p>
+        <div class="champ"><label for="t-mc">Code marchand</label><input id="t-mc" value="${esc(terminal.merchant_code || '')}" maxlength="20" autocomplete="off"></div>
+        <div class="champ"><label for="t-ak">Clé API</label><input id="t-ak" type="password" maxlength="200" autocomplete="off" placeholder="sup_sk_…"></div>
+        <div class="champ"><label for="t-app">Identifiant d'application</label><input id="t-app" value="${esc(terminal.app_id || 'app.mirrio.caisse')}" maxlength="100"></div>
+        <div class="champ"><label for="t-af">Clé d'affiliation</label><input id="t-af" type="password" maxlength="200" autocomplete="off"></div>
+        <button class="btn" id="t-save" type="button">Enregistrer</button></details>
+      <details ${terminal.configure && !terminal.reader_pret ? 'open' : ''} style="margin:8px 0"><summary><b>2. Appairer le Solo</b></summary>
+        <p class="muted" style="font-size:13px;margin:6px 0">Sur le Solo <b>déconnecté</b> de son compte : menu du haut, <i>Connexions</i>, <i>API</i>, <i>Connecter</i>. Saisissez le code affiché ici dans les 5 minutes. Firmware 3.3.39.0 minimum, terminal branché de préférence.</p>
+        <div class="champ"><label for="t-code">Code d'appairage</label><input id="t-code" maxlength="9" autocomplete="off" style="text-transform:uppercase"></div>
+        <div class="champ"><label for="t-nom">Nom du lecteur</label><input id="t-nom" value="Caisse" maxlength="80"></div>
+        <button class="btn" id="t-pair" type="button">Appairer</button></details>
+      <p class="erreur" id="err" role="alert"></p>
+      <div class="actions"><button class="btn danger" id="t-del" type="button"${terminal.configure ? '' : ' hidden'}>Supprimer la configuration</button><button class="btn principal" id="non" type="button">Fermer</button></div>`);
+    const msg = (t, ok) => { const e = d.querySelector('#err'); e.textContent = t; e.style.color = ok ? 'var(--ok)' : ''; };
+    d.querySelector('#non').onclick = () => d.fermer(null);
+    d.querySelector('#t-save').onclick = async () => {
+      msg('Vérification auprès de SumUp…', true);
+      const r = await appelTerminal('config', { merchant_code:d.querySelector('#t-mc').value, api_key:d.querySelector('#t-ak').value, app_id:d.querySelector('#t-app').value, affiliate_key:d.querySelector('#t-af').value });
+      if(r.error){ msg(r.error); return; }
+      d.querySelector('#t-ak').value = ''; d.querySelector('#t-af').value = ''; await lireTerminal(); msg('Compte SumUp relié. Appairez maintenant le lecteur.', true);
+      d.querySelector('#etat').textContent = terminal.reader_pret ? 'Prêt : ' + (terminal.reader_name || 'Solo') : 'Compte relié, aucun lecteur appairé'; d.querySelector('#t-del').hidden = false;
+    };
+    d.querySelector('#t-pair').onclick = async () => {
+      msg('Appairage…', true);
+      const r = await appelTerminal('appairer', { pairing_code:d.querySelector('#t-code').value, name:d.querySelector('#t-nom').value });
+      if(r.error){ msg(r.error); return; }
+      await lireTerminal(); d.querySelector('#etat').textContent = 'Prêt : ' + (terminal.reader_name || 'Solo'); msg('Lecteur appairé. « Terminal carte » apparaît à l\'encaissement.', true);
+    };
+    d.querySelector('#t-del').onclick = async () => {
+      if(!confirm('Supprimer la configuration du terminal ? Le lecteur ne sera plus utilisable depuis la caisse.')) return;
+      const r = await appelTerminal('supprimer'); if(r.error){ msg(r.error); return; }
+      await lireTerminal(); d.fermer(null); toast('Terminal retiré.');
+    };
+    await fin;
+  };
+
+  // ---------------------------------------------------------------- catalogue de produits
+  async function gererProduits(){
+    const { data } = await supabase.from('produits').select('*').eq('owner_id', espaceId).order('position');
+    const tout = data || [];
+    const ttc = p => ttcUnitaire(Number(p.prix_unitaire), p.tva_taux);
+    const { d, fin } = ouvrir(`<h2>Produits en vente</h2>
+      <p class="muted" style="margin-bottom:10px">Les produits vendus au salon (shampoings, soins, huiles…). Ils apparaissent dans l'onglet « Produits » de la caisse, avec leur prix${assujetti() ? ' TTC' : ''}.</p>
+      <div id="liste-prod">${tout.length ? tout.map(p => `<div class="rang"><span><b>${esc(p.nom)}</b>${p.marque ? ' · ' + esc(p.marque) : ''}${p.actif ? '' : ' <span class="muted">(retiré de la vente)</span>'}<br><span class="muted" style="font-size:13px">${esc(p.categorie || 'Sans catégorie')}${p.reference ? ' · réf. ' + esc(p.reference) : ''}</span></span>
+        <span><b>${eur(ttc(p))}</b> <button class="btn petit" data-ed="${p.id}" type="button">Modifier</button></span></div>`).join('') : '<p class="vide">Aucun produit pour l\'instant.</p>'}</div>
+      <div class="actions"><button class="btn" id="non" type="button">Fermer</button><button class="btn principal" id="nv" type="button">Ajouter un produit</button></div>`);
+    d.querySelector('#non').onclick = () => d.fermer(null);
+    d.querySelector('#nv').onclick = () => d.fermer({ edit:null, tout });
+    d.addEventListener('click', e => { const b = e.target.closest('button[data-ed]'); if(b) d.fermer({ edit:tout.find(x => x.id === b.dataset.ed), tout }); });
+    const r = await fin;
+    if(r){ await formProduit(r.edit, r.tout); return gererProduits(); }
+    const { data: actifs } = await supabase.from('produits').select('*').eq('owner_id', espaceId).eq('actif', true).order('position');
+    produits = actifs || []; dessinerCatalogue();
+  }
+  async function formProduit(p, tout){
+    const cats = [...new Set(tout.map(x => x.categorie).filter(Boolean))];
+    const prixAffiche = p ? r2(ttcUnitaire(Number(p.prix_unitaire), p.tva_taux)) : '';
+    const { d, fin } = ouvrir(`<h2>${p ? 'Modifier le produit' : 'Nouveau produit'}</h2>
+      <div class="champ"><label for="pn">Nom</label><input id="pn" maxlength="80" value="${esc(p ? p.nom : '')}" autofocus></div>
+      <div class="champ"><label for="pm">Marque (facultatif)</label><input id="pm" maxlength="60" value="${esc(p ? p.marque || '' : '')}"></div>
+      <div class="champ"><label for="pc">Catégorie</label><input id="pc" maxlength="40" list="cats-prod" value="${esc(p ? p.categorie || '' : '')}" placeholder="Ex. Shampoings"><datalist id="cats-prod">${cats.map(c => `<option value="${esc(c)}">`).join('')}</datalist></div>
+      <div class="champ"><label for="pp">Prix de vente${assujetti() ? ' TTC' : ''} (€)</label><input id="pp" inputmode="decimal" value="${prixAffiche === '' ? '' : String(prixAffiche).replace('.', ',')}"></div>
+      ${assujetti() ? `<div class="champ"><label for="pt">TVA (%)</label><select id="pt">${[20, 10, 5.5, 2.1, 0].map(t => `<option value="${t}"${t === (p ? Number(p.tva_taux) : tauxDefaut()) ? ' selected' : ''}>${t} %</option>`).join('')}</select></div>` : ''}
+      <div class="champ"><label for="pr">Référence ou code-barres (facultatif)</label><input id="pr" maxlength="40" value="${esc(p ? p.reference || '' : '')}"></div>
+      <label style="display:flex;gap:8px;align-items:center;margin:6px 0"><input type="checkbox" id="pa"${!p || p.actif ? ' checked' : ''}> En vente</label>
+      <p class="erreur" id="err" role="alert"></p>
+      <div class="actions">${p ? '<button class="btn danger" id="sup" type="button">Supprimer</button>' : ''}<button class="btn" id="non" type="button">Annuler</button><button class="btn principal" id="ok" type="button">Enregistrer</button></div>`);
+    d.querySelector('#non').onclick = () => d.fermer(null);
+    if(p) d.querySelector('#sup').onclick = async () => {
+      if(!confirm('Supprimer ce produit ? Les tickets déjà émis ne changent pas.')) return;
+      const { error } = await supabase.from('produits').delete().eq('id', p.id);
+      if(error){ d.querySelector('#err').textContent = 'Suppression impossible.'; return; } d.fermer(true);
+    };
+    d.querySelector('#ok').onclick = async () => {
+      const nom = d.querySelector('#pn').value.trim(), saisi = num(d.querySelector('#pp').value), tva = assujetti() ? Number(d.querySelector('#pt').value) : 0;
+      if(!nom){ d.querySelector('#err').textContent = 'Indiquez le nom du produit.'; return; }
+      if(d.querySelector('#pp').value.trim() === '' || saisi > 100000){ d.querySelector('#err').textContent = 'Indiquez un prix valide.'; return; }
+      const ligne = { nom, marque:d.querySelector('#pm').value.trim() || null, categorie:d.querySelector('#pc').value.trim() || null, reference:d.querySelector('#pr').value.trim() || null,
+        prix_unitaire:Math.round((assujetti() ? saisi / (1 + tva / 100) : saisi) * 10000) / 10000, tva_taux:tva, actif:d.querySelector('#pa').checked };
+      const q = p ? supabase.from('produits').update(ligne).eq('id', p.id) : supabase.from('produits').insert({ ...ligne, owner_id:espaceId, position:tout.reduce((m, x) => Math.max(m, x.position || 0), 0) + 1 });
+      const { error } = await q;
+      if(error){ d.querySelector('#err').textContent = /produits|relation|does not exist/i.test(error.message) ? 'Exécuter db/schema-v44-produits.sql dans Supabase.' : 'Enregistrement impossible.'; return; }
+      d.fermer(true);
+    };
+    await fin;
+  }
+  $('#b-produits').onclick = gererProduits;
+
   // ---------------------------------------------------------------- encaissement
   $('#b-encaisser').onclick = () => encaisser();
   async function encaisser(){
@@ -385,7 +544,7 @@
       <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="muted">Total</span><span class="gros">${eur(t.totalTTC)}</span></div>
       <div style="display:flex;justify-content:space-between"><span class="muted">Reste à payer</span><b id="reste"></b></div>
       <div class="champ" style="margin-top:12px"><label for="mm">Montant de ce paiement (€)</label><input id="mm" inputmode="decimal"></div>
-      <div class="modes" id="modes">${Object.entries(MODES).map(([k, l]) => `<button type="button" data-m="${k}" aria-pressed="false">${l}</button>`).join('')}</div>
+      <div class="modes" id="modes">${Object.entries(MODES).map(([k, l]) => `<button type="button" data-m="${k}" aria-pressed="false">${l}</button>`).join('')}${terminal.reader_pret && !formation ? '<button type="button" class="terminal" id="b-terminal">Terminal carte</button>' : ''}</div>
       <div id="pad-especes" hidden><div class="champ"><label for="recu">Espèces reçues (€)</label><input id="recu" inputmode="decimal"></div>
         <div class="rapides" id="rapides"></div><div style="display:flex;justify-content:space-between"><span class="muted">Monnaie à rendre</span><b id="rendu">0,00 €</b></div>
         <div class="actions" style="margin-top:8px"><button class="btn sombre" id="ajout-esp" type="button">Valider les espèces</button></div></div>
@@ -396,7 +555,7 @@
       const r = reste();
       d.querySelector('#reste').textContent = eur(r); d.querySelector('#valider').disabled = r !== 0 || !paiements.length;
       if(!edite) d.querySelector('#mm').value = r > 0 ? String(r).replace('.', ',') : '';
-      d.querySelector('#liste-paiements').innerHTML = paiements.map((p, i) => `<div class="rang"><span>${MODES[p.mode]}${p.mode === 'especes' && p.recu > p.montant ? ` <span class="muted">(reçu ${eur(p.recu)}, rendu ${eur(p.recu - p.montant)})</span>` : ''}</span><span><b>${eur(p.montant)}</b> <button class="btn petit danger" data-i="${i}" type="button" aria-label="Retirer ce paiement">×</button></span></div>`).join('');
+      d.querySelector('#liste-paiements').innerHTML = paiements.map((p, i) => `<div class="rang"><span>${MODES[p.mode]}${p.terminal_id ? ' <span class="muted">(terminal)</span>' : ''}${p.mode === 'especes' && p.recu > p.montant ? ` <span class="muted">(reçu ${eur(p.recu)}, rendu ${eur(p.recu - p.montant)})</span>` : ''}</span><span><b>${eur(p.montant)}</b> <button class="btn petit danger" data-i="${i}" type="button" aria-label="Retirer ce paiement">×</button></span></div>`).join('');
       const rendu = Math.max(0, r2(num(d.querySelector('#recu').value) - Math.min(num(d.querySelector('#mm').value), r)));
       d.querySelector('#rendu').textContent = eur(rendu);
       d.querySelector('#rapides').innerHTML = `<button type="button" data-v="exact">Exact</button>` + [5, 10, 20, 50, 100].map(v => `<button type="button" data-v="${v}">${v} €</button>`).join('');
@@ -422,8 +581,23 @@
       d.querySelector('#err').textContent = ''; paiements.push({ mode:'especes', montant:m, recu }); d.querySelector('#recu').value = ''; edite = false; d.querySelector('#pad-especes').hidden = true;
       d.querySelectorAll('#modes button').forEach(x => x.setAttribute('aria-pressed', 'false')); maj();
     };
-    d.querySelector('#liste-paiements').addEventListener('click', e => { const b = e.target.closest('button[data-i]'); if(b){ paiements.splice(Number(b.dataset.i), 1); maj(); } });
-    d.querySelector('#non').onclick = () => d.fermer(null);
+    d.querySelector('#liste-paiements').addEventListener('click', e => {
+      const b = e.target.closest('button[data-i]'); if(!b) return;
+      if(paiements[Number(b.dataset.i)].terminal_id){ d.querySelector('#err').textContent = 'Ce paiement a déjà été débité sur le terminal : il ne peut pas être retiré ici.'; return; }
+      paiements.splice(Number(b.dataset.i), 1); maj();
+    });
+    const bt = d.querySelector('#b-terminal');
+    if(bt) bt.onclick = async () => {
+      const m = montantSaisi(); if(m <= 0){ d.querySelector('#err').textContent = 'Il n\'y a plus rien à payer.'; return; }
+      d.querySelector('#err').textContent = '';
+      const r = await payerSurTerminal(m); if(!r) return;
+      paiements.push({ mode:'carte', montant:m, recu:null, terminal_id:r.terminal_id, reference:r.reference }); edite = false; maj();
+      if(reste() === 0) d.querySelector('#valider').click();   // tout est payé : on enregistre aussitôt, un paiement débité ne doit pas rester sans vente
+    };
+    d.querySelector('#non').onclick = () => {
+      if(paiements.some(p => p.terminal_id) && !confirm('Un paiement a déjà été débité sur le terminal. Quitter sans valider la vente le laisse sans ticket. Quitter quand même ?')) return;
+      d.fermer(null);
+    };
     d.querySelector('#valider').onclick = async () => {
       const bt = d.querySelector('#valider'); bt.disabled = true; bt.textContent = 'Enregistrement…';
       try{
@@ -441,7 +615,7 @@
 
   async function enregistrerVente(t, paiements){
     const { data, error } = await supabase.rpc('caisse_encaisser', { p_session:session.id, p_client:client ? client.id : null, p_lignes:lignesFacture(),
-      p_paiements:paiements.map(x => ({ mode:x.mode, montant:x.montant, recu:x.recu })), p_formation:formation });
+      p_paiements:paiements.map(x => ({ mode:x.mode, montant:x.montant, recu:x.recu, terminal_id:x.terminal_id || null })), p_formation:formation });
     if(error || !data) throw error || new Error('vente');
     return venteDepuis(data);
   }
@@ -451,14 +625,14 @@
   const venteDepuis = r => ({ ticket_id:r.ticket_id, numero:r.numero, type:r.type, formation:!!r.formation, date:r.date, motif:r.motif || null, origine:r.origine_numero || null, duplicata:r.duplicata || 0,
     lignes:r.lignes, client:r.client_nom ? { full_name:r.client_nom } : null, signature:r.signature || '', gt:Number(r.gt_perpetuel),
     totaux:{ assujetti:!!r.assujetti, totalHT:Number(r.total_ht), totalTVA:Number(r.total_tva), totalTTC:Number(r.total_ttc), ventilation:(r.ventilation || []).map(x => ({ taux:Number(x.taux), montant:Number(x.montant) })) },
-    paiements:(r.paiements || []).map(p => ({ mode:p.mode, montant:Number(p.montant), recu:p.recu == null ? null : Number(p.recu) })) });
+    paiements:(r.paiements || []).map(p => ({ mode:p.mode, montant:Number(p.montant), recu:p.recu == null ? null : Number(p.recu), reference:p.reference || null })) });
   const depuisLigne = x => venteDepuis({ ...x, ticket_id:x.id, date:x.date_ticket, origine_numero:null, assujetti:x.assujetti_tva, gt_perpetuel:0, signature:'' });
 
   function ticketHTML(v){
     const nom = brand.business_name || params.emetteur_nom || 'Mirrio', avoir = v.type === 'avoir';
     const l = v.lignes.map(x => `<tr><td>${esc(Math.abs(x.quantite))} × ${esc(x.description)}</td><td class="r">${eur(ttcUnitaire(x.prix_unitaire, x.tva_taux) * x.quantite)}</td></tr>`).join('');
     const ven = v.totaux.assujetti ? v.totaux.ventilation.map(x => `<tr><td>TVA ${x.taux} %</td><td class="r">${eur(x.montant)}</td></tr>`).join('') : '';
-    const pay = v.paiements.map(p => `<tr><td>${avoir ? 'Remboursé : ' : ''}${MODES[p.mode]}</td><td class="r">${eur(p.montant)}</td></tr>${p.mode === 'especes' && p.recu > p.montant ? `<tr><td>Reçu ${eur(p.recu)}, rendu</td><td class="r">${eur(p.recu - p.montant)}</td></tr>` : ''}`).join('');
+    const pay = v.paiements.map(p => `<tr><td>${avoir ? 'Remboursé : ' : ''}${MODES[p.mode]}${p.reference ? ' (terminal ' + esc(p.reference) + ')' : ''}</td><td class="r">${eur(p.montant)}</td></tr>${p.mode === 'especes' && p.recu > p.montant ? `<tr><td>Reçu ${eur(p.recu)}, rendu</td><td class="r">${eur(p.recu - p.montant)}</td></tr>` : ''}`).join('');
     const marque = (v.formation ? '<p class="c"><b>*** TICKET DE FORMATION ***<br>Non comptabilisé</b></p>' : '') + (v.duplicata ? `<p class="c"><b>DUPLICATA n°${v.duplicata}</b><br>Ticket original déjà remis</p>` : '') + (avoir ? `<p class="c"><b>AVOIR</b>${v.origine ? '<br>sur ticket ' + esc(v.origine) : ''}${v.motif ? '<br>' + esc(v.motif) : ''}</p>` : '');
     const sceau = v.signature ? `<hr><p class="c" style="font-size:10px">Signature ${esc(v.signature.slice(0, 16))}${v.formation ? '' : '<br>Grand total perpétuel ' + eur(v.gt)}</p>` : '';
     return `<h1>${esc(nom)}</h1><p class="c">${esc(params.emetteur_adresse || '')}</p><hr>${marque}
@@ -583,6 +757,7 @@
   $('#b-conformite').onclick = async () => {
     const { d, fin } = ouvrir(`<h2>Conformité de la caisse</h2><div id="etat-integrite" class="rang" role="status"><span>Vérification de l'intégrité…</span></div>
       <div id="chiffres" class="muted" style="font-size:14px;margin:6px 0 12px"></div>
+      <div id="orphelins" role="alert"></div>
       <h3 style="font-size:16px;margin:10px 0 6px">Archives (à conserver 6 ans)</h3>
       <div class="champ"><label for="arch-p">Période</label><select id="arch-p"><option value="mois">Ce mois-ci</option><option value="moisprec">Mois dernier</option><option value="annee">Cette année</option><option value="anneeprec">Année dernière</option></select></div>
       <button class="btn" id="arch" type="button">Télécharger l'archive (JSON signé)</button>
@@ -600,6 +775,9 @@
         : `<span style="color:var(--alerte)">${esc(data.defaut && data.defaut.raison)}${data.defaut && data.defaut.seq ? ' (entrée ' + data.defaut.seq + ')' : ''}. Ne continuez pas à encaisser avant d'avoir contacté le support.</span>`;
     };
     d.querySelector('#re').onclick = verifier; d.querySelector('#non').onclick = () => d.fermer(null); verifier();
+    supabase.rpc('caisse_terminal_orphelins').then(({ data }) => {
+      if(data && data.length) d.querySelector('#orphelins').innerHTML = `<div class="avert"><b>${data.length} paiement${data.length > 1 ? 's' : ''} débité${data.length > 1 ? 's' : ''} sur le terminal sans ticket</b> (${data.map(x => eur(x.montant) + ' à ' + heure(x.date)).join(', ')}). Remboursez ce paiement depuis votre compte SumUp, ou contactez le support pour le rattacher à une vente.</div>`;
+    });
     const msg = t => { d.querySelector('#err').textContent = t; };
     const n = new Date(), a = n.getFullYear(), m = n.getMonth() + 1;
     const periode = k => ({ mois:[new Date(a, m - 1, 1), n], moisprec:[new Date(a, m - 2, 1), new Date(a, m - 1, 0)], annee:[new Date(a, 0, 1), n], anneeprec:[new Date(a - 1, 0, 1), new Date(a - 1, 11, 31)] }[k]);

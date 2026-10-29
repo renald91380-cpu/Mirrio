@@ -43,7 +43,7 @@ ont été exécutés sur un Postgres embarqué (PGlite) avec le fichier SQL tel 
 4. **Horloge** : l'heure vient du serveur Postgres ; documenter la synchronisation.
 5. **Documentation éditeur** : version du logiciel, journal des changements, procédure de mise à jour (une mise à jour ne doit pas modifier l'historique), contact support.
 6. **Impression et affichage** : faire relire les tickets (mentions, TVA, signature) et le Z par l'expert-comptable ; ajouter si besoin la version du logiciel sur le ticket.
-7. **Limites actuelles** : paiement par carte enregistré mais non relié à un terminal ; pas de stock ni de codes-barres ; pas de pourboires ; pas de comptes vendeurs distincts (l'auteur est le compte connecté) ; ce n'est pas un FEC.
+7. **Limites actuelles** : paiement par carte : relié à un terminal SumUp Solo (référence de transaction sur le ticket, preuve d'encaissement), sinon simplement enregistré ; remboursement d'un paiement terminal à faire dans le compte SumUp ; pas de stock ni de codes-barres ; pas de pourboires ; pas de comptes vendeurs distincts (l'auteur est le compte connecté) ; ce n'est pas un FEC.
 
 ## 4. Pour l'expert-comptable
 

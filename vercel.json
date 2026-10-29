@@ -113,6 +113,10 @@
     {
       "source": "/api/salons",
       "destination": "/api/reservation-disponibilites?action=salons"
+    },
+    {
+      "source": "/api/caisse-terminal",
+      "destination": "/api/reservation-disponibilites?action=terminal"
     }
   ]
 }

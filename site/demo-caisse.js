@@ -3,7 +3,7 @@
 // Réimplémente juste ce que caisse.html demande à Supabase (select / eq / is / in / order / limit / maybeSingle / single / insert / update / delete)
 // sur quelques tables, avec le salon fictif Maison Éloïse (coiffure mixte, franchise de TVA). L'état survit au rechargement
 // (sessionStorage) pour pouvoir présenter une journée entière ; `reinitialiserDemoCaisse()` remet tout à zéro.
-const CLE = 'mirrio-demo-caisse-v2';
+const CLE = 'mirrio-demo-caisse-v3';
 const WS = 'demo';
 
 function donneesInitiales(){
@@ -12,6 +12,11 @@ function donneesInitiales(){
     n: 1,
     caisse_sessions: [{ id:'sess-demo', owner_id:WS, ouverte_le:new Date().toISOString(), fond_caisse:100, cloturee_le:null }],
     caisse_paiements: [], documents: [], document_lignes: [], caisse_tickets: [], caisse_journal: [],
+    produits: [
+      ['Shampoing réparateur 250 ml', 'Kérastase', 'Shampoings', 24.9, 3], ['Masque nutrition 200 ml', 'Kérastase', 'Soins', 32, 2], ['Huile sèche 100 ml', 'Moroccanoil', 'Soins', 38.5, 1],
+      ['Spray coiffant', 'Schwarzkopf', 'Coiffants', 14.9, 4], ['Huile à barbe 30 ml', 'Proraso', 'Barbe', 16.5, 5], ['Brosse démêlante', 'Tangle Teezer', 'Accessoires', 12, 6]
+    ].map(([nom, marque, categorie, ttc, position], i) => ({ id:'pr' + i, owner_id:WS, nom, marque, categorie, reference:null, prix_unitaire:ttc, tva_taux:0, actif:true, position })),
+    terminal: { configure:true, reader_pret:true, reader_name:'Solo (démo)', merchant_code:'DEMO0001', app_id:'app.mirrio.caisse' }, terminaux: [],
     chaine: { seq:0, hash:'GENESIS', gt:0, gta:0, n_ticket:0, n_avoir:0, n_formation:0, n_z:0, cle:'cle-demo' },
     clients: ['Marie Durand', 'Sophie Leroy', 'Karim Benali', 'Julien Martin', 'Emma Petit'].map((full_name, i) => ({ id:'c' + i, owner_id:WS, full_name })),
     prestations: [
@@ -141,12 +146,19 @@ const FONCTIONS = {
     if(!sessionOuverte(a.p_session)) echec('Aucune session de caisse ouverte.');
     const tot = totaux(a.p_lignes, false); if(tot.total_ttc <= 0) echec('Le total du ticket doit être positif.');
     const pay = paiements(a.p_paiements, tot.total_ttc), cl = DB.clients.find(c => c.id === a.p_client), formation = !!a.p_formation, c = DB.chaine, now = new Date();
+    a.p_paiements.forEach((x, i) => {
+      if(!x.terminal_id) return;
+      const tp = DB.terminaux.find(z => z.id === x.terminal_id);
+      if(formation) echec('Le terminal de paiement n\'est pas utilisable en mode formation.');
+      if(!tp || tp.statut !== 'reussi' || tp.ticket_id || tp.montant !== pay[i].montant || x.mode !== 'carte') echec('Paiement terminal invalide ou déjà utilisé.');
+      pay[i].terminal_id = tp.id; pay[i].reference = tp.transaction_code;
+    });
     const numero = formation ? 'FORM-' + String(++c.n_formation).padStart(6, '0') : `T-${now.getFullYear()}-` + String(++c.n_ticket).padStart(6, '0');
     const id = 't' + (DB.n++);
     const j = await ecrire(formation ? 'formation' : 'vente', a.p_session, id, numero, tot.total_ttc, { nb_lignes:tot.lignes.length }, !formation);
     const t = { id, owner_id:WS, session_id:a.p_session, journal_seq:j.seq, journal_hash:j.hash, type:'vente', formation, numero, date_ticket:now.toISOString(), client_id:cl ? cl.id : null, client_nom:cl ? cl.full_name : null,
       lignes:tot.lignes, total_ht:tot.total_ht, total_tva:tot.total_tva, total_ttc:tot.total_ttc, ventilation:tot.ventilation, paiements:pay, assujetti_tva:tot.assujetti, ticket_origine:null, motif:null };
-    DB.caisse_tickets.push(t); return jsonTicket(t, j, 0);
+    DB.caisse_tickets.push(t); pay.forEach(x => { const tp = x.terminal_id && DB.terminaux.find(z => z.id === x.terminal_id); if(tp) tp.ticket_id = id; }); return jsonTicket(t, j, 0);
   },
   async caisse_avoir(a){
     const o = DB.caisse_tickets.find(t => t.id === a.p_ticket && t.type === 'vente' && !t.formation); if(!o) echec('Ticket introuvable.');
@@ -193,6 +205,16 @@ const FONCTIONS = {
     const j = await ecrire('cloture_' + a.p_type, null, null, per, agg.total_ttc, payload, false);
     return { ...payload, gt_perpetuel:j.gt_perpetuel, journal_seq:j.seq, hash:j.hash, signature:j.signature };
   },
+  async caisse_terminal_statut(){ return DB.terminal; },
+  async caisse_terminal_lire(a){
+    const p = DB.terminaux.find(x => x.id === a.p_id); if(!p) echec('Paiement introuvable.');
+    if(p.statut === 'en_attente' && Date.now() >= p.du){            // le « client » présente sa carte : succès, sauf montant se terminant par 0,13 € (refus simulé)
+      p.statut = Math.round(p.montant * 100) % 100 === 13 ? 'echoue' : 'reussi';
+      if(p.statut === 'reussi') p.transaction_code = 'DEMO-' + String(DB.terminaux.filter(x => x.transaction_code).length + 1).padStart(4, '0');
+    }
+    return { statut:p.statut, montant:p.montant, reference:p.transaction_code || null, utilise:!!p.ticket_id };
+  },
+  async caisse_terminal_orphelins(){ return DB.terminaux.filter(p => p.statut === 'reussi' && !p.ticket_id).map(p => ({ id:p.id, montant:p.montant, reference:p.transaction_code, date:new Date(p.du).toISOString() })); },
   async caisse_verifier(){
     let prev = 'GENESIS', gt = 0, gta = 0, defaut = null, attendu = 1;
     for(const e of DB.caisse_journal){
@@ -214,6 +236,23 @@ const FONCTIONS = {
     return { ...corps, empreinte:await sha(JSON.stringify(corps)) };
   }
 };
+
+// Remplace /api/caisse-terminal en démo : le « client » paie au bout de 3 secondes (refus si le montant finit par 0,13 €).
+export async function appelTerminalDemo(action, corps){
+  charger();
+  const fin = r => { enregistrer(); return r; };
+  if(action === 'config'){ DB.terminal = { ...DB.terminal, configure:true, merchant_code:corps.merchant_code || 'DEMO0001', app_id:corps.app_id || 'app.mirrio.caisse' }; return fin({ ok:true }); }
+  if(action === 'appairer'){ DB.terminal.reader_pret = true; DB.terminal.reader_name = corps.name || 'Solo (démo)'; return fin({ ok:true }); }
+  if(action === 'supprimer'){ DB.terminal = { configure:false, reader_pret:false }; return fin({ ok:true }); }
+  if(action === 'payer'){
+    if(DB.terminaux.some(p => p.statut === 'en_attente' && Date.now() < p.du + 120000)) return { error:'Un paiement est déjà en cours sur le terminal.' };
+    const p = { id:'tp' + (DB.n++), montant:r2(corps.montant), statut:'en_attente', du:Date.now() + 3000, ticket_id:null, transaction_code:null };
+    DB.terminaux.push(p); return fin({ id:p.id });
+  }
+  const p = DB.terminaux.find(x => x.id === corps.id); if(!p) return { error:'Paiement introuvable.' };
+  if(action === 'annuler' && p.statut === 'en_attente') p.statut = 'annule';
+  return fin({ statut:p.statut });
+}
 
 export function creerFauxSupabase(){
   charger();
