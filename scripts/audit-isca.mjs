@@ -29,7 +29,12 @@ await db.exec(`create schema if not exists extensions; create extension if not e
 create schema auth; create table auth.users(id uuid primary key);
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('app.uid', true), '')::uuid $$;
 create role authenticated; create role anon;
-create function public.current_workspace_id() returns uuid language sql stable as $$ select auth.uid() $$;
+create function public.current_workspace_id() returns uuid language sql stable as $$ select coalesce(nullif(current_setting('app.ws', true), '')::uuid, auth.uid()) $$;
+create function public.est_gestionnaire(p uuid) returns boolean language sql stable as $$ select false $$;
+create function public.new_feed_token() returns text language sql as $$ select encode(extensions.gen_random_bytes(12), 'hex') $$;
+create table public.profiles (id uuid primary key, plan text);
+create table public.workspace_members (id uuid primary key default gen_random_uuid(), workspace_id uuid not null, user_id uuid, email text not null, role text not null default 'collaborateur',
+  statut text not null default 'invite', invite_token text unique, invited_at timestamptz default now(), joined_at timestamptz);
 create table public.clients(id uuid primary key default gen_random_uuid(), owner_id uuid, full_name text);
 create table public.parametres_facturation(owner_id uuid primary key, assujetti_tva boolean default false);
 create table public.parametres_paiement (owner_id uuid primary key, stripe_actif boolean default false, stripe_secret_key text);
@@ -51,7 +56,8 @@ await db.exec(lire('schema-v39-caisse.sql'));
 await db.exec(lire('schema-v43-caisse-certifiable.sql'));
 await db.exec(lire('schema-v43-caisse-certifiable.sql'));        // rejouable sans effet de bord
 await db.exec(lire('schema-v44-produits.sql'));
-await db.exec(`insert into auth.users values ('${U}'); insert into public.parametres_facturation values ('${U}', true); set app.uid = '${U}';`);
+await db.exec(lire('schema-v45-equipes-roles.sql'));
+await db.exec(`insert into auth.users values ('${U}'); insert into public.profiles values ('${U}', 'studio'); insert into public.parametres_facturation values ('${U}', true); set app.uid = '${U}';`);
 
 // ---------------------------------------------------------------- scénarios légitimes
 const ses = (await un(`select public.caisse_ouvrir(100) r`)).r;
@@ -106,6 +112,24 @@ const vr = (await un(`select public.caisse_encaisser($1,null,$2::jsonb,$3::jsonb
 verif('I', 'Rendez-vous : acompte de 5 € déduit par le serveur, facture réutilisée sans doublon', vr.paiements[0].mode === 'acompte' && Number(vr.paiements[0].montant) === 5 && vr.document_id === dEnv && Number((await un(`select count(*) n from public.documents`)).n) === nbAvant);
 verif('I', 'Refus : rendez-vous encaissé deux fois', /déjà été encaissé/.test(await refuse(() => q(`select public.caisse_encaisser($1,null,$2::jsonb,$3::jsonb,false,$4)`, [ses.id, L55, JSON.stringify([{ mode: 'carte', montant: 50 }]), rA])) || ''));
 
+// ---------------------------------------------------------------- rôles : un vendeur encaisse mais ne rembourse, n'archive ni ne règle rien
+const V = '22222222-2222-2222-2222-222222222222', M = '33333333-3333-3333-3333-333333333333';
+await db.exec(`insert into auth.users values ('${V}'), ('${M}'); insert into public.workspace_members (workspace_id, user_id, email, role, statut) values ('${U}', '${V}', 'v@x.fr', 'vendeur', 'actif'), ('${U}', '${M}', 'm@x.fr', 'manager', 'actif');`);
+const Ltest = JSON.stringify([ligne('Gel', 1, 10, 0)]);
+await db.exec(`set app.uid = '${V}'; set app.ws = '${U}';`);
+verif('S', 'Le vendeur a le rôle « vendeur » dans l\'espace', (await un(`select public.mon_role() r`)).r === 'vendeur');
+verif('S', 'Un vendeur encaisse', (await refuse(() => q(`select public.caisse_encaisser($1,null,$2::jsonb,$3::jsonb,false,null)`, [ses.id, Ltest, JSON.stringify([{ mode: 'especes', montant: 10, recu: 10 }])]))) === null);
+for (const [nom, sql, args] of [['émettre un avoir', `select public.caisse_avoir($1,null,'Test avoir',$2::jsonb)`, [v2.ticket_id, JSON.stringify([{ mode: 'carte' }])]], ['télécharger une archive', `select public.caisse_archiver(current_date - 5, current_date)`, []], ['clôturer un mois', `select public.caisse_cloturer_periode('mensuelle', 2020, 1)`, []], ['lancer l\'audit', `select public.caisse_audit_isca()`, []], ['enregistrer une attestation', `select public.caisse_attestation_enregistrer('1.0')`, []]])
+  verif('S', `Refus au vendeur : ${nom}`, /Réservé au responsable/.test(await refuse(() => q(sql, args)) || ''));
+await db.exec(`set app.uid = '${M}';`);
+verif('S', 'Un responsable (manager) peut lancer l\'audit', (await refuse(() => q(`select public.caisse_audit_isca()`))) === null);
+await db.exec(`set app.uid = '${U}'; set app.ws = '';`);
+// Invitations : 20 professionnels au plus, rôles contrôlés
+let invites = 0; for (let i = 0; i < 25; i++) { const e = await refuse(() => q(`select public.inviter_collaborateur($1, 'collaborateur')`, [`p${i}@x.fr`])); if (e === null) invites++; else break; }
+verif('S', 'Équipe : 20 professionnels au plus, propriétaire et membres existants compris', invites === 17, invites + ' invitations acceptées');
+verif('S', 'Invitation : rôle inconnu refusé', /Rôle inconnu/.test(await refuse(() => q(`select public.inviter_collaborateur('zz@x.fr', 'proprietaire')`)) || ''));
+await db.exec(`delete from public.workspace_members where email like 'p%@x.fr'`);
+
 // ---------------------------------------------------------------- S : sécurisation
 const ok0 = (await un(`select public.caisse_verifier() r`)).r;
 verif('S', 'Vérification : chaîne, signatures, grands totaux, numérotation', ok0.ok === true, `${ok0.entrees} entrées`);
@@ -116,7 +140,7 @@ verif('S', 'caisse_cloturer_auto n\'est exécutable ni par anon ni par authentic
 // ---------------------------------------------------------------- C : conservation (clôtures)
 const z = (await un(`select public.caisse_cloturer($1, 190, null) r`, [ses.id])).r;
 verif('C', 'Clôture Z : numérotée, signée, totaux calculés par le serveur', z.numero_z === 'Z-000001' && /^[0-9a-f]{64}$/.test(z.signature), `${z.nb_ventes} ventes, ${z.nb_avoirs} avoir(s), CA ${z.total_ttc}`);
-verif('C', 'Z : les espèces attendues tiennent compte du remboursement en espèces', Number(z.par_mode.especes) === 18.64);
+verif('C', 'Z : espèces = encaissements moins remboursement (30 + 10 - 11,36)', Number(z.par_mode.especes) === 28.64);
 verif('C', 'Refus : clôturer un mois non terminé', /pas terminée/.test(await refuse(() => q(`select public.caisse_cloturer_periode('mensuelle', 2026, 12)`)) || ''));
 
 // Données d'un autre mois : on antidate (superuser, triggers suspendus) pour éprouver la clôture automatique, puis on rétablit la protection.

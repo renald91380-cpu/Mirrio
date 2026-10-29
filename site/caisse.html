@@ -193,7 +193,7 @@
   const MODES = { especes:'Espèces', carte:'Carte', cheque:'Chèque', virement:'Virement', autre:'Autre', acompte:'Acompte en ligne' };   // « acompte » : posé par le serveur, jamais proposé
 
   let espaceId = null, session = null, params = {}, brand = {}, prestations = [], clients = [];
-  let panier = [], client = null, categorie = '', formation = false, vueCat = 'prestations', produits = [], terminal = { configure:false }, demoTerm = null;
+  let monRole = 'proprietaire', panier = [], client = null, categorie = '', formation = false, vueCat = 'prestations', produits = [], terminal = { configure:false }, demoTerm = null;
   // Tickets en cours : plusieurs clients à la fois, chacun avec son panier, gardés sur l'appareil (localStorage) jusqu'à l'encaissement.
   let tickets = [], courant = null;
   const assujetti = () => !!params.assujetti_tva;
@@ -226,6 +226,9 @@
     ]);
     brand = b || {}; params = f.data || {}; prestations = pr.data || []; clients = cl.data || []; produits = pd.data || [];
     await lireTerminal();
+    try{ const { data: r } = await supabase.rpc('mon_role'); monRole = r || 'proprietaire'; }catch(e){}
+    const responsable = ['proprietaire', 'gestionnaire', 'manager'].includes(monRole);
+    ['#b-produits', '#b-terminal-cfg', '#b-conformite', '#b-attestation', '#b-compta'].forEach(id => { const el = $(id); if(el) el.hidden = !responsable; });   // l'affichage suit le rôle ; les droits réels sont dans la base
     $('#salon').textContent = brand.business_name || params.emetteur_nom || '';
     if(sess.error){ $('#etat-session').textContent = 'Base non préparée'; $('#etat-session').className = 'puce ko'; toast('Exécuter db/schema-v39-caisse.sql dans Supabase.'); return false; }
     session = sess.data || null;
@@ -863,7 +866,7 @@
     const { d, fin } = ouvrir(`<h2>Tickets des 30 derniers jours</h2>${liste.length ? liste.map(x => {
       const modes = [...new Set(x.paiements.map(p => MODES[p.mode]))].join(', ');
       return `<div class="rang"><span><b>${esc(x.numero)}</b>${x.type === 'avoir' ? ' · avoir' : ''}${x.formation ? ' · formation' : ''} · ${esc(jourHeure(x.date_ticket))}<br><span class="muted" style="font-size:13px">${esc(modes)}${x.client_nom ? ' · ' + esc(x.client_nom) : ''}</span></span>
-        <span><b>${eur(x.total_ttc)}</b> <button class="btn petit" data-dup="${x.id}" type="button">Duplicata</button>${x.type === 'vente' && !x.formation ? ` <button class="btn petit" data-av="${x.id}" type="button">Avoir</button>` : ''}</span></div>`;
+        <span><b>${eur(x.total_ttc)}</b> <button class="btn petit" data-dup="${x.id}" type="button">Duplicata</button>${x.type === 'vente' && !x.formation && ['proprietaire', 'gestionnaire', 'manager'].includes(monRole) ? ` <button class="btn petit" data-av="${x.id}" type="button">Avoir</button>` : ''}</span></div>`;
     }).join('') : '<p class="vide">Aucun ticket pour l\'instant.</p>'}
       <div class="actions"><button class="btn" id="non" type="button">Fermer</button></div>`);
     d.querySelector('#non').onclick = () => d.fermer(null);

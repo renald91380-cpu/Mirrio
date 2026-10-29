@@ -302,6 +302,27 @@ returns jsonb language sql stable set search_path = public as $$
     'journal_seq', t.journal_seq, 'hash', t.journal_hash, 'signature', j.signature, 'gt_perpetuel', j.gt_perpetuel, 'duplicata', duplicata)
 $$;
 
+-- ---------------------------------------------------------------------------------------------------------------- rôles
+-- Rôle de l'appelant dans l'espace actif : proprietaire, gestionnaire (groupe), manager, collaborateur ou vendeur (schema-v45 pour les invitations).
+create or replace function public.mon_role()
+returns text language plpgsql stable security definer set search_path = public as $$
+declare ws uuid := public.current_workspace_id(); r text;
+begin
+  if auth.uid() is null or ws is null then return null; end if;
+  if ws = auth.uid() then return 'proprietaire'; end if;
+  if public.est_gestionnaire(ws) then return 'gestionnaire'; end if;
+  select m.role into r from public.workspace_members m where m.workspace_id = ws and m.user_id = auth.uid() and m.statut = 'actif' limit 1;
+  return coalesce(r, 'collaborateur');
+end $$;
+create or replace function public.est_manager()
+returns boolean language sql stable security definer set search_path = public as $$ select public.mon_role() in ('proprietaire', 'gestionnaire', 'manager') $$;
+-- Responsable : réglages, avoirs, archives, clôtures de période, audit. Un vendeur encaisse, un collaborateur aussi.
+create or replace function public.caisse__exiger_responsable()
+returns void language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.est_manager() then raise exception 'Réservé au responsable du salon.' using errcode = 'insufficient_privilege'; end if;
+end $$;
+
 -- ---------------------------------------------------------------------------------------------------------------- ouverture
 create or replace function public.caisse_ouvrir(p_fond numeric)
 returns jsonb language plpgsql security definer set search_path = public, extensions as $$
@@ -418,6 +439,7 @@ returns jsonb language plpgsql security definer set search_path = public, extens
 declare e uuid := public.caisse__espace(); o public.caisse_tickets; sess uuid; tot jsonb; pay jsonb; ttc numeric; n bigint; num text; tid uuid := gen_random_uuid(); did uuid; j public.caisse_journal;
         t public.caisse_tickets; maintenant timestamptz := clock_timestamp(); lignes jsonb := '[]'::jsonb; l jsonb; i int := 0; deja numeric; reste numeric; dmd numeric; sel jsonb; motif text := btrim(coalesce(p_motif, ''));
 begin
+  perform public.caisse__exiger_responsable();
   select * into o from public.caisse_tickets where id = p_ticket and owner_id = e and type = 'vente' and not formation;
   if o.id is null then raise exception 'Ticket introuvable.'; end if;
   if length(motif) < 3 or length(motif) > 200 then raise exception 'Indiquez le motif de l''avoir (3 à 200 caractères).'; end if;
@@ -564,6 +586,7 @@ end $$;
 create or replace function public.caisse_cloturer_periode(p_type text, p_annee int, p_mois int default null)
 returns jsonb language plpgsql security definer set search_path = public, extensions as $$
 begin
+  perform public.caisse__exiger_responsable();
   return public.caisse__periode_core(public.caisse__espace(), p_type, p_annee, p_mois, false);
 end $$;
 
@@ -631,6 +654,7 @@ create or replace function public.caisse_archiver(p_debut date, p_fin date)
 returns jsonb language plpgsql security definer set search_path = public, extensions as $$
 declare e uuid := public.caisse__espace(); d0 timestamptz; d1 timestamptz; jr jsonb; tk jsonb; ss jsonb; ver jsonb; corps jsonb; emp text;
 begin
+  perform public.caisse__exiger_responsable();
   if p_debut is null or p_fin is null or p_fin < p_debut or p_fin - p_debut > 366 then raise exception 'Période invalide (366 jours au plus).'; end if;
   d0 := make_timestamptz(extract(year from p_debut)::int, extract(month from p_debut)::int, extract(day from p_debut)::int, 0, 0, 0, 'Europe/Paris');
   d1 := make_timestamptz(extract(year from p_fin)::int, extract(month from p_fin)::int, extract(day from p_fin)::int, 0, 0, 0, 'Europe/Paris') + interval '1 day';
@@ -695,6 +719,7 @@ declare e uuid := public.caisse__espace(); res jsonb := '[]'::jsonb; ver jsonb; 
         internes text[] := array['caisse__ecrire(uuid,text,uuid,uuid,text,numeric,jsonb,boolean)', 'caisse__totaux(uuid,jsonb,boolean)', 'caisse__verrou(uuid)', 'caisse__paiements(jsonb,numeric)'];
         f text; acces boolean := false;
 begin
+  perform public.caisse__exiger_responsable();
   ver := public.caisse_verifier();
   select * into c from public.caisse_chaine where owner_id = e;
 
@@ -766,6 +791,7 @@ create or replace function public.caisse_attestation_enregistrer(p_version text)
 returns jsonb language plpgsql security definer set search_path = public, extensions as $$
 declare e uuid := public.caisse__espace(); j public.caisse_journal;
 begin
+  perform public.caisse__exiger_responsable();
   if coalesce(p_version, '') <> public.caisse__version() then raise exception 'Version du logiciel inattendue.'; end if;
   j := public.caisse__ecrire(e, 'attestation', null, null, null, null, jsonb_build_object('version', p_version), false);
   return jsonb_build_object('seq', j.seq, 'date', j.created_at, 'hash', j.hash);
@@ -778,13 +804,13 @@ begin
   foreach f in array array[
     'caisse__espace()', 'caisse__verrou(uuid)', 'caisse__ecrire(uuid,text,uuid,uuid,text,numeric,jsonb,boolean)', 'caisse__totaux(uuid,jsonb,boolean)',
     'caisse__paiements(jsonb,numeric)', 'caisse__agregat(uuid,uuid,timestamptz,timestamptz)',
-    'caisse__cloturer_core(uuid,uuid,numeric,text,boolean,uuid)', 'caisse__periode_core(uuid,text,int,int,boolean)', 'caisse_cloturer_auto()'] loop
+    'caisse__cloturer_core(uuid,uuid,numeric,text,boolean,uuid)', 'caisse__periode_core(uuid,text,int,int,boolean)', 'caisse_cloturer_auto()', 'caisse__exiger_responsable()'] loop
     execute format('revoke all on function public.%s from public, anon, authenticated', f);
   end loop;
   foreach f in array array[
     'caisse_ouvrir(numeric)', 'caisse_encaisser(uuid,uuid,jsonb,jsonb,boolean,uuid)', 'caisse_avoir(uuid,jsonb,text,jsonb)', 'caisse_duplicata(uuid)', 'caisse_cloturer(uuid,numeric,text)',
     'caisse_cloturer_periode(text,int,int)', 'caisse_verifier()', 'caisse_archiver(date,date)',
-    'caisse_terminal_statut()', 'caisse_terminal_lire(uuid)', 'caisse_terminal_orphelins()', 'caisse_audit_isca()', 'caisse_attestation_enregistrer(text)'] loop
+    'caisse_terminal_statut()', 'caisse_terminal_lire(uuid)', 'caisse_terminal_orphelins()', 'caisse_audit_isca()', 'caisse_attestation_enregistrer(text)', 'mon_role()', 'est_manager()'] loop
     execute format('revoke all on function public.%s from public, anon', f);
     execute format('grant execute on function public.%s to authenticated', f);
   end loop;

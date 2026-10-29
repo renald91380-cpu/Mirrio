@@ -1236,11 +1236,15 @@
             Personne d'autre pour l'instant — invitez un premier collaborateur ci-dessous.
           </div>
 
+          <p class="hint" style="margin-top:14px;font-size:13.5px">Rôles : le <b>responsable</b> règle le salon (paiement, terminal, avoirs, archives de caisse, comptabilité) ; le <b>collaborateur</b> utilise l'agenda, les clients et la caisse ; le <b>vendeur</b> ne voit que l'agenda et la caisse. Les clés de paiement ne sont lisibles que par un responsable.</p>
           <form id="invite-form" style="margin-top:18px; border-top:1px solid rgba(28,35,51,0.1); padding-top:18px;">
             <div class="field">
               <label for="invite-email">Inviter par email</label>
               <div style="display:flex; gap:8px;">
                 <input type="email" id="invite-email" placeholder="collegue@exemple.fr" aria-describedby="invite-email-error" style="flex:1;">
+                <select id="invite-role" aria-label="Rôle de la personne invitée" style="min-height:44px;border-radius:12px;border:1px solid rgba(28,35,51,0.2);padding:0 10px;font:inherit">
+                  <option value="collaborateur">Collaborateur</option><option value="vendeur">Vendeur</option><option value="manager">Responsable</option>
+                </select>
                 <button type="submit" class="btn btn-primary btn-sm" id="invite-save">Envoyer l'invitation</button>
               </div>
               <div class="error" id="invite-email-error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg><span></span></div>
@@ -1260,7 +1264,7 @@
         <div class="card" id="equipe-gate-card" style="display:none;">
           <div class="plan-gate">
             <strong>Inviter une équipe fait partie du forfait Équipe.</strong>
-            Invitez votre équipe à travailler sur les mêmes clients, rendez-vous et devis que vous, en passant au forfait Équipe (39 € par mois, jusqu'à 5 professionnels).
+            Invitez votre équipe à travailler sur les mêmes clients, rendez-vous et devis que vous, en passant au forfait Équipe (39 € par mois pour 5 professionnels, puis 5 € par mois et par professionnel en plus, jusqu'à 20).
             <div style="margin-top:18px;"><a href="index.html#tarifs" class="btn btn-primary btn-sm" style="display:inline-flex;">Voir les formules</a></div>
           </div>
         </div>
@@ -2274,6 +2278,9 @@
             <div class="mb-email">${echapperTexte(m.email)}</div>
             <div class="mb-meta">${m.statut === 'actif' ? 'Membre actif depuis le ' + formatDateFr(m.joined_at) : 'Invitation envoyée le ' + formatDateFr(m.invited_at)}</div>
           </div>
+          <select class="role-select" data-role-membre="${m.id}" aria-label="Rôle de ${echapperTexte(m.email)}" style="min-height:36px;border-radius:10px;border:1px solid var(--line,#ddd);padding:0 8px;font:inherit">
+            ${[['manager', 'Responsable'], ['collaborateur', 'Collaborateur'], ['vendeur', 'Vendeur']].map(([k, l]) => `<option value="${k}"${(m.role || 'collaborateur') === k ? ' selected' : ''}>${l}</option>`).join('')}
+          </select>
           <span class="badge-role ${m.statut}">${m.statut === 'actif' ? 'Actif' : 'Invité'}</span>
           <button type="button" class="icon-btn danger" data-revoquer="${m.id}" title="Révoquer" aria-label="Révoquer ${echapperTexte(m.email)}">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
@@ -2281,6 +2288,13 @@
         </div>
       `).join('');
 
+      liste.querySelectorAll('[data-role-membre]').forEach(sel => {
+        sel.addEventListener('change', async () => {
+          const { error } = await supabase.rpc('changer_role_collaborateur', { p_membre_id: sel.dataset.roleMembre, p_role: sel.value });
+          if(error){ showToast('Le changement de rôle a échoué.', true); chargerEquipe(); return; }
+          showToast('Rôle mis à jour.');
+        });
+      });
       liste.querySelectorAll('[data-revoquer]').forEach(btn=>{
         btn.addEventListener('click', async ()=>{
           if(!window.confirm('Révoquer ce membre ? Il perdra immédiatement l’accès à cet espace.')) return;
@@ -2473,12 +2487,13 @@
     const btn = document.getElementById('invite-save');
     btn.disabled = true;
     btn.textContent = 'Envoi…';
-    const { data, error } = await supabase.rpc('inviter_collaborateur', { p_email: email });
+    const roleChoisi = (document.getElementById('invite-role') || {}).value || 'collaborateur';
+    const { data, error } = await supabase.rpc('inviter_collaborateur', { p_email: email, p_role: roleChoisi });
     btn.disabled = false;
     btn.textContent = "Envoyer l'invitation";
 
     if(error){
-      showToast(error.message?.includes('Studio') ? error.message : "L'invitation a échoué. Réessayez.", true);
+      showToast(/forfait|professionnels|Rôle|invalide/.test(error.message || '') ? error.message : "L'invitation a échoué. Réessayez.", true);
       return;
     }
 

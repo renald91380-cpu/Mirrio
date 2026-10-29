@@ -249,6 +249,10 @@ export function monterEntete(brand, actif, estAdmin){
   if(b.groupe) supplements.push({ cle:'salons', href:'salons.html', libelle:'Salons' });
   if(b.mariages) supplements.push({ cle:'mariages', href:'mariage-pro.html', libelle:'Mariages' });
   if(supplements.length) base = [...base.slice(0, -1), ...supplements, base[base.length - 1]];
+  // Rôles : un vendeur ne voit que l'agenda et la caisse, un collaborateur ni la comptabilité ni les réglages (les droits réels sont dans la base : ceci n'est que l'affichage).
+  const role = b.role || 'proprietaire';
+  if(role === 'vendeur') base = base.filter(o => ['agenda', 'caisse'].includes(o.cle));
+  else if(role === 'collaborateur') base = base.filter(o => !['dashboard', 'documents', 'reglages', 'equipe', 'salons', 'vitrine'].includes(o.cle));
   const onglets = estAdmin ? [...base, ONGLET_ADMIN] : base;
 
   if(b.salons && b.salons.length > 1 && clientSupabase) monterSelecteurSalon(b.salons);
@@ -390,6 +394,7 @@ export async function initTheme(supabase, ongletActif){
     const principal = brand.salons.find(s => s.principal);
     brand.groupe = brand.salons.length > 1 || (!!principal && principal.plan === 'studio');
   }catch(e){ brand.salons = []; }
+  try{ const { data: r } = await supabase.rpc('mon_role'); brand.role = r || 'proprietaire'; }catch(e){ brand.role = 'proprietaire'; }
   clientSupabase = supabase;
   appliquerTheme(brand);
   monterEntete(brand, ongletActif, estAdmin);

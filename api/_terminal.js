@@ -46,6 +46,7 @@ async function appelant(req){
   if(!espace) return null;
   let admin = espace === user.id;
   if(!admin){ const g = await lire(`salon_gestionnaires?salon_id=eq.${espace}&user_id=eq.${user.id}&select=user_id`); admin = g.length > 0; }
+  if(!admin){ const m = await lire(`workspace_members?workspace_id=eq.${espace}&user_id=eq.${user.id}&statut=eq.actif&role=eq.manager&select=id`); admin = m.length > 0; }   // un responsable règle aussi le terminal
   return { user, espace, admin };
 }
 
