@@ -49,7 +49,11 @@ ont été exécutés sur un Postgres embarqué (PGlite) avec le fichier SQL tel 
 7. **Impression et affichage** : faire relire les tickets (mentions, TVA, signature) et le Z par l'expert-comptable ; ajouter si besoin la version du logiciel sur le ticket.
 8. **Limites actuelles** : paiement par carte : relié à un terminal SumUp Solo (référence de transaction sur le ticket, preuve d'encaissement), sinon simplement enregistré ; remboursement d'un paiement terminal à faire dans le compte SumUp ; pas de stock ni de codes-barres ; pas de pourboires ; pas de comptes vendeurs distincts (l'auteur est le compte connecté) ; ce n'est pas un FEC.
 
-## 4. Pour l'expert-comptable
+## 4. Dossier de demande
+
+La préparation d'une demande de certificat (pièces, plan, modèle de message aux organismes) est dans `docs/dossier-certification.md`.
+
+## 5. Pour l'expert-comptable
 
 - Exports : `export-comptable.html` (CSV et rapport) ; les ventes de caisse y figurent comme factures payées, les avoirs comme factures à lignes négatives.
 - Lien en lecture seule pour le comptable : voir CLAUDE.md §3.38.

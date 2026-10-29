@@ -342,6 +342,7 @@
         <textarea id="notes" name="notes" placeholder="Historique, préférences, notes de séance…"></textarea>
       </div>
       <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="fiche-btn" hidden style="margin-right:auto">Fiche technique</button>
         <button type="button" class="btn btn-secondary" id="cancel-btn">Annuler</button>
         <button type="submit" class="btn btn-primary" id="save-btn">Enregistrer</button>
       </div>
@@ -381,7 +382,7 @@
   const searchInput = document.getElementById('search-input');
 
   let session = null;
-  let espaceId = null;
+  let espaceId = null, ficheEnCours = null;
   let vocab = null;
   let tousLesClients = [];
   // Pour chaque client : prochain rendez-vous à venir (date, ou null) et
@@ -440,13 +441,78 @@
       document.getElementById('phone').value = client.phone || '';
       document.getElementById('company').value = client.company || '';
       document.getElementById('notes').value = client.notes || '';
+      ficheEnCours = client; document.getElementById('fiche-btn').hidden = false;
     } else {
+      ficheEnCours = null; document.getElementById('fiche-btn').hidden = true;
       modalTitle.textContent = 'Ajouter un client';
       document.getElementById('client-id').value = '';
     }
     overlay.classList.add('show');
     document.getElementById('full_name').focus();
   }
+
+  // ---- Fiche technique : allergies, notes de passage avec formule et photos (bucket privé, liens signés)
+  const BUCKET = 'clients-photos';
+  function reduirePhoto(fichier){
+    return new Promise((res, rej) => {
+      const img = new Image(), url = URL.createObjectURL(fichier);
+      img.onload = () => { const k = Math.min(1, 1200 / Math.max(img.width, img.height)), c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url); c.toBlob(b => b ? res(b) : rej(new Error('image')), 'image/jpeg', 0.82); };
+      img.onerror = () => rej(new Error('image')); img.src = url;
+    });
+  }
+  async function ouvrirFiche(client){
+    const d = document.createElement('dialog'); d.setAttribute('aria-labelledby', 'fiche-t');
+    d.style.cssText = 'border:none;border-radius:22px;padding:24px;width:min(640px,96vw);max-height:92vh;overflow:auto';
+    document.body.appendChild(d);
+    let fichiers = [];
+    const dessiner = async () => {
+      const { data: notes, error } = await supabase.from('client_notes').select('*').eq('client_id', client.id).order('date_note', { ascending:false }).order('created_at', { ascending:false });
+      const liste = error ? [] : (notes || []);
+      const chemins = [...new Set(liste.flatMap(n => n.photos || []))];
+      let urls = {};
+      if(chemins.length){ const { data: sig } = await supabase.storage.from(BUCKET).createSignedUrls(chemins, 3600); (sig || []).forEach(x => { if(x.signedUrl) urls[x.path] = x.signedUrl; }); }
+      d.innerHTML = `<h2 id="fiche-t" style="margin:0 0 4px">Fiche technique : ${escapeHtml(client.full_name)}</h2>
+        <p style="color:#5B606B;font-size:13.5px;margin:0 0 12px">Données personnelles sensibles : visibles par l'équipe du salon (pas par un vendeur), photos stockées en privé.${error ? ' <b>(Migration schema-v48 à exécuter.)</b>' : ''}</p>
+        <label style="font-weight:600">Allergies et contre-indications</label>
+        <textarea id="f-allergies" maxlength="500" style="width:100%;min-height:64px;border:1px solid rgba(16,18,22,.2);border-radius:12px;padding:10px;font:inherit" placeholder="Ex. allergie à la PPD : test d'allergie obligatoire avant coloration">${escapeHtml(client.allergies || '')}</textarea>
+        <h3 style="margin:18px 0 8px;font-size:17px">Historique des passages</h3>
+        ${liste.length ? liste.map(n => `<div style="border:1px solid rgba(16,18,22,.12);border-radius:14px;padding:12px;margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;gap:8px"><b>${escapeHtml(new Date(n.date_note + 'T12:00:00').toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' }))}${n.titre ? ' · ' + escapeHtml(n.titre) : ''}</b><button type="button" data-sup="${n.id}" style="border:0;background:none;color:#B3402A;cursor:pointer">Supprimer</button></div>
+          ${n.formule ? `<p style="margin:6px 0"><span style="color:#5B606B">Formule :</span> ${escapeHtml(n.formule)}</p>` : ''}${n.note ? `<p style="margin:6px 0">${escapeHtml(n.note)}</p>` : ''}
+          ${(n.photos || []).length ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${n.photos.map(c => urls[c] ? `<a href="${urls[c]}" target="_blank" rel="noopener"><img src="${urls[c]}" alt="Photo du ${escapeHtml(n.date_note)}" style="width:96px;height:96px;object-fit:cover;border-radius:10px"></a>` : '').join('')}</div>` : ''}</div>`).join('') : '<p style="color:#5B606B">Aucune note pour l\'instant.</p>'}
+        <form id="f-form" style="margin-top:14px;display:grid;gap:10px;border-top:1px solid rgba(16,18,22,.12);padding-top:14px">
+          <b>Nouvelle note</b>
+          <input name="titre" maxlength="80" placeholder="Prestation (ex. Balayage)" style="min-height:42px;border:1px solid rgba(16,18,22,.2);border-radius:12px;padding:0 10px;font:inherit">
+          <textarea name="formule" maxlength="400" placeholder="Formule : nuances, oxydant, temps de pose, produits…" style="min-height:64px;border:1px solid rgba(16,18,22,.2);border-radius:12px;padding:10px;font:inherit"></textarea>
+          <textarea name="note" maxlength="1000" placeholder="Remarques : longueur, résultat, à prévoir la prochaine fois…" style="min-height:64px;border:1px solid rgba(16,18,22,.2);border-radius:12px;padding:10px;font:inherit"></textarea>
+          <label>Photos (6 au plus, JPEG, PNG ou WebP) <input type="file" name="photos" accept="image/jpeg,image/png,image/webp" multiple></label>
+          <p id="f-err" role="alert" style="color:#B3402A;margin:0"></p>
+          <div style="display:flex;gap:10px;justify-content:flex-end"><button type="button" id="f-x" style="min-height:44px;padding:0 18px;border-radius:99px;border:1px solid rgba(16,18,22,.2);background:none;cursor:pointer">Fermer</button><button type="submit" style="min-height:44px;padding:0 18px;border-radius:99px;border:0;background:#E2A63D;font-weight:600;cursor:pointer">Ajouter la note</button></div>
+        </form>`;
+      d.querySelector('#f-x').onclick = () => { d.close(); d.remove(); };
+      d.querySelector('#f-allergies').onchange = async e => { const v = e.target.value.trim() || null; const { error: er } = await supabase.from('clients').update({ allergies:v }).eq('id', client.id); if(er) showToast('Enregistrement impossible (migration schema-v48 ?).'); else { client.allergies = v; showToast('Allergies enregistrées.'); } };
+      d.querySelectorAll('[data-sup]').forEach(b => b.onclick = async () => {
+        if(!confirm('Supprimer cette note et ses photos ?')) return;
+        const n = liste.find(x => x.id === b.dataset.sup); if(n && n.photos && n.photos.length) await supabase.storage.from(BUCKET).remove(n.photos);
+        await supabase.from('client_notes').delete().eq('id', b.dataset.sup); dessiner();
+      });
+      d.querySelector('#f-form').onsubmit = async e => {
+        e.preventDefault(); const f = new FormData(e.target), err = d.querySelector('#f-err'), fich = [...e.target.photos.files].slice(0, 6);
+        if(!f.get('titre').trim() && !f.get('formule').trim() && !f.get('note').trim() && !fich.length){ err.textContent = 'Écrivez au moins une ligne ou ajoutez une photo.'; return; }
+        const btn = e.target.querySelector('[type=submit]'); btn.disabled = true; err.textContent = '';
+        try{
+          const chemins = [];
+          for(const fi of fich){ const blob = await reduirePhoto(fi), chemin = `${espaceId}/${client.id}/${crypto.randomUUID()}.jpg`; const { error: eu } = await supabase.storage.from(BUCKET).upload(chemin, blob, { contentType:'image/jpeg' }); if(eu) throw eu; chemins.push(chemin); }
+          const { error: en } = await supabase.from('client_notes').insert({ owner_id:espaceId, client_id:client.id, titre:f.get('titre').trim() || null, formule:f.get('formule').trim() || null, note:f.get('note').trim() || null, photos:chemins });
+          if(en){ if(chemins.length) await supabase.storage.from(BUCKET).remove(chemins); throw en; }
+          dessiner();
+        }catch(x){ err.textContent = 'Enregistrement impossible : ' + (/row-level|policy/i.test(String(x.message)) ? 'droits insuffisants pour votre rôle.' : 'vérifiez la migration schema-v48 et votre connexion.'); btn.disabled = false; }
+      };
+    };
+    await dessiner(); d.showModal();
+  }
+  document.getElementById('fiche-btn').addEventListener('click', () => { if(ficheEnCours) ouvrirFiche(ficheEnCours); });
 
   function closeModal(){
     overlay.classList.remove('show');

@@ -32,6 +32,8 @@ create role authenticated; create role anon;
 create function public.current_workspace_id() returns uuid language sql stable as $$ select coalesce(nullif(current_setting('app.ws', true), '')::uuid, auth.uid()) $$;
 create function public.est_gestionnaire(p uuid) returns boolean language sql stable as $$ select false $$;
 create function public.new_feed_token() returns text language sql as $$ select encode(extensions.gen_random_bytes(12), 'hex') $$;
+create schema storage; create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]); create table storage.objects (name text, bucket_id text);
+create function storage.foldername(n text) returns text[] language sql immutable as $$ select string_to_array(n, '/') $$;
 create table public.profiles (id uuid primary key, plan text, full_name text);
 create table public.vitrine_equipe (id uuid primary key default gen_random_uuid(), owner_id uuid not null, nom text, role text, jours_ouvres int[], heure_debut time, heure_fin time, position int default 0);
 create table public.parametres_reservation (owner_id uuid primary key, jours_ouvres int[] default '{1,2,3,4,5}', heure_debut time default '09:00', heure_fin time default '18:00');
@@ -61,6 +63,7 @@ await db.exec(lire('schema-v44-produits.sql'));
 await db.exec(lire('schema-v45-equipes-roles.sql'));
 await db.exec(lire('schema-v46-absences.sql'));
 await db.exec(lire('schema-v47-stats-equipe.sql'));
+await db.exec(lire('schema-v48-fiche-client.sql'));
 await db.exec(`insert into auth.users values ('${U}'); insert into public.parametres_reservation (owner_id) values ('${U}'); insert into public.profiles values ('${U}', 'studio'); insert into public.parametres_facturation values ('${U}', true); set app.uid = '${U}';`);
 
 // ---------------------------------------------------------------- scénarios légitimes
@@ -154,6 +157,12 @@ await db.exec(`set app.uid = '${V}'; set app.ws = '${U}';`);
 verif('S', 'Refus au vendeur : statistiques d\'équipe et ajustement de stock', /Réservé au responsable/.test(await refuse(() => q(`select public.stats_equipe(current_date - 1, current_date)`)) || '') && /Réservé au responsable/.test(await refuse(() => q(`select public.stock_ajuster($1, 5, 'reception')`, [prod])) || ''));
 await db.exec(`set app.uid = '${U}'; set app.ws = '';`);
 verif('I', 'Ajustement de stock par un responsable (réception +5 = 14)', Number((await un(`select public.stock_ajuster($1, 5, 'reception', 'Livraison') r`, [prod])).r) === 14);
+
+// ---------------------------------------------------------------- fiche client technique : bucket privé, limites
+const cli = (await un(`insert into public.clients (owner_id, full_name) values ($1, 'Nina') returning id`, [U])).id;
+verif('S', 'Fiche technique : le bucket des photos de clients est privé', (await un(`select public from storage.buckets where id = 'clients-photos'`)).public === false);
+verif('S', 'Fiche technique : une note avec formule et photos est acceptée', (await refuse(() => q(`insert into public.client_notes (owner_id, client_id, titre, formule, photos) values ($1, $2, 'Balayage', '8.1 + 9 vol', array['a/b.jpg'])`, [U, cli]))) === null);
+verif('S', 'Fiche technique : plus de 6 photos par note refusé', /check/i.test(await refuse(() => q(`insert into public.client_notes (owner_id, client_id, photos) values ($1, $2, array['1','2','3','4','5','6','7'])`, [U, cli])) || ''));
 
 // ---------------------------------------------------------------- S : sécurisation
 const ok0 = (await un(`select public.caisse_verifier() r`)).r;
