@@ -5,14 +5,17 @@ Document à remettre à un expert-comptable ou à un organisme de certification.
 
 ## 1. Cadre
 
-En France, un assujetti à la TVA qui enregistre des paiements de particuliers avec un logiciel ou un système de caisse doit utiliser un logiciel
-**sécurisé et inaltérable** (art. 286 I 3° bis du CGI). Il le justifie par :
-- un **certificat** délivré par un organisme accrédité (LNE, Infocert, AFNOR Certification) selon la norme NF 525 ; ou
-- une **attestation individuelle de l'éditeur** (modèle de l'administration fiscale, BOI-TVA-DECLA-30-10-30), signée par un représentant légal.
+Source officielle : [economie.gouv.fr, « Ce qu'il faut savoir sur la certification des logiciels de caisse »](https://www.economie.gouv.fr/entreprises/gerer-son-entreprise-au-quotidien/gerer-sa-comptabilite-et-ses-demarches/ce-quil-faut-savoir-sur-la-certification-des-logiciels-de-caisse) (page écrite le 24/02/2026). À relire avant toute annonce, la règle a changé plusieurs fois.
 
-L'amende prévue est de 7 500 € par logiciel non conforme. Un salon en **franchise en base de TVA** n'est pas concerné. Hors de France :
-Belgique (système de caisse certifié seulement pour l'horeca), Suisse (pas d'obligation équivalente) : à vérifier au cas par cas.
-Les textes et le montant sont à faire confirmer par l'expert-comptable avant toute communication commerciale.
+Depuis le 1er janvier 2018, les professionnels **assujettis à la TVA** qui ont des **particuliers** parmi leurs clients et enregistrent les paiements avec un logiciel ou système de caisse doivent utiliser un matériel **sécurisé** (art. 286 I 3° bis du CGI) : inaltérabilité, sécurisation, conservation (données cumulatives et récapitulatives intègres dans des clôtures journalière, mensuelle et annuelle) et archivage (périodicité choisie, annuelle au maximum, avec **date certaine** et dispositif garantissant l'intégrité dans le temps).
+
+- **Preuve** : un certificat d'un organisme accrédité (LNE, Infocert, AFNOR Certification, norme NF 525) **ou une attestation individuelle de l'éditeur** : la loi de finances pour 2026, adoptée le 19 février 2026, a **rétabli** cette seconde voie (la fin de l'auto-certification prévue en 2025 puis repoussée est annulée).
+- **C'est à l'éditeur** de faire la démarche et de **remettre le document** aux professionnels, qui peuvent le réclamer : Mirrio doit donc pouvoir remettre une attestation signée à chaque salon (modèle à produire, voir §3).
+- **Périmètre** : pour un logiciel multifonction (agenda, comptabilité, caisse), seules les **fonctions de caisse et d'encaissement** sont à certifier ou à attester : ici l'écran `caisse.html` et les fonctions SQL `caisse_*` avec leurs tables, pas l'agenda ni la page du salon.
+- **Exceptions** : activité exclusivement B2B ou exonérée de TVA, **franchise en base de TVA** (micro-entrepreneurs), remboursement forfaitaire agricole, et professionnels dont **tous** les paiements sont intermédiés par un établissement bancaire de l'Union européenne.
+- **Sanction** : 7 500 € par logiciel concerné, renouvelable si la régularisation dépasse 30 jours, et régularisation des recettes (art. 1770 duodecies du CGI).
+
+Hors de France : Belgique (système de caisse certifié seulement pour l'horeca), Suisse (pas d'obligation équivalente) : à vérifier au cas par cas. Les textes et montants sont à faire confirmer par l'expert-comptable avant toute communication commerciale.
 
 ## 2. Exigences et réponses techniques (`db/schema-v43-caisse-certifiable.sql`)
 
@@ -28,7 +31,7 @@ Les textes et le montant sont à faire confirmer par l'expert-comptable avant to
 | **Duplicata** | Toute réimpression passe par `caisse_duplicata` : journalisée, numérotée, et imprimée avec la mention « DUPLICATA n°N ». |
 | **Mode formation** | Tickets `FORM-…` hors chiffre d'affaires, hors grand total, sans facture, imprimés « TICKET DE FORMATION ». |
 | **Clôtures** | Z journalier (calculé par le serveur, pas par le navigateur), clôture mensuelle et annuelle (une seule fois par période, session ouverte refusée). |
-| **Sécurisation de l'archive** | `caisse_archiver` produit un JSON (journal, tickets, sessions, résultat de la vérification, empreinte globale), à télécharger et à conserver. |
+| **Archivage, date certaine** | `caisse_archiver` produit un JSON (journal, tickets, sessions, résultat de la vérification, empreinte globale), à télécharger et à conserver. **L'empreinte du fichier est scellée dans le journal chaîné** : sa date est celle du journal, et toute modification ultérieure du fichier se détecte en recalculant l'empreinte. |
 | **Contrôle d'intégrité** | `caisse_verifier` recalcule toute la chaîne, les signatures, les grands totaux, la continuité des numéros et le lien ticket-journal. Bouton « Conformité » dans la caisse. |
 | Calculs | Le serveur recalcule la TVA par taux et le total : le navigateur ne peut pas imposer un montant. Le total des paiements doit égaler le total du ticket. |
 
@@ -37,13 +40,14 @@ ont été exécutés sur un Postgres embarqué (PGlite) avec le fichier SQL tel 
 
 ## 3. Ce qui reste à faire pour certifier
 
-1. **Choisir la voie** : certificat NF 525 (audit du code, de la documentation et du processus de livraison, coût et délai à demander à l'organisme) ou attestation individuelle de l'éditeur. L'attestation engage le représentant légal de l'éditeur (Dima Artistry) : à ne signer qu'après revue par l'expert-comptable.
+1. **Choisir la voie** : certificat NF 525 (audit du code, de la documentation et du processus de livraison, coût et délai à demander à l'organisme) ou attestation individuelle de l'éditeur (rétablie par la loi de finances 2026). L'attestation engage le représentant légal de l'éditeur (Dima Artistry) : à ne signer qu'après revue par l'expert-comptable. **Aucun modèle d'attestation n'est encore produit ni remis aux salons.**
 2. **Gestion des clés** : la clé HMAC vit dans la même base que le journal. Un administrateur de la base pourrait théoriquement tout recalculer. Pour l'audit, déplacer la signature hors base (secret serveur dans Vercel, fonction de signature, ou KMS) et conserver l'empreinte quotidienne chez un tiers (e-mail au comptable, stockage objet en écriture seule).
 3. **Conservation 6 ans** (art. L102 B du LPF) : fixer la politique de sauvegarde Supabase, interdire la suppression d'un compte qui a des ventes (le trigger de verrouillage la bloque déjà), prévoir l'export d'archive à la résiliation.
 4. **Horloge** : l'heure vient du serveur Postgres ; documenter la synchronisation.
-5. **Documentation éditeur** : version du logiciel, journal des changements, procédure de mise à jour (une mise à jour ne doit pas modifier l'historique), contact support.
-6. **Impression et affichage** : faire relire les tickets (mentions, TVA, signature) et le Z par l'expert-comptable ; ajouter si besoin la version du logiciel sur le ticket.
-7. **Limites actuelles** : paiement par carte : relié à un terminal SumUp Solo (référence de transaction sur le ticket, preuve d'encaissement), sinon simplement enregistré ; remboursement d'un paiement terminal à faire dans le compte SumUp ; pas de stock ni de codes-barres ; pas de pourboires ; pas de comptes vendeurs distincts (l'auteur est le compte connecté) ; ce n'est pas un FEC.
+5. **Clôtures automatiques** : aujourd'hui les clôtures mensuelle et annuelle se déclenchent à la main (bouton « Conformité ») et la clôture du jour dépend de la fermeture de la caisse par l'utilisateur. Prévoir une tâche planifiée qui les produit seule (mois et années révolus ; journée oubliée marquée « clôture automatique »).
+6. **Documentation éditeur** : version du logiciel, journal des changements, procédure de mise à jour (une mise à jour ne doit pas modifier l'historique), contact support.
+7. **Impression et affichage** : faire relire les tickets (mentions, TVA, signature) et le Z par l'expert-comptable ; ajouter si besoin la version du logiciel sur le ticket.
+8. **Limites actuelles** : paiement par carte : relié à un terminal SumUp Solo (référence de transaction sur le ticket, preuve d'encaissement), sinon simplement enregistré ; remboursement d'un paiement terminal à faire dans le compte SumUp ; pas de stock ni de codes-barres ; pas de pourboires ; pas de comptes vendeurs distincts (l'auteur est le compte connecté) ; ce n'est pas un FEC.
 
 ## 4. Pour l'expert-comptable
 

@@ -584,7 +584,7 @@ end $$;
 -- Archive d'une période (JSON) : journal, tickets, clôtures, résultat de la vérification, empreinte globale. À télécharger et conserver 6 ans.
 create or replace function public.caisse_archiver(p_debut date, p_fin date)
 returns jsonb language plpgsql security definer set search_path = public, extensions as $$
-declare e uuid := public.caisse__espace(); d0 timestamptz; d1 timestamptz; jr jsonb; tk jsonb; ss jsonb; ver jsonb; corps jsonb;
+declare e uuid := public.caisse__espace(); d0 timestamptz; d1 timestamptz; jr jsonb; tk jsonb; ss jsonb; ver jsonb; corps jsonb; emp text;
 begin
   if p_debut is null or p_fin is null or p_fin < p_debut or p_fin - p_debut > 366 then raise exception 'Période invalide (366 jours au plus).'; end if;
   d0 := make_timestamptz(extract(year from p_debut)::int, extract(month from p_debut)::int, extract(day from p_debut)::int, 0, 0, 0, 'Europe/Paris');
@@ -597,8 +597,10 @@ begin
   select coalesce(jsonb_agg(to_jsonb(q) order by q.ouverte_le), '[]'::jsonb) into ss from (select ouverte_le, cloturee_le, fond_caisse, especes_comptees, ecart, rapport
     from public.caisse_sessions where owner_id = e and ouverte_le >= d0 and ouverte_le < d1) q;
   corps := jsonb_build_object('format', 'mirrio-caisse-archive-1', 'espace', e, 'debut', p_debut, 'fin', p_fin, 'genere_le', now(), 'verification', ver, 'journal', jr, 'tickets', tk, 'sessions', ss);
-  perform public.caisse__ecrire(e, 'archive', null, null, null, null, jsonb_build_object('debut', p_debut, 'fin', p_fin, 'nb_entrees', jsonb_array_length(jr), 'nb_tickets', jsonb_array_length(tk)), false);
-  return corps || jsonb_build_object('empreinte', encode(extensions.digest(corps::text, 'sha256'), 'hex'));
+  -- L'empreinte du fichier est scellée dans le journal chaîné : elle donne date certaine à l'archive et permet de prouver plus tard qu'elle n'a pas changé.
+  emp := encode(extensions.digest(corps::text, 'sha256'), 'hex');
+  perform public.caisse__ecrire(e, 'archive', null, null, null, null, jsonb_build_object('debut', p_debut, 'fin', p_fin, 'nb_entrees', jsonb_array_length(jr), 'nb_tickets', jsonb_array_length(tk), 'empreinte', emp), false);
+  return corps || jsonb_build_object('empreinte', emp);
 end $$;
 
 -- ---------------------------------------------------------------------------------------------------------------- terminal : lecture sans secret
