@@ -64,13 +64,27 @@
   .resultat img{ width:64px; height:64px; border-radius:16px; object-fit:cover; background:var(--line); flex:none; }
   @media (max-width:560px){ .grand{ font-size:36px; } th:nth-child(n+6),td:nth-child(n+6){ display:none; } }
   @media (prefers-reduced-motion:reduce){ *{ transition:none !important; } }
+  .vues{ display:flex; gap:8px; overflow-x:auto; padding:2px 0 14px; scrollbar-width:none; }
+  .vues button{ flex:none; min-height:44px; padding:0 18px; border-radius:99px; border:1px solid var(--line); background:var(--surface); color:var(--ink); font:600 15px var(--body); cursor:pointer; }
+  .vues button[aria-selected=true]{ background:var(--ink); color:var(--bg); border-color:transparent; }
+  .vues button.total{ border-style:dashed; }
+  .sous-onglets{ display:flex; gap:6px; flex-wrap:wrap; margin:14px 0 16px; }
+  .sous-onglets button{ min-height:40px; padding:0 14px; border-radius:12px; border:1px solid var(--line); background:transparent; color:var(--ink); font:600 14px var(--body); cursor:pointer; }
+  .sous-onglets button[aria-selected=true]{ background:var(--accent); color:var(--accent-ink); border-color:transparent; }
+  .grille-form{ display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); }
+  .membre-fiche{ display:grid; grid-template-columns:auto 1fr; gap:14px; padding:14px 0; border-top:1px solid var(--line); } .membre-fiche:first-child{ border-top:none; }
+  .vignette{ width:72px; height:72px; border-radius:50%; background:var(--line); display:grid; place-items:center; font:800 26px var(--display); overflow:hidden; } .vignette img{ width:100%; height:100%; object-fit:cover; }
+  .ligne-presta{ display:grid; grid-template-columns:minmax(0,3fr) 80px 90px auto auto; gap:8px; align-items:center; padding:8px 0; border-top:1px solid var(--line); }
+  .ligne-presta input[type=text],.ligne-presta input[type=number],.grille-form input,.grille-form select,.membre-fiche input[type=text],.membre-fiche textarea,#fiche-salon textarea{ width:100%; min-height:44px; padding:8px 12px; border-radius:12px; border:1px solid var(--line); background:var(--bg); color:var(--ink); font:inherit; }
+  #fiche-salon textarea{ min-height:90px; resize:vertical; } .jours-resa{ display:flex; gap:6px; flex-wrap:wrap; } .jours-resa label{ display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border:1px solid var(--line); border-radius:12px; cursor:pointer; font-weight:600; } .jours-resa input{ width:auto; min-height:0; }
+  @media(max-width:640px){ .ligne-presta{ grid-template-columns:1fr 1fr; } .ligne-presta input[data-f$=libelle]{ grid-column:1 / -1; } .membre-fiche{ grid-template-columns:1fr; } }
 </style>
 <script src="/pwa.js" defer></script>
 <script src="/cookies.js" defer></script>
 </head>
 <body>
 <a class="evitement" href="#contenu">Aller au contenu</a>
-<div id="bandeau-demo" hidden style="background:var(--accent);color:var(--accent-ink);padding:8px 16px;font-weight:600;font-size:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:220px">Démonstration : le groupe Éloïse, trois salons. Rien n'est enregistré, ajoutez un salon et changez de salon librement.</span><button class="btn petit" id="b-demo-reset" type="button">Réinitialiser</button><a class="btn petit" href="demos.html">Retour aux démos</a></div>
+<div id="bandeau-demo" hidden style="background:var(--accent);color:var(--accent-ink);padding:8px 16px;font-weight:600;font-size:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:220px">Démonstration : le groupe Éloïse. Parcourez le paramétrage de chaque salon, un par un, puis le total du groupe. Rien n'est enregistré ailleurs que dans votre navigateur.</span><button class="btn petit" id="b-demo-reset" type="button">Réinitialiser</button><a class="btn petit" href="demos.html">Retour aux démos</a></div>
 <header><div class="barre">
   <a class="logo" href="dashboard.html">Mirrio<b>.</b></a>
   <div class="droite"><a class="btn petit" href="dashboard.html">Retour à l'application</a></div>
@@ -81,7 +95,8 @@
     <button class="btn principal" id="ajouter" type="button">Ajouter un salon</button>
   </div>
   <p class="muted" style="margin-bottom:18px">Chaque salon a sa propre page de réservation, son catalogue, son équipe, ses clients et son compte de paiement. Choisissez un salon pour le gérer, ou comparez-les ici.</p>
-  <div id="panneau-salon" hidden></div>
+  <div class="vues" id="vues-demo" role="tablist" aria-label="Salons du groupe" hidden></div>
+  <div id="fiche-salon" hidden></div>
   <div id="contenu-salons" aria-live="polite"><p class="vide">Chargement…</p></div>
   <p class="muted" style="font-size:13px;margin-top:14px">Chiffres du mois en cours. Le chiffre d'affaires est la somme hors taxes des factures payées émises ce mois-ci. Tarif : forfait Groupe de 79 € par mois (790 € par an, deux mois offerts) pour tous vos salons, sans commission.</p>
 </main>
@@ -108,19 +123,139 @@
     if(s.error || g.error){ $('#contenu-salons').innerHTML = '<div class="carte"><p class="vide">Base non préparée : exécuter db/schema-v38-multi-salons.sql dans Supabase.</p></div>'; return; }
     salons = s.data || []; stats = g.data || [];
     dessiner();
-    if(DEMO) selecteur();
+    if(DEMO){ selecteur(); if(!vue || (vue !== 'total' && !salons.some(x => x.id === vue))) vue = salons[0] ? salons[0].id : 'total'; majVues(); }
   }
-  // Démo : ce que verrait le propriétaire en « gérant » un salon. Dans l'application réelle, tous les écrans (agenda, clients, devis, caisse, paramètres) basculent sur lui.
-  function panneauSalon(id){
-    const sal = demoMod.salonParId(id), z = $('#panneau-salon'); if(!sal) return;
-    const lien = demoMod.PAGES_PUBLIQUES[sal.slug];
-    z.hidden = false;
-    z.innerHTML = `<div class="carte" style="margin-bottom:16px;border-color:var(--accent)"><h2 style="font-size:20px">Vous gérez maintenant : ${esc(sal.nom)}</h2>
-      <p class="muted" style="margin:6px 0 14px">Dans l'application, l'agenda, les clients, les devis, la caisse, la page de réservation, l'équipe et les paiements passent sur ce salon. Les autres salons restent intacts. Le sélecteur de salon, en haut de chaque écran, permet de changer à tout moment.</p>
-      <div class="actions" style="margin:0">${lien ? `<a class="btn petit principal" href="${lien}">Voir sa page publique</a>` : ''}<a class="btn petit" href="caisse.html?demo=1">Ouvrir sa caisse</a><button class="btn petit" id="p-fermer" type="button">Retour au groupe</button></div></div>`;
-    $('#p-fermer').onclick = async () => { await supabase.rpc('basculer_espace', { p_espace_id:null }); await charger(); z.hidden = true; };
-    z.scrollIntoView({ behavior:'smooth', block:'start' });
+  // ===== Démo : un onglet par salon (son paramétrage complet), puis le total du groupe =====
+  // Dans l'application réelle, « Gérer ce salon » fait basculer tous les écrans (agenda, clients, devis, caisse, paramètres) sur ce salon ; la démo en montre le paramétrage.
+  const METIERS_LIB = { coiffure:'Coiffure', barbier:'Barbier', esthetique:'Institut, esthétique', onglerie:'Onglerie', massage:'Massage et spa', patisserie:'Boulangerie, pâtisserie', autre:'Autre' };
+  let vue = null, ongletFiche = 'pres';
+  const MAX_PROS = 5;
+
+  function dessinerBarre(){
+    const barre = $('#vues-demo'); barre.hidden = false;
+    barre.innerHTML = salons.map((x, i) => `<button type="button" role="tab" data-v="${esc(x.id)}" aria-selected="${vue === x.id}">${i + 1}. ${esc(x.nom)}</button>`).join('')
+      + `<button type="button" role="tab" class="total" data-v="total" aria-selected="${vue === 'total'}">Total du groupe</button>`;
+    barre.querySelectorAll('button').forEach(b => b.onclick = () => afficherVue(b.dataset.v));
   }
+  function majVues(){
+    dessinerBarre();
+    const tot = vue === 'total';
+    $('#contenu-salons').hidden = !tot; $('#fiche-salon').hidden = tot;
+    if(!tot) rendreFiche(vue);
+  }
+  async function afficherVue(v, onglet){
+    if(onglet) ongletFiche = onglet;
+    vue = v;
+    if(v !== 'total') await supabase.rpc('basculer_espace', { p_espace_id:v });
+    await charger();
+    window.scrollTo({ top:0, behavior:'smooth' });
+  }
+
+  // petit utilitaire : lit / écrit une valeur dans la fiche par chemin (« equipe.1.bio »)
+  const lirePath = (o, chemin) => chemin.split('.').reduce((x, k) => (x == null ? x : x[k]), o);
+  function ecrirePath(o, chemin, valeur){ const ks = chemin.split('.'); const dernier = ks.pop(); const cible = ks.reduce((x, k) => x[k], o); cible[dernier] = valeur; }
+  function reduirePhoto(fichier, fin){
+    const lecteur = new FileReader();
+    lecteur.onerror = () => fin(null);
+    lecteur.onload = () => { const img = new Image(); img.onerror = () => fin(null);
+      img.onload = () => { const cote = Math.min(img.width, img.height), cv = document.createElement('canvas'); cv.width = cv.height = 480;
+        cv.getContext('2d').drawImage(img, (img.width - cote) / 2, (img.height - cote) / 2, cote, cote, 0, 0, 480, 480); fin(cv.toDataURL('image/jpeg', 0.82)); };
+      img.src = lecteur.result; };
+    lecteur.readAsDataURL(fichier);
+  }
+
+  function rendreFiche(id){
+    const sal = demoMod.salonParId(id); const z = $('#fiche-salon');
+    if(!sal){ z.innerHTML = ''; return; }
+    const f = sal.fiche, lien = demoMod.PAGES_PUBLIQUES[sal.slug], rang = salons.findIndex(x => x.id === id), suivant = salons[rang + 1];
+    const champ = (lib, chemin, val, opts = {}) => `<div class="champ"><label for="x-${chemin}">${lib}</label>${opts.zone
+      ? `<textarea id="x-${chemin}" data-f="${chemin}" maxlength="${opts.max || 600}">${esc(val)}</textarea>` : `<input type="${opts.type || 'text'}" id="x-${chemin}" data-f="${chemin}" value="${esc(val)}"${opts.max ? ` maxlength="${opts.max}"` : ''}${opts.ph ? ` placeholder="${esc(opts.ph)}"` : ''}>`}</div>`;
+    const onglets = [['pres', 'Présentation'], ['equipe', `Équipe (${f.equipe.length})`], ['presta', `Prestations (${f.prestations.length})`], ['resa', 'Réservation et paiement']];
+    let corps = '';
+    if(ongletFiche === 'pres'){
+      corps = `<div class="grille-form">
+        <div class="champ"><label for="x-nom">Nom du salon</label><input type="text" id="x-nom" data-top="nom" value="${esc(sal.nom)}" maxlength="80"></div>
+        <div class="champ"><label for="x-ville">Ville</label><input type="text" id="x-ville" data-top="ville" value="${esc(sal.ville || '')}" maxlength="80"></div></div>
+        ${champ('Phrase d\'accroche', 'accroche', f.accroche, { max:120, ph:'Coiffure mixte, colorations végétales' })}
+        ${champ('Présentation du salon', 'a_propos', f.a_propos, { zone:true, max:600 })}
+        ${champ('Adresse', 'adresse', f.adresse || '', { max:160 })}
+        <p class="muted" style="font-size:13px">Ces textes s'affichent sur la page publique du salon. Chaque salon a les siens, avec son propre lien de réservation.</p>`;
+    } else if(ongletFiche === 'equipe'){
+      corps = (f.equipe.length ? f.equipe.map((m, i) => `<div class="membre-fiche"><span class="vignette" aria-hidden="true">${m.photo ? `<img src="${m.photo}" alt="">` : esc((m.nom || '?').charAt(0).toUpperCase())}</span>
+        <div><div class="grille-form"><div class="champ"><label for="x-eq${i}n">Prénom</label><input type="text" id="x-eq${i}n" data-f="equipe.${i}.nom" value="${esc(m.nom)}" maxlength="40"></div>
+        <div class="champ"><label for="x-eq${i}r">Rôle</label><input type="text" id="x-eq${i}r" data-f="equipe.${i}.role" value="${esc(m.role)}" maxlength="40"></div></div>
+        <div class="champ"><label for="x-eq${i}b">Présentation</label><textarea id="x-eq${i}b" data-f="equipe.${i}.bio" maxlength="200">${esc(m.bio)}</textarea></div>
+        <div class="actions" style="margin:0;justify-content:flex-start"><label class="btn petit" for="x-eq${i}p" style="cursor:pointer">${m.photo ? 'Changer la photo' : 'Importer une photo'}</label><input type="file" id="x-eq${i}p" accept="image/jpeg,image/png,image/webp" data-photo="${i}" hidden>
+        ${m.photo ? `<button type="button" class="btn petit" data-act="sans-photo" data-i="${i}">Retirer la photo</button>` : ''}<button type="button" class="btn petit danger" data-act="retirer-membre" data-i="${i}">Retirer cette personne</button></div></div></div>`).join('')
+        : '<p class="vide">Aucune personne pour l\'instant. Ajoutez la première.</p>')
+        + `<div class="actions" style="justify-content:space-between;margin-top:12px"><span class="muted">${f.equipe.length} / ${MAX_PROS} professionnels (forfait Équipe)</span>
+        <button type="button" class="btn petit principal" data-act="ajouter-membre"${f.equipe.length >= MAX_PROS ? ' disabled' : ''}>Ajouter une personne</button></div>`;
+    } else if(ongletFiche === 'presta'){
+      corps = (f.prestations.length ? f.prestations.map((p, i) => `<div class="ligne-presta"><input type="text" data-f="prestations.${i}.libelle" value="${esc(p.libelle)}" maxlength="80" aria-label="Libellé de la prestation ${i + 1}">
+        <input type="number" data-f="prestations.${i}.duree" data-t="num" min="0" max="600" value="${p.duree}" aria-label="Durée en minutes"><input type="number" data-f="prestations.${i}.prix" data-t="num" min="0" max="2000" value="${p.prix}" aria-label="Prix en euros">
+        <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-f="prestations.${i}.actif" data-t="bool"${p.actif ? ' checked' : ''}> Proposée</label>
+        <button type="button" class="btn petit danger" data-act="retirer-presta" data-i="${i}" aria-label="Retirer ${esc(p.libelle)}">×</button></div>`).join('') : '<p class="vide">Aucune prestation.</p>')
+        + '<div class="actions" style="margin-top:12px"><button type="button" class="btn petit principal" data-act="ajouter-presta">Ajouter une prestation</button></div><p class="muted" style="font-size:13px;margin-top:8px">Durée en minutes, prix TTC en euros. Le catalogue est propre à chaque salon.</p>';
+    } else {
+      const h = f.horaires, cr = f.creux, pay = f.paiement;
+      corps = `<div class="champ"><span style="display:block;font-weight:600;margin-bottom:6px">Jours d'ouverture</span><div class="jours-resa">${demoMod.JOURS.map((j, k) => `<label><input type="checkbox" data-jour="${k + 1}"${h.jours.indexOf(k + 1) >= 0 ? ' checked' : ''}>${j}</label>`).join('')}</div></div>
+        <div class="grille-form"><div class="champ"><label for="x-hd">Ouverture</label><input type="time" id="x-hd" data-f="horaires.debut" value="${esc(h.debut)}"></div><div class="champ"><label for="x-hf">Fermeture</label><input type="time" id="x-hf" data-f="horaires.fin" value="${esc(h.fin)}"></div>
+        <div class="champ"><label for="x-wa">WhatsApp du salon</label><input type="text" id="x-wa" data-f="horaires.whatsapp" value="${esc(h.whatsapp || '')}" maxlength="20" placeholder="06 12 34 56 78"></div></div>
+        <h3 style="font-size:16px;margin:18px 0 8px">Paiement à la réservation</h3>
+        ${pay.stripe ? '<p class="puce ok" style="display:inline-block">Paiement en ligne actif (Stripe)</p>' : '<p class="avert" style="margin:0 0 10px;padding:10px 14px;border-radius:14px;background:rgba(226,166,61,.14);border:1px solid rgba(226,166,61,.5)">Réservation en ligne fermée tant que le paiement n\'est pas activé (acompte de 5 € minimum). <button type="button" class="btn petit" data-act="stripe">Connecter Stripe (démo)</button></p>'}
+        <div class="grille-form"><div class="champ"><label for="x-mode">Règlement</label><select id="x-mode" data-f="paiement.mode"><option value="carte"${pay.mode === 'carte' ? ' selected' : ''}>Carte à la réservation</option><option value="acompte"${pay.mode === 'acompte' ? ' selected' : ''}>Acompte, solde sur place</option></select></div>
+        <div class="champ"><label for="x-ac">Acompte minimum (€, 5 € au moins)</label><input type="number" id="x-ac" data-f="paiement.acompte" data-t="acompte" min="5" value="${pay.acompte}"></div></div>
+        <h3 style="font-size:16px;margin:18px 0 8px">Heures creuses</h3>
+        <label style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><input type="checkbox" data-f="creux.actif" data-t="bool"${cr.actif ? ' checked' : ''}> Remise automatique sur les créneaux peu demandés</label>
+        <div class="grille-form"><div class="champ"><label for="x-cp">Remise (%)</label><input type="number" id="x-cp" data-f="creux.pct" data-t="num" min="5" max="50" value="${cr.pct}"></div>
+        <div class="champ"><label for="x-cj">Jours</label><input type="text" id="x-cj" data-f="creux.jours" value="${esc(cr.jours)}" placeholder="mardi à jeudi"></div><div class="champ"><label for="x-cl">Plage horaire</label><input type="text" id="x-cl" data-f="creux.plage" value="${esc(cr.plage)}" placeholder="9h30 à 12h"></div></div>`;
+    }
+    z.innerHTML = `<div class="carte" style="margin-bottom:16px"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start">
+        <div><span class="puce">Salon ${rang + 1} sur ${salons.length}${sal.principal ? ' · principal' : ''}</span><h2 style="font-size:24px;margin-top:8px">${esc(sal.nom)}</h2><p class="muted">${esc(METIERS_LIB[sal.metier] || '')}${sal.ville ? ' · ' + esc(sal.ville) : ''} · forfait Équipe, inclus dans le forfait Groupe</p></div>
+        <div class="actions" style="margin:0">${lien ? `<a class="btn petit principal" href="${lien}">Voir sa page publique</a>` : ''}<a class="btn petit" href="caisse.html?demo=1">Sa caisse</a></div></div>
+      <div class="sous-onglets" role="tablist" aria-label="Paramétrage du salon">${onglets.map(([k, l]) => `<button type="button" role="tab" data-onglet="${k}" aria-selected="${ongletFiche === k}">${l}</button>`).join('')}</div>
+      <div id="corps-fiche">${corps}</div>
+      <p class="muted" id="enreg" style="font-size:13px;margin-top:10px" role="status">Chaque modification est enregistrée tout de suite (démo).</p></div>
+      <div class="actions" style="justify-content:space-between"><span class="muted">Les autres salons gardent leurs propres réglages.</span><span style="display:flex;gap:8px">${suivant ? `<button type="button" class="btn" data-act="suivant" data-id="${esc(suivant.id)}">Salon suivant : ${esc(suivant.nom)}</button>` : ''}<button type="button" class="btn principal" data-act="total">Voir le total du groupe</button></span></div>`;
+    brancherFiche(id);
+  }
+
+  function brancherFiche(id){
+    const z = $('#fiche-salon'), note = t => { $('#enreg').textContent = t; };
+    const maj = (chemin, valeur) => { demoMod.modifierFiche(id, f => ecrirePath(f, chemin, valeur)); note('Modification enregistrée (démo).'); };
+    z.querySelectorAll('[data-onglet]').forEach(b => b.onclick = () => { ongletFiche = b.dataset.onglet; rendreFiche(id); });
+    z.querySelectorAll('[data-f]').forEach(el => el.addEventListener(el.type === 'checkbox' || el.tagName === 'SELECT' ? 'change' : 'input', () => {
+      let v = el.type === 'checkbox' ? el.checked : el.value;
+      if(el.dataset.t === 'num') v = Math.max(0, Number(v) || 0);
+      if(el.dataset.t === 'acompte'){ v = Math.max(5, Number(v) || 5); }
+      maj(el.dataset.f, v);
+      if(el.dataset.t === 'acompte' && String(v) !== el.value && document.activeElement !== el) el.value = v;
+    }));
+    z.querySelectorAll('[data-f][data-t=acompte]').forEach(el => el.addEventListener('blur', () => { el.value = Math.max(5, Number(el.value) || 5); }));
+    z.querySelectorAll('[data-top]').forEach(el => el.addEventListener('input', () => { demoMod.modifierFiche(id, (f, sal) => { sal[el.dataset.top] = el.value; }); note('Modification enregistrée (démo).'); }));
+    z.querySelectorAll('[data-top]').forEach(el => el.addEventListener('change', async () => { await charger(); }));
+    z.querySelectorAll('[data-jour]').forEach(el => el.addEventListener('change', () => {
+      const jours = [...z.querySelectorAll('[data-jour]')].filter(x => x.checked).map(x => Number(x.dataset.jour));
+      maj('horaires.jours', jours);
+    }));
+    z.querySelectorAll('[data-photo]').forEach(inp => inp.addEventListener('change', () => {
+      const fichier = inp.files && inp.files[0]; if(!fichier) return;
+      if(!/^image\/(jpeg|png|webp)$/.test(fichier.type)){ toast('Choisissez une image JPEG, PNG ou WebP.'); return; }
+      reduirePhoto(fichier, url => { if(!url){ toast('Cette image n\'a pas pu être lue.'); return; } maj('equipe.' + inp.dataset.photo + '.photo', url); rendreFiche(id); });
+    }));
+    z.querySelectorAll('[data-act]').forEach(b => b.onclick = async () => {
+      const a = b.dataset.act, i = Number(b.dataset.i);
+      if(a === 'sans-photo'){ maj('equipe.' + i + '.photo', null); rendreFiche(id); }
+      else if(a === 'retirer-membre'){ demoMod.modifierFiche(id, f => { f.equipe.splice(i, 1); }); await charger(); }
+      else if(a === 'ajouter-membre'){ demoMod.modifierFiche(id, f => { if(f.equipe.length < MAX_PROS) f.equipe.push({ nom:'Nouvelle personne', role:'', bio:'', photo:null }); }); await charger(); }
+      else if(a === 'retirer-presta'){ demoMod.modifierFiche(id, f => { f.prestations.splice(i, 1); }); await charger(); }
+      else if(a === 'ajouter-presta'){ demoMod.modifierFiche(id, f => { f.prestations.push({ libelle:'Nouvelle prestation', duree:30, prix:30, categorie:'', actif:true }); }); await charger(); }
+      else if(a === 'stripe'){ maj('paiement.stripe', true); toast('Paiement en ligne activé (démo).'); rendreFiche(id); }
+      else if(a === 'suivant') afficherVue(b.dataset.id, 'pres');
+      else if(a === 'total') afficherVue('total');
+    });
+  }
+
   function selecteur(){
     document.querySelectorAll('.salon-switch').forEach(e => e.remove());
     const haut = document.querySelector('header .droite'); if(!haut || salons.length < 2) return;
@@ -150,7 +285,7 @@
     const principal = salons.find(s => s.principal);
     const { error } = await supabase.rpc('basculer_espace', { p_espace_id: principal && principal.id === id ? null : id });
     if(error) return toast('Impossible d\'ouvrir ce salon.');
-    if(DEMO){ await charger(); panneauSalon(id); return; }
+    if(DEMO){ await afficherVue(id, 'pres'); return; }
     try{ sessionStorage.clear(); }catch(e){}
     location.href = 'dashboard.html';
   }
@@ -187,6 +322,7 @@
   }
   $('#ajouter').onclick = async () => {
     const r = await formulaire(); if(!r) return;
+    if(DEMO){ toast('Salon « ' + r.nom + ' » créé : voici son paramétrage.'); await afficherVue(r.id, 'pres'); return; }
     toast('Salon « ' + r.nom + ' » créé. Choisissez « Gérer ce salon » pour le configurer.');
     await charger();
   };
