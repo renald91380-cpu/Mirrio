@@ -271,7 +271,7 @@ export default async function handler(req, res){
       })
     });
   }catch(e){
-    return json(res, 502, { error: "L'envoi a échoué. Réessayez.", detail: String(e.message || e) });
+    return json(res, 502, { error: "L'envoi a échoué. Réessayez." });
   }
 
   // Un brouillon envoyé n'en est plus un — mais on ne touche jamais un statut

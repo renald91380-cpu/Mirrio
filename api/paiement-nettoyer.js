@@ -71,6 +71,10 @@ export default async function handler(req, res){
   // Même garde-fou que api/relances.js : sans CRON_SECRET configuré, rien
   // n'est exigé (pratique en local), mais CRON_SECRET doit être posé en
   // production pour empêcher n'importe qui de déclencher ce nettoyage.
+  // Fermé par défaut en production : sans CRON_SECRET, n'importe qui pourrait déclencher l'envoi d'e-mails ou de SMS (coût, spam). Libre seulement en local.
+  if(!CRON_SECRET && process.env.VERCEL_ENV === 'production'){
+    return json(res, 401, { error: 'CRON_SECRET non configuré.' });
+  }
   if(CRON_SECRET && req.headers.authorization !== `Bearer ${CRON_SECRET}`){
     return json(res, 401, { error: 'Non autorisé.' });
   }
@@ -84,7 +88,7 @@ export default async function handler(req, res){
       `&select=id,owner_id&limit=500`
     );
   }catch(e){
-    return json(res, 502, { error: 'Lecture des réservations expirées impossible.', detail: String(e.message || e) });
+    return json(res, 502, { error: 'Lecture des réservations expirées impossible.' });
   }
 
   if(!expires.length){

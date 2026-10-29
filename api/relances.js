@@ -141,6 +141,10 @@ export default async function handler(req, res){
   // dans les variables d'environnement du projet. Sans CRON_SECRET configuré,
   // on n'exige rien — pratique en local, mais CRON_SECRET doit être posé en
   // production pour empêcher n'importe qui de déclencher l'envoi à volonté.
+  // Fermé par défaut en production : sans CRON_SECRET, n'importe qui pourrait déclencher l'envoi d'e-mails ou de SMS (coût, spam). Libre seulement en local.
+  if(!CRON_SECRET && process.env.VERCEL_ENV === 'production'){
+    return json(res, 401, { error: 'CRON_SECRET non configuré.' });
+  }
   if(CRON_SECRET && req.headers.authorization !== `Bearer ${CRON_SECRET}`){
     return json(res, 401, { error: 'Non autorisé.' });
   }
@@ -182,7 +186,7 @@ export default async function handler(req, res){
       `&order=date_echeance.asc&limit=500`
     );
   }catch(e){
-    return json(res, 502, { error: 'Lecture des factures impossible.', detail: String(e.message || e) });
+    return json(res, 502, { error: 'Lecture des factures impossible.' });
   }
 
   if(!factures.length){
@@ -201,7 +205,7 @@ export default async function handler(req, res){
         : Promise.resolve([])
     ]);
   }catch(e){
-    return json(res, 502, { error: 'Lecture des réglages impossible.', detail: String(e.message || e) });
+    return json(res, 502, { error: 'Lecture des réglages impossible.' });
   }
 
   const reglagesParProprio = Object.fromEntries(reglages.map(r => [r.owner_id, r]));

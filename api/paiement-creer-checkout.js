@@ -259,7 +259,7 @@ async function creerCheckoutDevis({ documentId, espaceId, req, res }){
       metadata: { document_id: doc.id, owner_id: espaceId }
     });
   }catch(e){
-    return json(res, 502, { error: 'La création du paiement a échoué.', detail: String(e.message || e) });
+    return json(res, 502, { error: 'La création du paiement a échoué.' });
   }
 
   try{
@@ -427,7 +427,7 @@ export default async function handler(req, res){
         }
       });
     }catch(e){
-      return json(res, 502, { error: 'La création du paiement PayPal a échoué.', detail: String(e.message || e) });
+      return json(res, 502, { error: 'La création du paiement PayPal a échoué.' });
     }
     const lienApprobation = commande.links?.find(l => l.rel === 'approve')?.href;
     if(!lienApprobation){
@@ -473,7 +473,7 @@ export default async function handler(req, res){
       metadata: { rendez_vous_id: rdv.id, owner_id: espaceId }
     });
   }catch(e){
-    return json(res, 502, { error: 'La création du paiement a échoué.', detail: String(e.message || e) });
+    return json(res, 502, { error: 'La création du paiement a échoué.' });
   }
 
   try{

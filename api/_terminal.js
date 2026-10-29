@@ -18,7 +18,7 @@
 // Le webhook de SumUp n'est pas signé : son URL porte un secret propre à chaque paiement, et le résultat est recoupé avec l'API des transactions.
 // Variables : SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SITE_URL (adresse publique, pour le webhook).
 
-import { randomBytes } from 'node:crypto';
+import { randomBytes, timingSafeEqual } from 'node:crypto';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -72,7 +72,8 @@ async function webhook(req, res){
   const url = new URL(req.url, 'http://x'), id = url.searchParams.get('id') || '', s = url.searchParams.get('s') || '';
   if(!/^[0-9a-f-]{36}$/i.test(id) || s.length < 16) return json(res, 403, { error: 'Refusé.' });
   const [p] = await lire(`caisse_terminal_paiements?id=eq.${id}&select=*`);
-  if(!p || p.secret !== s) return json(res, 403, { error: 'Refusé.' });
+  const egal = p && p.secret.length === s.length && timingSafeEqual(Buffer.from(p.secret), Buffer.from(s));   // temps constant : le secret est une URL-capacité
+  if(!egal) return json(res, 403, { error: 'Refusé.' });
   const c = await corps(req), charge = (c && c.payload) || {};
   if(!p.client_transaction_id || String(charge.client_transaction_id) !== p.client_transaction_id) return json(res, 200, { ok: true });   // autre transaction : ignorée
   if(p.statut === 'reussi' || (p.statut !== 'en_attente' && charge.status !== 'successful')) return json(res, 200, { ok: true });   // un paiement annulé mais en fait encaissé redevient « reussi »
