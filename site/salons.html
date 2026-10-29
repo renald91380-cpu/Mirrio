@@ -98,12 +98,18 @@
   <div class="vues" id="vues-demo" role="tablist" aria-label="Salons du groupe" hidden></div>
   <div id="fiche-salon" hidden></div>
   <div id="contenu-salons" aria-live="polite"><p class="vide">Chargement…</p></div>
+  <section id="planning-section" hidden aria-labelledby="planning-titre" style="margin-top:28px">
+    <h2 id="planning-titre" style="font-size:22px;margin:0 0 4px">Planning du groupe</h2>
+    <p class="muted" style="margin:0 0 14px">Tous vos salons dans un seul calendrier : cochez ou décochez un salon, ouvrez un jour pour voir les disponibilités de chaque personne selon la prestation demandée, et ajoutez un rendez-vous pris au téléphone ou sur place.</p>
+    <div id="planning-groupe"></div>
+  </section>
   <p class="muted" style="font-size:13px;margin-top:14px">Chiffres du mois en cours. Le chiffre d'affaires est la somme hors taxes des factures payées émises ce mois-ci. Tarif : forfait Groupe de 79 € par mois (790 € par an, deux mois offerts) pour tous vos salons, sans commission.</p>
 </main>
 <div id="toast" role="status"></div>
 <script type="module">
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
   import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
+  import { monterPlanning } from './planning-groupe.js';
   const DEMO = new URLSearchParams(location.search).get('demo') === '1';
   let supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   let demoMod = null;
@@ -123,7 +129,8 @@
     if(s.error || g.error){ $('#contenu-salons').innerHTML = '<div class="carte"><p class="vide">Base non préparée : exécuter db/schema-v38-multi-salons.sql dans Supabase.</p></div>'; return; }
     salons = s.data || []; stats = g.data || [];
     dessiner();
-    if(DEMO){ selecteur(); if(!vue || (vue !== 'total' && !salons.some(x => x.id === vue))) vue = salons[0] ? salons[0].id : 'total'; majVues(); }
+    if(!DEMO && salons.length){ $('#planning-section').hidden = false; if(!planning) montrerPlanning(); }
+    if(DEMO){ selecteur(); if(!vue || (vue !== 'total' && vue !== 'planning' && !salons.some(x => x.id === vue))) vue = salons[0] ? salons[0].id : 'total'; majVues(); }
   }
   // ===== Démo : un onglet par salon (son paramétrage complet), puis le total du groupe =====
   // Dans l'application réelle, « Gérer ce salon » fait basculer tous les écrans (agenda, clients, devis, caisse, paramètres) sur ce salon ; la démo en montre le paramétrage.
@@ -134,19 +141,44 @@
   function dessinerBarre(){
     const barre = $('#vues-demo'); barre.hidden = false;
     barre.innerHTML = salons.map((x, i) => `<button type="button" role="tab" data-v="${esc(x.id)}" aria-selected="${vue === x.id}">${i + 1}. ${esc(x.nom)}</button>`).join('')
+      + `<button type="button" role="tab" data-v="planning" aria-selected="${vue === 'planning'}">Planning du groupe</button>`
       + `<button type="button" role="tab" class="total" data-v="total" aria-selected="${vue === 'total'}">Total du groupe</button>`;
     barre.querySelectorAll('button').forEach(b => b.onclick = () => afficherVue(b.dataset.v));
   }
+  // Planning : monté une fois (la démo lit sa fausse base, l'application réelle appelle les trois fonctions SQL de schema-v42).
+  let planning = null;
+  async function fournisseurReel(){
+    return {
+      async charger(debut, fin){
+        const { data, error } = await supabase.rpc('groupe_planning', { p_debut:debut.toISOString(), p_fin:fin.toISOString() });
+        if(error) throw new Error(/function|exist/i.test(error.message) ? 'Base non préparée : exécuter db/schema-v42-planning-groupe.sql dans Supabase.' : error.message);
+        return { salons:((data && data.salons) || []).map(x => ({ ...x,
+          horaires:x.horaires ? { jours:x.horaires.jours || [1, 2, 3, 4, 5], debut:String(x.horaires.debut || '09:00').slice(0, 5), fin:String(x.horaires.fin || '18:00').slice(0, 5) } : { jours:[1, 2, 3, 4, 5], debut:'09:00', fin:'18:00' },
+          prestations:(x.prestations || []).map(p => ({ id:p.id, libelle:p.libelle, duree:p.duree_minutes || 30 })) })) };
+      },
+      async ajouter(r){
+        const { error } = await supabase.rpc('groupe_ajouter_rdv', { p_salon:r.salon, p_debut:r.debut.toISOString(), p_fin:r.fin.toISOString(), p_titre:r.titre, p_intervenant:r.intervenant,
+          p_prestation:r.prestation, p_client_nom:r.client, p_client_tel:r.telephone, p_notes:r.notes, p_forcer:!!r.forcer });
+        if(error) throw new Error(error.message);
+      },
+      async annuler(id){ const { error } = await supabase.rpc('groupe_annuler_rdv', { p_rdv:id }); if(error) throw new Error(error.message); }
+    };
+  }
+  async function montrerPlanning(){
+    if(planning) return planning.recharger();
+    const f = DEMO ? demoMod.fournisseurPlanning() : await fournisseurReel();
+    planning = monterPlanning($('#planning-groupe'), f, { notifier:toast, aideErreur:'' });
+  }
   function majVues(){
     dessinerBarre();
-    const tot = vue === 'total';
-    $('#contenu-salons').hidden = !tot; $('#fiche-salon').hidden = tot;
-    if(!tot) rendreFiche(vue);
+    const tot = vue === 'total', plan = vue === 'planning';
+    $('#contenu-salons').hidden = !tot; $('#fiche-salon').hidden = tot || plan; $('#planning-section').hidden = !plan;
+    if(plan) montrerPlanning(); else if(!tot) rendreFiche(vue);
   }
   async function afficherVue(v, onglet){
     if(onglet) ongletFiche = onglet;
     vue = v;
-    if(v !== 'total') await supabase.rpc('basculer_espace', { p_espace_id:v });
+    if(v !== 'total' && v !== 'planning') await supabase.rpc('basculer_espace', { p_espace_id:v });
     await charger();
     window.scrollTo({ top:0, behavior:'smooth' });
   }

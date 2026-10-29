@@ -84,3 +84,63 @@ export function reponseCreation(corps){
   sauver();
   return reponse(200, { id, nom });
 }
+
+// ===== Planning du groupe (démo) : rendez-vous fictifs déterministes + ceux que l'on ajoute ou annule pendant la session =====
+const graine = t => { let h = 7; for(const c of String(t)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; };
+const cleJour = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const NOMS_CLIENTS = ['Camille D.', 'Mehdi B.', 'Sophie L.', 'Nadia K.', 'Julien P.', 'Inès R.', 'Paul M.', 'Clara V.', 'Yanis T.', 'Laura G.', 'Hugo F.', 'Amel S.'];
+
+function rdvGeneres(salon, debut, fin){
+  const f = salon.fiche, h = f.horaires, res = [], prest = f.prestations.filter(p => p.actif && p.duree > 0);
+  if(!prest.length || !f.equipe.length) return res;
+  const [hd, md] = h.debut.split(':').map(Number), [hf, mf] = h.fin.split(':').map(Number);
+  for(let d = new Date(debut.getFullYear(), debut.getMonth(), debut.getDate()); d < fin; d.setDate(d.getDate() + 1)){
+    if(!h.jours.includes((d.getDay() + 6) % 7 + 1)) continue;
+    f.equipe.forEach((m, i) => {
+      const g = graine(`${salon.id}|${cleJour(d)}|${i}`);
+      let t = hd * 60 + md + (g % 4) * 30; const clo = hf * 60 + mf; let k = 0;
+      while(k < 5){
+        const p = prest[(g >>> (k * 2)) % prest.length];
+        if(t + p.duree > clo) break;
+        if((g >>> (k + 3)) % 3 !== 0){ // un créneau sur trois reste libre
+          const dd = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, t);
+          res.push({ id:`g-${salon.id}-${cleJour(d)}-${i}-${k}`, titre:p.libelle, debut:dd.toISOString(), fin:new Date(dd.getTime() + p.duree * 60000).toISOString(),
+            statut:'confirme', intervenant_id:`${salon.id}:${i}`, client:NOMS_CLIENTS[(g + k * 5) % NOMS_CLIENTS.length], telephone:null });
+        }
+        t += p.duree + ((g >>> (k + 5)) % 3) * 30; k++;
+      }
+    });
+  }
+  return res;
+}
+
+// Fournisseur du module planning-groupe.js : mêmes formes que groupe_planning / groupe_ajouter_rdv / groupe_annuler_rdv.
+export function fournisseurPlanning(){
+  return {
+    async charger(debut, fin){
+      charger(); DB.ajoutes = DB.ajoutes || []; DB.annules = DB.annules || [];
+      return { salons: DB.salons.map(s => ({
+        id:s.id, nom:s.nom, ville:s.ville, principal:s.principal,
+        horaires:{ jours:s.fiche.horaires.jours, debut:s.fiche.horaires.debut, fin:s.fiche.horaires.fin },
+        equipe:s.fiche.equipe.map((m, i) => ({ id:`${s.id}:${i}`, nom:m.nom })),
+        prestations:s.fiche.prestations.filter(p => p.actif).map((p, i) => ({ id:`${s.id}:p${i}`, libelle:p.libelle, duree:p.duree || 30 })),
+        rdv:rdvGeneres(s, debut, fin).concat(DB.ajoutes.filter(r => r.salon === s.id && new Date(r.debut) < fin && new Date(r.fin) > debut))
+          .filter(r => !DB.annules.includes(r.id))
+      })) };
+    },
+    async ajouter(r){
+      charger(); DB.ajoutes = DB.ajoutes || []; DB.annules = DB.annules || [];
+      const s = DB.salons.find(x => x.id === r.salon); if(!s) throw new Error('Salon introuvable.');
+      const d = new Date(r.debut), f = new Date(r.fin);
+      if(!r.forcer){
+        const { salons } = await this.charger(new Date(d.getFullYear(), d.getMonth(), d.getDate()), new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1));
+        const pris = salons.find(x => x.id === r.salon).rdv.some(x => new Date(x.debut) < f && new Date(x.fin) > d && (!r.intervenant || !x.intervenant_id || x.intervenant_id === r.intervenant));
+        if(pris) throw new Error('Ce créneau chevauche un autre rendez-vous.');
+      }
+      DB.ajoutes.push({ id:'a-' + Date.now() + '-' + DB.ajoutes.length, salon:r.salon, titre:r.titre, debut:d.toISOString(), fin:f.toISOString(), statut:'confirme',
+        intervenant_id:r.intervenant || null, client:r.client, telephone:r.telephone });
+      s.stats.rdv_mois++; sauver();
+    },
+    async annuler(id){ charger(); DB.annules = DB.annules || []; DB.annules.push(id); sauver(); }
+  };
+}
