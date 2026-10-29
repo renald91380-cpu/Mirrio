@@ -1091,7 +1091,7 @@
     try{ formation = localStorage.getItem(cleFormation()) === '1'; }catch(e){} majFormation();
     if(DEMO && !localStorage.getItem(cleTickets() + '-init')){
       try{ localStorage.setItem(cleTickets() + '-init', '1'); }catch(e){}
-      const pr = id => prestations.find(x => x.id === id), ligne = (id, qte = 1) => ({ cle:crypto.randomUUID(), pid:id, libelle:pr(id).libelle, ht:Number(pr(id).prix_unitaire), tva:0, qte, remise:0 });
+      const pr = id => prestations.find(x => x.id === id), ligne = (id, qte = 1) => ({ cle:crypto.randomUUID(), pid:id, libelle:pr(id).libelle, ht:Number(pr(id).prix_unitaire), tva:Number(pr(id).tva_taux) || 0, qte, remise:0 });
       courant.panier = panier = [ligne('d1')]; courant.client = client = clients[0];
       const t2 = nouveauTicket(); t2.panier = [ligne('d9')]; t2.client = { id:clients[2].id, full_name:clients[2].full_name }; tickets.push(t2);
     }

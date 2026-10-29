@@ -3,6 +3,8 @@
 // `active` reste FAUX tant que le représentant légal de l'éditeur n'a pas relu le dossier (docs/caisse-conformite.md, docs/audit-isca.md),
 // fait valider le texte par son expert-comptable et décidé de signer. Passer à `true` est un acte juridique : il engage l'éditeur pour
 // chaque salon qui imprime l'attestation. Les champs [À COMPLÉTER] doivent être remplacés par les vraies informations avant toute activation.
+// ATTENTION : l'article 286 I 3° bis du CGI exige une attestation « conforme à un modèle fixé par l'administration ». Le texte de `attestation-caisse.html` est rédigé de mémoire :
+// le remplacer par le modèle officiel avant d'activer (voir docs/caisse-conformite.md, §0).
 // La page `attestation-caisse.html` refuse d'ailleurs de produire le document tant qu'un champ reste à compléter ou qu'un contrôle d'audit échoue.
 export const ATTESTATION = {
   active: false,

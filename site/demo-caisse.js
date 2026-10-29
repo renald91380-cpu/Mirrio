@@ -3,7 +3,7 @@
 // Réimplémente juste ce que caisse.html demande à Supabase (select / eq / is / in / order / limit / maybeSingle / single / insert / update / delete)
 // sur quelques tables, avec le salon fictif Maison Éloïse (coiffure mixte, franchise de TVA). L'état survit au rechargement
 // (sessionStorage) pour pouvoir présenter une journée entière ; `reinitialiserDemoCaisse()` remet tout à zéro.
-const CLE = 'mirrio-demo-caisse-v8';
+const CLE = 'mirrio-demo-caisse-v9';
 const WS = 'demo';
 
 // Rendez-vous d'aujourd'hui pour montrer « Encaisser depuis l'agenda » : un simple, un avec acompte déjà versé en ligne (facture émise), un déjà réglé en ligne.
@@ -19,12 +19,13 @@ function rendezVousDuJour(){
       rdv('rv4', 'Brushing', 'c3', 16, 30, { prestation_id:'d4', intervenant_id:'q3' })
     ],
     documents_rdv: [doc('dr2', 'envoye'), doc('dr3', 'paye')],
-    lignes_rdv: [{ id:'lr2', document_id:'dr2', description:'Coloration racines', quantite:1, prix_unitaire:58, tva_taux:0, position:1 }, { id:'lr3', document_id:'dr3', description:'Coupe homme', quantite:1, prix_unitaire:28, tva_taux:0, position:1 }]
+    lignes_rdv: [{ id:'lr2', document_id:'dr2', description:'Coloration racines', quantite:1, prix_unitaire:48.3333, tva_taux:20, position:1 }, { id:'lr3', document_id:'dr3', description:'Coupe homme', quantite:1, prix_unitaire:23.3333, tva_taux:20, position:1 }]
   };
 }
 
 function donneesInitiales(){
-  const p = (id, libelle, ht, categorie, position) => ({ id, owner_id:WS, libelle, prix_unitaire:ht, tva_taux:0, categorie, actif:true, position });
+  // Prix affichés TTC ; la démo est un salon assujetti à la TVA (20 %) : la TVA apparaît sur le panier, le ticket et le Z.
+  const p = (id, libelle, ttc, categorie, position) => ({ id, owner_id:WS, libelle, prix_unitaire:Math.round(ttc / 1.2 * 10000) / 10000, tva_taux:20, categorie, actif:true, position });
   return {
     n: 1,
     caisse_sessions: [{ id:'sess-demo', owner_id:WS, ouverte_le:new Date().toISOString(), fond_caisse:100, cloturee_le:null }],
@@ -32,7 +33,7 @@ function donneesInitiales(){
     produits: [
       ['Shampoing réparateur 250 ml', 'Kérastase', 'Shampoings', 24.9, 3], ['Masque nutrition 200 ml', 'Kérastase', 'Soins', 32, 2], ['Huile sèche 100 ml', 'Moroccanoil', 'Soins', 38.5, 1],
       ['Spray coiffant', 'Schwarzkopf', 'Coiffants', 14.9, 4], ['Huile à barbe 30 ml', 'Proraso', 'Barbe', 16.5, 5], ['Brosse démêlante', 'Tangle Teezer', 'Accessoires', 12, 6]
-    ].map(([nom, marque, categorie, ttc, position], i) => ({ id:'pr' + i, owner_id:WS, nom, marque, categorie, reference:'34746300000' + String(10 + i), remise_pct:[10, 15, 0, 0, 10, 0][i] || null, stock:[12, 2, 0, null, 7, 25][i], stock_min:[3, 3, 2, null, 2, 5][i], prix_unitaire:ttc, tva_taux:0, actif:true, position })),
+    ].map(([nom, marque, categorie, ttc, position], i) => ({ id:'pr' + i, owner_id:WS, nom, marque, categorie, reference:'34746300000' + String(10 + i), remise_pct:[10, 15, 0, 0, 10, 0][i] || null, stock:[12, 2, 0, null, 7, 25][i], stock_min:[3, 3, 2, null, 2, 5][i], prix_unitaire:Math.round(ttc / 1.2 * 10000) / 10000, tva_taux:20, actif:true, position })),
     vitrine_equipe: [['q1', 'Éloïse', 1], ['q2', 'Karim', 2], ['q3', 'Léa', 3]].map(([id, nom, position]) => ({ id, owner_id:WS, nom, position, role:null, jours_ouvres:[1, 2, 3, 4, 5, 6], heure_debut:'09:30', heure_fin:'19:00' })),
     stock_mouvements: [], caisse_mouvements: [], equipe_remuneration: [{ intervenant_id:'q1', commission_prestations_pct:40, commission_produits_pct:10 }, { intervenant_id:'q2', commission_prestations_pct:35, commission_produits_pct:10 }, { intervenant_id:'q3', commission_prestations_pct:30, commission_produits_pct:8 }],
     terminal: { configure:true, reader_pret:true, lien_pret:true, reader_name:'Solo (démo)', merchant_code:'DEMO0001', app_id:'app.mirrio.caisse' }, terminaux: [],
@@ -45,7 +46,7 @@ function donneesInitiales(){
       p('d7', 'Coupe homme', 28, 'Homme', 7), p('d8', 'Barbe', 15, 'Homme', 8), p('d9', 'Coupe + barbe', 38, 'Homme', 9),
       p('d10', 'Soin profond', 20, 'Soins', 10), p('d11', 'Masque réparateur', 12, 'Soins', 11), p('d12', 'Soin du cuir chevelu', 18, 'Soins', 12)
     ],
-    parametres_facturation: [{ owner_id:WS, assujetti_tva:false, tva_taux_defaut:20, emetteur_nom:'Maison Éloïse', emetteur_adresse:'12 rue de la République, 69002 Lyon' }]
+    parametres_facturation: [{ owner_id:WS, assujetti_tva:true, tva_taux_defaut:20, emetteur_nom:'Maison Éloïse', emetteur_adresse:'12 rue de la République, 69002 Lyon' }]
   };
 }
 

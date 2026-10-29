@@ -3,6 +3,13 @@
 Document à remettre à un expert-comptable ou à un organisme de certification. Il décrit ce que le code fait réellement et ce qui reste à faire.
 **Mirrio Caisse n'est pas certifiée aujourd'hui.** Elle est conçue pour pouvoir l'être. Rien dans ce dossier ne dispense de la démarche ci-dessous.
 
+## 0. Texte de loi vérifié (Légifrance, version en vigueur au 29 octobre 2026)
+
+Article 286, I, 3° bis du CGI (en vigueur depuis le 27 juin 2026, loi 2026-534 art. 87) : le logiciel ou système de caisse doit satisfaire à des conditions d'**inaltérabilité, de sécurisation, de conservation et d'archivage**, « attestées par un certificat délivré par un organisme accrédité (…) **ou par une attestation individuelle de l'éditeur, conforme à un modèle fixé par l'administration** ». Deux points à ne pas oublier :
+- l'attestation doit suivre **le modèle de l'administration** : le texte de `site/attestation-caisse.html` a été rédigé de mémoire et doit être remplacé par le modèle officiel avant toute activation ;
+- « les données archivées sont restituées **dans un format répondant aux normes établies par l'administration** » : le format de l'archive JSON de Mirrio n'est pas ce format ; à vérifier auprès de l'expert-comptable (norme à identifier, export à adapter).
+La version de l'article valable du 16 février au 19 juin 2025 ne mentionnait QUE le certificat : ne pas se fier à une copie datée de cette période.
+
 ## 1. Cadre
 
 Source officielle : [economie.gouv.fr, « Ce qu'il faut savoir sur la certification des logiciels de caisse »](https://www.economie.gouv.fr/entreprises/gerer-son-entreprise-au-quotidien/gerer-sa-comptabilite-et-ses-demarches/ce-quil-faut-savoir-sur-la-certification-des-logiciels-de-caisse) (page écrite le 24/02/2026). À relire avant toute annonce, la règle a changé plusieurs fois.
