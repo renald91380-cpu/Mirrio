@@ -195,7 +195,7 @@
     <div class="wrap">
       <h2>Ce que vous pouvez promettre.</h2>
       <div class="args">
-        <article class="arg fort"><i class="ph ph-percent" aria-hidden="true"></i><h3>Zéro commission</h3><p>Un abonnement fixe de 20 € par mois (50 € pour plusieurs salons). Treatwell prélève environ 25 % du premier rendez-vous d'un nouveau client (relevé FrenchWeb, juillet 2026).</p></article>
+        <article class="arg fort"><i class="ph ph-percent" aria-hidden="true"></i><h3>Zéro commission</h3><p>Un abonnement fixe dès 19 € par mois (39 € pour une équipe, deux mois offerts à l'année). Treatwell prélève environ 25 % du premier rendez-vous d'un nouveau client (relevé FrenchWeb, juillet 2026).</p></article>
         <article class="arg"><i class="ph ph-lightning" aria-hidden="true"></i><h3>Confirmation immédiate</h3><p>Si le créneau est libre, le rendez-vous est confirmé et dans l'agenda. Plus de demande à valider à la main.</p></article>
         <article class="arg"><i class="ph ph-shield-check" aria-hidden="true"></i><h3>Fini les lapins</h3><p>Un acompte par carte, déduit du prix final et conservé en cas d'absence. Le solde se règle en espèces au salon.</p></article>
         <article class="arg"><i class="ph ph-users-three" aria-hidden="true"></i><h3>Le bon coiffeur, la bonne durée</h3><p>Chacun a ses prestations et ses horaires. Un client choisit sa personne, ou prend le premier disponible.</p></article>
@@ -219,8 +219,8 @@
         <div class="resultat" aria-live="polite">
           <p>Commission payée en un an</p>
           <div class="gros" id="res-comm">3 150 €</div>
-          <div class="ligne"><span>Abonnement Mirrio Salon (20 € par mois)</span><strong id="res-cad">240 €</strong></div>
-          <div class="ligne"><span>Économie estimée par an</span><strong id="res-eco">2 802 €</strong></div>
+          <div class="ligne"><span>Abonnement Mirrio Solo (19 € par mois)</span><strong id="res-cad">228 €</strong></div>
+          <div class="ligne"><span>Économie estimée par an</span><strong id="res-eco">2 922 €</strong></div>
         </div>
       </div>
     </div>
@@ -237,7 +237,7 @@ J'ai préparé une démo pour [Nom du salon] : vous pouvez réserver comme un cl
 
 __LIEN__
 
-Mirrio coûte un abonnement fixe (20 € par mois, 50 € pour plusieurs salons) et ne prend aucune commission sur vos rendez-vous. Je peux vous créer votre page en 10 minutes, avec vos photos et vos prestations.
+Mirrio coûte un abonnement fixe (dès 19 € par mois) et ne prend aucune commission sur vos rendez-vous. Je peux vous créer votre page en 10 minutes, avec vos photos et vos prestations.
 
 Quand pouvons-nous en parler ?</pre>
         <button class="btn" id="copier" type="button" style="color:#101216;"><i class="ph ph-copy" aria-hidden="true"></i><span>Copier le message</span></button>
@@ -288,7 +288,7 @@ Quand pouvons-nous en parler ?</pre>
   var fmt = function(n){ return new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR', maximumFractionDigits:0 }).format(n); };
   var nb = document.getElementById('nb'), panier = document.getElementById('panier');
   function calc(){
-    var n = +nb.value, p = +panier.value, comm = n * p * 0.25 * 12, cad = 20 * 12, eco = Math.max(0, comm - cad);
+    var n = +nb.value, p = +panier.value, comm = n * p * 0.25 * 12, cad = 19 * 12, eco = Math.max(0, comm - cad);
     document.getElementById('nb-val').textContent = n; document.getElementById('panier-val').textContent = fmt(p);
     document.getElementById('res-comm').textContent = fmt(comm); document.getElementById('res-cad').textContent = fmt(cad); document.getElementById('res-eco').textContent = fmt(eco);
   }

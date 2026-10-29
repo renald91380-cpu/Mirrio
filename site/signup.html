@@ -237,7 +237,7 @@
       <ul class="auth-points">
         <li>Réservation en ligne 24h/24, avec le choix du coiffeur</li>
         <li>Acompte par carte, solde en espèces : fini les lapins</li>
-        <li>Zéro commission, 20 € par mois par salon</li>
+        <li>Zéro commission, dès 19 € par mois</li>
       </ul>
     </div>
     <div class="auth-aside-bottom">© Mirrio</div>
@@ -281,18 +281,26 @@
             </div>
           </div>
 
-          <div class="field" id="plan-field" hidden>
+          <div class="field" id="periodicite-field">
+            <label for="periodicite">Facturation</label>
+            <select id="periodicite" name="periodicite">
+              <option value="mensuel">Mensuelle</option>
+              <option value="annuel">Annuelle : deux mois offerts</option>
+            </select>
+          </div>
+
+          <div class="field" id="plan-field">
             <label for="plan-picker-group">Formule</label>
             <div class="plan-picker" id="plan-picker-group" role="radiogroup" aria-label="Choisir une formule">
               <label class="plan-option">
                 <input type="radio" name="plan" value="solo">
-                <div class="name">Indépendant</div>
-                <div class="price">15&nbsp;€&nbsp;/mois</div>
+                <div class="name">Solo</div>
+                <div class="price">19&nbsp;€&nbsp;/mois · 1 professionnel</div>
               </label>
               <label class="plan-option">
                 <input type="radio" name="plan" value="studio" checked>
-                <div class="name">Salon</div>
-                <div class="price">29&nbsp;€&nbsp;/mois</div>
+                <div class="name">Équipe</div>
+                <div class="price">39&nbsp;€&nbsp;/mois · jusqu'à 5</div>
               </label>
             </div>
           </div>
@@ -507,7 +515,8 @@
       options: {
         data: {
           full_name: form.elements.name.value.trim(),
-          plan: 'studio',
+          plan: form.elements.activite.value === 'beaute' ? form.elements.plan.value : 'studio',
+          periodicite: form.elements.periodicite.value,   // préférence de facturation (schema-v41), sans effet de facturation réelle pour l'instant
           // Lu par handle_new_user() (schema-v36) : métier pâtissier et formule unique à 29 €.
           activite: ['patisserie', 'mariage'].includes(form.elements.activite.value) ? form.elements.activite.value : undefined,
           // Lu directement par handle_new_user() côté SQL : si ce jeton est valide,
@@ -551,19 +560,21 @@
   const activiteEl = document.getElementById('activite');
   function majActivite(){
     const v = activiteEl.value;
-    document.getElementById('tarif-unique').style.display = jetonInvite ? 'none' : '';
-    document.getElementById('plan-field').style.display = 'none';
+    const invite = !!jetonInvite;
+    document.getElementById('tarif-unique').style.display = (invite || v === 'beaute') ? 'none' : '';
+    document.getElementById('plan-field').style.display = (invite || v !== 'beaute') ? 'none' : '';
+    document.getElementById('periodicite-field').style.display = (invite || v === 'mariage') ? 'none' : '';
     const T = {
-      beaute:     ['Salon', '20&nbsp;€&nbsp;/mois, tout inclus. Plusieurs salons : forfait Groupe 50&nbsp;€&nbsp;/mois'],
-      patisserie: ['Boulangerie-pâtisserie', '29&nbsp;€&nbsp;/mois, tout inclus, tarif unique'],
+      patisserie: ['Boulangerie-pâtisserie', '29&nbsp;€&nbsp;/mois, tout inclus, tarif unique (290&nbsp;€ par an)'],
       mariage:    ['Futurs mariés', 'Gratuit : planning, budget, invités, demandes de devis']
-    }[v] || ['Salon', '20&nbsp;€&nbsp;/mois, tout inclus'];
-    document.getElementById('tu-nom').textContent = T[0];
-    document.getElementById('tu-prix').innerHTML = T[1];
+    }[v];
+    if(T){ document.getElementById('tu-nom').textContent = T[0]; document.getElementById('tu-prix').innerHTML = T[1]; }
   }
   activiteEl.addEventListener('change', majActivite);
   if(['patisserie', 'mariage'].includes(params.get('activite'))) activiteEl.value = params.get('activite');
   if(jetonInvite) document.getElementById('activite-field').style.display = 'none';
+  if(params.get('periodicite') === 'annuel') document.getElementById('periodicite').value = 'annuel';
+  if(plan === 'solo') document.querySelector('input[name="plan"][value="solo"]').checked = true;
   majActivite();
 </script>
 

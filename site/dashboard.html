@@ -323,8 +323,8 @@
     // Le tableau de bord AVANCÉ est un avantage Studio (voir la page tarifs) —
     // l'entitlement suit le plan du PROPRIÉTAIRE de l'espace, pas celui du
     // compte connecté : un collaborateur d'un espace Studio en profite aussi.
-    const { data: propProfil } = await supabase.from('profiles').select('plan').eq('id', espaceId).maybeSingle();
-    const estStudio = propProfil?.plan === 'studio';
+    // Depuis les forfaits Solo / Équipe / Groupe (29/10/2026), le tableau de bord est inclus dans tous les forfaits : plus de mur payant.
+    const estStudio = true;
 
     document.getElementById('loading-state').style.display = 'none';
     if(!estStudio){

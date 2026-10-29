@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mirrio | Réservation en ligne pour salons, zéro commission</title>
-<meta name="description" content="Réservation en ligne 24h/24, équipe en colonnes, livre d&#x27;or vérifié. Pour coiffeurs, barbiers, instituts et onglerie. Dès 20 €/mois, zéro commission.">
+<meta name="description" content="Réservation en ligne 24h/24, équipe en colonnes, livre d&#x27;or vérifié. Pour coiffeurs, barbiers, instituts et onglerie. Dès 19 €/mois, zéro commission.">
 <meta name="color-scheme" content="light dark">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -168,7 +168,12 @@
   .note{ font-size:13px; color:var(--muted); margin-top:18px; }
 
   /* ---------- tarifs ---------- */
-  .tarifs{ display:grid; grid-template-columns:1.1fr .9fr; gap:16px; margin-top:44px; align-items:stretch; }
+  .tarifs{ display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:16px; margin-top:24px; align-items:stretch; }
+  .periode-tarif{ display:inline-flex; gap:4px; padding:5px; margin-top:34px; border-radius:var(--pill); background:var(--surface); border:1px solid var(--line); }
+  .periode-tarif button{ min-height:44px; padding:0 20px; border-radius:var(--pill); border:none; background:transparent; color:var(--ink); font:600 15px var(--body); cursor:pointer; }
+  .periode-tarif button[aria-pressed=true]{ background:var(--ink); color:var(--bg); }
+  .periode-tarif button span{ font-size:12px; font-weight:600; color:var(--icone); margin-left:4px; } .periode-tarif button[aria-pressed=true] span{ color:var(--accent); }
+  .plan .eco-an{ color:var(--muted); font-size:14px; margin:-4px 0 0; } .plan.fort .eco-an{ color:var(--sombre-muted); }
   @media(max-width:900px){ .tarifs{ grid-template-columns:1fr; } }
   .plan{ border-radius:var(--r); padding:34px; background:var(--surface); border:1px solid var(--line); display:flex; flex-direction:column; gap:10px; }
   .plan.fort{ background:var(--sombre); color:var(--sombre-ink); border:none; position:relative; overflow:hidden; }
@@ -279,16 +284,16 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://cadence-site-cadence-65cc.vercel.app/">
 <meta property="og:title" content="Mirrio | Réservation en ligne pour salons, zéro commission">
-<meta property="og:description" content="Réservation en ligne 24h/24, équipe en colonnes, livre d&#x27;or vérifié. Pour coiffeurs, barbiers, instituts et onglerie. Dès 20 €/mois, zéro commission.">
+<meta property="og:description" content="Réservation en ligne 24h/24, équipe en colonnes, livre d&#x27;or vérifié. Pour coiffeurs, barbiers, instituts et onglerie. Dès 19 €/mois, zéro commission.">
 <meta property="og:image" content="https://cadence-site-cadence-65cc.vercel.app/img/og-mirrio.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Mirrio, réservation en ligne pour salons de beauté">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Mirrio | Réservation en ligne pour salons, zéro commission">
-<meta name="twitter:description" content="Réservation en ligne 24h/24, équipe en colonnes, livre d&#x27;or vérifié. Pour coiffeurs, barbiers, instituts et onglerie. Dès 20 €/mois, zéro commission.">
+<meta name="twitter:description" content="Réservation en ligne 24h/24, équipe en colonnes, livre d&#x27;or vérifié. Pour coiffeurs, barbiers, instituts et onglerie. Dès 19 €/mois, zéro commission.">
 <meta name="twitter:image" content="https://cadence-site-cadence-65cc.vercel.app/img/og-mirrio.jpg">
-<script type="application/ld+json">[{"@context": "https://schema.org", "@type": "Organization", "@id": "https://cadence-site-cadence-65cc.vercel.app/#organisation", "name": "Mirrio", "legalName": "Dima Artistry SARL", "url": "https://cadence-site-cadence-65cc.vercel.app/", "logo": "https://cadence-site-cadence-65cc.vercel.app/icons/icon-512.png", "email": "contact@dima-artistry.com", "address": {"@type": "PostalAddress", "streetAddress": "10 Rue Liberté, étage 3, Appartement 5", "addressLocality": "Casablanca", "addressCountry": "MA"}}, {"@context": "https://schema.org", "@type": "WebSite", "@id": "https://cadence-site-cadence-65cc.vercel.app/#site", "url": "https://cadence-site-cadence-65cc.vercel.app/", "name": "Mirrio", "inLanguage": "fr", "publisher": {"@id": "https://cadence-site-cadence-65cc.vercel.app/#organisation"}, "potentialAction": {"@type": "SearchAction", "target": {"@type": "EntryPoint", "urlTemplate": "https://cadence-site-cadence-65cc.vercel.app/explorer.html?q={recherche}"}, "query-input": "required name=recherche"}}, {"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Mirrio", "applicationCategory": "BusinessApplication", "operatingSystem": "Web, iOS, Android (PWA)", "description": "Logiciel de réservation en ligne et de gestion pour salons de beauté : agenda en colonnes, catalogue, acompte, livre d'or vérifié, zéro commission.", "url": "https://cadence-site-cadence-65cc.vercel.app/", "publisher": {"@id": "https://cadence-site-cadence-65cc.vercel.app/#organisation"}, "inLanguage": "fr", "offers": [{"@type": "Offer", "name": "Salon", "price": "20", "priceCurrency": "EUR", "description": "Un salon, clients et rendez-vous illimités, par mois"}, {"@type": "Offer", "name": "Groupe", "price": "50", "priceCurrency": "EUR", "description": "Jusqu'à 10 salons, par mois"}]}, {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Prenez-vous vraiment 0 % de commission ?", "acceptedAnswer": {"@type": "Answer", "text": "Oui. Vous payez un abonnement fixe : 20 € par mois pour un salon, 50 € par mois pour un groupe de salons (jusqu'à 10). Les paiements en ligne passent par votre propre compte Stripe ou PayPal : seuls leurs frais habituels s'appliquent."}}, {"@type": "Question", "name": "Mes clients doivent-ils créer un compte ?", "acceptedAnswer": {"@type": "Answer", "text": "Non. Ils choisissent une prestation, un créneau, laissent leurs coordonnées et reçoivent une confirmation avec une invitation calendrier."}}, {"@type": "Question", "name": "Comment fonctionne le choix du coiffeur ?", "acceptedAnswer": {"@type": "Answer", "text": "Chaque membre de l'équipe a ses prestations, ses jours et ses horaires. Mirrio ne propose que des créneaux réellement libres, et confirme tout de suite."}}, {"@type": "Question", "name": "À quoi servent les heures creuses ?", "acceptedAnswer": {"@type": "Answer", "text": "Vous choisissez des jours et une plage horaire où votre agenda est souvent vide, et une remise de 5 à 50 %. Le prix baisse automatiquement sur ces créneaux, le client voit la remise avant de réserver, et l'acompte et la facture suivent le prix remisé."}}, {"@type": "Question", "name": "Que se passe-t-il si un client ne vient pas ?", "acceptedAnswer": {"@type": "Answer", "text": "Avec l'option espèces, le client règle un acompte d'au moins 5 € par carte. Il est déduit du prix final et conservé en cas d'absence."}}, {"@type": "Question", "name": "Puis-je essayer avant de m'abonner ?", "acceptedAnswer": {"@type": "Answer", "text": "Oui, sans carte bancaire. Vous pouvez aussi parcourir la démo pour voir ce que vivront vos clients."}}]}]</script>
+<script type="application/ld+json">[{"@context": "https://schema.org", "@type": "Organization", "@id": "https://cadence-site-cadence-65cc.vercel.app/#organisation", "name": "Mirrio", "legalName": "Dima Artistry SARL", "url": "https://cadence-site-cadence-65cc.vercel.app/", "logo": "https://cadence-site-cadence-65cc.vercel.app/icons/icon-512.png", "email": "contact@dima-artistry.com", "address": {"@type": "PostalAddress", "streetAddress": "10 Rue Liberté, étage 3, Appartement 5", "addressLocality": "Casablanca", "addressCountry": "MA"}}, {"@context": "https://schema.org", "@type": "WebSite", "@id": "https://cadence-site-cadence-65cc.vercel.app/#site", "url": "https://cadence-site-cadence-65cc.vercel.app/", "name": "Mirrio", "inLanguage": "fr", "publisher": {"@id": "https://cadence-site-cadence-65cc.vercel.app/#organisation"}, "potentialAction": {"@type": "SearchAction", "target": {"@type": "EntryPoint", "urlTemplate": "https://cadence-site-cadence-65cc.vercel.app/explorer.html?q={recherche}"}, "query-input": "required name=recherche"}}, {"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Mirrio", "applicationCategory": "BusinessApplication", "operatingSystem": "Web, iOS, Android (PWA)", "description": "Logiciel de réservation en ligne et de gestion pour salons de beauté : agenda en colonnes, catalogue, acompte, livre d'or vérifié, zéro commission.", "url": "https://cadence-site-cadence-65cc.vercel.app/", "publisher": {"@id": "https://cadence-site-cadence-65cc.vercel.app/#organisation"}, "inLanguage": "fr", "offers": [{"@type": "Offer", "name": "Solo", "price": "19", "priceCurrency": "EUR", "description": "Un professionnel, par mois"}, {"@type": "Offer", "name": "Équipe", "price": "39", "priceCurrency": "EUR", "description": "Jusqu'à 5 professionnels, par mois"}, {"@type": "Offer", "name": "Groupe", "price": "79", "priceCurrency": "EUR", "description": "Jusqu'à 10 salons, par mois"}]}, {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Prenez-vous vraiment 0 % de commission ?", "acceptedAnswer": {"@type": "Answer", "text": "Oui. Vous payez un abonnement fixe : Solo 19 € par mois, Équipe 39 € par mois (jusqu'à 5 professionnels), Groupe 79 € par mois (jusqu'à 10 salons). Payé à l'année, vous avez deux mois offerts. Les paiements en ligne passent par votre propre compte Stripe ou PayPal : seuls leurs frais habituels s'appliquent."}}, {"@type": "Question", "name": "Mes clients doivent-ils créer un compte ?", "acceptedAnswer": {"@type": "Answer", "text": "Non. Ils choisissent une prestation, un créneau, laissent leurs coordonnées et reçoivent une confirmation avec une invitation calendrier."}}, {"@type": "Question", "name": "Comment fonctionne le choix du coiffeur ?", "acceptedAnswer": {"@type": "Answer", "text": "Chaque membre de l'équipe a ses prestations, ses jours et ses horaires. Mirrio ne propose que des créneaux réellement libres, et confirme tout de suite."}}, {"@type": "Question", "name": "À quoi servent les heures creuses ?", "acceptedAnswer": {"@type": "Answer", "text": "Vous choisissez des jours et une plage horaire où votre agenda est souvent vide, et une remise de 5 à 50 %. Le prix baisse automatiquement sur ces créneaux, le client voit la remise avant de réserver, et l'acompte et la facture suivent le prix remisé."}}, {"@type": "Question", "name": "Que se passe-t-il si un client ne vient pas ?", "acceptedAnswer": {"@type": "Answer", "text": "Avec l'option espèces, le client règle un acompte d'au moins 5 € par carte. Il est déduit du prix final et conservé en cas d'absence."}}, {"@type": "Question", "name": "Puis-je essayer avant de m'abonner ?", "acceptedAnswer": {"@type": "Answer", "text": "Oui, sans carte bancaire. Vous pouvez aussi parcourir la démo pour voir ce que vivront vos clients."}}]}]</script>
 </head>
 <body>
 <a class="evitement" href="#contenu">Aller au contenu</a>
@@ -323,7 +328,7 @@
         <div class="confiance rv" style="--d:240ms">
           <span><i class="ph ph-check-circle" aria-hidden="true"></i>Prêt en 10 minutes</span>
           <span><i class="ph ph-check-circle" aria-hidden="true"></i>Sans engagement</span>
-          <span><i class="ph ph-check-circle" aria-hidden="true"></i>Dès 20 € par mois</span>
+          <span><i class="ph ph-check-circle" aria-hidden="true"></i>Dès 19 € par mois</span>
         </div>
       </div>
       <div class="rv" style="--d:140ms; position:relative;">
@@ -462,37 +467,53 @@
     <div class="wrap">
       <p class="grec-eyebrow rv">ΜΕΤΡΟΝ<span class="fr">la juste mesure</span></p>
       <h2 class="rv">Un abonnement, jamais de pourcentage.</h2>
+      <div class="periode-tarif rv" role="group" aria-label="Période de facturation">
+        <button type="button" data-p="mensuel" aria-pressed="true">Mensuel</button>
+        <button type="button" data-p="annuel" aria-pressed="false">Annuel <span>2 mois offerts</span></button>
+      </div>
       <div class="tarifs">
-        <article class="plan fort rv">
-          <h3>Salon</h3>
-          <div class="prix">20 €<small> /mois</small></div>
-          <p>Pour un salon, seul·e ou en équipe.</p>
+        <article class="plan rv">
+          <h3>Solo</h3>
+          <div class="prix" data-m="19" data-a="190" data-eco="soit 15,83 € par mois">19 €<small> /mois</small></div>
+          <p class="eco-an" hidden></p>
+          <p>Pour travailler seul·e.</p>
           <ul>
-            <li><i class="ph ph-check-circle" aria-hidden="true"></i>Clients et rendez-vous illimités</li>
-            <li><i class="ph ph-check-circle" aria-hidden="true"></i>Agenda en colonnes pour toute l'équipe</li>
+            <li><i class="ph ph-check-circle" aria-hidden="true"></i>1 professionnel, clients et rendez-vous illimités</li>
             <li><i class="ph ph-check-circle" aria-hidden="true"></i>Réservation en ligne, annuaire et page à vos photos</li>
             <li><i class="ph ph-check-circle" aria-hidden="true"></i>Caisse, devis, factures et tableau de bord</li>
           </ul>
-          <a class="btn" href="signup.html">Créer mon salon</a>
+          <a class="btn discret" href="signup.html?plan=solo">Créer mon compte Solo</a>
         </article>
-        <article class="plan rv" style="--d:100ms">
+        <article class="plan fort rv" style="--d:80ms">
+          <h3>Équipe</h3>
+          <div class="prix" data-m="39" data-a="390" data-eco="soit 32,50 € par mois">39 €<small> /mois</small></div>
+          <p class="eco-an" hidden></p>
+          <p>Pour un salon avec son équipe.</p>
+          <ul>
+            <li><i class="ph ph-check-circle" aria-hidden="true"></i>Jusqu'à 5 professionnels</li>
+            <li><i class="ph ph-check-circle" aria-hidden="true"></i>Agenda en colonnes, spécialités et horaires de chacun</li>
+            <li><i class="ph ph-check-circle" aria-hidden="true"></i>Tout le forfait Solo, pour toute l'équipe</li>
+          </ul>
+          <a class="btn" href="signup.html?plan=studio">Créer mon salon</a>
+        </article>
+        <article class="plan rv" style="--d:160ms">
           <h3>Groupe</h3>
-          <div class="prix">50 €<small> /mois</small></div>
+          <div class="prix" data-m="79" data-a="790" data-eco="soit 65,83 € par mois">79 €<small> /mois</small></div>
+          <p class="eco-an" hidden></p>
           <p>Pour plusieurs salons.</p>
           <ul>
-            <li><i class="ph ph-check-circle" aria-hidden="true"></i>Jusqu'à 10 salons, un seul forfait</li>
-            <li><i class="ph ph-check-circle" aria-hidden="true"></i>Gestion individuelle de chaque salon</li>
+            <li><i class="ph ph-check-circle" aria-hidden="true"></i>Jusqu'à 10 salons, gérés chacun séparément</li>
             <li><i class="ph ph-check-circle" aria-hidden="true"></i>Vue centralisée : chiffre d'affaires et rendez-vous</li>
-            <li><i class="ph ph-check-circle" aria-hidden="true"></i>Tout le forfait Salon, pour chaque salon</li>
+            <li><i class="ph ph-check-circle" aria-hidden="true"></i>Le forfait Équipe pour chaque salon</li>
           </ul>
-          <a class="btn discret" href="signup.html">Créer mon groupe</a>
+          <a class="btn discret" href="signup.html?plan=studio">Créer mon groupe</a>
         </article>
       </div>
 
-      <p class="note rv" style="margin:18px 0 0; max-width:none;"><strong>Boulangerie, pâtisserie :</strong> un seul tarif, <strong>29 €/mois</strong>, tout inclus : commandes de gâteaux, calendrier de charge, paiement en ligne, clients illimités. <a href="signup.html?activite=patisserie" style="text-decoration:underline">Créer ma boulangerie</a></p>
+      <p class="note rv" style="margin:18px 0 0; max-width:none;"><strong>Boulangerie, pâtisserie :</strong> un seul tarif, <strong>29 €/mois</strong> (ou 290 € par an, deux mois offerts), tout inclus : commandes de gâteaux, calendrier de charge, paiement en ligne, clients illimités. <a href="signup.html?activite=patisserie" style="text-decoration:underline">Créer ma boulangerie</a></p>
 
       <div class="compare">
-        <div class="stat moi rv"><div class="n">0 %</div><b>Mirrio</b><p>Abonnement fixe : 20 € par mois, 50 € pour plusieurs salons.</p></div>
+        <div class="stat moi rv"><div class="n">0 %</div><b>Mirrio</b><p>Abonnement fixe dès 19 € par mois, deux mois offerts à l'année.</p></div>
         <div class="stat rv" style="--d:80ms"><div class="n">0 %</div><b>Planity</b><p>Abonnement fixe, tarif non publié.</p></div>
         <div class="stat rv" style="--d:160ms"><div class="n">25 %</div><b>Treatwell</b><p>Du premier rendez-vous d'un nouveau client apporté par la plateforme.</p></div>
       </div>
@@ -504,7 +525,7 @@
     <div class="wrap">
       <h2 class="rv">Questions fréquentes.</h2>
       <div class="faq rv">
-        <details><summary>Prenez-vous vraiment 0 % de commission ?</summary><p>Oui. Vous payez un abonnement fixe : 20 € par mois pour un salon, 50 € par mois pour un groupe de salons (jusqu'à 10). Les paiements en ligne passent par votre propre compte Stripe ou PayPal : seuls leurs frais habituels s'appliquent.</p></details>
+        <details><summary>Prenez-vous vraiment 0 % de commission ?</summary><p>Oui. Vous payez un abonnement fixe : Solo 19 € par mois, Équipe 39 € par mois (jusqu'à 5 professionnels), Groupe 79 € par mois (jusqu'à 10 salons). Payé à l'année, vous avez deux mois offerts. Les paiements en ligne passent par votre propre compte Stripe ou PayPal : seuls leurs frais habituels s'appliquent.</p></details>
         <details><summary>Mes clients doivent-ils créer un compte ?</summary><p>Non. Ils choisissent une prestation, un créneau, laissent leurs coordonnées et reçoivent une confirmation avec une invitation calendrier.</p></details>
         <details><summary>Comment fonctionne le choix du coiffeur ?</summary><p>Chaque membre de l'équipe a ses prestations, ses jours et ses horaires. Mirrio ne propose que des créneaux réellement libres, et confirme tout de suite.</p></details>
         <details><summary>À quoi servent les heures creuses ?</summary><p>Vous choisissez des jours et une plage horaire où votre agenda est souvent vide, et une remise de 5 à 50 %. Le prix baisse automatiquement sur ces créneaux, le client voit la remise avant de réserver, et l'acompte et la facture suivent le prix remisé.</p></details>
@@ -525,7 +546,7 @@
 </main>
 
 <div class="meandre" aria-hidden="true"></div>
-<footer><div class="wrap"><span>© Mirrio</span><span><a href="cgu.html">CGU</a> &nbsp; <a href="confidentialite.html">Confidentialité</a> &nbsp; <a href="#" data-cookies>Gérer les cookies</a> &nbsp; <a href="mon-espace.html">Mes rendez-vous</a> &nbsp; <a href="explorer.html">Trouver un salon</a> &nbsp; <a href="mon-espace.html">Mes rendez-vous</a> &nbsp; <a href="#" data-installer>Installer l'app</a> &nbsp; <a href="demo.html">Démo</a> &nbsp; <a href="login.html">Espace salon</a></span></div></footer>
+<footer><div class="wrap"><span>© Mirrio</span><span><a href="cgu.html">CGU</a> &nbsp; <a href="confidentialite.html">Confidentialité</a> &nbsp; <a href="#" data-cookies>Gérer les cookies</a> &nbsp; <a href="explorer.html">Trouver un salon</a> &nbsp; <a href="mon-espace.html">Mes rendez-vous</a> &nbsp; <a href="#" data-installer>Installer l'app</a> &nbsp; <a href="demo.html">Démo</a> &nbsp; <a href="login.html">Espace salon</a></span></div></footer>
 
 <script>
   // ---- Catalogue : onglets Femme / Homme (exemples réalistes, prix indicatifs)
@@ -564,6 +585,21 @@
     ['mouseleave', 'blur'].forEach(ev => a.addEventListener(ev, rendre));
   });
   const reduit = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---- Tarifs : bascule mensuel / annuel (deux mois offerts)
+  document.querySelectorAll('.periode-tarif button').forEach(b => b.addEventListener('click', () => {
+    const an = b.dataset.p === 'annuel';
+    document.querySelectorAll('.periode-tarif button').forEach(x => x.setAttribute('aria-pressed', x === b));
+    document.querySelectorAll('.plan .prix[data-m]').forEach(p => {
+      const eco = p.parentElement.querySelector('.eco-an');
+      p.innerHTML = an ? `${p.dataset.a} €<small> /an</small>` : `${p.dataset.m} €<small> /mois</small>`;
+      eco.hidden = !an; eco.textContent = an ? p.dataset.eco + ', deux mois offerts' : '';
+    });
+    document.querySelectorAll('.plan a.btn[href^="signup.html"]').forEach(a => {
+      const u = new URL(a.getAttribute('href'), location.href); if(an) u.searchParams.set('periodicite', 'annuel'); else u.searchParams.delete('periodicite');
+      a.setAttribute('href', 'signup.html' + (u.search || ''));
+    });
+  }));
 
   // ---- Apparition au scroll : IntersectionObserver, sans écouteur de scroll
   const io = new IntersectionObserver(es => es.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold:.15 });

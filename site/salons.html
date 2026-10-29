@@ -81,7 +81,7 @@
   </div>
   <p class="muted" style="margin-bottom:18px">Chaque salon a sa propre page de réservation, son catalogue, son équipe, ses clients et son compte de paiement. Choisissez un salon pour le gérer, ou comparez-les ici.</p>
   <div id="contenu-salons" aria-live="polite"><p class="vide">Chargement…</p></div>
-  <p class="muted" style="font-size:13px;margin-top:14px">Chiffres du mois en cours. Le chiffre d'affaires est la somme hors taxes des factures payées émises ce mois-ci. Tarif : forfait Groupe unique de 50 € par mois pour tous vos salons, sans commission.</p>
+  <p class="muted" style="font-size:13px;margin-top:14px">Chiffres du mois en cours. Le chiffre d'affaires est la somme hors taxes des factures payées émises ce mois-ci. Tarif : forfait Groupe de 79 € par mois (790 € par an, deux mois offerts) pour tous vos salons, sans commission.</p>
 </main>
 <div id="toast" role="status"></div>
 <script type="module">
@@ -95,7 +95,7 @@
   const METIERS = [['coiffure', 'Coiffure'], ['barbier', 'Barbier'], ['esthetique', 'Institut, esthétique'], ['onglerie', 'Onglerie'], ['massage', 'Massage et spa'], ['patisserie', 'Boulangerie, pâtisserie'], ['autre', 'Autre']];
   const LIB = Object.fromEntries(METIERS);
   // Tarif : forfait Groupe unique, quel que soit le nombre de salons (jusqu'à 10). Affichage ; aucune facturation réelle pour l'instant.
-  const FORFAIT_GROUPE = 50;
+  const FORFAIT_GROUPE = 79;
   const eur2 = n => n.toLocaleString('fr-FR', { style:'currency', currency:'EUR', minimumFractionDigits:0, maximumFractionDigits:2 });
   let session = null, salons = [], stats = [];
 

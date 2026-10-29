@@ -267,14 +267,14 @@
           <div class="stat-sub">Un espace de travail = un client</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Ancienne formule Indépendant</div>
+          <div class="stat-label">Forfait Solo</div>
           <div class="stat-value" id="stat-solo">—</div>
-          <div class="stat-sub">15€/mois (offre close)</div>
+          <div class="stat-sub">19€/mois (15€ avant le 29/10/2026)</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Formule Salon</div>
+          <div class="stat-label">Forfait Équipe et Groupe</div>
           <div class="stat-value" id="stat-studio">—</div>
-          <div class="stat-sub">20€/mois (29€ avant le 25/10/2026)</div>
+          <div class="stat-sub">39€/mois (29€ avant le 29/10/2026)</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Nouveaux (30 jours)</div>
@@ -405,8 +405,8 @@
           <select id="filtre-metier"><option value="">Tous les métiers</option></select>
           <select id="filtre-plan">
             <option value="">Toutes les formules</option>
-            <option value="solo">Indépendant</option>
-            <option value="studio">Salon</option>
+            <option value="solo">Solo</option>
+            <option value="studio">Équipe</option>
           </select>
           <select id="filtre-statut">
             <option value="">Tous les statuts</option>
@@ -641,7 +641,7 @@
           <div class="email">${c.email || ''}</div>
         </td>
         <td>${METIER_LABELS[c.metier] || c.metier || '—'}</td>
-        <td><span class="plan-pill ${c.plan}">${c.plan === 'studio' ? 'Salon' : 'Indépendant'}</span></td>
+        <td><span class="plan-pill ${c.plan}">${c.plan === 'studio' ? 'Équipe' : 'Solo'}</span></td>
         <td><span class="statut-pill ${c.statut_activite}">${c.statut_activite === 'actif' ? 'Actif' : 'Arrêté'}</span></td>
         <td>${formatLocalisation(c.ville, c.pays)}</td>
         <td>${formatDate(c.created_at)}</td>

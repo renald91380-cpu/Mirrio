@@ -40,7 +40,7 @@ export default async function handler(req, res){
     const [profil] = await (await rest(`profiles?id=eq.${user.id}&select=plan,compte_technique`)).json();
     if(!profil) return json(res, 403, { error: 'Profil introuvable.' });
     if(profil.compte_technique) return json(res, 403, { error: 'Utilisez le compte du propriétaire du groupe.' });
-    if(profil.plan !== 'studio') return json(res, 403, { error: 'Plusieurs salons : forfait Groupe à 50 €/mois, réservé aux comptes de la formule Salon.' });
+    if(profil.plan !== 'studio') return json(res, 403, { error: 'Plusieurs salons : forfait Groupe à 79 €/mois, réservé aux comptes de la formule Équipe.' });
     const deja = await (await rest(`salon_gestionnaires?user_id=eq.${user.id}&select=salon_id`)).json();
     if(deja.length + 1 >= MAX_SALONS) return json(res, 400, { error: `Limite de ${MAX_SALONS} salons atteinte. Contactez-nous pour aller au-delà.` });
 

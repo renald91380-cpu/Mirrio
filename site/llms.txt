@@ -1,6 +1,6 @@
 # Mirrio
 
-> Mirrio est un logiciel de réservation en ligne et de gestion pour les salons de beauté (coiffure, barbier, institut, onglerie, massage) et les pâtisseries. Abonnement fixe : 20 € par mois par salon, 50 € par mois pour un groupe de salons, zéro commission sur les rendez-vous. Édité par Dima Artistry SARL (Casablanca, Maroc).
+> Mirrio est un logiciel de réservation en ligne et de gestion pour les salons de beauté (coiffure, barbier, institut, onglerie, massage) et les pâtisseries. Abonnement fixe : Solo 19 € par mois, Équipe 39 € par mois (jusqu'à 5 professionnels), Groupe 79 € par mois (jusqu'à 10 salons), deux mois offerts à l'année, zéro commission sur les rendez-vous. Édité par Dima Artistry SARL (Casablanca, Maroc).
 
 ## Pages principales
 - [Accueil](https://cadence-site-cadence-65cc.vercel.app/): présentation, tarifs, questions fréquentes
