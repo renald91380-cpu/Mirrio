@@ -3,8 +3,25 @@
 // Réimplémente juste ce que caisse.html demande à Supabase (select / eq / is / in / order / limit / maybeSingle / single / insert / update / delete)
 // sur quelques tables, avec le salon fictif Maison Éloïse (coiffure mixte, franchise de TVA). L'état survit au rechargement
 // (sessionStorage) pour pouvoir présenter une journée entière ; `reinitialiserDemoCaisse()` remet tout à zéro.
-const CLE = 'mirrio-demo-caisse-v5';
+const CLE = 'mirrio-demo-caisse-v6';
 const WS = 'demo';
+
+// Rendez-vous d'aujourd'hui pour montrer « Encaisser depuis l'agenda » : un simple, un avec acompte déjà versé en ligne (facture émise), un déjà réglé en ligne.
+function rendezVousDuJour(){
+  const h = (heure, min) => { const d = new Date(); d.setHours(heure, min, 0, 0); return d.toISOString(); };
+  const rdv = (id, titre, c, hr, mn, extra) => ({ id, owner_id:WS, titre, client_id:c, prestation_id:null, statut:'confirme', date_debut:h(hr, mn), date_fin:h(hr + 1, mn), caisse_ticket_id:null, ...extra });
+  const doc = (id, statut, description, prix) => ({ id, owner_id:WS, type:'facture', statut, numero:'FAC-2026-9' + id.slice(-1), created_at:new Date().toISOString() });
+  return {
+    rendez_vous: [
+      rdv('rv1', 'Shampoing, coupe, brushing', 'c0', 9, 30, { prestation_id:'d1' }),
+      rdv('rv2', 'Coloration racines', 'c1', 11, 0, { prestation_id:'d2', paiement_mode:'sur_place', paiement_montant:5, reste_sur_place:53, reste_encaisse_le:null, document_id:'dr2' }),
+      rdv('rv3', 'Coupe homme', 'c2', 14, 0, { prestation_id:'d7', paiement_mode:'en_ligne', paiement_montant:28, document_id:'dr3' }),
+      rdv('rv4', 'Brushing', 'c3', 16, 30, { prestation_id:'d4' })
+    ],
+    documents_rdv: [doc('dr2', 'envoye'), doc('dr3', 'paye')],
+    lignes_rdv: [{ id:'lr2', document_id:'dr2', description:'Coloration racines', quantite:1, prix_unitaire:58, tva_taux:0, position:1 }, { id:'lr3', document_id:'dr3', description:'Coupe homme', quantite:1, prix_unitaire:28, tva_taux:0, position:1 }]
+  };
+}
 
 function donneesInitiales(){
   const p = (id, libelle, ht, categorie, position) => ({ id, owner_id:WS, libelle, prix_unitaire:ht, tva_taux:0, categorie, actif:true, position });
@@ -16,7 +33,8 @@ function donneesInitiales(){
       ['Shampoing réparateur 250 ml', 'Kérastase', 'Shampoings', 24.9, 3], ['Masque nutrition 200 ml', 'Kérastase', 'Soins', 32, 2], ['Huile sèche 100 ml', 'Moroccanoil', 'Soins', 38.5, 1],
       ['Spray coiffant', 'Schwarzkopf', 'Coiffants', 14.9, 4], ['Huile à barbe 30 ml', 'Proraso', 'Barbe', 16.5, 5], ['Brosse démêlante', 'Tangle Teezer', 'Accessoires', 12, 6]
     ].map(([nom, marque, categorie, ttc, position], i) => ({ id:'pr' + i, owner_id:WS, nom, marque, categorie, reference:'34746300000' + String(10 + i), remise_pct:[10, 15, 0, 0, 10, 0][i] || null, prix_unitaire:ttc, tva_taux:0, actif:true, position })),
-    terminal: { configure:true, reader_pret:true, reader_name:'Solo (démo)', merchant_code:'DEMO0001', app_id:'app.mirrio.caisse' }, terminaux: [],
+    terminal: { configure:true, reader_pret:true, lien_pret:true, reader_name:'Solo (démo)', merchant_code:'DEMO0001', app_id:'app.mirrio.caisse' }, terminaux: [],
+    ...rendezVousDuJour(),
     chaine: { seq:0, hash:'GENESIS', gt:0, gta:0, n_ticket:0, n_avoir:0, n_formation:0, n_z:0, cle:'cle-demo' },
     clients: ['Marie Durand', 'Sophie Leroy', 'Karim Benali', 'Julien Martin', 'Emma Petit'].map((full_name, i) => ({ id:'c' + i, owner_id:WS, full_name })),
     prestations: [
@@ -32,7 +50,7 @@ function donneesInitiales(){
 let DB;
 function charger(){
   try{ DB = JSON.parse(sessionStorage.getItem(CLE)); }catch(e){ DB = null; }
-  if(!DB) DB = donneesInitiales();
+  if(!DB){ DB = donneesInitiales(); DB.documents.push(...DB.documents_rdv); DB.document_lignes.push(...DB.lignes_rdv); delete DB.documents_rdv; delete DB.lignes_rdv; }
 }
 function enregistrer(){ try{ sessionStorage.setItem(CLE, JSON.stringify(DB)); }catch(e){} }
 export function reinitialiserDemoCaisse(){ try{ sessionStorage.removeItem(CLE); }catch(e){} }
@@ -41,7 +59,7 @@ function table(nom){
   const filtres = []; let mode = 'select', charge = null, unique = false, tri = null, max = null;
   const b = {
     select(){ return b; }, eq(c, v){ filtres.push(r => r[c] === v); return b; }, is(c, v){ filtres.push(r => (r[c] ?? null) === v); return b; },
-    in(c, vs){ filtres.push(r => vs.includes(r[c])); return b; }, gte(c, v){ filtres.push(r => r[c] >= v); return b; }, order(c){ tri = c; return b; }, limit(n){ max = n; return b; },
+    in(c, vs){ filtres.push(r => vs.includes(r[c])); return b; }, gte(c, v){ filtres.push(r => r[c] >= v); return b; }, lt(c, v){ filtres.push(r => r[c] < v); return b; }, order(c){ tri = c; return b; }, limit(n){ max = n; return b; },
     maybeSingle(){ unique = true; return b; }, single(){ unique = true; return b; },
     insert(p){ mode = 'insert'; charge = p; return b; }, update(p){ mode = 'update'; charge = p; return b; }, delete(){ mode = 'delete'; return b; },
     then(ok, ko){
@@ -111,7 +129,7 @@ function paiements(p, cible){
   if(!Array.isArray(p) || !p.length || p.length > 6) echec('Indiquez au moins un moyen de paiement.');
   const out = p.map(x => {
     const m = r2(x.montant), r = x.recu == null ? null : Number(x.recu);
-    if(!['especes', 'carte', 'cheque', 'virement', 'autre'].includes(x.mode)) echec('Moyen de paiement inconnu.');
+    if(!['especes', 'carte', 'cheque', 'virement', 'autre', 'acompte'].includes(x.mode)) echec('Moyen de paiement inconnu.');
     if(!(m > 0)) echec('Montant de paiement invalide.');
     if(x.mode === 'especes' && r != null && r < m) echec('Espèces reçues insuffisantes.');
     return { mode:x.mode, montant:m, recu:x.mode === 'especes' ? (r ?? m) : null };
@@ -145,19 +163,37 @@ const FONCTIONS = {
   async caisse_encaisser(a){
     if(!sessionOuverte(a.p_session)) echec('Aucune session de caisse ouverte.');
     const tot = totaux(a.p_lignes, false); if(tot.total_ttc <= 0) echec('Le total du ticket doit être positif.');
+    // Rendez-vous de l'agenda : mêmes garde-fous que le serveur (une seule fois, jamais déjà réglé en ligne, acompte lu en base et déduit, facture réutilisée au même montant).
+    let rv = null, doc = null, acompte = 0;
+    if(a.p_rdv){
+      if(a.p_formation) echec('Le mode formation ne s\'applique pas à un rendez-vous.');
+      rv = DB.rendez_vous.find(x => x.id === a.p_rdv); if(!rv) echec('Rendez-vous introuvable.');
+      if(rv.caisse_ticket_id) echec('Ce rendez-vous a déjà été encaissé.');
+      doc = DB.documents.find(x => x.id === rv.document_id) || null;
+      if(doc && doc.statut === 'paye') echec('Ce rendez-vous est déjà réglé en ligne.');
+      if(rv.paiement_mode === 'sur_place' && rv.paiement_montant > 0 && !rv.reste_encaisse_le) acompte = r2(rv.paiement_montant);
+      if(!a.p_client) a.p_client = rv.client_id;
+    }
+    if(a.p_paiements.some(x => x.mode === 'acompte')) echec('Moyen de paiement inconnu.');
+    if(doc){
+      const td = totaux(DB.document_lignes.filter(l => l.document_id === doc.id), false);
+      if(td.total_ttc !== tot.total_ttc) echec(`Le ticket doit correspondre à la facture de ce rendez-vous (${td.total_ttc} € TTC). Vendez les produits en plus dans un second ticket.`);
+    }
+    if(acompte){ if(acompte >= tot.total_ttc) echec('Acompte supérieur au total : rendez-vous déjà réglé.'); a.p_paiements = [{ mode:'acompte', montant:acompte }, ...a.p_paiements]; }
     const pay = paiements(a.p_paiements, tot.total_ttc), cl = DB.clients.find(c => c.id === a.p_client), formation = !!a.p_formation, c = DB.chaine, now = new Date();
     a.p_paiements.forEach((x, i) => {
       if(!x.terminal_id) return;
       const tp = DB.terminaux.find(z => z.id === x.terminal_id);
       if(formation) echec('Le terminal de paiement n\'est pas utilisable en mode formation.');
       if(!tp || tp.statut !== 'reussi' || tp.ticket_id || tp.montant !== pay[i].montant || x.mode !== 'carte') echec('Paiement terminal invalide ou déjà utilisé.');
-      pay[i].terminal_id = tp.id; pay[i].reference = tp.transaction_code;
+      pay[i].terminal_id = tp.id; pay[i].reference = tp.transaction_code; pay[i].source = tp.source || 'terminal';
     });
     const numero = formation ? 'FORM-' + String(++c.n_formation).padStart(6, '0') : `T-${now.getFullYear()}-` + String(++c.n_ticket).padStart(6, '0');
     const id = 't' + (DB.n++);
     const j = await ecrire(formation ? 'formation' : 'vente', a.p_session, id, numero, tot.total_ttc, { nb_lignes:tot.lignes.length }, !formation);
     const t = { id, owner_id:WS, session_id:a.p_session, journal_seq:j.seq, journal_hash:j.hash, type:'vente', formation, numero, date_ticket:now.toISOString(), client_id:cl ? cl.id : null, client_nom:cl ? cl.full_name : null,
       lignes:tot.lignes, total_ht:tot.total_ht, total_tva:tot.total_tva, total_ttc:tot.total_ttc, ventilation:tot.ventilation, paiements:pay, assujetti_tva:tot.assujetti, ticket_origine:null, motif:null };
+    if(rv){ rv.caisse_ticket_id = id; rv.reste_encaisse_le = now.toISOString(); rv.reste_sur_place = 0; if(doc) doc.statut = 'paye'; }
     DB.caisse_tickets.push(t); pay.forEach(x => { const tp = x.terminal_id && DB.terminaux.find(z => z.id === x.terminal_id); if(tp) tp.ticket_id = id; }); return jsonTicket(t, j, 0);
   },
   async caisse_avoir(a){
@@ -210,7 +246,7 @@ const FONCTIONS = {
     const p = DB.terminaux.find(x => x.id === a.p_id); if(!p) echec('Paiement introuvable.');
     if(p.statut === 'en_attente' && Date.now() >= p.du){            // le « client » présente sa carte : succès, sauf montant se terminant par 0,13 € (refus simulé)
       p.statut = Math.round(p.montant * 100) % 100 === 13 ? 'echoue' : 'reussi';
-      if(p.statut === 'reussi') p.transaction_code = 'DEMO-' + String(DB.terminaux.filter(x => x.transaction_code).length + 1).padStart(4, '0');
+      if(p.statut === 'reussi') p.transaction_code = (p.source === 'lien' ? 'pi_demo_' : 'DEMO-') + String(DB.terminaux.filter(x => x.transaction_code).length + 1).padStart(4, '0');
     }
     return { statut:p.statut, montant:p.montant, reference:p.transaction_code || null, utilise:!!p.ticket_id };
   },
@@ -244,6 +280,10 @@ export async function appelTerminalDemo(action, corps){
   if(action === 'config'){ DB.terminal = { ...DB.terminal, configure:true, merchant_code:corps.merchant_code || 'DEMO0001', app_id:corps.app_id || 'app.mirrio.caisse' }; return fin({ ok:true }); }
   if(action === 'appairer'){ DB.terminal.reader_pret = true; DB.terminal.reader_name = corps.name || 'Solo (démo)'; return fin({ ok:true }); }
   if(action === 'supprimer'){ DB.terminal = { configure:false, reader_pret:false }; return fin({ ok:true }); }
+  if(action === 'lien'){
+    const p = { id:'tp' + (DB.n++), montant:r2(corps.montant), statut:'en_attente', du:Date.now() + 7000, ticket_id:null, transaction_code:null, source:'lien' };
+    DB.terminaux.push(p); return fin({ id:p.id, url:'https://pay.mirrio.invalid/demo/' + p.id });
+  }
   if(action === 'payer'){
     if(DB.terminaux.some(p => p.statut === 'en_attente' && Date.now() < p.du + 120000)) return { error:'Un paiement est déjà en cours sur le terminal.' };
     const p = { id:'tp' + (DB.n++), montant:r2(corps.montant), statut:'en_attente', du:Date.now() + 3000, ticket_id:null, transaction_code:null };

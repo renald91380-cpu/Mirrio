@@ -644,6 +644,17 @@ export default async function handler(req, res){
   const documentId = session?.metadata?.document_id;
   const ownerIdSession = session?.metadata?.owner_id;
   const commandeGateauId = session?.metadata?.commande_gateau_id;
+  // Lien ou QR de paiement créé depuis la caisse (api/_terminal.js, action « lien ») : on ne fait que marquer le paiement réussi ou échoué ;
+  // c'est la caisse qui crée la vente (caisse_encaisser vérifie ce paiement).
+  const caisseLienId = session?.metadata?.caisse_lien_id;
+  if(caisseLienId && ownerIdSession === ownerId){
+    try{
+      const base = `caisse_terminal_paiements?id=eq.${caisseLienId}&owner_id=eq.${ownerId}&source=eq.lien`;
+      if(event.type === 'checkout.session.expired') await supabasePatchConditionnel(`${base}&statut=eq.en_attente`, { statut: 'echoue', failure_reason: 'lien expiré', updated_at: new Date().toISOString() });
+      else if(session.payment_status === 'paid') await supabasePatchConditionnel(`${base}&statut=neq.reussi`, { statut: 'reussi', transaction_code: String(session.payment_intent || session.id), updated_at: new Date().toISOString() });
+    }catch(e){ return json(res, 500, { error: 'Erreur temporaire.' }); }   // Stripe réessaiera
+    return json(res, 200, { recu: true });
+  }
   if(commandeGateauId && ownerIdSession === ownerId){
     return traiterPaiementGateau({ commandeId: commandeGateauId, ownerId, session, expire: event.type === 'checkout.session.expired', res });
   }

@@ -93,6 +93,11 @@ create policy "Caisse : lire les tickets de l'espace" on public.caisse_tickets f
 alter table public.caisse_paiements drop constraint if exists caisse_paiements_montant_check;
 alter table public.caisse_paiements add constraint caisse_paiements_montant_check check (montant <> 0);
 alter table public.caisse_paiements add column if not exists ticket_id uuid;
+-- Nouveau moyen : « acompte » = somme déjà réglée en ligne pour le rendez-vous (posée par le serveur, jamais par un navigateur).
+alter table public.caisse_paiements drop constraint if exists caisse_paiements_mode_check;
+alter table public.caisse_paiements add constraint caisse_paiements_mode_check check (mode in ('especes', 'carte', 'cheque', 'virement', 'autre', 'acompte'));
+-- Le rendez-vous encaissé garde le lien vers son ticket (un rendez-vous ne s'encaisse qu'une fois).
+alter table public.rendez_vous add column if not exists caisse_ticket_id uuid;
 
 -- Plus aucune écriture directe depuis un navigateur : tout passe par les fonctions ci-dessous.
 drop policy if exists "Caisse : sessions de l'espace" on public.caisse_sessions;
@@ -123,11 +128,13 @@ create table if not exists public.caisse_terminal_paiements (
   client_transaction_id text,
   transaction_code      text,
   failure_reason        text,
+  source                text not null default 'terminal' check (source in ('terminal', 'lien')),   -- terminal SumUp, ou lien / QR de paiement (Stripe)
   ticket_id             uuid,                          -- renseigné quand une vente utilise ce paiement (un paiement ne sert qu'une fois)
   created_at            timestamptz not null default now(),
   updated_at            timestamptz not null default now(),
   created_by            uuid
 );
+alter table public.caisse_terminal_paiements add column if not exists source text not null default 'terminal';
 create index if not exists caisse_terminal_paiements_owner on public.caisse_terminal_paiements(owner_id, created_at desc);
 alter table public.caisse_terminal_paiements enable row level security;
 
@@ -153,10 +160,10 @@ create or replace function public.caisse__document_verrou()
 returns trigger language plpgsql security definer set search_path = public as $$
 declare did uuid;
 begin
-  did := case tg_table_name when 'document_lignes' then coalesce(old.document_id, new.document_id) else old.id end;
+  did := case tg_table_name when 'document_lignes' then (to_jsonb(old)->>'document_id')::uuid else (to_jsonb(old)->>'id')::uuid end;   -- to_jsonb : une seule fonction pour deux tables
   if exists (select 1 from public.caisse_tickets t where t.document_id = did) then
     -- seule exception : la suppression d'un client (FK « on delete set null ») qui détache la fiche client de la facture
-    if tg_op = 'UPDATE' and tg_table_name = 'documents' and new.client_id is null and old.client_id is not null
+    if tg_op = 'UPDATE' and tg_table_name = 'documents' and (to_jsonb(new)->>'client_id') is null and (to_jsonb(old)->>'client_id') is not null
        and (to_jsonb(new) - 'client_id' - 'updated_at') = (to_jsonb(old) - 'client_id' - 'updated_at') then
       return new;
     end if;
@@ -261,7 +268,7 @@ begin
   end if;
   for e in select * from jsonb_array_elements(p_paiements) loop
     md := e->>'mode'; m := round((e->>'montant')::numeric, 2); r := nullif(e->>'recu', '')::numeric;
-    if md not in ('especes', 'carte', 'cheque', 'virement', 'autre') then raise exception 'Moyen de paiement inconnu.'; end if;
+    if md not in ('especes', 'carte', 'cheque', 'virement', 'autre', 'acompte') then raise exception 'Moyen de paiement inconnu.'; end if;
     if m is null or m <= 0 then raise exception 'Montant de paiement invalide.'; end if;
     if md = 'especes' and r is not null and r < m then raise exception 'Espèces reçues insuffisantes.'; end if;
     s := s + m;
@@ -306,16 +313,43 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------------------------------------------------------- vente
-create or replace function public.caisse_encaisser(p_session uuid, p_client uuid, p_lignes jsonb, p_paiements jsonb, p_formation boolean default false)
+drop function if exists public.caisse_encaisser(uuid, uuid, jsonb, jsonb, boolean);
+create or replace function public.caisse_encaisser(p_session uuid, p_client uuid, p_lignes jsonb, p_paiements jsonb, p_formation boolean default false, p_rdv uuid default null)
 returns jsonb language plpgsql security definer set search_path = public, extensions as $$
 declare e uuid := public.caisse__espace(); c public.caisse_chaine; tot jsonb; pay jsonb; ttc numeric; n bigint; num text; tid uuid := gen_random_uuid();
-        did uuid; cn text; j public.caisse_journal; t public.caisse_tickets; maintenant timestamptz := clock_timestamp(); an text; px jsonb; tp public.caisse_terminal_paiements;
+        did uuid; cn text; j public.caisse_journal; t public.caisse_tickets; maintenant timestamptz := clock_timestamp(); an text; px jsonb; tp public.caisse_terminal_paiements; rv public.rendez_vous; rd public.documents; acompte numeric := 0; tdoc jsonb;
 begin
   if not exists (select 1 from public.caisse_sessions s where s.id = p_session and s.owner_id = e and s.cloturee_le is null) then raise exception 'Aucune session de caisse ouverte.'; end if;
+  -- Encaissement d'un rendez-vous de l'agenda : une seule fois, jamais déjà réglé en ligne ; l'acompte versé en ligne est déduit (montant lu en base).
+  if p_rdv is not null then
+    if coalesce(p_formation, false) then raise exception 'Le mode formation ne s''applique pas à un rendez-vous.'; end if;
+    select * into rv from public.rendez_vous where id = p_rdv and owner_id = e for update;
+    if rv.id is null then raise exception 'Rendez-vous introuvable.'; end if;
+    if rv.caisse_ticket_id is not null then raise exception 'Ce rendez-vous a déjà été encaissé.'; end if;
+    if coalesce(rv.statut, 'confirme') in ('annule', 'en_attente') then raise exception 'Ce rendez-vous n''est pas confirmé.'; end if;
+    if rv.document_id is not null then
+      select * into rd from public.documents where id = rv.document_id and owner_id = e;
+      if rd.statut = 'paye' then raise exception 'Ce rendez-vous est déjà réglé en ligne.'; end if;
+    end if;
+    if rv.paiement_mode = 'sur_place' and coalesce(rv.paiement_montant, 0) > 0 and rv.reste_encaisse_le is null then acompte := round(rv.paiement_montant, 2); end if;
+    if p_client is null then p_client := rv.client_id; end if;
+  end if;
   if p_client is not null then select full_name into cn from public.clients where id = p_client and owner_id = e; if cn is null then p_client := null; end if; end if;
   tot := public.caisse__totaux(e, p_lignes, false);
   ttc := (tot->>'total_ttc')::numeric;
   if ttc <= 0 then raise exception 'Le total du ticket doit être positif.'; end if;
+  if exists (select 1 from jsonb_array_elements(p_paiements) q where q->>'mode' = 'acompte') then raise exception 'Moyen de paiement inconnu.'; end if;
+  if rd.id is not null then   -- la facture du rendez-vous est réutilisée : le ticket doit en avoir exactement le montant
+    tdoc := public.caisse__totaux(e, (select jsonb_agg(jsonb_build_object('description', l.description, 'quantite', l.quantite, 'prix_unitaire', l.prix_unitaire, 'tva_taux', l.tva_taux) order by l.position)
+                                         from public.document_lignes l where l.document_id = rd.id), false);
+    if (tdoc->>'total_ttc')::numeric <> ttc then
+      raise exception 'Le ticket doit correspondre à la facture de ce rendez-vous (% € TTC). Vendez les produits en plus dans un second ticket.', tdoc->>'total_ttc';
+    end if;
+  end if;
+  if acompte > 0 then
+    if acompte >= ttc then raise exception 'Acompte supérieur au total : rendez-vous déjà réglé.'; end if;
+    p_paiements := jsonb_build_array(jsonb_build_object('mode', 'acompte', 'montant', acompte)) || p_paiements;
+  end if;
   pay := public.caisse__paiements(p_paiements, ttc);
   -- Un paiement par terminal ne sert que s'il est réussi, pas déjà utilisé, du même montant, et jamais en mode formation.
   if exists (select 1 from jsonb_array_elements(pay) q where q->>'terminal_id' is not null) then
@@ -330,7 +364,8 @@ begin
       end if;
     end loop;
     pay := (select jsonb_agg(case when q.p->>'terminal_id' is not null
-                 then q.p || jsonb_build_object('reference', coalesce((select t2.transaction_code from public.caisse_terminal_paiements t2 where t2.id = (q.p->>'terminal_id')::uuid), ''))
+                 then q.p || jsonb_build_object('reference', coalesce((select t2.transaction_code from public.caisse_terminal_paiements t2 where t2.id = (q.p->>'terminal_id')::uuid), ''),
+                                                       'source', coalesce((select t3.source from public.caisse_terminal_paiements t3 where t3.id = (q.p->>'terminal_id')::uuid), 'terminal'))
                  else q.p end order by q.o) from jsonb_array_elements(pay) with ordinality as q(p, o));
   end if;
   c := public.caisse__verrou(e);
@@ -341,11 +376,16 @@ begin
   else
     update public.caisse_chaine set n_ticket = n_ticket + 1 where owner_id = e returning n_ticket into n;
     num := 'T-' || an || '-' || lpad(n::text, 6, '0');
-    insert into public.documents (owner_id, type, statut, client_id, date_emission, date_echeance, notes)
-    values (e, 'facture', 'paye', p_client, (maintenant at time zone 'Europe/Paris')::date, (maintenant at time zone 'Europe/Paris')::date, 'Vente en caisse ' || num) returning id into did;
-    insert into public.document_lignes (document_id, description, quantite, prix_unitaire, tva_taux, position)
-    select did, x->>'description', (x->>'quantite')::numeric, (x->>'prix_unitaire')::numeric, (x->>'tva_taux')::numeric, o::int
-      from jsonb_array_elements(tot->'lignes') with ordinality as q(x, o);
+    if rd.id is not null then
+      did := rd.id;                                  -- pas de seconde facture : celle du rendez-vous est soldée (elle compte une seule fois dans le chiffre d'affaires)
+      update public.documents set statut = 'paye' where id = did;
+    else
+      insert into public.documents (owner_id, type, statut, client_id, date_emission, date_echeance, notes)
+      values (e, 'facture', 'paye', p_client, (maintenant at time zone 'Europe/Paris')::date, (maintenant at time zone 'Europe/Paris')::date, 'Vente en caisse ' || num) returning id into did;
+      insert into public.document_lignes (document_id, description, quantite, prix_unitaire, tva_taux, position)
+      select did, x->>'description', (x->>'quantite')::numeric, (x->>'prix_unitaire')::numeric, (x->>'tva_taux')::numeric, o::int
+        from jsonb_array_elements(tot->'lignes') with ordinality as q(x, o);
+    end if;
   end if;
   j := public.caisse__ecrire(e, case when coalesce(p_formation, false) then 'formation' else 'vente' end, p_session, tid, num, ttc,
         jsonb_build_object('empreinte', public.caisse__empreinte(tot->'lignes', pay, (tot->>'total_ht')::numeric, (tot->>'total_tva')::numeric, ttc, cn),
@@ -356,6 +396,9 @@ begin
   values (tid, e, p_session, j.seq, j.hash, 'vente', coalesce(p_formation, false), num, maintenant, p_client, cn, tot->'lignes', (tot->>'total_ht')::numeric, (tot->>'total_tva')::numeric, ttc,
           tot->'ventilation', pay, (tot->>'assujetti')::boolean, did, auth.uid())
   returning * into t;
+  if p_rdv is not null then
+    update public.rendez_vous set caisse_ticket_id = tid, reste_sur_place = 0, reste_encaisse_le = coalesce(reste_encaisse_le, now()) where id = p_rdv;
+  end if;
   update public.caisse_terminal_paiements set ticket_id = tid, updated_at = now()
     where owner_id = e and id in (select (q->>'terminal_id')::uuid from jsonb_array_elements(pay) q where q->>'terminal_id' is not null);
   if not coalesce(p_formation, false) then
@@ -561,11 +604,12 @@ end $$;
 -- ---------------------------------------------------------------------------------------------------------------- terminal : lecture sans secret
 create or replace function public.caisse_terminal_statut()
 returns jsonb language plpgsql stable security definer set search_path = public as $$
-declare e uuid := public.caisse__espace(); c public.caisse_terminal_config;
+declare e uuid := public.caisse__espace(); c public.caisse_terminal_config; lien boolean;
 begin
+  select exists (select 1 from public.parametres_paiement where owner_id = e and stripe_actif and stripe_secret_key is not null) into lien;
   select * into c from public.caisse_terminal_config where owner_id = e;
-  if c.owner_id is null then return jsonb_build_object('configure', false, 'reader_pret', false); end if;
-  return jsonb_build_object('configure', true, 'reader_pret', c.reader_id is not null, 'reader_name', c.reader_name, 'merchant_code', c.merchant_code, 'app_id', c.app_id);
+  if c.owner_id is null then return jsonb_build_object('configure', false, 'reader_pret', false, 'lien_pret', lien); end if;
+  return jsonb_build_object('configure', true, 'reader_pret', c.reader_id is not null, 'reader_name', c.reader_name, 'merchant_code', c.merchant_code, 'app_id', c.app_id, 'lien_pret', lien);
 end $$;
 
 create or replace function public.caisse_terminal_lire(p_id uuid)
@@ -596,7 +640,7 @@ begin
     execute format('revoke all on function public.%s from public, anon, authenticated', f);
   end loop;
   foreach f in array array[
-    'caisse_ouvrir(numeric)', 'caisse_encaisser(uuid,uuid,jsonb,jsonb,boolean)', 'caisse_avoir(uuid,jsonb,text,jsonb)', 'caisse_duplicata(uuid)', 'caisse_cloturer(uuid,numeric,text)',
+    'caisse_ouvrir(numeric)', 'caisse_encaisser(uuid,uuid,jsonb,jsonb,boolean,uuid)', 'caisse_avoir(uuid,jsonb,text,jsonb)', 'caisse_duplicata(uuid)', 'caisse_cloturer(uuid,numeric,text)',
     'caisse_cloturer_periode(text,int,int)', 'caisse_verifier()', 'caisse_archiver(date,date)',
     'caisse_terminal_statut()', 'caisse_terminal_lire(uuid)', 'caisse_terminal_orphelins()'] loop
     execute format('revoke all on function public.%s from public, anon', f);

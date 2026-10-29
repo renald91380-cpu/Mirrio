@@ -130,6 +130,7 @@
   <a class="logo" href="dashboard.html" aria-label="Retour à l'application">Mirrio<b>.</b></a>
   <span class="salon" id="salon"></span>
   <span class="puce" id="etat-session" role="status"></span>
+  <button class="btn petit principal" id="b-rdv" type="button" title="Rendez-vous du jour à encaisser">Rendez-vous</button>
   <button class="btn petit" id="b-historique" type="button">Ventes</button>
   <button class="btn petit" id="b-scan" type="button" title="Scanner un code-barres : ajoute le produit au ticket">Scanner</button>
   <button class="btn petit danger" id="b-cloture" type="button" hidden>Clôturer la caisse</button>
@@ -187,7 +188,7 @@
   const jourHeure = d => new Date(d).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
   const num = v => { const n = Number(String(v == null ? '' : v).replace(',', '.')); return isFinite(n) && n >= 0 ? n : 0; };
   function toast(t){ const e = $('#toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 3200); }
-  const MODES = { especes:'Espèces', carte:'Carte', cheque:'Chèque', virement:'Virement', autre:'Autre' };
+  const MODES = { especes:'Espèces', carte:'Carte', cheque:'Chèque', virement:'Virement', autre:'Autre', acompte:'Acompte en ligne' };   // « acompte » : posé par le serveur, jamais proposé
 
   let espaceId = null, session = null, params = {}, brand = {}, prestations = [], clients = [];
   let panier = [], client = null, categorie = '', formation = false, vueCat = 'prestations', produits = [], terminal = { configure:false }, demoTerm = null;
@@ -350,12 +351,13 @@
 
   function dessinerPanier(){
     const t = totaux();
-    $('#lignes').innerHTML = panier.length ? panier.map(l => `<div class="ligne" data-k="${l.cle}">
+    const bandeauRdv = courant && courant.rdv ? `<div class="avert" style="margin-bottom:8px"><b>Rendez-vous de ${esc(courant.rdv.heure || '')}</b> · ${esc(courant.rdv.titre || '')}${courant.rdv.acompte ? `<br>Acompte de ${eur(courant.rdv.acompte)} déjà réglé en ligne : il est déduit à l'encaissement.` : ''}${courant.rdv.facture ? '<br>Le ticket reprend la facture du rendez-vous : ne le modifiez pas (produits en plus : second ticket).' : ''}</div>` : '';
+    $('#lignes').innerHTML = bandeauRdv + (panier.length ? panier.map(l => `<div class="ligne" data-k="${l.cle}">
       <div><div class="nom">${esc(l.libelle)}</div><div class="sous">${eur(ttcUnitaire(prixLigneHT(l), l.tva))} l'unité${l.remise ? ` · remise ${l.remise} %` : ''}${l.remisePossible && !l.remise ? ` · <span class="muted">remise possible ${l.remisePossible} %</span>` : ''}</div></div>
       <div style="text-align:right;font-weight:700">${eur(ttcUnitaire(prixLigneHT(l), l.tva) * l.qte)}</div>
       <div class="qte"><button type="button" data-a="moins" aria-label="Retirer un ${esc(l.libelle)}">−</button><span>${l.qte}</span><button type="button" data-a="plus" aria-label="Ajouter un ${esc(l.libelle)}">+</button></div>
       <div style="display:flex;gap:6px;justify-content:flex-end">${l.remisePossible && !l.remise ? `<button class="btn petit" type="button" data-a="remise-possible" title="Appliquer la remise prévue pour ce produit">−${l.remisePossible} %</button>` : ''}<button class="btn petit" type="button" data-a="remise">Remise</button><button class="btn petit danger" type="button" data-a="sup" aria-label="Supprimer ${esc(l.libelle)}">×</button></div></div>`).join('')
-      : '<p class="vide">Touchez une prestation pour l\'ajouter.</p>';
+      : '<p class="vide">Touchez une prestation pour l\'ajouter.</p>');
     $('#ligne-ht').style.display = $('#ligne-tva').style.display = t.assujetti ? '' : 'none';
     $('#t-ht').textContent = eur(t.totalHT); $('#t-tva').textContent = eur(t.totalTVA); $('#t-ttc').textContent = eur(t.totalTTC);
     const n = panier.reduce((s, l) => s + l.qte, 0);
@@ -423,8 +425,23 @@
     }catch(e){ return { error:'Terminal injoignable : vérifiez la connexion internet.' }; }
   }
   // Envoie le montant au Solo et attend le résultat (webhook de SumUp relu en base, avec une vérification directe en renfort). Renvoie { terminal_id, reference } ou null.
-  async function payerSurTerminal(montant){
-    const { d, fin } = ouvrir(`<h2>Paiement sur le terminal</h2><p class="gros" style="margin:6px 0">${eur(montant)}</p>
+  // QR code généré dans le navigateur (le lien de paiement ne part vers aucun service tiers) + copie et partage du lien.
+  let qrChargement = null;
+  function chargerQR(){
+    if(window.qrcode) return Promise.resolve(true);
+    return qrChargement || (qrChargement = new Promise(res => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js'; sc.onload = () => res(!!window.qrcode); sc.onerror = () => res(false); document.head.appendChild(sc); }));
+  }
+  async function afficherLien(zone, url){
+    let qr = '';
+    if(await chargerQR()){ try{ const q = window.qrcode(0, 'M'); q.addData(url); q.make(); qr = q.createSvgTag({ cellSize:5, margin:2, scalable:true }); }catch(e){} }
+    zone.innerHTML = `<div style="background:#fff;border-radius:16px;padding:10px;width:min(100%,260px);margin:8px auto" aria-label="QR code de paiement">${qr || '<p class="muted" style="color:#555">QR code indisponible : utilisez le lien.</p>'}</div>
+      <div class="actions" style="justify-content:center;margin:0 0 6px"><button class="btn petit" type="button" id="l-copier">Copier le lien</button>${navigator.share ? '<button class="btn petit" type="button" id="l-partager">Envoyer</button>' : ''}</div>`;
+    zone.querySelector('#l-copier').onclick = async () => { try{ await navigator.clipboard.writeText(url); toast('Lien copié.'); }catch(e){ toast('Copie impossible : sélectionnez le lien.'); } };
+    const b = zone.querySelector('#l-partager'); if(b) b.onclick = () => navigator.share({ title:'Règlement', text:'Voici le lien pour régler :', url }).catch(() => {});
+  }
+  async function payerSurTerminal(montant, mode = 'terminal'){
+    const lien = mode === 'lien';
+    const { d, fin } = ouvrir(`<h2>${lien ? 'Paiement par lien ou QR code' : 'Paiement sur le terminal'}</h2><p class="gros" style="margin:6px 0">${eur(montant)}</p><div id="zone-qr"></div>
       <p id="etat-term" class="muted" role="status">Envoi du montant au terminal…</p><p class="erreur" id="err" role="alert"></p>
       <div class="actions"><button class="btn danger" id="ann" type="button">Annuler le paiement</button></div>`);
     let id = null, fini = false, essais = 0, minuteur = null;
@@ -438,10 +455,11 @@
       if(data && data.statut === 'reussi') clore({ terminal_id:id, reference:data.reference }); else clore(null);
     };
     (async () => {
-      const r = await appelTerminal('payer', { session_id:session.id, montant });
+      const r = await appelTerminal(lien ? 'lien' : 'payer', { session_id:session.id, montant });
       if(fini) return;
       if(r.error || !r.id){ d.querySelector('#err').textContent = r.error || 'Paiement impossible.'; d.querySelector('#ann').textContent = 'Fermer'; id = null; return; }
-      id = r.id; etat('Présentez la carte sur le terminal.');
+      id = r.id; etat(lien ? 'Le client scanne le QR code (ou ouvre le lien) avec son téléphone, puis paie. Valable 30 minutes.' : 'Présentez la carte sur le terminal.');
+      if(lien && r.url) afficherLien(d.querySelector('#zone-qr'), r.url);
       minuteur = setInterval(async () => {
         if(fini) return; essais++;
         if(essais % 5 === 0) await appelTerminal('verifier', { id });
@@ -498,6 +516,51 @@
     };
     await fin;
   };
+
+  // ---------------------------------------------------------------- rendez-vous du jour à encaisser
+  // La caisse reprend le rendez-vous de l'agenda : prestation, client, facture déjà émise, acompte déjà réglé en ligne (déduit, jamais ressaisi).
+  async function rendezVousDuJour(){
+    const debut = new Date(); debut.setHours(0, 0, 0, 0);
+    const { data, error } = await supabase.from('rendez_vous').select('*').eq('owner_id', espaceId).gte('date_debut', debut.toISOString()).lt('date_debut', new Date(debut.getTime() + 86400000).toISOString()).order('date_debut');
+    if(error){ toast('Rendez-vous illisibles pour le moment.'); return; }
+    const rdvs = (data || []).filter(r => !['annule', 'en_attente'].includes(r.statut || 'confirme'));
+    const ids = [...new Set(rdvs.map(r => r.document_id).filter(Boolean))];
+    const docs = ids.length ? ((await supabase.from('documents').select('id,statut').in('id', ids)).data || []) : [];
+    const etat = r => {
+      if(r.caisse_ticket_id) return { l:'Encaissé', ok:false };
+      const doc = docs.find(x => x.id === r.document_id);
+      if(doc && doc.statut === 'paye') return { l:'Réglé en ligne', ok:false };
+      const acompte = r.paiement_mode === 'sur_place' && Number(r.paiement_montant) > 0 && !r.reste_encaisse_le ? Number(r.paiement_montant) : 0;
+      return { ok:true, acompte, l:acompte ? `Acompte ${eur(acompte)} payé` : 'À encaisser' };
+    };
+    const { d, fin } = ouvrir(`<h2>Rendez-vous du jour</h2>${rdvs.length ? rdvs.map(r => {
+      const e = etat(r), cl = clients.find(c => c.id === r.client_id);
+      return `<div class="rang"><span><b>${esc(heure(r.date_debut))}</b> · ${esc(r.titre || 'Rendez-vous')}${cl ? '<br><span class="muted" style="font-size:13px">' + esc(cl.full_name) + '</span>' : ''}</span>
+        <span><span class="muted" style="font-size:13px">${esc(e.l)}</span> ${e.ok ? `<button class="btn petit principal" data-r="${r.id}" type="button">Encaisser</button>` : ''}</span></div>`;
+    }).join('') : '<p class="vide">Aucun rendez-vous aujourd\'hui.</p>'}
+      <div class="actions"><button class="btn" id="non" type="button">Fermer</button></div>`);
+    d.querySelector('#non').onclick = () => d.fermer(null);
+    d.addEventListener('click', e => { const b = e.target.closest('button[data-r]'); if(b) d.fermer(rdvs.find(x => x.id === b.dataset.r)); });
+    const r = await fin; if(r) await ouvrirRdv(r, etat(r).acompte || 0);
+  }
+  async function ouvrirRdv(r, acompte){
+    if(!session){ toast('Ouvrez d\'abord la caisse.'); ouvrirCaisse(); return; }
+    let lignes = [], facture = false;
+    if(r.document_id){
+      const { data } = await supabase.from('document_lignes').select('*').eq('document_id', r.document_id).order('position');
+      lignes = (data || []).map(l => ({ libelle:l.description, ht:Number(l.prix_unitaire), tva:Number(l.tva_taux) || 0, qte:Number(l.quantite) || 1 })); facture = lignes.length > 0;
+    }
+    if(!lignes.length){ const p = prestations.find(x => x.id === r.prestation_id); if(p) lignes = [{ libelle:p.libelle, ht:Number(p.prix_unitaire), tva:Number(p.tva_taux) || 0, qte:1 }]; }
+    sauverTickets();
+    if(!(courant && !courant.panier.length && !courant.rdv)){ const tk = nouveauTicket(); tickets.push(tk); courant = tk; }
+    const cl = clients.find(c => c.id === r.client_id);
+    courant.rdv = { id:r.id, titre:r.titre || 'Rendez-vous', heure:heure(r.date_debut), acompte, facture };
+    courant.panier = panier = lignes.map(l => ({ cle:crypto.randomUUID(), pid:null, ...l, remise:0 }));
+    courant.client = client = cl ? { id:cl.id, full_name:cl.full_name } : null;
+    dessinerPanier();
+    if(!lignes.length){ toast('Ce rendez-vous n\'a pas de prestation : ajoutez le montant.'); await montantLibre(); }
+  }
+  $('#b-rdv').onclick = rendezVousDuJour;
 
   // ---------------------------------------------------------------- catalogue de produits
   async function gererProduits(){
@@ -639,23 +702,24 @@
   // ---------------------------------------------------------------- encaissement
   $('#b-encaisser').onclick = () => encaisser();
   async function encaisser(){
-    const t = totaux(); let paiements = []; let edite = false;   // edite : le montant a été saisi à la main, on ne l'écrase pas
+    const t = totaux(); let paiements = []; let edite = false;
+    const acompte = r2((courant && courant.rdv && courant.rdv.acompte) || 0);   // déjà réglé en ligne : le serveur le relit en base et le déduit   // edite : le montant a été saisi à la main, on ne l'écrase pas
     const { d, fin } = ouvrir(`<h2>Encaisser</h2>
       <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="muted">Total</span><span class="gros">${eur(t.totalTTC)}</span></div>
       <div style="display:flex;justify-content:space-between"><span class="muted">Reste à payer</span><b id="reste"></b></div>
       <div class="champ" style="margin-top:12px"><label for="mm">Montant de ce paiement (€)</label><input id="mm" inputmode="decimal"></div>
-      <div class="modes" id="modes">${Object.entries(MODES).map(([k, l]) => `<button type="button" data-m="${k}" aria-pressed="false">${l}</button>`).join('')}${terminal.reader_pret && !formation ? '<button type="button" class="terminal" id="b-terminal">Terminal carte</button>' : ''}</div>
+      <div class="modes" id="modes">${Object.entries(MODES).filter(([k]) => k !== 'acompte').map(([k, l]) => `<button type="button" data-m="${k}" aria-pressed="false">${l}</button>`).join('')}${terminal.reader_pret && !formation ? '<button type="button" class="terminal" id="b-terminal">Terminal carte</button>' : ''}${terminal.lien_pret && !formation ? '<button type="button" class="terminal" id="b-lien">Lien ou QR code</button>' : ''}</div>
       <div id="pad-especes" hidden><div class="champ"><label for="recu">Espèces reçues (€)</label><input id="recu" inputmode="decimal"></div>
         <div class="rapides" id="rapides"></div><div style="display:flex;justify-content:space-between"><span class="muted">Monnaie à rendre</span><b id="rendu">0,00 €</b></div>
         <div class="actions" style="margin-top:8px"><button class="btn sombre" id="ajout-esp" type="button">Valider les espèces</button></div></div>
       <div id="liste-paiements"></div><p class="erreur" id="err" role="alert"></p>
       <div class="actions"><button class="btn" id="non" type="button">Retour au panier</button><button class="btn principal" id="valider" type="button" disabled style="min-height:56px;font-size:18px">Valider la vente</button></div>`);
-    const reste = () => r2(t.totalTTC - paiements.reduce((s, p) => s + p.montant, 0));
+    const reste = () => r2(t.totalTTC - acompte - paiements.reduce((s, p) => s + p.montant, 0));
     const maj = () => {
       const r = reste();
       d.querySelector('#reste').textContent = eur(r); d.querySelector('#valider').disabled = r !== 0 || !paiements.length;
       if(!edite) d.querySelector('#mm').value = r > 0 ? String(r).replace('.', ',') : '';
-      d.querySelector('#liste-paiements').innerHTML = paiements.map((p, i) => `<div class="rang"><span>${MODES[p.mode]}${p.terminal_id ? ' <span class="muted">(terminal)</span>' : ''}${p.mode === 'especes' && p.recu > p.montant ? ` <span class="muted">(reçu ${eur(p.recu)}, rendu ${eur(p.recu - p.montant)})</span>` : ''}</span><span><b>${eur(p.montant)}</b> <button class="btn petit danger" data-i="${i}" type="button" aria-label="Retirer ce paiement">×</button></span></div>`).join('');
+      d.querySelector('#liste-paiements').innerHTML = (acompte ? `<div class="rang"><span>Acompte en ligne <span class="muted">(déjà réglé)</span></span><b>${eur(acompte)}</b></div>` : '') + paiements.map((p, i) => `<div class="rang"><span>${MODES[p.mode]}${p.terminal_id ? ` <span class="muted">(${p.source === 'lien' ? 'lien de paiement' : 'terminal'})</span>` : ''}${p.mode === 'especes' && p.recu > p.montant ? ` <span class="muted">(reçu ${eur(p.recu)}, rendu ${eur(p.recu - p.montant)})</span>` : ''}</span><span><b>${eur(p.montant)}</b> <button class="btn petit danger" data-i="${i}" type="button" aria-label="Retirer ce paiement">×</button></span></div>`).join('');
       const rendu = Math.max(0, r2(num(d.querySelector('#recu').value) - Math.min(num(d.querySelector('#mm').value), r)));
       d.querySelector('#rendu').textContent = eur(rendu);
       d.querySelector('#rapides').innerHTML = `<button type="button" data-v="exact">Exact</button>` + [5, 10, 20, 50, 100].map(v => `<button type="button" data-v="${v}">${v} €</button>`).join('');
@@ -691,8 +755,17 @@
       const m = montantSaisi(); if(m <= 0){ d.querySelector('#err').textContent = 'Il n\'y a plus rien à payer.'; return; }
       d.querySelector('#err').textContent = '';
       const r = await payerSurTerminal(m); if(!r) return;
-      paiements.push({ mode:'carte', montant:m, recu:null, terminal_id:r.terminal_id, reference:r.reference }); edite = false; maj();
+      paiements.push({ mode:'carte', montant:m, recu:null, terminal_id:r.terminal_id, reference:r.reference, source:'terminal' }); edite = false; maj();
       if(reste() === 0) d.querySelector('#valider').click();   // tout est payé : on enregistre aussitôt, un paiement débité ne doit pas rester sans vente
+    };
+    const bl = d.querySelector('#b-lien');
+    if(bl) bl.onclick = async () => {
+      const m = montantSaisi(); if(m <= 0){ d.querySelector('#err').textContent = 'Il n\'y a plus rien à payer.'; return; }
+      if(m < 0.5){ d.querySelector('#err').textContent = 'Un lien de paiement demande 0,50 € minimum.'; return; }
+      d.querySelector('#err').textContent = '';
+      const r = await payerSurTerminal(m, 'lien'); if(!r) return;
+      paiements.push({ mode:'carte', montant:m, recu:null, terminal_id:r.terminal_id, reference:r.reference, source:'lien' }); edite = false; maj();
+      if(reste() === 0) d.querySelector('#valider').click();
     };
     d.querySelector('#non').onclick = () => {
       if(paiements.some(p => p.terminal_id) && !confirm('Un paiement a déjà été débité sur le terminal. Quitter sans valider la vente le laisse sans ticket. Quitter quand même ?')) return;
@@ -704,7 +777,7 @@
         const v = await enregistrerVente(t, paiements);
         d.fermer(v);
       }catch(err){
-        d.querySelector('#err').textContent = 'La vente n\'a pas pu être enregistrée. Aucun paiement n\'a été comptabilisé : réessayez.';
+        d.querySelector('#err').textContent = /correspondre|déjà|rendez-vous/i.test(String(err && err.message)) ? err.message : 'La vente n\'a pas pu être enregistrée. Aucun paiement n\'a été comptabilisé : réessayez.';
         bt.disabled = false; bt.textContent = 'Valider la vente';
       }
     };
@@ -715,7 +788,7 @@
 
   async function enregistrerVente(t, paiements){
     const { data, error } = await supabase.rpc('caisse_encaisser', { p_session:session.id, p_client:client ? client.id : null, p_lignes:lignesFacture(),
-      p_paiements:paiements.map(x => ({ mode:x.mode, montant:x.montant, recu:x.recu, terminal_id:x.terminal_id || null })), p_formation:formation });
+      p_paiements:paiements.map(x => ({ mode:x.mode, montant:x.montant, recu:x.recu, terminal_id:x.terminal_id || null })), p_formation:formation, p_rdv:courant && courant.rdv ? courant.rdv.id : null });
     if(error || !data) throw error || new Error('vente');
     return venteDepuis(data);
   }
@@ -725,14 +798,14 @@
   const venteDepuis = r => ({ ticket_id:r.ticket_id, numero:r.numero, type:r.type, formation:!!r.formation, date:r.date, motif:r.motif || null, origine:r.origine_numero || null, duplicata:r.duplicata || 0,
     lignes:r.lignes, client:r.client_nom ? { full_name:r.client_nom } : null, signature:r.signature || '', gt:Number(r.gt_perpetuel),
     totaux:{ assujetti:!!r.assujetti, totalHT:Number(r.total_ht), totalTVA:Number(r.total_tva), totalTTC:Number(r.total_ttc), ventilation:(r.ventilation || []).map(x => ({ taux:Number(x.taux), montant:Number(x.montant) })) },
-    paiements:(r.paiements || []).map(p => ({ mode:p.mode, montant:Number(p.montant), recu:p.recu == null ? null : Number(p.recu), reference:p.reference || null })) });
+    paiements:(r.paiements || []).map(p => ({ mode:p.mode, montant:Number(p.montant), recu:p.recu == null ? null : Number(p.recu), reference:p.reference || null, source:p.source || null })) });
   const depuisLigne = x => venteDepuis({ ...x, ticket_id:x.id, date:x.date_ticket, origine_numero:null, assujetti:x.assujetti_tva, gt_perpetuel:0, signature:'' });
 
   function ticketHTML(v){
     const nom = brand.business_name || params.emetteur_nom || 'Mirrio', avoir = v.type === 'avoir';
     const l = v.lignes.map(x => `<tr><td>${esc(Math.abs(x.quantite))} × ${esc(x.description)}</td><td class="r">${eur(ttcUnitaire(x.prix_unitaire, x.tva_taux) * x.quantite)}</td></tr>`).join('');
     const ven = v.totaux.assujetti ? v.totaux.ventilation.map(x => `<tr><td>TVA ${x.taux} %</td><td class="r">${eur(x.montant)}</td></tr>`).join('') : '';
-    const pay = v.paiements.map(p => `<tr><td>${avoir ? 'Remboursé : ' : ''}${MODES[p.mode]}${p.reference ? ' (terminal ' + esc(p.reference) + ')' : ''}</td><td class="r">${eur(p.montant)}</td></tr>${p.mode === 'especes' && p.recu > p.montant ? `<tr><td>Reçu ${eur(p.recu)}, rendu</td><td class="r">${eur(p.recu - p.montant)}</td></tr>` : ''}`).join('');
+    const pay = v.paiements.map(p => `<tr><td>${avoir ? 'Remboursé : ' : ''}${MODES[p.mode]}${p.reference ? (p.source === 'lien' ? ' (lien ' : ' (terminal ') + esc(p.reference) + ')' : ''}</td><td class="r">${eur(p.montant)}</td></tr>${p.mode === 'especes' && p.recu > p.montant ? `<tr><td>Reçu ${eur(p.recu)}, rendu</td><td class="r">${eur(p.recu - p.montant)}</td></tr>` : ''}`).join('');
     const marque = (v.formation ? '<p class="c"><b>*** TICKET DE FORMATION ***<br>Non comptabilisé</b></p>' : '') + (v.duplicata ? `<p class="c"><b>DUPLICATA n°${v.duplicata}</b><br>Ticket original déjà remis</p>` : '') + (avoir ? `<p class="c"><b>AVOIR</b>${v.origine ? '<br>sur ticket ' + esc(v.origine) : ''}${v.motif ? '<br>' + esc(v.motif) : ''}</p>` : '');
     const sceau = v.signature ? `<hr><p class="c" style="font-size:10px">Signature ${esc(v.signature.slice(0, 16))}${v.formation ? '' : '<br>Grand total perpétuel ' + eur(v.gt)}</p>` : '';
     return `<h1>${esc(nom)}</h1><p class="c">${esc(params.emetteur_adresse || '')}</p><hr>${marque}
@@ -767,7 +840,7 @@
       <p class="muted" style="margin-bottom:10px">Un ticket ne se modifie ni ne se supprime : on le corrige par un avoir. Choisissez ce qui est remboursé.</p>
       ${tk.lignes.map((l, i) => `<div class="rang"><label><input type="checkbox" data-i="${i + 1}" checked> ${esc(l.description)}</label><input type="number" data-q="${i + 1}" min="0" max="${esc(l.quantite)}" step="1" value="${esc(l.quantite)}" style="width:72px" aria-label="Quantité remboursée : ${esc(l.description)}"></div>`).join('')}
       <div class="champ" style="margin-top:10px"><label for="av-motif">Motif (obligatoire)</label><input id="av-motif" maxlength="200" placeholder="Ex. prestation non réalisée"></div>
-      <div class="champ"><label for="av-mode">Remboursé par</label><select id="av-mode">${Object.entries(MODES).map(([k, v]) => `<option value="${k}"${k === (tk.paiements[0] || {}).mode ? ' selected' : ''}>${v}</option>`).join('')}</select></div>
+      <div class="champ"><label for="av-mode">Remboursé par</label><select id="av-mode">${Object.entries(MODES).filter(([k]) => k !== 'acompte').map(([k, v]) => `<option value="${k}"${k === (tk.paiements[0] || {}).mode ? ' selected' : ''}>${v}</option>`).join('')}</select></div>
       <p class="erreur" id="err" role="alert"></p>
       <div class="actions"><button class="btn" id="non" type="button">Annuler</button><button class="btn principal" id="ok" type="button">Émettre l'avoir</button></div>`);
     d.querySelector('#non').onclick = () => d.fermer(null);

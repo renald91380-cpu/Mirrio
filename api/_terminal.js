@@ -7,6 +7,9 @@
 //     payer       { session_id, montant }                             envoie le montant au Solo → { id }
 //     verifier    { id }                                              interroge SumUp si le webhook tarde
 //     annuler     { id }                                              arrête la transaction en attente sur le lecteur
+//     lien        { session_id, montant }                             lien et QR de paiement (Stripe du salon) : le client paie sur son téléphone → { id, url }
+//                 Même circuit que le terminal : une ligne caisse_terminal_paiements (source « lien »), résultat par le webhook Stripe du salon
+//                 (api/paiement-webhook-stripe.js, métadonnée caisse_lien_id) ou par « verifier ». Pour les professionnels itinérants sans terminal.
 //   POST /api/caisse-terminal?evt=webhook&id=<uuid>&s=<secret>        résultat envoyé par SumUp (événement solo.transaction.updated)
 //
 // Chaque salon utilise SON compte SumUp et SES clés : l'argent va directement chez lui, Mirrio ne touche à rien. Les clés vivent dans
@@ -110,6 +113,54 @@ export default async function handler(req, res){
       if(!a.admin) return json(res, 403, { error: 'Seul le propriétaire du salon règle le terminal.' });
       await rest(`caisse_terminal_config?owner_id=eq.${a.espace}`, { method: 'DELETE' });
       return json(res, 200, { ok: true });
+    }
+
+    if(action === 'lien'){
+      const [pp] = await lire(`parametres_paiement?owner_id=eq.${a.espace}&select=stripe_actif,stripe_secret_key`);
+      if(!pp || !pp.stripe_actif || !pp.stripe_secret_key) return json(res, 409, { error: 'Le paiement en ligne (Stripe) n\'est pas configuré : Paramètres, Paiement.' });
+      const montant = Math.round(Number(c.montant) * 100) / 100;
+      if(!(montant >= 0.5) || montant > 50000) return json(res, 400, { error: 'Montant invalide (0,50 € minimum).' });
+      const sess = await lire(`caisse_sessions?id=eq.${encodeURIComponent(String(c.session_id || ''))}&owner_id=eq.${a.espace}&cloturee_le=is.null&select=id`);
+      if(!sess.length) return json(res, 409, { error: 'Aucune session de caisse ouverte.' });
+      const [profil] = await lire(`profiles?id=eq.${a.espace}&select=business_name,full_name`);
+      const secret = randomBytes(24).toString('hex');
+      const cree = await rest('caisse_terminal_paiements', { method: 'POST', body: JSON.stringify({ owner_id: a.espace, session_id: sess[0].id, montant, secret, source: 'lien', created_by: a.user.id }) });
+      const [p] = cree.ok ? await cree.json() : [];
+      if(!p) return json(res, 500, { error: 'Lien impossible pour le moment.' });
+      const f = new URLSearchParams();
+      f.set('mode', 'payment'); f.set('payment_method_types[0]', 'card');
+      f.set('line_items[0][quantity]', '1'); f.set('line_items[0][price_data][currency]', 'eur'); f.set('line_items[0][price_data][unit_amount]', String(Math.round(montant * 100)));
+      f.set('line_items[0][price_data][product_data][name]', `Règlement - ${(profil && (profil.business_name || profil.full_name)) || 'Mirrio'}`.slice(0, 120));
+      f.set('success_url', `${SITE_URL}/paiement-merci.html?statut=succes`); f.set('cancel_url', `${SITE_URL}/paiement-merci.html?statut=annule`);
+      f.set('metadata[caisse_lien_id]', p.id); f.set('metadata[owner_id]', a.espace);
+      f.set('expires_at', String(Math.floor(Date.now() / 1000) + 31 * 60));
+      const r = await fetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: { Authorization: `Bearer ${pp.stripe_secret_key}`, 'Content-Type': 'application/x-www-form-urlencoded' }, body: f.toString() });
+      const j = await r.json().catch(() => ({}));
+      if(!r.ok || !j.id || !j.url){
+        await rest(`caisse_terminal_paiements?id=eq.${p.id}`, { method: 'PATCH', body: JSON.stringify({ statut: 'echoue', failure_reason: 'session Stripe refusée (' + r.status + ')', updated_at: new Date().toISOString() }) });
+        return json(res, 502, { error: 'Stripe n\'a pas créé le lien : vérifiez votre clé dans Paramètres, Paiement.' });
+      }
+      await rest(`caisse_terminal_paiements?id=eq.${p.id}`, { method: 'PATCH', body: JSON.stringify({ client_transaction_id: j.id }) });
+      return json(res, 200, { id: p.id, url: j.url });
+    }
+
+    if(action === 'verifier' || action === 'annuler'){
+      const [p] = await lire(`caisse_terminal_paiements?id=eq.${encodeURIComponent(String(c.id || ''))}&owner_id=eq.${a.espace}&select=*`);
+      if(p && p.source === 'lien'){
+        if(p.statut !== 'en_attente') return json(res, 200, { statut: p.statut });
+        const [pp] = await lire(`parametres_paiement?owner_id=eq.${a.espace}&select=stripe_secret_key`);
+        const cle = pp && pp.stripe_secret_key; if(!cle || !p.client_transaction_id) return json(res, 200, { statut: p.statut });
+        if(action === 'annuler'){
+          await fetch(`https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(p.client_transaction_id)}/expire`, { method: 'POST', headers: { Authorization: `Bearer ${cle}` } }).catch(() => {});
+          await rest(`caisse_terminal_paiements?id=eq.${p.id}&statut=eq.en_attente`, { method: 'PATCH', body: JSON.stringify({ statut: 'annule', updated_at: new Date().toISOString() }) });
+          return json(res, 200, { statut: 'annule' });
+        }
+        const r = await fetch(`https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(p.client_transaction_id)}`, { headers: { Authorization: `Bearer ${cle}` } });
+        const j = r.ok ? await r.json().catch(() => null) : null;
+        if(j && j.payment_status === 'paid'){ await conclure(p, null, 'successful', null, String(j.payment_intent || j.id)); return json(res, 200, { statut: 'reussi' }); }
+        if(j && j.status === 'expired'){ await conclure(p, null, 'failed', 'lien expiré', null); return json(res, 200, { statut: 'echoue' }); }
+        return json(res, 200, { statut: 'en_attente' });
+      }
     }
 
     const cfg = await configDe(a.espace);
