@@ -116,11 +116,14 @@
 <body>
 <a class="evitement" href="#catalogue">Aller au catalogue</a>
 <div id="bandeau-demo" hidden style="background:var(--accent);color:var(--accent-ink);padding:8px 16px;font-weight:600;font-size:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:220px">Démonstration : Maison Éloïse. Rien n'est enregistré, essayez librement.</span><button class="btn petit" id="b-demo-reset" type="button">Réinitialiser</button><a class="btn petit" href="demos.html">Retour aux démos</a></div>
+<div id="bandeau-formation" role="status" hidden style="background:#B3402A;color:#fff;padding:8px 16px;font-weight:600;font-size:14px;text-align:center">MODE FORMATION : les ventes saisies ne sont pas comptabilisées et portent la mention « ticket de formation ».</div>
 <header>
   <a class="logo" href="dashboard.html" aria-label="Retour à l'application">Mirrio<b>.</b></a>
   <span class="salon" id="salon"></span>
   <span class="puce" id="etat-session" role="status"></span>
   <button class="btn petit" id="b-historique" type="button">Ventes</button>
+  <button class="btn petit" id="b-formation" type="button" aria-pressed="false" title="Les tickets de formation ne sont pas comptabilisés">Formation</button>
+  <button class="btn petit" id="b-conformite" type="button">Conformité</button>
   <a class="btn petit" id="b-compta" href="export-comptable.html">Comptable</a>
   <button class="btn petit danger" id="b-cloture" type="button" hidden>Clôturer la caisse</button>
   <a class="btn petit" href="dashboard.html">Quitter</a>
@@ -128,7 +131,7 @@
 
 <main>
   <section class="catalogue" id="catalogue" aria-label="Catalogue">
-    <div class="avert" id="avert-nf525" hidden><b>Caisse non certifiée.</b> Votre salon est assujetti à la TVA : en France, un logiciel de caisse utilisé pour encaisser des particuliers doit être certifié NF525 (ou attesté par l'éditeur). Mirrio Caisse ne l'est pas encore : utilisez-la en parallèle d'une caisse certifiée, ou en franchise de TVA.</div>
+    <div class="avert" id="avert-nf525" hidden><b>Caisse prête pour la certification, pas encore certifiée.</b> Votre salon est assujetti à la TVA : en France, un logiciel de caisse doit être certifié NF525 ou faire l'objet d'une attestation individuelle de l'éditeur. Mirrio Caisse applique les protections exigées (journal chaîné et signé, tickets inaltérables, avoirs, clôtures, archives, grand total perpétuel), mais le certificat n'est pas encore délivré : voir « Conformité ».</div>
     <div class="tickets" id="tickets" role="group" aria-label="Tickets en cours"></div>
     <input class="recherche" id="recherche" type="search" placeholder="Rechercher une prestation" aria-label="Rechercher une prestation" autocomplete="off">
     <div class="chips" id="chips" role="group" aria-label="Catégories"></div>
@@ -169,7 +172,7 @@
   const MODES = { especes:'Espèces', carte:'Carte', cheque:'Chèque', virement:'Virement', autre:'Autre' };
 
   let espaceId = null, session = null, params = {}, brand = {}, prestations = [], clients = [];
-  let panier = [], client = null, categorie = '';
+  let panier = [], client = null, categorie = '', formation = false;
   // Tickets en cours : plusieurs clients à la fois, chacun avec son panier, gardés sur l'appareil (localStorage) jusqu'à l'encaissement.
   let tickets = [], courant = null;
   const assujetti = () => !!params.assujetti_tva;
@@ -222,7 +225,7 @@
       <div class="actions"><button class="btn" id="non" type="button">Plus tard</button><button class="btn principal" id="ok" type="button">Ouvrir la caisse</button></div>`);
     d.querySelector('#non').onclick = () => d.fermer(null);
     d.querySelector('#ok').onclick = async () => {
-      const { data, error } = await supabase.from('caisse_sessions').insert({ owner_id:espaceId, fond_caisse:num(d.querySelector('#fond').value) }).select().single();
+      const { data, error } = await supabase.rpc('caisse_ouvrir', { p_fond:num(d.querySelector('#fond').value) });
       if(error){ d.querySelector('#err').textContent = /duplicate|unique/i.test(error.message) ? 'Une caisse est déjà ouverte sur ce salon.' : 'Impossible d\'ouvrir la caisse.'; return; }
       session = data; d.fermer(true);
     };
@@ -437,106 +440,186 @@
   }
 
   async function enregistrerVente(t, paiements){
-    const aujourdhui = new Date().toISOString().slice(0, 10);
-    const { data: doc, error } = await supabase.from('documents').insert({
-      type:'facture', statut:'paye', client_id:client ? client.id : null, date_emission:aujourdhui, date_echeance:aujourdhui, notes:'Vente en caisse', owner_id:espaceId }).select().single();
-    if(error || !doc) throw error || new Error('document');
-    const lignes = lignesFacture().map(l => ({ ...l, document_id:doc.id }));
-    const l = await supabase.from('document_lignes').insert(lignes);
-    if(l.error){ await supabase.from('documents').delete().eq('id', doc.id); throw l.error; }
-    const p = await supabase.from('caisse_paiements').insert(paiements.map(x => ({ owner_id:espaceId, session_id:session.id, document_id:doc.id, mode:x.mode, montant:x.montant, recu:x.recu })));
-    if(p.error){ await supabase.from('document_lignes').delete().eq('document_id', doc.id); await supabase.from('documents').delete().eq('id', doc.id); throw p.error; }
-    return { numero:doc.numero, date:doc.created_at || new Date().toISOString(), lignes:lignesFacture(), totaux:t, paiements, client };
+    const { data, error } = await supabase.rpc('caisse_encaisser', { p_session:session.id, p_client:client ? client.id : null, p_lignes:lignesFacture(),
+      p_paiements:paiements.map(x => ({ mode:x.mode, montant:x.montant, recu:x.recu })), p_formation:formation });
+    if(error || !data) throw error || new Error('vente');
+    return venteDepuis(data);
   }
 
   // ---------------------------------------------------------------- ticket
+  // Un ticket affiché ou imprimé vient TOUJOURS de la réponse du serveur (numéro, totaux, signature) : jamais recalculé ici.
+  const venteDepuis = r => ({ ticket_id:r.ticket_id, numero:r.numero, type:r.type, formation:!!r.formation, date:r.date, motif:r.motif || null, origine:r.origine_numero || null, duplicata:r.duplicata || 0,
+    lignes:r.lignes, client:r.client_nom ? { full_name:r.client_nom } : null, signature:r.signature || '', gt:Number(r.gt_perpetuel),
+    totaux:{ assujetti:!!r.assujetti, totalHT:Number(r.total_ht), totalTVA:Number(r.total_tva), totalTTC:Number(r.total_ttc), ventilation:(r.ventilation || []).map(x => ({ taux:Number(x.taux), montant:Number(x.montant) })) },
+    paiements:(r.paiements || []).map(p => ({ mode:p.mode, montant:Number(p.montant), recu:p.recu == null ? null : Number(p.recu) })) });
+  const depuisLigne = x => venteDepuis({ ...x, ticket_id:x.id, date:x.date_ticket, origine_numero:null, assujetti:x.assujetti_tva, gt_perpetuel:0, signature:'' });
+
   function ticketHTML(v){
-    const nom = brand.business_name || params.emetteur_nom || 'Mirrio';
-    const l = v.lignes.map(x => `<tr><td>${esc(x.quantite)} × ${esc(x.description)}</td><td class="r">${eur(ttcUnitaire(x.prix_unitaire, x.tva_taux) * x.quantite)}</td></tr>`).join('');
+    const nom = brand.business_name || params.emetteur_nom || 'Mirrio', avoir = v.type === 'avoir';
+    const l = v.lignes.map(x => `<tr><td>${esc(Math.abs(x.quantite))} × ${esc(x.description)}</td><td class="r">${eur(ttcUnitaire(x.prix_unitaire, x.tva_taux) * x.quantite)}</td></tr>`).join('');
     const ven = v.totaux.assujetti ? v.totaux.ventilation.map(x => `<tr><td>TVA ${x.taux} %</td><td class="r">${eur(x.montant)}</td></tr>`).join('') : '';
-    const pay = v.paiements.map(p => `<tr><td>${MODES[p.mode]}</td><td class="r">${eur(p.montant)}</td></tr>${p.mode === 'especes' && p.recu > p.montant ? `<tr><td>Reçu ${eur(p.recu)}, rendu</td><td class="r">${eur(p.recu - p.montant)}</td></tr>` : ''}`).join('');
-    return `<h1>${esc(nom)}</h1><p class="c">${esc(params.emetteur_adresse || '')}</p><hr>
+    const pay = v.paiements.map(p => `<tr><td>${avoir ? 'Remboursé : ' : ''}${MODES[p.mode]}</td><td class="r">${eur(p.montant)}</td></tr>${p.mode === 'especes' && p.recu > p.montant ? `<tr><td>Reçu ${eur(p.recu)}, rendu</td><td class="r">${eur(p.recu - p.montant)}</td></tr>` : ''}`).join('');
+    const marque = (v.formation ? '<p class="c"><b>*** TICKET DE FORMATION ***<br>Non comptabilisé</b></p>' : '') + (v.duplicata ? `<p class="c"><b>DUPLICATA n°${v.duplicata}</b><br>Ticket original déjà remis</p>` : '') + (avoir ? `<p class="c"><b>AVOIR</b>${v.origine ? '<br>sur ticket ' + esc(v.origine) : ''}${v.motif ? '<br>' + esc(v.motif) : ''}</p>` : '');
+    const sceau = v.signature ? `<hr><p class="c" style="font-size:10px">Signature ${esc(v.signature.slice(0, 16))}${v.formation ? '' : '<br>Grand total perpétuel ' + eur(v.gt)}</p>` : '';
+    return `<h1>${esc(nom)}</h1><p class="c">${esc(params.emetteur_adresse || '')}</p><hr>${marque}
       <p>${esc(jourHeure(v.date))}${v.numero ? ' · ' + esc(v.numero) : ''}${v.client ? '<br>Client : ' + esc(v.client.full_name) : ''}</p><hr>
       <table>${l}</table><hr>
       <table>${v.totaux.assujetti ? `<tr><td>Total HT</td><td class="r">${eur(v.totaux.totalHT)}</td></tr>${ven}` : ''}<tr><td><b>TOTAL</b></td><td class="r"><b>${eur(v.totaux.totalTTC)}</b></td></tr></table><hr>
-      <table>${pay}</table>${v.totaux.assujetti ? '' : `<hr><p class="c" style="font-size:10px">${esc(MENTION_FRANCHISE_TVA)}</p>`}<hr><p class="c">Merci de votre visite</p>`;
+      <table>${pay}</table>${v.totaux.assujetti ? '' : `<hr><p class="c" style="font-size:10px">${esc(MENTION_FRANCHISE_TVA)}</p>`}${sceau}<hr><p class="c">Merci de votre visite</p>`;
   }
   function imprimer(html){ $('#zone-impression').innerHTML = html; window.print(); }
   async function ticket(v){
-    const { d, fin } = ouvrir(`<h2>Vente enregistrée</h2><p class="muted" style="margin-bottom:10px">${v.numero ? 'Facture ' + esc(v.numero) + ' · ' : ''}${eur(v.totaux.totalTTC)}</p>
+    const { d, fin } = ouvrir(`<h2>${v.formation ? 'Vente de formation' : v.type === 'avoir' ? 'Avoir enregistré' : 'Vente enregistrée'}</h2><p class="muted" style="margin-bottom:10px">${v.numero ? esc(v.numero) + ' · ' : ''}${eur(v.totaux.totalTTC)}</p>
       ${v.paiements.some(p => p.mode === 'especes' && p.recu > p.montant) ? `<p class="gros" style="margin:8px 0">Rendre ${eur(v.paiements.filter(p => p.mode === 'especes').reduce((s, p) => s + (p.recu - p.montant), 0))}</p>` : ''}
       <div class="actions" style="justify-content:space-between"><button class="btn" id="imp" type="button">Imprimer le ticket</button><button class="btn principal" id="nouv" type="button" autofocus>Nouvelle vente</button></div>`);
     d.querySelector('#imp').onclick = () => imprimer(ticketHTML(v)); d.querySelector('#nouv').onclick = () => d.fermer(true);
     await fin;
   }
 
-  // ---------------------------------------------------------------- historique et clôture
-  async function ventesSession(){
-    const { data: pay } = await supabase.from('caisse_paiements').select('*').eq('session_id', session.id).order('created_at');
-    const ids = [...new Set((pay || []).map(p => p.document_id))];
-    if(!ids.length) return { pay:[], docs:[], lignes:[] };
-    const [dd, ll] = await Promise.all([
-      supabase.from('documents').select('id,numero,created_at,client_id').in('id', ids),
-      supabase.from('document_lignes').select('*').in('document_id', ids).order('position')
-    ]);
-    return { pay:pay || [], docs:dd.data || [], lignes:ll.data || [] };
+  // ---------------------------------------------------------------- historique, avoirs, duplicata
+  async function ticketsRecents(jours){
+    const depuis = new Date(Date.now() - jours * 86400000).toISOString();
+    const { data } = await supabase.from('caisse_tickets').select('*').eq('owner_id', espaceId).gte('date_ticket', depuis).order('date_ticket').limit(300);
+    return (data || []).reverse();
   }
-  const totauxVente = (lignes) => { const t = calculerTotaux(lignes, params); return { ...t, totalTTC:r2(t.totalTTC), totalHT:r2(t.totalHT), totalTVA:r2(t.totalTVA) }; };
+  async function imprimerDuplicata(id){
+    const { data, error } = await supabase.rpc('caisse_duplicata', { p_ticket:id });
+    if(error || !data){ toast('Duplicata impossible pour le moment.'); return; }
+    imprimer(ticketHTML(venteDepuis(data)));
+  }
+  async function faireAvoir(tk){
+    if(!session){ toast('Ouvrez la caisse pour émettre un avoir : le remboursement sort de la caisse.'); return; }
+    const { d, fin } = ouvrir(`<h2>Avoir sur ${esc(tk.numero)}</h2>
+      <p class="muted" style="margin-bottom:10px">Un ticket ne se modifie ni ne se supprime : on le corrige par un avoir. Choisissez ce qui est remboursé.</p>
+      ${tk.lignes.map((l, i) => `<div class="rang"><label><input type="checkbox" data-i="${i + 1}" checked> ${esc(l.description)}</label><input type="number" data-q="${i + 1}" min="0" max="${esc(l.quantite)}" step="1" value="${esc(l.quantite)}" style="width:72px" aria-label="Quantité remboursée : ${esc(l.description)}"></div>`).join('')}
+      <div class="champ" style="margin-top:10px"><label for="av-motif">Motif (obligatoire)</label><input id="av-motif" maxlength="200" placeholder="Ex. prestation non réalisée"></div>
+      <div class="champ"><label for="av-mode">Remboursé par</label><select id="av-mode">${Object.entries(MODES).map(([k, v]) => `<option value="${k}"${k === (tk.paiements[0] || {}).mode ? ' selected' : ''}>${v}</option>`).join('')}</select></div>
+      <p class="erreur" id="err" role="alert"></p>
+      <div class="actions"><button class="btn" id="non" type="button">Annuler</button><button class="btn principal" id="ok" type="button">Émettre l'avoir</button></div>`);
+    d.querySelector('#non').onclick = () => d.fermer(null);
+    d.querySelector('#ok').onclick = async () => {
+      const sel = [...d.querySelectorAll('input[data-i]')].filter(c => c.checked).map(c => ({ index:+c.dataset.i, quantite:num(d.querySelector(`input[data-q="${c.dataset.i}"]`).value) })).filter(x => x.quantite > 0);
+      if(!sel.length){ d.querySelector('#err').textContent = 'Sélectionnez au moins une ligne.'; return; }
+      if(d.querySelector('#av-motif').value.trim().length < 3){ d.querySelector('#err').textContent = 'Indiquez le motif de l\'avoir.'; return; }
+      const { data, error } = await supabase.rpc('caisse_avoir', { p_ticket:tk.id, p_selection:sel, p_motif:d.querySelector('#av-motif').value, p_paiements:[{ mode:d.querySelector('#av-mode').value }] });
+      if(error){ d.querySelector('#err').textContent = /rembourser plus/i.test(error.message) ? 'Cette quantité a déjà été remboursée en partie : ' + error.message.replace(/^.*Ligne/, 'Ligne') : 'Avoir impossible : ' + error.message; return; }
+      d.fermer(venteDepuis(data));
+    };
+    const av = await fin;
+    if(av){ await ticket(av); }
+  }
 
   $('#b-historique').onclick = async () => {
-    if(!session){ toast('La caisse est fermée : aucune vente en cours.'); return; }
-    const { pay, docs, lignes } = await ventesSession();
-    const { d, fin } = ouvrir(`<h2>Ventes de la session</h2>${docs.length ? docs.sort((a, b) => b.created_at.localeCompare(a.created_at)).map(x => {
-      const lg = lignes.filter(l => l.document_id === x.id), t = totauxVente(lg), pp = pay.filter(p => p.document_id === x.id);
-      return `<div class="rang"><span><b>${esc(x.numero || '')}</b> · ${heure(x.created_at)}<br><span class="muted" style="font-size:13px">${[...new Set(pp.map(p => MODES[p.mode]))].join(', ')}</span></span><span><b>${eur(t.totalTTC)}</b> <button class="btn petit" data-id="${x.id}" type="button">Ticket</button></span></div>`; }).join('') : '<p class="muted">Aucune vente pour l\'instant.</p>'}
+    const liste = await ticketsRecents(30);
+    const { d, fin } = ouvrir(`<h2>Tickets des 30 derniers jours</h2>${liste.length ? liste.map(x => {
+      const modes = [...new Set(x.paiements.map(p => MODES[p.mode]))].join(', ');
+      return `<div class="rang"><span><b>${esc(x.numero)}</b>${x.type === 'avoir' ? ' · avoir' : ''}${x.formation ? ' · formation' : ''} · ${esc(jourHeure(x.date_ticket))}<br><span class="muted" style="font-size:13px">${esc(modes)}${x.client_nom ? ' · ' + esc(x.client_nom) : ''}</span></span>
+        <span><b>${eur(x.total_ttc)}</b> <button class="btn petit" data-dup="${x.id}" type="button">Duplicata</button>${x.type === 'vente' && !x.formation ? ` <button class="btn petit" data-av="${x.id}" type="button">Avoir</button>` : ''}</span></div>`;
+    }).join('') : '<p class="vide">Aucun ticket pour l\'instant.</p>'}
       <div class="actions"><button class="btn" id="non" type="button">Fermer</button></div>`);
     d.querySelector('#non').onclick = () => d.fermer(null);
-    d.addEventListener('click', e => {
-      const b = e.target.closest('button[data-id]'); if(!b) return;
-      const x = docs.find(z => z.id === b.dataset.id), lg = lignes.filter(l => l.document_id === x.id);
-      imprimer(ticketHTML({ numero:x.numero, date:x.created_at, lignes:lg.map(l => ({ description:l.description, quantite:l.quantite, prix_unitaire:l.prix_unitaire, tva_taux:l.tva_taux })), totaux:totauxVente(lg),
-        paiements:pay.filter(p => p.document_id === x.id).map(p => ({ mode:p.mode, montant:Number(p.montant), recu:p.recu == null ? null : Number(p.recu) })), client:clients.find(c => c.id === x.client_id) || null }));
+    d.addEventListener('click', async e => {
+      const b = e.target.closest('button[data-dup], button[data-av]'); if(!b) return;
+      if(b.dataset.dup) await imprimerDuplicata(b.dataset.dup);
+      else { const tk = liste.find(z => z.id === b.dataset.av); d.fermer(null); await faireAvoir(tk); }
     });
     await fin;
   };
 
+  // ---------------------------------------------------------------- clôture Z
   $('#b-cloture').onclick = async () => {
     const enCours = tickets.filter(t => t.panier.length).length;
     if(enCours && !confirm(enCours + ' ticket' + (enCours > 1 ? 's' : '') + ' en cours non encaissé' + (enCours > 1 ? 's' : '') + ' ser' + (enCours > 1 ? 'ont' : 'a') + ' conservé' + (enCours > 1 ? 's' : '') + ' sur cet appareil. Clôturer quand même ?')) return;
-    const { pay, docs, lignes } = await ventesSession();
-    const parMode = {}; pay.forEach(p => { parMode[p.mode] = r2((parMode[p.mode] || 0) + Number(p.montant)); });
-    const t = totauxVente(lignes), especes = parMode.especes || 0, attendues = r2(Number(session.fond_caisse) + especes);
+    const { data: tk } = await supabase.from('caisse_tickets').select('*').eq('session_id', session.id).order('date_ticket');
+    const reels = (tk || []).filter(x => !x.formation);
+    const parMode = {}; reels.forEach(x => x.paiements.forEach(p => { parMode[p.mode] = r2((parMode[p.mode] || 0) + (x.type === 'avoir' ? -1 : 1) * Number(p.montant)); }));
+    const som = c => r2(reels.reduce((a, x) => a + Number(x[c]), 0)), especes = parMode.especes || 0, attendues = r2(Number(session.fond_caisse) + especes);
     const { d, fin } = ouvrir(`<h2>Clôture de la caisse</h2>
-      <div class="rang"><span>Ventes</span><b>${docs.length}</b></div>
-      ${t.assujetti ? `<div class="rang"><span>Chiffre d'affaires HT</span><b>${eur(t.totalHT)}</b></div><div class="rang"><span>TVA collectée</span><b>${eur(t.totalTVA)}</b></div>` : ''}
-      <div class="rang"><span>Chiffre d'affaires TTC</span><b>${eur(t.totalTTC)}</b></div>
+      <div class="rang"><span>Ventes</span><b>${reels.filter(x => x.type === 'vente').length}</b></div>
+      <div class="rang"><span>Avoirs</span><b>${reels.filter(x => x.type === 'avoir').length}</b></div>
+      ${assujetti() ? `<div class="rang"><span>Chiffre d'affaires HT</span><b>${eur(som('total_ht'))}</b></div><div class="rang"><span>TVA collectée</span><b>${eur(som('total_tva'))}</b></div>` : ''}
+      <div class="rang"><span>Chiffre d'affaires TTC</span><b>${eur(som('total_ttc'))}</b></div>
       ${Object.entries(parMode).map(([k, v]) => `<div class="rang"><span>${MODES[k]}</span><b>${eur(v)}</b></div>`).join('')}
-      <div class="rang"><span>Espèces attendues (fond ${eur(session.fond_caisse)} + ventes)</span><b>${eur(attendues)}</b></div>
+      <div class="rang"><span>Espèces attendues (fond ${eur(session.fond_caisse)} + encaissements - remboursements)</span><b>${eur(attendues)}</b></div>
       <div class="champ" style="margin-top:12px"><label for="cpt">Espèces comptées dans le tiroir (€)</label><input id="cpt" inputmode="decimal" autofocus></div>
       <div class="rang"><span>Écart</span><b id="ecart">—</b></div>
+      <p class="muted" style="font-size:13px">La clôture est définitive : le Z est numéroté, signé et ajouté au journal inaltérable.</p>
       <p class="erreur" id="err" role="alert"></p>
       <div class="actions"><button class="btn" id="non" type="button">Annuler</button><button class="btn principal" id="ok" type="button">Clôturer et imprimer le Z</button></div>`);
     d.querySelector('#cpt').addEventListener('input', () => { const e = r2(num(d.querySelector('#cpt').value) - attendues); d.querySelector('#ecart').textContent = (e > 0 ? '+' : '') + eur(e); d.querySelector('#ecart').style.color = e === 0 ? 'var(--ok)' : 'var(--alerte)'; });
     d.querySelector('#non').onclick = () => d.fermer(null);
     d.querySelector('#ok').onclick = async () => {
       if(d.querySelector('#cpt').value.trim() === ''){ d.querySelector('#err').textContent = 'Comptez les espèces du tiroir avant de clôturer.'; return; }
-      const comptees = num(d.querySelector('#cpt').value), ecart = r2(comptees - attendues), maintenant = new Date().toISOString();
-      const rapport = { nb_ventes:docs.length, total_ht:t.totalHT, total_tva:t.totalTVA, total_ttc:t.totalTTC, ventilation_tva:t.ventilation, par_mode:parMode,
-        fond_caisse:Number(session.fond_caisse), especes_attendues:attendues, especes_comptees:comptees, ecart, ouverte_le:session.ouverte_le, cloturee_le:maintenant, assujetti_tva:t.assujetti };
-      const { error } = await supabase.from('caisse_sessions').update({ cloturee_le:maintenant, cloturee_par:(await supabase.auth.getUser()).data.user.id, especes_comptees:comptees, ecart, rapport }).eq('id', session.id);
-      if(error){ d.querySelector('#err').textContent = 'Clôture impossible pour le moment.'; return; }
-      d.fermer(rapport);
+      const { data, error } = await supabase.rpc('caisse_cloturer', { p_session:session.id, p_comptees:num(d.querySelector('#cpt').value), p_notes:null });
+      if(error || !data){ d.querySelector('#err').textContent = 'Clôture impossible pour le moment.'; return; }
+      d.fermer(data);
     };
     const rapport = await fin;
     if(rapport){
       session = null; majSession(); dessinerPanier();
       const nom = brand.business_name || params.emetteur_nom || 'Mirrio';
-      imprimer(`<h1>${esc(nom)}</h1><p class="c"><b>CLÔTURE DE CAISSE (Z)</b></p><hr><p>Ouverture : ${esc(jourHeure(rapport.ouverte_le))}<br>Clôture : ${esc(jourHeure(rapport.cloturee_le))}</p><hr>
-        <table><tr><td>Ventes</td><td class="r">${rapport.nb_ventes}</td></tr>${rapport.assujetti_tva ? `<tr><td>CA HT</td><td class="r">${eur(rapport.total_ht)}</td></tr>${rapport.ventilation_tva.map(x => `<tr><td>TVA ${x.taux} %</td><td class="r">${eur(x.montant)}</td></tr>`).join('')}` : ''}<tr><td><b>CA TTC</b></td><td class="r"><b>${eur(rapport.total_ttc)}</b></td></tr></table><hr>
-        <table>${Object.entries(rapport.par_mode).map(([k, v]) => `<tr><td>${MODES[k]}</td><td class="r">${eur(v)}</td></tr>`).join('')}</table><hr>
-        <table><tr><td>Fond de caisse</td><td class="r">${eur(rapport.fond_caisse)}</td></tr><tr><td>Espèces attendues</td><td class="r">${eur(rapport.especes_attendues)}</td></tr><tr><td>Espèces comptées</td><td class="r">${eur(rapport.especes_comptees)}</td></tr><tr><td><b>Écart</b></td><td class="r"><b>${eur(rapport.ecart)}</b></td></tr></table>`);
+      imprimer(`<h1>${esc(nom)}</h1><p class="c"><b>CLÔTURE DE CAISSE (Z)</b><br>${esc(rapport.numero_z)}</p><hr><p>Ouverture : ${esc(jourHeure(rapport.ouverte_le))}<br>Clôture : ${esc(jourHeure(rapport.cloturee_le))}</p><hr>
+        <table><tr><td>Ventes</td><td class="r">${rapport.nb_ventes}</td></tr><tr><td>Avoirs</td><td class="r">${rapport.nb_avoirs}</td></tr>${rapport.premier_ticket ? `<tr><td>Tickets</td><td class="r">${esc(rapport.premier_ticket)} à ${esc(rapport.dernier_ticket)}</td></tr>` : ''}${rapport.assujetti_tva ? `<tr><td>CA HT</td><td class="r">${eur(rapport.total_ht)}</td></tr>${(rapport.ventilation_tva || []).map(x => `<tr><td>TVA ${x.taux} %</td><td class="r">${eur(x.montant)}</td></tr>`).join('')}` : ''}<tr><td><b>CA TTC</b></td><td class="r"><b>${eur(rapport.total_ttc)}</b></td></tr></table><hr>
+        <table>${Object.entries(rapport.par_mode || {}).map(([k, v]) => `<tr><td>${MODES[k]}</td><td class="r">${eur(v)}</td></tr>`).join('')}</table><hr>
+        <table><tr><td>Fond de caisse</td><td class="r">${eur(rapport.fond_caisse)}</td></tr><tr><td>Espèces attendues</td><td class="r">${eur(rapport.especes_attendues)}</td></tr><tr><td>Espèces comptées</td><td class="r">${eur(rapport.especes_comptees)}</td></tr><tr><td><b>Écart</b></td><td class="r"><b>${eur(rapport.ecart)}</b></td></tr></table><hr>
+        <table><tr><td>Grand total perpétuel</td><td class="r">${eur(rapport.gt_perpetuel)}</td></tr>${rapport.nb_formation ? `<tr><td>Tickets de formation (hors total)</td><td class="r">${rapport.nb_formation}</td></tr>` : ''}</table>
+        <hr><p class="c" style="font-size:10px">Signature ${esc((rapport.signature || '').slice(0, 16))}</p>`);
       toast('Caisse clôturée.');
     }
+  };
+
+  // ---------------------------------------------------------------- mode formation
+  const cleFormation = () => 'mirrio-caisse-formation-' + espaceId;
+  function majFormation(){
+    $('#b-formation').setAttribute('aria-pressed', formation); $('#bandeau-formation').hidden = !formation;
+    $('#b-formation').style.background = formation ? '#B3402A' : ''; $('#b-formation').style.color = formation ? '#fff' : '';
+  }
+  $('#b-formation').onclick = () => {
+    if(!formation && !confirm('Passer en mode formation ? Les ventes saisies ne seront pas comptabilisées (ticket « formation », hors chiffre d\'affaires et grand total).')) return;
+    formation = !formation; try{ localStorage.setItem(cleFormation(), formation ? '1' : '0'); }catch(e){} majFormation();
+  };
+
+  // ---------------------------------------------------------------- conformité : intégrité, clôtures de période, archive
+  $('#b-conformite').onclick = async () => {
+    const { d, fin } = ouvrir(`<h2>Conformité de la caisse</h2><div id="etat-integrite" class="rang" role="status"><span>Vérification de l'intégrité…</span></div>
+      <div id="chiffres" class="muted" style="font-size:14px;margin:6px 0 12px"></div>
+      <h3 style="font-size:16px;margin:10px 0 6px">Archives (à conserver 6 ans)</h3>
+      <div class="champ"><label for="arch-p">Période</label><select id="arch-p"><option value="mois">Ce mois-ci</option><option value="moisprec">Mois dernier</option><option value="annee">Cette année</option><option value="anneeprec">Année dernière</option></select></div>
+      <button class="btn" id="arch" type="button">Télécharger l'archive (JSON signé)</button>
+      <h3 style="font-size:16px;margin:14px 0 6px">Clôtures de période</h3>
+      <div class="actions" style="justify-content:flex-start"><button class="btn" id="c-mois" type="button">Clôturer le mois dernier</button><button class="btn" id="c-annee" type="button">Clôturer l'année dernière</button></div>
+      <p class="muted" style="font-size:13px;margin-top:10px">Statut : <b>prête pour la certification NF525, non certifiée</b>. Le dossier technique est dans docs/caisse-conformite.md.</p>
+      <p class="erreur" id="err" role="alert"></p>
+      <div class="actions"><button class="btn" id="re" type="button">Revérifier</button><button class="btn principal" id="non" type="button">Fermer</button></div>`);
+    const verifier = async () => {
+      const z = d.querySelector('#etat-integrite'); z.innerHTML = '<span>Vérification de l\'intégrité…</span>';
+      const { data, error } = await supabase.rpc('caisse_verifier');
+      if(error || !data){ z.innerHTML = '<span>Vérification impossible (migration schema-v43 exécutée ?)</span>'; return; }
+      z.innerHTML = data.ok ? `<span>Intégrité du journal</span><b style="color:var(--ok)">Conforme</b>` : `<span>Intégrité du journal</span><b style="color:var(--alerte)">ANOMALIE</b>`;
+      d.querySelector('#chiffres').innerHTML = data.ok ? `${data.entrees} entrées chaînées et signées · ${data.tickets} ventes · ${data.avoirs} avoirs<br>Grand total perpétuel : ${eur(data.gt_perpetuel)} · absolu : ${eur(data.gt_absolu)}`
+        : `<span style="color:var(--alerte)">${esc(data.defaut && data.defaut.raison)}${data.defaut && data.defaut.seq ? ' (entrée ' + data.defaut.seq + ')' : ''}. Ne continuez pas à encaisser avant d'avoir contacté le support.</span>`;
+    };
+    d.querySelector('#re').onclick = verifier; d.querySelector('#non').onclick = () => d.fermer(null); verifier();
+    const msg = t => { d.querySelector('#err').textContent = t; };
+    const n = new Date(), a = n.getFullYear(), m = n.getMonth() + 1;
+    const periode = k => ({ mois:[new Date(a, m - 1, 1), n], moisprec:[new Date(a, m - 2, 1), new Date(a, m - 1, 0)], annee:[new Date(a, 0, 1), n], anneeprec:[new Date(a - 1, 0, 1), new Date(a - 1, 11, 31)] }[k]);
+    const iso = x => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+    d.querySelector('#arch').onclick = async () => {
+      msg(''); const [x, y] = periode(d.querySelector('#arch-p').value);
+      const { data, error } = await supabase.rpc('caisse_archiver', { p_debut:iso(x), p_fin:iso(y) });
+      if(error || !data){ msg('Archive impossible : ' + (error && error.message || '')); return; }
+      const lien = document.createElement('a'); lien.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], { type:'application/json' }));
+      lien.download = `mirrio-caisse-archive-${iso(x)}-${iso(y)}.json`; document.body.appendChild(lien); lien.click(); lien.remove(); setTimeout(() => URL.revokeObjectURL(lien.href), 4000);
+      toast('Archive téléchargée. Conservez-la 6 ans.');
+    };
+    const clore = async (type, annee, mois) => {
+      msg(''); const { data, error } = await supabase.rpc('caisse_cloturer_periode', { p_type:type, p_annee:annee, p_mois:mois });
+      if(error){ msg(error.message.replace(/^.*?:\s*/, '')); return; }
+      toast(`Période ${data.periode} clôturée : ${eur(data.total_ttc)} TTC.`);
+    };
+    d.querySelector('#c-mois').onclick = () => clore('mensuelle', m === 1 ? a - 1 : a, m === 1 ? 12 : m - 1);
+    d.querySelector('#c-annee').onclick = () => clore('annuelle', a - 1, null);
+    await fin;
   };
 
   function montrerBandeauDemo(){
@@ -551,6 +634,7 @@
     const ok = await charger();
     if(DEMO) montrerBandeauDemo();
     chargerTickets();
+    try{ formation = localStorage.getItem(cleFormation()) === '1'; }catch(e){} majFormation();
     if(DEMO && !localStorage.getItem(cleTickets() + '-init')){
       try{ localStorage.setItem(cleTickets() + '-init', '1'); }catch(e){}
       const pr = id => prestations.find(x => x.id === id), ligne = (id, qte = 1) => ({ cle:crypto.randomUUID(), pid:id, libelle:pr(id).libelle, ht:Number(pr(id).prix_unitaire), tva:0, qte, remise:0 });
