@@ -124,6 +124,7 @@
   <span class="puce" id="etat-session" role="status"></span>
   <button class="btn petit" id="b-historique" type="button">Ventes</button>
   <button class="btn petit" id="b-formation" type="button" aria-pressed="false" title="Les tickets de formation ne sont pas comptabilisés">Formation</button>
+  <button class="btn petit" id="b-scan" type="button" title="Scanner un code-barres : ajoute le produit au ticket">Scanner</button>
   <button class="btn petit" id="b-produits" type="button">Produits</button>
   <button class="btn petit" id="b-terminal-cfg" type="button">Terminal</button>
   <button class="btn petit" id="b-conformite" type="button">Conformité</button>
@@ -502,7 +503,7 @@
     const { data: actifs } = await supabase.from('produits').select('*').eq('owner_id', espaceId).eq('actif', true).order('position');
     produits = actifs || []; dessinerCatalogue();
   }
-  async function formProduit(p, tout){
+  async function formProduit(p, tout, preset = {}){
     const cats = [...new Set(tout.map(x => x.categorie).filter(Boolean))];
     const prixAffiche = p ? r2(ttcUnitaire(Number(p.prix_unitaire), p.tva_taux)) : '';
     const { d, fin } = ouvrir(`<h2>${p ? 'Modifier le produit' : 'Nouveau produit'}</h2>
@@ -511,11 +512,14 @@
       <div class="champ"><label for="pc">Catégorie</label><input id="pc" maxlength="40" list="cats-prod" value="${esc(p ? p.categorie || '' : '')}" placeholder="Ex. Shampoings"><datalist id="cats-prod">${cats.map(c => `<option value="${esc(c)}">`).join('')}</datalist></div>
       <div class="champ"><label for="pp">Prix de vente${assujetti() ? ' TTC' : ''} (€)</label><input id="pp" inputmode="decimal" value="${prixAffiche === '' ? '' : String(prixAffiche).replace('.', ',')}"></div>
       ${assujetti() ? `<div class="champ"><label for="pt">TVA (%)</label><select id="pt">${[20, 10, 5.5, 2.1, 0].map(t => `<option value="${t}"${t === (p ? Number(p.tva_taux) : tauxDefaut()) ? ' selected' : ''}>${t} %</option>`).join('')}</select></div>` : ''}
-      <div class="champ"><label for="pr">Référence ou code-barres (facultatif)</label><input id="pr" maxlength="40" value="${esc(p ? p.reference || '' : '')}"></div>
+      <div class="champ"><label for="pr">Code-barres ou référence (facultatif)</label><div style="display:flex;gap:8px"><input id="pr" maxlength="40" inputmode="numeric" autocomplete="off" value="${esc(p ? p.reference || '' : preset.reference || '')}" style="flex:1"><button class="btn" id="scan" type="button">Scanner</button></div>
+        <span class="muted" style="font-size:13px">Scannez avec la caméra, ou avec un lecteur USB ou Bluetooth (il saisit le code et valide).</span></div>
       <label style="display:flex;gap:8px;align-items:center;margin:6px 0"><input type="checkbox" id="pa"${!p || p.actif ? ' checked' : ''}> En vente</label>
       <p class="erreur" id="err" role="alert"></p>
       <div class="actions">${p ? '<button class="btn danger" id="sup" type="button">Supprimer</button>' : ''}<button class="btn" id="non" type="button">Annuler</button><button class="btn principal" id="ok" type="button">Enregistrer</button></div>`);
     d.querySelector('#non').onclick = () => d.fermer(null);
+    d.querySelector('#scan').onclick = async () => { const c = await lireCodeCamera(); if(c){ d.querySelector('#pr').value = c; d.querySelector('#pn').focus(); } };
+    d.querySelector('#pr').addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); d.querySelector('#pn').value.trim() ? d.querySelector('#pp').focus() : d.querySelector('#pn').focus(); } });   // un lecteur envoie « Entrée » après le code
     if(p) d.querySelector('#sup').onclick = async () => {
       if(!confirm('Supprimer ce produit ? Les tickets déjà émis ne changent pas.')) return;
       const { error } = await supabase.from('produits').delete().eq('id', p.id);
@@ -525,6 +529,8 @@
       const nom = d.querySelector('#pn').value.trim(), saisi = num(d.querySelector('#pp').value), tva = assujetti() ? Number(d.querySelector('#pt').value) : 0;
       if(!nom){ d.querySelector('#err').textContent = 'Indiquez le nom du produit.'; return; }
       if(d.querySelector('#pp').value.trim() === '' || saisi > 100000){ d.querySelector('#err').textContent = 'Indiquez un prix valide.'; return; }
+      const code = d.querySelector('#pr').value.trim(), doublon = code && tout.find(x => (!p || x.id !== p.id) && normaliserCode(x.reference) === normaliserCode(code));
+      if(doublon){ d.querySelector('#err').textContent = `Ce code est déjà celui de « ${doublon.nom} ».`; return; }
       const ligne = { nom, marque:d.querySelector('#pm').value.trim() || null, categorie:d.querySelector('#pc').value.trim() || null, reference:d.querySelector('#pr').value.trim() || null,
         prix_unitaire:Math.round((assujetti() ? saisi / (1 + tva / 100) : saisi) * 10000) / 10000, tva_taux:tva, actif:d.querySelector('#pa').checked };
       const q = p ? supabase.from('produits').update(ligne).eq('id', p.id) : supabase.from('produits').insert({ ...ligne, owner_id:espaceId, position:tout.reduce((m, x) => Math.max(m, x.position || 0), 0) + 1 });
@@ -532,9 +538,85 @@
       if(error){ d.querySelector('#err').textContent = /produits|relation|does not exist/i.test(error.message) ? 'Exécuter db/schema-v44-produits.sql dans Supabase.' : 'Enregistrement impossible.'; return; }
       d.fermer(true);
     };
-    await fin;
+    return await fin;
   }
   $('#b-produits').onclick = gererProduits;
+
+  // ---------------------------------------------------------------- scanner de code-barres
+  // Trois sources, un seul chemin : caméra (BarcodeDetector, ou ZXing en repli), lecteur USB ou Bluetooth (il « tape » le code puis Entrée), saisie à la main.
+  // Les zéros de tête sont ignorés : un EAN-13 qui commence par 0 est le même article que son UPC-A de 12 chiffres.
+  const normaliserCode = c => String(c || '').trim().replace(/^0+/, '');
+  let zxingChargement = null;
+  function chargerZXing(){
+    if(window.ZXing) return Promise.resolve(true);
+    return zxingChargement || (zxingChargement = new Promise(res => {
+      const sc = document.createElement('script'); sc.src = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js';
+      sc.onload = () => res(!!window.ZXing); sc.onerror = () => res(false); document.head.appendChild(sc);
+    }));
+  }
+  async function lireCodeCamera(){
+    const { d, fin } = ouvrir(`<h2>Scanner un code-barres</h2>
+      <div style="background:#000;border-radius:16px;overflow:hidden"><video id="cam" playsinline muted style="width:100%;max-height:46vh;display:block"></video></div>
+      <p class="muted" id="cam-etat" role="status" style="margin:8px 0">Ouverture de la caméra…</p>
+      <div class="champ"><label for="cam-code">Ou saisissez le code (un lecteur USB ou Bluetooth le saisit ici)</label><input id="cam-code" inputmode="numeric" autocomplete="off"></div>
+      <div class="actions"><button class="btn" id="non" type="button">Annuler</button><button class="btn principal" id="ok" type="button">Valider le code saisi</button></div>`);
+    let flux = null, minuteur = null, zx = null, termine = false;
+    const clore = v => { if(termine) return; termine = true; clearInterval(minuteur); if(flux) flux.getTracks().forEach(t => t.stop()); try{ if(zx) zx.reset(); }catch(e){} d.fermer(v); };
+    const etat = t => { d.querySelector('#cam-etat').textContent = t; };
+    d.querySelector('#non').onclick = () => clore(null);
+    d.querySelector('#ok').onclick = () => { const c = d.querySelector('#cam-code').value.trim(); if(c) clore(c); };
+    d.querySelector('#cam-code').addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); d.querySelector('#ok').click(); } });
+    d.addEventListener('cancel', () => clore(null));
+    (async () => {
+      const video = d.querySelector('#cam');
+      if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ etat('Caméra indisponible sur cet appareil : saisissez le code ou utilisez un lecteur.'); d.querySelector('#cam-code').focus(); return; }
+      try{
+        flux = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' } });
+        if(termine){ flux.getTracks().forEach(t => t.stop()); return; }
+        video.srcObject = flux; await video.play();
+      }catch(e){ etat('Accès à la caméra refusé ou impossible : saisissez le code ou utilisez un lecteur.'); d.querySelector('#cam-code').focus(); return; }
+      etat('Présentez le code-barres devant la caméra.');
+      if('BarcodeDetector' in window){
+        const det = new BarcodeDetector({ formats:['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39'] });
+        minuteur = setInterval(async () => { try{ const r = await det.detect(video); if(r.length) clore(r[0].rawValue); }catch(e){} }, 300);
+      } else if(await chargerZXing()){
+        zx = new ZXing.BrowserMultiFormatReader();
+        zx.decodeFromVideoElement(video, r => { if(r) clore(r.getText()); }).catch(() => {});
+      } else etat('Lecture par caméra indisponible ici : saisissez le code ou utilisez un lecteur.');
+    })();
+    return await fin;
+  }
+
+  // Un code est lu : on ajoute le produit au ticket, ou on propose de le créer avec ce code.
+  async function apresScan(code){
+    if(!session){ toast('Ouvrez d\'abord la caisse.'); return; }
+    const p = produits.find(x => normaliserCode(x.reference) === normaliserCode(code));
+    if(p){
+      const lib = p.nom + (p.marque ? ' · ' + p.marque : ''), l = panier.find(x => x.pid === p.id && !x.remise);
+      if(l) l.qte++; else panier.push({ cle:crypto.randomUUID(), pid:p.id, libelle:lib, ht:Number(p.prix_unitaire), tva:Number(p.tva_taux) || 0, qte:1, remise:0 });
+      dessinerPanier(); toast('Ajouté : ' + lib); return;
+    }
+    if(!confirm(`Le code ${code} n'est pas dans votre catalogue. Créer ce produit maintenant ?`)) return;
+    const { data } = await supabase.from('produits').select('*').eq('owner_id', espaceId).order('position');
+    const cree = await formProduit(null, data || [], { reference:code });
+    if(cree){
+      const { data: actifs } = await supabase.from('produits').select('*').eq('owner_id', espaceId).eq('actif', true).order('position');
+      produits = actifs || []; dessinerCatalogue();
+      if(produits.some(x => normaliserCode(x.reference) === normaliserCode(code))) await apresScan(code);
+    }
+  }
+  $('#b-scan').onclick = async () => {
+    if(!session){ toast('Ouvrez d\'abord la caisse.'); ouvrirCaisse(); return; }
+    const c = await lireCodeCamera(); if(c) await apresScan(c);
+  };
+  // Lecteur USB ou Bluetooth : il tape les chiffres très vite puis « Entrée ». Ignoré dès qu'on écrit dans un champ ou qu'une fenêtre est ouverte.
+  let tampon = '', dernierTouche = 0;
+  document.addEventListener('keydown', e => {
+    if(document.querySelector('dialog[open]') || /^(INPUT|TEXTAREA|SELECT)$/.test((e.target.tagName || ''))) return;
+    const t = Date.now();
+    if(e.key === 'Enter'){ const c = tampon; tampon = ''; if(c.length >= 6 && t - dernierTouche < 120){ e.preventDefault(); apresScan(c); } return; }
+    if(e.key.length === 1 && !e.ctrlKey && !e.metaKey){ if(t - dernierTouche > 80) tampon = ''; tampon += e.key; dernierTouche = t; }
+  });
 
   // ---------------------------------------------------------------- encaissement
   $('#b-encaisser').onclick = () => encaisser();
