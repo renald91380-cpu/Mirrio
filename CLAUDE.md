@@ -561,7 +561,7 @@ Moteur : `site/i18n.js` (un script classique, sans dépendance, à mettre dans l
   | Boulangerie-pâtisserie | 29 (319) | 309 (3 399) | 27 (297) |
   | Professionnel en plus (Équipe) | 5 (55) | 55 (605) | 5 (55) |
 
-  Annuel = un mois offert (10 × le mensuel) dans chaque monnaie. **Pas encore reporté** : `signup.html`, les CGU, `salons.html` (constante `FORFAIT_GROUPE`), le JSON-LD et les méta-descriptions de l'accueil (restent en euros). Aucun prélèvement réel n'existe (voir §1) : la monnaie de facturation d'un futur abonnement sera celle du pays du salon. Les prix d'un salon restent dans SA monnaie : ils ne sont jamais convertis pour le visiteur.
+  Annuel = un mois offert (11 × le mensuel) dans chaque monnaie. **Pas encore reporté** : `signup.html`, les CGU, `salons.html` (constante `FORFAIT_GROUPE`), le JSON-LD et les méta-descriptions de l'accueil (restent en euros). Aucun prélèvement réel n'existe (voir §1) : la monnaie de facturation d'un futur abonnement sera celle du pays du salon. Les prix d'un salon restent dans SA monnaie : ils ne sont jamais convertis pour le visiteur.
 - **Ordre prévu** : parcours client (reste : page du salon `pro.html` (déjà à la monnaie du salon, textes à traduire), commande de gâteaux (idem), espace client `mon-espace.html`, avis, paiement, RSVP, annuaire, e-mails et SMS ; la réservation est faite), accueil et inscription, puis l'application du salon (caisse, agenda, clients, paramètres), puis les pages juridiques relues.
 
 ### 3.38 Export comptable et partage au comptable
