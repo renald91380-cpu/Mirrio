@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Uncial+Antiqua&display=swap" rel="stylesheet">
+<script src="/i18n.js" data-pages="gateaux"></script>
 <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
 <style>
   :root{ --bg:#F5F5F3; --surface:#FBFBFA; --ink:#101216; --muted:#5B606B; --line:rgba(16,18,22,.12); --accent:#E2A63D; --icone:#8A6431; --ko:#B5381F; --ombre:0 1px 2px rgba(16,18,22,.05), 0 22px 44px -26px rgba(16,18,22,.35); }
@@ -149,7 +150,10 @@
   var esc = function(s){ var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; };
   var DEVISE = 'EUR';   // monnaie du salon : posée dès que l'API répond (champ `pays`)
   var euros = function(n){ return new Intl.NumberFormat(window.I18N ? window.I18N.locale : 'fr-FR', { style:'currency', currency:DEVISE }).format(n); };
-  var JOURS = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+  var T = function(fr){ var a = Array.prototype.slice.call(arguments, 1); return window.I18N ? window.I18N.t.apply(window.I18N, [fr].concat(a)) : fr.replace(/\{(\d+)\}/g, function(_, n){ return a[+n]; }); };
+  var LOC = function(){ return window.I18N ? window.I18N.locale : 'fr-FR'; };   // langue du visiteur (i18n.js)
+  var nomJour = function(j, f){ return new Intl.DateTimeFormat(LOC(), { weekday:f || 'long', timeZone:'UTC' }).format(new Date(Date.UTC(2024, 0, 7 + j))); };   // 7 janvier 2024 = dimanche
+  var JOURS = [0, 1, 2, 3, 4, 5, 6].map(function(j){ return nomJour(j); });
   var ICONES = { 'Entremets':'ph-cake', 'Gâteaux de fête et layer cakes':'ph-cake', 'Gâteaux de fête':'ph-cake', 'Pièces montées':'ph-confetti', 'Pièces montées et croquembouches':'ph-confetti', 'Tartes et tartelettes':'ph-pie-chart', 'Tartes':'ph-pie-chart', 'Petits fours':'ph-cookie', 'Petits fours et mignardises':'ph-cookie', 'Pâtisseries individuelles':'ph-cookie', 'Macarons':'ph-cookie', 'Viennoiseries':'ph-bread', 'Pains spéciaux et brioches':'ph-bread', 'Salé et buffets':'ph-bread' };
 
   // Unité de vente : 'part' (entremets, tartes…) ou 'piece' (éclairs, macarons, mignardises…).
@@ -270,7 +274,7 @@
     majRecap();
   }
 
-  function jourLong(isoDate){ return new Intl.DateTimeFormat('fr-FR', { weekday:'long', day:'numeric', month:'long' }).format(new Date(isoDate + 'T12:00:00')); }
+  function jourLong(isoDate){ return new Intl.DateTimeFormat(LOC(), { weekday:'long', day:'numeric', month:'long' }).format(new Date(isoDate + 'T12:00:00')); }
 
 
   // ---- calendrier de disponibilité : même règle de charge que le serveur (api/_gateaux.js)
@@ -318,20 +322,20 @@
     var plu = { mariage:'mariages', anniversaire:'anniversaires', anniversaire_enfant:'anniversaires d’enfant', communion:'communions', bapteme:'baptêmes', retraite:'départs en retraite', entreprise:'événements d’entreprise', 'gros gâteau':'grosses pièces' };
     var nb = {}, ordre = [];
     l.forEach(function(o){ if(!nb[o]){ nb[o] = 0; ordre.push(o); } nb[o]++; });
-    var t = ordre.map(function(o){ return nb[o] === 1 ? (un[o] || 'une commande') : (nb[o] === 2 ? 'deux ' : 'trois ') + (plu[o] || 'commandes'); });
-    return t.length > 1 ? t.slice(0, -1).join(', ') + ' et ' + t[t.length - 1] : t[0];
+    var t = ordre.map(function(o){ return nb[o] === 1 ? T(un[o] || 'une commande') : T(nb[o] === 2 ? 'deux {0}' : 'trois {0}', T(plu[o] || 'commandes')); });
+    return t.length > 1 ? t.slice(0, -1).join(', ') + ' ' + T('et') + ' ' + t[t.length - 1] : t[0];
   }
 
   function rendreCalendrier(){
     var r = etat.donnees.regles, m = etat.mois, sel = ($('#date') || {}).value;
     var premier = new Date(m.getFullYear(), m.getMonth(), 1), decalage = (premier.getDay() + 6) % 7;
     var nb = new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate();
-    var titre = new Intl.DateTimeFormat('fr-FR', { month:'long', year:'numeric' }).format(premier);
+    var titre = new Intl.DateTimeFormat(LOC(), { month:'long', year:'numeric' }).format(premier);
     var debutMin = new Date(r.date_min + 'T12:00:00'), finMax = new Date(r.date_max + 'T12:00:00');
     var precDesactive = premier <= new Date(debutMin.getFullYear(), debutMin.getMonth(), 1);
     var suivDesactive = new Date(m.getFullYear(), m.getMonth() + 1, 1) > finMax;
     var h = '<div class="cal-tete"><button type="button" class="cal-nav" id="cal-prec" aria-label="Mois précédent"' + (precDesactive ? ' disabled' : '') + '><i class="ph ph-caret-left" aria-hidden="true"></i></button><strong aria-live="polite">' + titre + '</strong><button type="button" class="cal-nav" id="cal-suiv" aria-label="Mois suivant"' + (suivDesactive ? ' disabled' : '') + '><i class="ph ph-caret-right" aria-hidden="true"></i></button></div><div class="cal-grille">';
-    ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].forEach(function(j){ h += '<div class="cal-jsem" aria-hidden="true">' + j + '</div>'; });
+    [1, 2, 3, 4, 5, 6, 0].map(function(j){ return nomJour(j, 'short').replace('.', ''); }).forEach(function(j){ h += '<div class="cal-jsem" aria-hidden="true">' + j + '</div>'; });
     for(var i = 0; i < decalage; i++) h += '<div></div>';
     for(var j = 1; j <= nb; j++){
       var v = iso(new Date(m.getFullYear(), m.getMonth(), j)), cls = 'cal-j', dis = false, etatTxt = 'disponible';
@@ -493,10 +497,10 @@
 
   function confirmer(j){
     var d = etat.donnees;
-    main.innerHTML = '<div class="bloc confirmation"><div class="rond"><i class="ph ph-check" aria-hidden="true"></i></div><h1 tabindex="-1" id="titre-ok" style="font-size:32px">Demande envoyée</h1>' +
-      '<p>' + esc(d.nom) + ' a bien reçu votre demande pour <strong>' + esc(etat.produit.nom) + '</strong>, retrait le ' + esc(j.quand) + '.</p>' +
-      '<div class="ref">' + esc(j.reference) + '</div><p>Estimation : <strong>' + euros(j.prix_estime) + '</strong>. La pâtisserie vous écrit pour confirmer la faisabilité et le prix final' + (d.regles.acompte_integral ? ', puis demander le règlement intégral' : (d.regles.acompte_pourcentage ? ' (acompte de ' + d.regles.acompte_pourcentage + ' %)' : '')) + '.</p>' +
-      (d.demo ? '<p><a href="demo-bouche.html">Retour à la démo</a></p>' : '<p>Un email récapitulatif vient de vous être envoyé.</p>') + '</div>';
+    main.innerHTML = '<div class="bloc confirmation"><div class="rond"><i class="ph ph-check" aria-hidden="true"></i></div><h1 tabindex="-1" id="titre-ok" style="font-size:32px">' + T('Demande envoyée') + '</h1>' +
+      '<p>' + T('{0} a bien reçu votre demande pour <strong>{1}</strong>, retrait le {2}.', esc(d.nom), esc(etat.produit.nom), esc(j.quand)) + '</p>' +
+      '<div class="ref">' + esc(j.reference) + '</div><p>' + (d.regles.acompte_integral ? T('Estimation : <strong>{0}</strong>. La pâtisserie vous écrit pour confirmer la faisabilité et le prix final, puis demander le règlement intégral.', euros(j.prix_estime)) : (d.regles.acompte_pourcentage ? T('Estimation : <strong>{0}</strong>. La pâtisserie vous écrit pour confirmer la faisabilité et le prix final (acompte de {1} %).', euros(j.prix_estime), d.regles.acompte_pourcentage) : T('Estimation : <strong>{0}</strong>. La pâtisserie vous écrit pour confirmer la faisabilité et le prix final.', euros(j.prix_estime)))) + '</p>' +
+      (d.demo ? '<p><a href="demo-bouche.html">' + T('Retour à la démo') + '</a></p>' : '<p>' + T('Un email récapitulatif vient de vous être envoyé.') + '</p>') + '</div>';
     var t = $('#titre-ok'); if(t) t.focus(); window.scrollTo({ top: 0 });
   }
 

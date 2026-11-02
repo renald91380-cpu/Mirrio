@@ -120,6 +120,7 @@
 </style>
 <script src="demo-mode.js"></script>
 <script src="https://unpkg.com/@phosphor-icons/web@2.1.1" defer></script>
+<script src="/i18n.js" data-pages="salon"></script>
 <script src="/cookies.js" defer></script>
 </head>
 <body>
@@ -140,6 +141,9 @@
   const niveauPrix = liste => { const v = (liste || []).map(x => Number(x.prix_unitaire)).filter(n => n > 0).sort((a, b) => a - b); if(!v.length) return ''; const m = v[Math.floor(v.length / 2)]; return m <= 30 ? '€' : m <= 70 ? '€€' : m <= 150 ? '€€€' : '€€€€'; };
   let symbole = '€';   // monnaie du salon (CHF, MAD) : posée par rendre() d'après `pays` renvoyé par l'API
   const prix = n => Number(n || 0).toFixed(2).replace('.00', '').replace('.', ',') + ' ' + symbole;
+  const T = (fr, ...a) => window.I18N ? window.I18N.t(fr, ...a) : fr.replace(/\{(\d+)\}/g, (_, n) => a[+n]);
+  const lieu = () => window.I18N ? window.I18N.locale : 'fr-FR';   // langue du visiteur (i18n.js)
+  let donnees = null;
   const etoiles = n => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n));
   const LIB = { patisserie:'Pâtisserie', coiffure:'Coiffure', barbier:'Barbier', esthetique:'Esthétique', onglerie:'Onglerie', massage:'Massage & spa', therapeute:'Bien-être',
     coach:'Coaching', photographe:'Photographie', formateur:'Formation', professeur:'Cours particuliers', consultant:'Conseil', autre:'' };
@@ -160,9 +164,9 @@
   function notesTarifs(t){
     if(!t || (!t.enfant && !t.etudiant)) return '';
     const l = [];
-    if(t.enfant) l.push(`<b>Tarif enfant</b> : −${esc(t.enfant.pourcentage)} % pour les moins de ${esc(t.enfant.age_max)} ans`);
-    if(t.etudiant) l.push(`<b>Tarif étudiant</b> : −${esc(t.etudiant.pourcentage)} % sur présentation de la carte d’étudiant`);
-    return `<p class="note-tarifs" style="margin:0 0 14px;padding:11px 16px;border-radius:16px;background:color-mix(in srgb, var(--accent, #E2A63D) 16%, transparent);font-size:14.5px;line-height:1.45">${l.join('<br>')}. À choisir au moment de réserver.</p>`;
+    if(t.enfant) l.push(T('<b>Tarif enfant</b> : −{0} % pour les moins de {1} ans', esc(t.enfant.pourcentage), esc(t.enfant.age_max)));
+    if(t.etudiant) l.push(T('<b>Tarif étudiant</b> : −{0} % sur présentation de la carte d’étudiant', esc(t.etudiant.pourcentage)));
+    return `<p class="note-tarifs" style="margin:0 0 14px;padding:11px 16px;border-radius:16px;background:color-mix(in srgb, var(--accent, #E2A63D) 16%, transparent);font-size:14.5px;line-height:1.45">${l.join('<br>')}. ${T('À choisir au moment de réserver.')}</p>`;
   }
   const ORDRE_DEFAUT = ['a_propos','prestations','galerie','equipe','horaires','carte','avis'];
   const JOURS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
@@ -236,16 +240,16 @@
       const presta = d.prestations.find(p => p.id === j.prestation_id), tz = { timeZone:'Europe/Paris' };
       const jourParis = dt => new Intl.DateTimeFormat('en-CA', { ...tz, year:'numeric', month:'2-digit', day:'2-digit' }).format(dt);
       const auj = jourParis(new Date()), dem = jourParis(new Date(Date.now() + 86400000));
-      const heure = iso => new Intl.DateTimeFormat('fr-FR', { ...tz, hour:'2-digit', minute:'2-digit' }).format(new Date(iso));
+      const heure = iso => new Intl.DateTimeFormat(lieu(), { ...tz, hour:'2-digit', minute:'2-digit', hourCycle:'h23' }).format(new Date(iso));
       const lien = iso => `reservation.html?p=${encodeURIComponent(d.slug || slug)}&prestations=${encodeURIComponent(j.prestation_id)}&creneau=${encodeURIComponent(iso)}`;
       const majuscule = t => t.charAt(0).toUpperCase() + t.slice(1);
-      const libelle = date => date === auj ? "Aujourd'hui" : date === dem ? 'Demain' : majuscule(new Date(date + 'T12:00:00Z').toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', timeZone:'UTC' }));
+      const libelle = date => date === auj ? T("Aujourd'hui") : date === dem ? T('Demain') : majuscule(new Date(date + 'T12:00:00Z').toLocaleDateString(lieu(), { weekday:'long', day:'numeric', month:'long', timeZone:'UTC' }));
       const premier = j.jours[0].creneaux[0];
       const h = document.getElementById('prochaine-hero');
-      if(h){ h.innerHTML = `Prochaine disponibilité : <a href="${lien(premier)}">${esc(libelle(j.jours[0].date).toLowerCase())} à ${heure(premier)}</a>`; h.hidden = false; }
+      if(h){ h.innerHTML = T('Prochaine disponibilité : <a href="{0}">{1}</a>', lien(premier), esc(T('{0} à {1}', libelle(j.jours[0].date).toLowerCase(), heure(premier)))); h.hidden = false; }
       const z = document.getElementById('prochaines');
       if(z){
-        z.innerHTML = `<h3>Prochaines disponibilités</h3><p class="sous">${presta ? `Pour « ${esc(presta.libelle)} » (${presta.duree_minutes} min), avec le premier disponible. ` : ''}Une autre prestation ? Touchez « Choisir » ci-dessous.</p>`
+        z.innerHTML = `<h3>${T('Prochaines disponibilités')}</h3><p class="sous">${presta ? T('Pour « {0} » ({1} min), avec le premier disponible.', esc(presta.libelle), presta.duree_minutes) + ' ' : ''}${T('Une autre prestation ? Touchez « Choisir » ci-dessous.')}</p>`
           + j.jours.map(x => `<div class="jour-h">${esc(libelle(x.date))}</div><div class="chips-h">${x.creneaux.map(iso => `<a class="chip-h" href="${lien(iso)}">${heure(iso)}</a>`).join('')}</div>`).join('');
         z.hidden = false;
       }
@@ -253,6 +257,7 @@
   }
 
   function rendre(d){
+    donnees = d;
     symbole = ({ CH:'CHF', MA:'MAD' })[d.pays] || '€';
     const v = d.vitrine || {};
     const couleur = /^#[0-9a-fA-F]{6}$/.test(v.couleur || '') ? v.couleur : (ACCENTS[d.accent] || ACCENTS.ambre);
@@ -273,7 +278,7 @@
 
     const nbAvis = (d.avis || []).length;
     const note = nbAvis ? Math.round(d.avis.reduce((s, a) => s + a.note, 0) / nbAvis * 10) / 10 : null;
-    const libMetier = (LIB[d.metier] || '') + ((d.styles || []).includes('afro') && d.metier === 'coiffure' ? ' · Spécialiste afro' : '');
+    const libMetier = (LIB[d.metier] ? T(LIB[d.metier]) : '') + ((d.styles || []).includes('afro') && d.metier === 'coiffure' ? ' · ' + T('Spécialiste afro') : '');
     const cta = esc(v.texte_bouton || 'Réserver en ligne');
     const ctaHref = apercu ? '#' : `reservation.html?p=${encodeURIComponent(d.slug || slug)}`;
 
@@ -337,7 +342,7 @@
         : (contact ? `<section id="lieu"><h2>Contact</h2>${contact}</section>` : ''),
       avis: () => nbAvis ? `<section id="avis"><h2>Livre d'or <span class="etoiles" style="font-size:18px;">${etoiles(note)}</span> <small style="font-size:15px; color:var(--muted); font-family:var(--corps);">${note} · ${nbAvis} avis</small></h2>
           <div class="carte-s">${d.avis.map(a => `<div class="avis"><span class="etoiles">${etoiles(a.note)}</span>
-          <small> ${esc(a.auteur || 'Client')} · ${new Date(a.created_at).toLocaleDateString('fr-FR')}</small>${a.commentaire ? `<p>${esc(a.commentaire)}</p>` : ''}</div>`).join('')}</div></section>` : ''
+          <small> ${esc(a.auteur || 'Client')} · ${new Date(a.created_at).toLocaleDateString(lieu())}</small>${a.commentaire ? `<p>${esc(a.commentaire)}</p>` : ''}</div>`).join('')}</div></section>` : ''
     };
 
     const corps = ordre.filter(k => sections[k] !== false && rendus[k]).map(k => rendus[k]()).join('');
@@ -399,7 +404,7 @@
         ${liste.length > 1 ? '<button class="lb-btn lb-prec" type="button" aria-label="Photo précédente">&#8249;</button><button class="lb-btn lb-suiv" type="button" aria-label="Photo suivante">&#8250;</button>' : ''}
         <div class="lb-pos" aria-live="polite"></div>`;
       const img = l.querySelector('img'), pos = l.querySelector('.lb-pos');
-      const afficher = () => { img.src = liste[i].dataset.src; pos.textContent = `${i + 1} sur ${liste.length}`; };
+      const afficher = () => { img.src = liste[i].dataset.src; pos.textContent = T('{0} sur {1}', i + 1, liste.length); };
       const aller = d => { i = (i + d + liste.length) % liste.length; afficher(); };
       const fermer = () => { l.remove(); document.removeEventListener('keydown', onKey); document.body.style.overflow = ''; liste[i].focus(); };
       const onKey = e => {
@@ -440,6 +445,9 @@
     if(window.parent !== window) window.parent.postMessage({ type:'cadence-vitrine-ready' }, location.origin);
     return;
   }
+
+  // Changement de langue : on redessine la page (dates, textes assemblés) en gardant la position de lecture.
+  if(window.I18N) window.I18N.onChange(() => { if(donnees){ const y = window.scrollY; rendre(donnees); window.scrollTo(0, y); } });
 
   (async () => {
     try{

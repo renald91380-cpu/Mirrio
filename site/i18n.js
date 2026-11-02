@@ -30,7 +30,7 @@
   var racine = document.documentElement;
   var script = document.currentScript;
   var pages = ((script && script.getAttribute('data-pages')) || '').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
-  var sansSelecteur = script && script.hasAttribute('data-sans-selecteur');
+  var sansSelecteur = (script && script.hasAttribute('data-sans-selecteur')) || window.self !== window.top;   // pas de sélecteur dans un cadre (aperçu de l'éditeur, héros de l'accueil)
 
   function lire(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
   function ecrire(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }

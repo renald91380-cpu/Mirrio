@@ -1,0 +1,342 @@
+{
+ "Réserver en ligne | Mirrio": [
+  "Book online | Mirrio",
+  "Online reserveren | Mirrio",
+  "الحجز أونلاين | Mirrio"
+ ],
+ "{0} | Réservation en ligne": [
+  "{0} | Online booking",
+  "{0} | Online reserveren",
+  "{0} | الحجز أونلاين"
+ ],
+ "Aller aux prestations": [
+  "Skip to services",
+  "Naar de behandelingen",
+  "مور للخدمات"
+ ],
+ "Prendre rendez-vous": [
+  "Book an appointment",
+  "Een afspraak maken",
+  "احجز رونديفو"
+ ],
+ "Réserver en ligne": [
+  "Book online",
+  "Online reserveren",
+  "احجز أونلاين"
+ ],
+ "Site web": [
+  "Website",
+  "Website",
+  "السيت"
+ ],
+ "À propos": [
+  "About",
+  "Over ons",
+  "على الصالون"
+ ],
+ "Prestations": [
+  "Services",
+  "Behandelingen",
+  "الخدمات"
+ ],
+ "Prochaines disponibilités": [
+  "Next available times",
+  "Eerstvolgende beschikbaarheden",
+  "الأوقات الجاية المتوفرة"
+ ],
+ "Pour « {0} » ({1} min), avec le premier disponible.": [
+  "For “{0}” ({1} min), with the first available person.",
+  "Voor “{0}” ({1} min), bij de eerste beschikbare persoon.",
+  "ل «{0}» ({1} د)، مع أول واحد متوفر."
+ ],
+ "Une autre prestation ? Touchez « Choisir » ci-dessous.": [
+  "Another service? Tap “Choose” below.",
+  "Een andere behandeling? Tik hieronder op “Kiezen”.",
+  "خدمة أخرى؟ كليكي على «اختار» لتحت."
+ ],
+ "Prochaine disponibilité : <a href=\"{0}\">{1}</a>": [
+  "Next availability: <a href=\"{0}\">{1}</a>",
+  "Eerstvolgende beschikbaarheid: <a href=\"{0}\">{1}</a>",
+  "الوقت الجاي المتوفر: <a href=\"{0}\">{1}</a>"
+ ],
+ "{0} à {1}": [
+  "{0} at {1}",
+  "{0} om {1}",
+  "{0} على {1}"
+ ],
+ "Aujourd'hui": [
+  "Today",
+  "Vandaag",
+  "اليوم"
+ ],
+ "Demain": [
+  "Tomorrow",
+  "Morgen",
+  "غدا"
+ ],
+ "Tous": [
+  "All",
+  "Alle",
+  "الكل"
+ ],
+ "Femme": [
+  "Women",
+  "Dames",
+  "نساء"
+ ],
+ "Homme": [
+  "Men",
+  "Heren",
+  "رجال"
+ ],
+ "Aucune prestation pour ce public.": [
+  "No service for this audience.",
+  "Geen behandelingen voor deze doelgroep.",
+  "ما كاينة حتى خدمة لهاد الفئة."
+ ],
+ "Public": [
+  "Audience",
+  "Doelgroep",
+  "الفئة"
+ ],
+ "Choisir": [
+  "Choose",
+  "Kiezen",
+  "اختار"
+ ],
+ "Choisir {0}": [
+  "Choose {0}",
+  "{0} kiezen",
+  "اختار {0}"
+ ],
+ "{0} min": [
+  "{0} min",
+  "{0} min",
+  "{0} د"
+ ],
+ "<b>Tarif enfant</b> : −{0} % pour les moins de {1} ans": [
+  "<b>Child rate</b>: −{0}% for children under {1}",
+  "<b>Kindertarief</b>: −{0}% voor kinderen onder {1} jaar",
+  "<b>تعريفة الدراري</b>: −{0}% للدراري اللي عندهم أقل من {1} عام"
+ ],
+ "<b>Tarif étudiant</b> : −{0} % sur présentation de la carte d’étudiant": [
+  "<b>Student rate</b>: −{0}% on presentation of a student card",
+  "<b>Studententarief</b>: −{0}% mits voorlegging van de studentenkaart",
+  "<b>تعريفة الطلبة</b>: −{0}% بالكارط ديال الطالب"
+ ],
+ "À choisir au moment de réserver.": [
+  "To be chosen when booking.",
+  "Te kiezen bij het reserveren.",
+  "كتختارها ملي كتحجز."
+ ],
+ "Galerie": [
+  "Gallery",
+  "Galerij",
+  "المعرض"
+ ],
+ "Galerie photos": [
+  "Photo gallery",
+  "Fotogalerij",
+  "معرض الصور"
+ ],
+ "Agrandir la photo {0} sur {1}": [
+  "Enlarge photo {0} of {1}",
+  "Foto {0} van {1} vergroten",
+  "كبّر الصورة {0} من {1}"
+ ],
+ "{0} sur {1}": [
+  "{0} of {1}",
+  "{0} van {1}",
+  "{0} من {1}"
+ ],
+ "Fermer": [
+  "Close",
+  "Sluiten",
+  "سد"
+ ],
+ "Photo précédente": [
+  "Previous photo",
+  "Vorige foto",
+  "الصورة اللي قبل"
+ ],
+ "Photo suivante": [
+  "Next photo",
+  "Volgende foto",
+  "الصورة اللي بعد"
+ ],
+ "L'équipe": [
+  "The team",
+  "Het team",
+  "الفريق"
+ ],
+ "Horaires de réservation": [
+  "Booking hours",
+  "Reservatie-uren",
+  "أوقات الحجز"
+ ],
+ "Fermé": [
+  "Closed",
+  "Gesloten",
+  "سالي"
+ ],
+ "Lundi": [
+  "Monday",
+  "Maandag",
+  "الإثنين"
+ ],
+ "Mardi": [
+  "Tuesday",
+  "Dinsdag",
+  "الثلاثاء"
+ ],
+ "Mercredi": [
+  "Wednesday",
+  "Woensdag",
+  "الأربعاء"
+ ],
+ "Jeudi": [
+  "Thursday",
+  "Donderdag",
+  "الخميس"
+ ],
+ "Vendredi": [
+  "Friday",
+  "Vrijdag",
+  "الجمعة"
+ ],
+ "Samedi": [
+  "Saturday",
+  "Zaterdag",
+  "السبت"
+ ],
+ "Dimanche": [
+  "Sunday",
+  "Zondag",
+  "الأحد"
+ ],
+ "Où nous trouver": [
+  "Find us",
+  "Waar vindt u ons",
+  "فين تلقانا"
+ ],
+ "Contact": [
+  "Contact",
+  "Contact",
+  "التواصل"
+ ],
+ "WhatsApp": [
+  "WhatsApp",
+  "WhatsApp",
+  "واتساب"
+ ],
+ "Écrire sur WhatsApp": [
+  "Write on WhatsApp",
+  "Schrijf op WhatsApp",
+  "كتب لينا على واتساب"
+ ],
+ "Écrire au salon sur WhatsApp": [
+  "Write to the salon on WhatsApp",
+  "Schrijf het salon op WhatsApp",
+  "كتب للصالون على واتساب"
+ ],
+ "Démo : ce bouton ouvrirait WhatsApp avec le salon.": [
+  "Demo: this button would open WhatsApp with the salon.",
+  "Demo: deze knop opent WhatsApp met het salon.",
+  "تجريبي: هاد الزر غادي يحل واتساب مع الصالون."
+ ],
+ "Livre d'or <span class=\"etoiles\" style=\"font-size:18px;\">{0}</span> <small style=\"font-size:15px; color:var(--muted); font-family:var(--corps);\">{1} · {2} avis</small>": [
+  "Guest book <span class=\"etoiles\" style=\"font-size:18px;\">{0}</span> <small style=\"font-size:15px; color:var(--muted); font-family:var(--corps);\">{1} · {2} reviews</small>",
+  "Gastenboek <span class=\"etoiles\" style=\"font-size:18px;\">{0}</span> <small style=\"font-size:15px; color:var(--muted); font-family:var(--corps);\">{1} · {2} beoordelingen</small>",
+  "الدفتر الذهبي <span class=\"etoiles\" style=\"font-size:18px;\">{0}</span> <small style=\"font-size:15px; color:var(--muted); font-family:var(--corps);\">{1} · {2} آراء</small>"
+ ],
+ "Niveau de prix du salon": [
+  "Salon price level",
+  "Prijsniveau van het salon",
+  "مستوى الأثمنة ديال الصالون"
+ ],
+ "Page propulsée par <a href=\"beaute.html\">Mirrio</a> · <a href=\"cgu.html\">CGU</a> · <a href=\"confidentialite.html\">Confidentialité</a> · <a href=\"#\" data-cookies=\"\">Gérer les cookies</a>": [
+  "Page powered by <a href=\"beaute.html\">Mirrio</a> · <a href=\"cgu.html\">Terms</a> · <a href=\"confidentialite.html\">Privacy</a> · <a href=\"#\" data-cookies=\"\">Manage cookies</a>",
+  "Pagina mogelijk gemaakt door <a href=\"beaute.html\">Mirrio</a> · <a href=\"cgu.html\">Voorwaarden</a> · <a href=\"confidentialite.html\">Privacy</a> · <a href=\"#\" data-cookies=\"\">Cookies beheren</a>",
+  "الصفحة خدامة بـ <a href=\"beaute.html\">Mirrio</a> · <a href=\"cgu.html\">الشروط</a> · <a href=\"confidentialite.html\">الخصوصية</a> · <a href=\"#\" data-cookies=\"\">تسيير الكوكيز</a>"
+ ],
+ "Cette page est introuvable ou n'est pas encore publiée.": [
+  "This page cannot be found or is not published yet.",
+  "Deze pagina bestaat niet of is nog niet gepubliceerd.",
+  "هاد الصفحة ما لقيناهاش ولا باقي ما تنشراتش."
+ ],
+ "Spécialiste afro": [
+  "Afro hair specialist",
+  "Specialist in afrohaar",
+  "متخصص فالشعر الأفريقي"
+ ],
+ "Pâtisserie": [
+  "Pastry shop",
+  "Banketbakkerij",
+  "الحلويات"
+ ],
+ "Coiffure": [
+  "Hairdressing",
+  "Kapper",
+  "الحلاقة"
+ ],
+ "Barbier": [
+  "Barber",
+  "Barbier",
+  "باربية"
+ ],
+ "Esthétique": [
+  "Beauty",
+  "Schoonheidszorg",
+  "الجمال"
+ ],
+ "Onglerie": [
+  "Nail bar",
+  "Nagelstudio",
+  "نايل"
+ ],
+ "Massage & spa": [
+  "Massage & spa",
+  "Massage & spa",
+  "مساج وسپا"
+ ],
+ "Bien-être": [
+  "Wellness",
+  "Welzijn",
+  "الراحة"
+ ],
+ "Coaching": [
+  "Coaching",
+  "Coaching",
+  "كوتشينغ"
+ ],
+ "Photographie": [
+  "Photography",
+  "Fotografie",
+  "التصوير"
+ ],
+ "Formation": [
+  "Training",
+  "Opleiding",
+  "التكوين"
+ ],
+ "Cours particuliers": [
+  "Private lessons",
+  "Privélessen",
+  "دروس خصوصية"
+ ],
+ "Conseil": [
+  "Consulting",
+  "Advies",
+  "استشارة"
+ ],
+ "Réservations confirmées tout de suite": [
+  "Bookings confirmed instantly",
+  "Reservaties meteen bevestigd",
+  "الحجوزات كيتأكدو دغيا"
+ ],
+ "Instagram": [
+  "Instagram",
+  "Instagram",
+  "إنستاغرام"
+ ]
+}

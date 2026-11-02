@@ -1,0 +1,947 @@
+{
+ "Commander une pâtisserie | Mirrio": [
+  "Order from a bakery | Mirrio",
+  "Bestel bij een banketbakkerij | Mirrio",
+  "طلب حلويات | Mirrio"
+ ],
+ "{0} | Commander une pâtisserie": [
+  "{0} | Order from a bakery",
+  "{0} | Bestel bij een banketbakkerij",
+  "{0} | طلب حلويات"
+ ],
+ "Commander une pâtisserie | {0}": [
+  "Order from a bakery | {0}",
+  "Bestel bij een banketbakkerij | {0}",
+  "طلب حلويات | {0}"
+ ],
+ "Aller au contenu": [
+  "Skip to content",
+  "Naar de inhoud",
+  "مور للمحتوى"
+ ],
+ "Démo : cette commande est simulée, rien n’est envoyé ni enregistré.": [
+  "Demo: this order is simulated, nothing is sent or saved.",
+  "Demo: deze bestelling is gesimuleerd, er wordt niets verstuurd of opgeslagen.",
+  "تجريبي: هاد الطلب وهمي، والو ما كيتصيفط ولا كيتسجل."
+ ],
+ "Commandez votre pâtisserie": [
+  "Order your pastry",
+  "Bestel uw gebak",
+  "طلب الحلويات ديالك"
+ ],
+ "Pour un mariage, un anniversaire, un départ en retraite… choisissez une création, une date de retrait, et {0} vous confirme la commande.": [
+  "For a wedding, a birthday, a retirement party… choose a creation and a pick-up date, and {0} will confirm your order.",
+  "Voor een huwelijk, een verjaardag, een pensioenfeest… kies een creatie en een afhaaldatum en {0} bevestigt uw bestelling.",
+  "لعرس، عيد ميلاد، تقاعد… ختار تحفة ونهار الاستلام، و{0} كيأكد ليك الطلب."
+ ],
+ "À commander {0} jours à l’avance": [
+  "Order {0} days in advance",
+  "{0} dagen op voorhand te bestellen",
+  "خاصك تطلب {0} أيام قبل"
+ ],
+ "À commander {0} jour à l’avance": [
+  "Order {0} day in advance",
+  "{0} dag op voorhand te bestellen",
+  "خاصك تطلب {0} نهار قبل"
+ ],
+ "Fermé le {0}": [
+  "Closed on {0}",
+  "Gesloten op {0}",
+  "سالي نهار {0}"
+ ],
+ "Acompte de {0} % par carte à la commande": [
+  "{0}% deposit by card when ordering",
+  "Voorschot van {0}% met de kaart bij de bestelling",
+  "عربون {0}% بالكارط ملي كتطلب"
+ ],
+ "Règlement intégral par carte à la commande": [
+  "Full payment by card when ordering",
+  "Volledige betaling met de kaart bij de bestelling",
+  "الخلاص كامل بالكارط ملي كتطلب"
+ ],
+ "Acompte de {0} % à la confirmation": [
+  "{0}% deposit on confirmation",
+  "Voorschot van {0}% bij de bevestiging",
+  "عربون {0}% عند التأكيد"
+ ],
+ "Retrait : {0}": [
+  "Pick-up: {0}",
+  "Afhalen: {0}",
+  "الاستلام: {0}"
+ ],
+ "Tout est fait maison, la veille ou le matin même du retrait.": [
+  "Everything is homemade, the day before or the very morning of pick-up.",
+  "Alles is huisgemaakt, de dag ervoor of net die ochtend.",
+  "كلشي مصاوب فالدار، البارح ولا صباح نهار الاستلام."
+ ],
+ "1. Choisissez votre création": [
+  "1. Choose your creation",
+  "1. Kies uw creatie",
+  "1. ختار التحفة ديالك"
+ ],
+ "{0} la part · de {1} à {2} parts": [
+  "{0} per slice · {1} to {2} slices",
+  "{0} per stuk · van {1} tot {2} porties",
+  "{0} للحصة · من {1} حتى {2} حصة"
+ ],
+ "{0} la pièce · de {1} à {2} pièces": [
+  "{0} each · {1} to {2} pieces",
+  "{0} per stuk · van {1} tot {2} stuks",
+  "{0} للقطعة · من {1} حتى {2} قطعة"
+ ],
+ "2. L’occasion et le retrait": [
+  "2. The occasion and pick-up",
+  "2. De gelegenheid en het afhalen",
+  "2. المناسبة والاستلام"
+ ],
+ "Événement": [
+  "Event",
+  "Gelegenheid",
+  "المناسبة"
+ ],
+ "Choisir un événement…": [
+  "Choose an event…",
+  "Kies een gelegenheid…",
+  "ختار مناسبة…"
+ ],
+ "Cérémonies": [
+  "Ceremonies",
+  "Plechtigheden",
+  "الحفلات الرسمية"
+ ],
+ "Fêtes personnelles": [
+  "Personal celebrations",
+  "Persoonlijke feesten",
+  "الأفراح الشخصية"
+ ],
+ "Vie professionnelle": [
+  "Professional life",
+  "Professioneel leven",
+  "الحياة المهنية"
+ ],
+ "Fêtes de l'année": [
+  "Seasonal holidays",
+  "Feesten van het jaar",
+  "أعياد السنة"
+ ],
+ "Mariage": [
+  "Wedding",
+  "Huwelijk",
+  "عرس"
+ ],
+ "Anniversaire de mariage (noces)": [
+  "Wedding anniversary",
+  "Huwelijksverjaardag",
+  "ذكرى الزواج"
+ ],
+ "Fiançailles": [
+  "Engagement",
+  "Verloving",
+  "الخطوبة"
+ ],
+ "Baptême": [
+  "Baptism",
+  "Doopsel",
+  "العقيقة"
+ ],
+ "Communion": [
+  "Communion",
+  "Communie",
+  "الكومينيون"
+ ],
+ "Bar ou bat-mitsva": [
+  "Bar or bat mitzvah",
+  "Bar of bat mitswa",
+  "بار ولا بات ميتزفا"
+ ],
+ "Anniversaire": [
+  "Birthday",
+  "Verjaardag",
+  "عيد ميلاد"
+ ],
+ "Anniversaire d’enfant": [
+  "Child's birthday",
+  "Kinderverjaardag",
+  "عيد ميلاد الدري"
+ ],
+ "Naissance, baby shower": [
+  "Birth, baby shower",
+  "Geboorte, babyshower",
+  "الولادة، بيبي شاور"
+ ],
+ "Révélation du sexe du bébé": [
+  "Gender reveal",
+  "Gender reveal",
+  "الكشف على جنس الطفل"
+ ],
+ "Remise de diplôme": [
+  "Graduation",
+  "Diploma-uitreiking",
+  "التخرج"
+ ],
+ "Pendaison de crémaillère": [
+  "Housewarming",
+  "Housewarming",
+  "حفلة الدار الجديدة"
+ ],
+ "Repas de famille ou entre amis": [
+  "Family or friends meal",
+  "Familie- of vriendenmaal",
+  "غدا ولا عشا مع العائلة والأصدقاء"
+ ],
+ "Départ en retraite": [
+  "Retirement",
+  "Pensioen",
+  "التقاعد"
+ ],
+ "Pot de départ ou d’arrivée": [
+  "Leaving or welcome party",
+  "Afscheids- of verwelkomingsdrink",
+  "حفلة الوداع ولا الاستقبال"
+ ],
+ "Événement d’entreprise": [
+  "Company event",
+  "Bedrijfsevenement",
+  "حدث ديال الشركة"
+ ],
+ "Épiphanie (galette des rois)": [
+  "Epiphany (king cake)",
+  "Driekoningen (koningentaart)",
+  "عيد الغطاس (غاليت دي روا)"
+ ],
+ "Saint-Valentin": [
+  "Valentine's Day",
+  "Valentijnsdag",
+  "عيد الحب"
+ ],
+ "Pâques": [
+  "Easter",
+  "Pasen",
+  "عيد الفصح"
+ ],
+ "Fête des mères ou des pères": [
+  "Mother's or Father's Day",
+  "Moeder- of Vaderdag",
+  "عيد الأم ولا الأب"
+ ],
+ "Noël, fêtes de fin d’année": [
+  "Christmas, year-end holidays",
+  "Kerstmis, eindejaarsfeesten",
+  "الميلاد، أعياد نهاية العام"
+ ],
+ "Fête religieuse (Aïd, Hanouka…)": [
+  "Religious holiday (Eid, Hanukkah…)",
+  "Religieuze feestdag (Eid, Chanoeka…)",
+  "عيد ديني (العيد، حانوكا…)"
+ ],
+ "Autre (à préciser)": [
+  "Other (please specify)",
+  "Andere (te specificeren)",
+  "آخر (حدد)"
+ ],
+ "Précisez l’événement": [
+  "Specify the event",
+  "Geef de gelegenheid aan",
+  "حدد المناسبة"
+ ],
+ "Ex. : fête de quartier, soutenance de thèse…": [
+  "E.g. neighbourhood party, thesis defence…",
+  "Bijv. buurtfeest, doctoraatsverdediging…",
+  "مثلا: حفلة الحي، مناقشة الأطروحة…"
+ ],
+ "Nombre de parts": [
+  "Number of slices",
+  "Aantal porties",
+  "عدد الحصص"
+ ],
+ "Nombre de pièces": [
+  "Number of pieces",
+  "Aantal stuks",
+  "عدد القطع"
+ ],
+ "Choisissez d’abord une création.": [
+  "Choose a creation first.",
+  "Kies eerst een creatie.",
+  "ختار التحفة أولا."
+ ],
+ "De {0} à {1} parts.": [
+  "{0} to {1} slices.",
+  "Van {0} tot {1} porties.",
+  "من {0} حتى {1} حصة."
+ ],
+ "De {0} à {1} pièces.": [
+  "{0} to {1} pieces.",
+  "Van {0} tot {1} stuks.",
+  "من {0} حتى {1} قطعة."
+ ],
+ "Date de retrait": [
+  "Pick-up date",
+  "Afhaaldatum",
+  "نهار الاستلام"
+ ],
+ "Mois précédent": [
+  "Previous month",
+  "Vorige maand",
+  "الشهر اللي فات"
+ ],
+ "Mois suivant": [
+  "Next month",
+  "Volgende maand",
+  "الشهر الجاي"
+ ],
+ "Disponible": [
+  "Available",
+  "Beschikbaar",
+  "متوفر"
+ ],
+ "Déjà chargé, possible": [
+  "Busy, but possible",
+  "Al druk, maar mogelijk",
+  "مشغول، ولكن ممكن"
+ ],
+ "Surcharge : +{0} %, carte": [
+  "Surcharge: +{0}%, card",
+  "Toeslag: +{0}%, kaart",
+  "زيادة: +{0}%، كارط"
+ ],
+ "Complet : +{0} % si vous y tenez": [
+  "Full: +{0}% if you insist",
+  "Volzet: +{0}% als u erop staat",
+  "كامل: +{0}% إلا بغيتي"
+ ],
+ "Impossible pour cette commande": [
+  "Not possible for this order",
+  "Niet mogelijk voor deze bestelling",
+  "ما ممكنش لهاد الطلب"
+ ],
+ "{0}, hors délai": [
+  "{0}, too soon",
+  "{0}, te kort dag",
+  "{0}، قريب بزاف"
+ ],
+ "{0}, disponible": [
+  "{0}, available",
+  "{0}, beschikbaar",
+  "{0}، متوفر"
+ ],
+ "{0}, fermé": [
+  "{0}, closed",
+  "{0}, gesloten",
+  "{0}، سالي"
+ ],
+ "{0}, déjà chargé, mais possible": [
+  "{0}, busy but possible",
+  "{0}, al druk maar mogelijk",
+  "{0}، مشغول ولكن ممكن"
+ ],
+ "{0}, indisponible pour cette commande": [
+  "{0}, unavailable for this order",
+  "{0}, niet beschikbaar voor deze bestelling",
+  "{0}، ما متوفرش لهاد الطلب"
+ ],
+ "{0}, possible en surcharge, plus {1} pour cent, paiement intégral par carte": [
+  "{0}, possible with a surcharge of {1} percent, full payment by card",
+  "{0}, mogelijk met een toeslag van {1} procent, volledige betaling met de kaart",
+  "{0}، ممكن بزيادة {1} فالمائة، الخلاص كامل بالكارط"
+ ],
+ "{0}, complet, mais possible en exception, plus {1} pour cent, paiement intégral par carte": [
+  "{0}, full, but possible as an exception, plus {1} percent, full payment by card",
+  "{0}, volzet, maar bij uitzondering mogelijk, plus {1} procent, volledige betaling met de kaart",
+  "{0}، كامل، ولكن ممكن كاستثناء، زائد {1} فالمائة، الخلاص كامل بالكارط"
+ ],
+ "Entre {0} et {1}.": [
+  "Between {0} and {1}.",
+  "Tussen {0} en {1}.",
+  "بين {0} و{1}."
+ ],
+ "Heure souhaitée <span style=\"font-weight:400;color:var(--muted)\">(facultatif)</span>": [
+  "Preferred time <span style=\"font-weight:400;color:var(--muted)\">(optional)</span>",
+  "Gewenst uur <span style=\"font-weight:400;color:var(--muted)\">(facultatief)</span>",
+  "الساعة المفضلة <span style=\"font-weight:400;color:var(--muted)\">(اختياري)</span>"
+ ],
+ "3. Personnalisation": [
+  "3. Personalisation",
+  "3. Personalisatie",
+  "3. التخصيص"
+ ],
+ "Message sur la pâtisserie <span style=\"font-weight:400;color:var(--muted)\">(facultatif)</span>": [
+  "Message on the pastry <span style=\"font-weight:400;color:var(--muted)\">(optional)</span>",
+  "Boodschap op het gebak <span style=\"font-weight:400;color:var(--muted)\">(facultatief)</span>",
+  "رسالة على الحلويات <span style=\"font-weight:400;color:var(--muted)\">(اختياري)</span>"
+ ],
+ "Joyeux anniversaire Camille !": [
+  "Happy birthday Camille!",
+  "Gelukkige verjaardag Camille!",
+  "عيد ميلاد سعيد كاميل!"
+ ],
+ "Précisions <span style=\"font-weight:400;color:var(--muted)\">(parfums, couleurs, thème…)</span>": [
+  "Details <span style=\"font-weight:400;color:var(--muted)\">(flavours, colours, theme…)</span>",
+  "Toelichting <span style=\"font-weight:400;color:var(--muted)\">(smaken, kleuren, thema…)</span>",
+  "تفاصيل <span style=\"font-weight:400;color:var(--muted)\">(النكهات، الألوان، الموضوع…)</span>"
+ ],
+ "Allergies ou régimes à respecter": [
+  "Allergies or diets to respect",
+  "Allergieën of diëten waarmee rekening moet worden gehouden",
+  "الحساسية ولا الحميات اللي خاصنا نحترموها"
+ ],
+ "Gluten": [
+  "Gluten",
+  "Gluten",
+  "الغلوتين"
+ ],
+ "Lait": [
+  "Milk",
+  "Melk",
+  "الحليب"
+ ],
+ "Œufs": [
+  "Eggs",
+  "Eieren",
+  "البيض"
+ ],
+ "Fruits à coque": [
+  "Tree nuts",
+  "Noten",
+  "الفواكه الجافة"
+ ],
+ "Arachides": [
+  "Peanuts",
+  "Pinda's",
+  "الكاوكاو"
+ ],
+ "Alcool": [
+  "Alcohol",
+  "Alcohol",
+  "الكحول"
+ ],
+ "Précisez le reste dans le champ ci-dessus. Le pâtissier vous recontacte si besoin.": [
+  "Give the rest in the field above. The pastry chef will contact you if needed.",
+  "Vul de rest aan in het veld hierboven. De banketbakker neemt zo nodig contact met u op.",
+  "حدد الباقي فالخانة اللي فوق. الحلواني غادي يتصل بيك إلا خصو شي حاجة."
+ ],
+ "4. Vos coordonnées": [
+  "4. Your details",
+  "4. Uw gegevens",
+  "4. معلوماتك"
+ ],
+ "Nom": [
+  "Name",
+  "Naam",
+  "الاسم"
+ ],
+ "Téléphone <span style=\"font-weight:400;color:var(--muted)\">(facultatif)</span>": [
+  "Phone <span style=\"font-weight:400;color:var(--muted)\">(optional)</span>",
+  "Telefoon <span style=\"font-weight:400;color:var(--muted)\">(facultatief)</span>",
+  "التيليفون <span style=\"font-weight:400;color:var(--muted)\">(اختياري)</span>"
+ ],
+ "Email": [
+  "Email",
+  "E-mail",
+  "الإيميل"
+ ],
+ "Ne pas remplir": [
+  "Do not fill in",
+  "Niet invullen",
+  "ما تعمرش"
+ ],
+ "Votre demande": [
+  "Your request",
+  "Uw aanvraag",
+  "الطلب ديالك"
+ ],
+ "Création": [
+  "Creation",
+  "Creatie",
+  "التحفة"
+ ],
+ "Parts": [
+  "Slices",
+  "Porties",
+  "الحصص"
+ ],
+ "Pièces": [
+  "Pieces",
+  "Stuks",
+  "القطع"
+ ],
+ "Retrait": [
+  "Pick-up",
+  "Afhalen",
+  "الاستلام"
+ ],
+ "Estimation": [
+  "Estimate",
+  "Raming",
+  "التقدير"
+ ],
+ "<i class=\"ph ph-paper-plane-tilt\" aria-hidden=\"true\"></i>Envoyer ma demande": [
+  "<i class=\"ph ph-paper-plane-tilt\" aria-hidden=\"true\"></i>Send my request",
+  "<i class=\"ph ph-paper-plane-tilt\" aria-hidden=\"true\"></i>Mijn aanvraag versturen",
+  "<i class=\"ph ph-paper-plane-tilt\" aria-hidden=\"true\"></i>صيفط الطلب ديالي"
+ ],
+ "<i class=\"ph ph-credit-card\" aria-hidden=\"true\"></i>Payer {0} par carte": [
+  "<i class=\"ph ph-credit-card\" aria-hidden=\"true\"></i>Pay {0} by card",
+  "<i class=\"ph ph-credit-card\" aria-hidden=\"true\"></i>{0} betalen met de kaart",
+  "<i class=\"ph ph-credit-card\" aria-hidden=\"true\"></i>خلص {0} بالكارط"
+ ],
+ "Vous réglez 100 % du prix par carte à la commande. Elle est confirmée à la réception du paiement.": [
+  "You pay 100% of the price by card when ordering. It is confirmed once payment is received.",
+  "U betaalt 100% van de prijs met de kaart bij de bestelling. Ze is bevestigd zodra de betaling binnen is.",
+  "كتخلص 100% من الثمن بالكارط ملي كتطلب. الطلب كيتأكد ملي كنتوصلو بالخلاص."
+ ],
+ "Vous réglez un acompte de {0} % par carte à la commande, le reste au retrait. Elle est confirmée à la réception du paiement.": [
+  "You pay a {0}% deposit by card when ordering, the rest at pick-up. It is confirmed once payment is received.",
+  "U betaalt een voorschot van {0}% met de kaart bij de bestelling, de rest bij het afhalen. Ze is bevestigd zodra de betaling binnen is.",
+  "كتخلص عربون {0}% بالكارط ملي كتطلب، والباقي فالاستلام. الطلب كيتأكد ملي كنتوصلو بالخلاص."
+ ],
+ "Ce n’est pas encore une commande ferme : {0} vérifie la faisabilité et vous confirme le prix final.": [
+  "This is not a firm order yet: {0} checks feasibility and confirms the final price.",
+  "Dit is nog geen definitieve bestelling: {0} controleert de haalbaarheid en bevestigt de eindprijs.",
+  "هادي ماشي طلب نهائي دابا: {0} كيتأكد واش ممكن وكيأكد ليك الثمن النهائي."
+ ],
+ "Ce n’est pas encore une commande ferme : {0} vérifie la faisabilité et vous confirme le prix final, puis demande le règlement intégral.": [
+  "This is not a firm order yet: {0} checks feasibility, confirms the final price, then asks for full payment.",
+  "Dit is nog geen definitieve bestelling: {0} controleert de haalbaarheid, bevestigt de eindprijs en vraagt dan de volledige betaling.",
+  "هادي ماشي طلب نهائي دابا: {0} كيتأكد واش ممكن، كيأكد الثمن النهائي، ومن بعد كيطلب الخلاص كامل."
+ ],
+ "Ce n’est pas encore une commande ferme : {0} vérifie la faisabilité et vous confirme le prix final, avec un acompte de {1} %.": [
+  "This is not a firm order yet: {0} checks feasibility and confirms the final price, with a {1}% deposit.",
+  "Dit is nog geen definitieve bestelling: {0} controleert de haalbaarheid en bevestigt de eindprijs, met een voorschot van {1}%.",
+  "هادي ماشي طلب نهائي دابا: {0} كيتأكد واش ممكن وكيأكد الثمن النهائي، مع عربون {1}%."
+ ],
+ "À payer maintenant": [
+  "To pay now",
+  "Nu te betalen",
+  "اللي كتخلص دابا"
+ ],
+ "Reste au retrait": [
+  "Balance at pick-up",
+  "Saldo bij het afhalen",
+  "الباقي فالاستلام"
+ ],
+ "Cette date est disponible.": [
+  "This date is available.",
+  "Deze datum is beschikbaar.",
+  "هاد النهار متوفر."
+ ],
+ "Cette date est possible, même si la pâtisserie a déjà des commandes ce jour-là.": [
+  "This date is possible, even though the bakery already has orders that day.",
+  "Deze datum is mogelijk, ook al heeft de banketbakkerij die dag al bestellingen.",
+  "هاد النهار ممكن، حتى إلا كانو ديجا طلبات فداك النهار."
+ ],
+ "La pâtisserie a déjà des commandes ce jour-là.": [
+  "The bakery already has orders that day.",
+  "De banketbakkerij heeft die dag al bestellingen.",
+  "الحلويات عندها ديجا طلبات فداك النهار."
+ ],
+ "Journée très chargée : possible en surcharge.": [
+  "Very busy day: possible with a surcharge.",
+  "Zeer drukke dag: mogelijk met een toeslag.",
+  "نهار مشغول بزاف: ممكن بزيادة."
+ ],
+ "{0} a déjà {1} ce jour-là. La commande reste faisable avec": [
+  "{0} already has {1} that day. The order is still possible with",
+  "{0} heeft die dag al {1}. De bestelling blijft haalbaar met",
+  "{0} عندها ديجا {1} فداك النهار. الطلب باقي ممكن ب"
+ ],
+ "un supplément de {0} %": [
+  "a {0}% surcharge",
+  "een toeslag van {0}%",
+  "زيادة {0}%"
+ ],
+ "({0} devient": [
+  "({0} becomes",
+  "({0} wordt",
+  "({0} كيولي"
+ ],
+ ") et un": [
+  ") and a",
+  ") en een",
+  ") و"
+ ],
+ "règlement intégral par carte dès maintenant": [
+  "full payment by card right now",
+  "volledige betaling met de kaart meteen",
+  "خلاص كامل بالكارط دابا"
+ ],
+ ", sans acompte.": [
+  ", with no deposit.",
+  ", zonder voorschot.",
+  "، بلا عربون."
+ ],
+ "J’accepte le supplément de {0} % et le paiement intégral par carte à la commande.": [
+  "I accept the {0}% surcharge and full payment by card when ordering.",
+  "Ik aanvaard de toeslag van {0}% en de volledige betaling met de kaart bij de bestelling.",
+  "كنقبل الزيادة ديال {0}% والخلاص كامل بالكارط ملي كنطلب."
+ ],
+ "Pour éviter le supplément :": [
+  "To avoid the surcharge:",
+  "Om de toeslag te vermijden:",
+  "باش تتفادى الزيادة:"
+ ],
+ "Juste avant : {0}": [
+  "Just before: {0}",
+  "Net ervoor: {0}",
+  "قبل بالضبط: {0}"
+ ],
+ "Juste après : {0}": [
+  "Just after: {0}",
+  "Net erna: {0}",
+  "بعد بالضبط: {0}"
+ ],
+ "Supplément": [
+  "Surcharge",
+  "Toeslag",
+  "الزيادة"
+ ],
+ "Règlement": [
+  "Payment",
+  "Betaling",
+  "الخلاص"
+ ],
+ "Intégral par carte": [
+  "Full, by card",
+  "Volledig met de kaart",
+  "كامل بالكارط"
+ ],
+ "Journée très chargée : le règlement intégral par carte se fait tout de suite, sans acompte. La commande est confirmée à la réception du paiement.": [
+  "Very busy day: full payment by card is made right away, with no deposit. The order is confirmed once payment is received.",
+  "Zeer drukke dag: de volledige betaling met de kaart gebeurt meteen, zonder voorschot. De bestelling is bevestigd zodra de betaling binnen is.",
+  "نهار مشغول بزاف: الخلاص كامل بالكارط كيتدار دغيا، بلا عربون. الطلب كيتأكد ملي كنتوصلو بالخلاص."
+ ],
+ "Vous tenez vraiment à cette date ? <strong>Elle reste possible avec un supplément de {0} %</strong> : {1} devient <strong>{2}</strong>, réglé en intégralité par carte dès maintenant (sans acompte).": [
+  "Do you really want this date? <strong>It remains possible with a {0}% surcharge</strong>: {1} becomes <strong>{2}</strong>, paid in full by card right now (no deposit).",
+  "Staat u echt op deze datum? <strong>Ze blijft mogelijk met een toeslag van {0}%</strong>: {1} wordt <strong>{2}</strong>, meteen volledig met de kaart betaald (zonder voorschot).",
+  "واش بصح بغيتي هاد النهار؟ <strong>باقي ممكن بزيادة {0}%</strong>: {1} كيولي <strong>{2}</strong>، كيتخلص كامل بالكارط دابا (بلا عربون)."
+ ],
+ "Je veux cette date : +{0} % ({1})": [
+  "I want this date: +{0}% ({1})",
+  "Ik wil deze datum: +{0}% ({1})",
+  "بغيت هاد النهار: +{0}% ({1})"
+ ],
+ "✓ Supplément de {0} % accepté (cliquer pour annuler)": [
+  "✓ {0}% surcharge accepted (click to cancel)",
+  "✓ Toeslag van {0}% aanvaard (klik om te annuleren)",
+  "✓ الزيادة ديال {0}% مقبولة (كليكي باش تلغي)"
+ ],
+ "Impossible ce jour-là.": [
+  "Not possible that day.",
+  "Die dag niet mogelijk.",
+  "ما ممكنش فداك النهار."
+ ],
+ "{0} a déjà {1} à préparer ce jour-là. Dates proches possibles :": [
+  "{0} already has {1} to prepare that day. Nearby dates possible:",
+  "{0} heeft die dag al {1} te bereiden. Dichtbije data mogelijk:",
+  "{0} عندها ديجا {1} خاصها تحضر فداك النهار. تواريخ قريبة ممكنة:"
+ ],
+ "{0} a déjà {1} à préparer ce jour-là.": [
+  "{0} already has {1} to prepare that day.",
+  "{0} heeft die dag al {1} te bereiden.",
+  "{0} عندها ديجا {1} خاصها تحضر فداك النهار."
+ ],
+ "La journée est déjà chargée pour une commande de cette taille.": [
+  "The day is already too busy for an order of this size.",
+  "De dag is al te druk voor een bestelling van deze omvang.",
+  "النهار مشغول ديجا لطلب بهاد الحجم."
+ ],
+ "Impossible d’honorer cette commande à cette date": [
+  "Unable to honour this order on that date",
+  "Deze bestelling kan op die datum niet worden uitgevoerd",
+  "ما نقدروش نلبيو هاد الطلب فهاد النهار"
+ ],
+ "Rien non plus dans la semaine autour : essayez une date plus éloignée ou contactez directement la pâtisserie.": [
+  "Nothing the week around either: try a later date or contact the bakery directly.",
+  "Ook niets in de week errond: probeer een latere datum of neem rechtstreeks contact op met de banketbakkerij.",
+  "حتى والو فالسيمانة اللي حداه: جرب نهار بعيد ولا تواصل مع الحلويات مباشرة."
+ ],
+ "Les commandes se prennent {0} jour(s) à l’avance.": [
+  "Orders are taken {0} day(s) in advance.",
+  "Bestellingen worden {0} dag(en) op voorhand genomen.",
+  "الطلبات كتتاخد {0} يوم (أيام) قبل."
+ ],
+ "La pâtisserie ne peut pas honorer cette commande ce jour-là.": [
+  "The bakery cannot honour this order that day.",
+  "De banketbakkerij kan deze bestelling die dag niet uitvoeren.",
+  "الحلويات ما تقدرش تلبي هاد الطلب فداك النهار."
+ ],
+ "Indiquez votre nom.": [
+  "Please enter your name.",
+  "Vul uw naam in.",
+  "كتب الاسم ديالك."
+ ],
+ "Indiquez une adresse email valide.": [
+  "Please enter a valid email address.",
+  "Vul een geldig e-mailadres in.",
+  "كتب إيميل صحيح."
+ ],
+ "Choisissez un événement dans la liste.": [
+  "Choose an event from the list.",
+  "Kies een gelegenheid uit de lijst.",
+  "ختار مناسبة من اللائحة."
+ ],
+ "Précisez l’événement (3 caractères minimum).": [
+  "Specify the event (3 characters minimum).",
+  "Geef de gelegenheid aan (minstens 3 tekens).",
+  "حدد المناسبة (3 حروف على الأقل)."
+ ],
+ "Choisissez une date de retrait dans le calendrier.": [
+  "Choose a pick-up date in the calendar.",
+  "Kies een afhaaldatum in de kalender.",
+  "ختار نهار الاستلام من الكالندريي."
+ ],
+ "{0} jour(s) à l’avance : à partir du {1}.": [
+  "{0} day(s) in advance: from {1}.",
+  "{0} dag(en) op voorhand: vanaf {1}.",
+  "{0} يوم (أيام) قبل: ابتداء من {1}."
+ ],
+ "La pâtisserie ne peut pas honorer cette commande ce jour-là : choisissez une date proposée.": [
+  "The bakery cannot honour this order that day: choose a suggested date.",
+  "De banketbakkerij kan deze bestelling die dag niet uitvoeren: kies een voorgestelde datum.",
+  "الحلويات ما تقدرش تلبي هاد الطلب فداك النهار: ختار نهار مقترح."
+ ],
+ "Validez le supplément de {0} % et le paiement intégral par carte pour réserver cette date.": [
+  "Confirm the {0}% surcharge and full payment by card to book this date.",
+  "Bevestig de toeslag van {0}% en de volledige betaling met de kaart om deze datum te reserveren.",
+  "أكد الزيادة ديال {0}% والخلاص كامل بالكارط باش تحجز هاد النهار."
+ ],
+ "Choisissez d’abord une création, plus haut sur la page.": [
+  "First choose a creation, higher up the page.",
+  "Kies eerst een creatie, hoger op de pagina.",
+  "ختار أولا تحفة، من فوق فالصفحة."
+ ],
+ "Quelques champs sont à corriger :": [
+  "A few fields need correcting:",
+  "Enkele velden moeten worden gecorrigeerd:",
+  "شي خانات خاصها تتصلح:"
+ ],
+ "Envoi impossible.": [
+  "Unable to send.",
+  "Versturen is niet gelukt.",
+  "ما قدرناش نصيفطو."
+ ],
+ "Vous pouvez réessayer.": [
+  "You can try again.",
+  "U kunt het opnieuw proberen.",
+  "تقدر تعاود تحاول."
+ ],
+ "Demande envoyée": [
+  "Request sent",
+  "Aanvraag verstuurd",
+  "الطلب تصيفط"
+ ],
+ "{0} a bien reçu votre demande pour <strong>{1}</strong>, retrait le {2}.": [
+  "{0} has received your request for <strong>{1}</strong>, pick-up on {2}.",
+  "{0} heeft uw aanvraag voor <strong>{1}</strong> ontvangen, afhalen op {2}.",
+  "{0} توصل بالطلب ديالك ل <strong>{1}</strong>، الاستلام نهار {2}."
+ ],
+ "Estimation : <strong>{0}</strong>. La pâtisserie vous écrit pour confirmer la faisabilité et le prix final, puis demander le règlement intégral.": [
+  "Estimate: <strong>{0}</strong>. The bakery will write to you to confirm feasibility and the final price, then ask for full payment.",
+  "Raming: <strong>{0}</strong>. De banketbakkerij schrijft u om de haalbaarheid en de eindprijs te bevestigen en vraagt dan de volledige betaling.",
+  "التقدير: <strong>{0}</strong>. الحلويات غادي تكتب ليك باش تأكد واش ممكن والثمن النهائي، من بعد كتطلب الخلاص كامل."
+ ],
+ "Estimation : <strong>{0}</strong>. La pâtisserie vous écrit pour confirmer la faisabilité et le prix final (acompte de {1} %).": [
+  "Estimate: <strong>{0}</strong>. The bakery will write to you to confirm feasibility and the final price ({1}% deposit).",
+  "Raming: <strong>{0}</strong>. De banketbakkerij schrijft u om de haalbaarheid en de eindprijs te bevestigen ({1}% voorschot).",
+  "التقدير: <strong>{0}</strong>. الحلويات غادي تكتب ليك باش تأكد واش ممكن والثمن النهائي (عربون {1}%)."
+ ],
+ "Estimation : <strong>{0}</strong>. La pâtisserie vous écrit pour confirmer la faisabilité et le prix final.": [
+  "Estimate: <strong>{0}</strong>. The bakery will write to you to confirm feasibility and the final price.",
+  "Raming: <strong>{0}</strong>. De banketbakkerij schrijft u om de haalbaarheid en de eindprijs te bevestigen.",
+  "التقدير: <strong>{0}</strong>. الحلويات غادي تكتب ليك باش تأكد واش ممكن والثمن النهائي."
+ ],
+ "Retour à la démo": [
+  "Back to the demo",
+  "Terug naar de demo",
+  "رجع للديمو"
+ ],
+ "Un email récapitulatif vient de vous être envoyé.": [
+  "A summary email has just been sent to you.",
+  "Er is zopas een samenvattende e-mail naar u verstuurd.",
+  "تصيفط ليك إيميل ديال الملخص."
+ ],
+ "Commandes indisponibles": [
+  "Orders unavailable",
+  "Bestellingen niet beschikbaar",
+  "الطلبات ما متوفراش"
+ ],
+ "Page introuvable.": [
+  "Page not found.",
+  "Pagina niet gevonden.",
+  "الصفحة ما لقيناهاش."
+ ],
+ "Adresse incomplète.": [
+  "Incomplete address.",
+  "Onvolledig adres.",
+  "العنوان ناقص."
+ ],
+ "Les commandes en ligne ne sont pas ouvertes ici.": [
+  "Online orders are not open here.",
+  "Online bestellen is hier niet open.",
+  "الطلبات أونلاين ما محلولاش هنا."
+ ],
+ "un mariage": [
+  "a wedding",
+  "een huwelijk",
+  "عرس"
+ ],
+ "un anniversaire": [
+  "a birthday",
+  "een verjaardag",
+  "عيد ميلاد"
+ ],
+ "un anniversaire d’enfant": [
+  "a child's birthday",
+  "een kinderverjaardag",
+  "عيد ميلاد دري"
+ ],
+ "une communion": [
+  "a communion",
+  "een communie",
+  "كومينيون"
+ ],
+ "un baptême": [
+  "a baptism",
+  "een doopsel",
+  "عقيقة"
+ ],
+ "un départ en retraite": [
+  "a retirement party",
+  "een pensioenfeest",
+  "تقاعد"
+ ],
+ "un événement d’entreprise": [
+  "a company event",
+  "een bedrijfsevenement",
+  "حدث ديال شركة"
+ ],
+ "une grosse pièce": [
+  "a large piece",
+  "een groot stuk",
+  "قطعة كبيرة"
+ ],
+ "une commande": [
+  "an order",
+  "een bestelling",
+  "طلب"
+ ],
+ "mariages": [
+  "weddings",
+  "huwelijken",
+  "أعراس"
+ ],
+ "anniversaires": [
+  "birthdays",
+  "verjaardagen",
+  "أعياد ميلاد"
+ ],
+ "anniversaires d’enfant": [
+  "children's birthdays",
+  "kinderverjaardagen",
+  "أعياد ميلاد الدراري"
+ ],
+ "communions": [
+  "communions",
+  "communies",
+  "كومينيونات"
+ ],
+ "baptêmes": [
+  "baptisms",
+  "doopsels",
+  "عقيقات"
+ ],
+ "départs en retraite": [
+  "retirement parties",
+  "pensioenfeesten",
+  "تقاعدات"
+ ],
+ "événements d’entreprise": [
+  "company events",
+  "bedrijfsevenementen",
+  "أحداث ديال الشركات"
+ ],
+ "grosses pièces": [
+  "large pieces",
+  "grote stukken",
+  "قطع كبيرة"
+ ],
+ "commandes": [
+  "orders",
+  "bestellingen",
+  "طلبات"
+ ],
+ "deux {0}": [
+  "two {0}",
+  "twee {0}",
+  "جوج {0}"
+ ],
+ "trois {0}": [
+  "three {0}",
+  "drie {0}",
+  "تلاتة {0}"
+ ],
+ "et": [
+  "and",
+  "en",
+  "و"
+ ],
+ "Pièces montées et croquembouches": [
+  "Tiered pastries and croquembouches",
+  "Torens van gebak en croquembouches",
+  "القطع المركبة والكروكومبوش"
+ ],
+ "Gâteaux de fête et layer cakes": [
+  "Celebration cakes and layer cakes",
+  "Feesttaarten en layer cakes",
+  "كيك الحفلات ولاير كيك"
+ ],
+ "Entremets": [
+  "Entremets",
+  "Entremets",
+  "أونتريميه"
+ ],
+ "Tartes et tartelettes": [
+  "Tarts and tartlets",
+  "Taarten en taartjes",
+  "الطارط والطارتليت"
+ ],
+ "Petits fours et mignardises": [
+  "Petits fours and mignardises",
+  "Petits fours en mignardises",
+  "بوتي فور ومينيارديز"
+ ],
+ "Pâtisseries individuelles": [
+  "Individual pastries",
+  "Individuele gebakjes",
+  "حلويات فردية"
+ ],
+ "Macarons": [
+  "Macarons",
+  "Macarons",
+  "ماكارون"
+ ],
+ "Viennoiseries": [
+  "Viennoiseries",
+  "Viennoiserie",
+  "الفيينوازري"
+ ],
+ "Pains spéciaux et brioches": [
+  "Specialty breads and brioches",
+  "Speciale broden en brioches",
+  "خبز خاص وبريوش"
+ ],
+ "Galettes et bûches de saison": [
+  "Seasonal galettes and yule logs",
+  "Seizoensgalettes en kerststronken",
+  "غاليت وبوش الموسم"
+ ],
+ "Salé et buffets": [
+  "Savoury and buffets",
+  "Hartig en buffetten",
+  "المالح والبوفيهات"
+ ],
+ "Autre": [
+  "Other",
+  "Andere",
+  "آخر"
+ ]
+}
