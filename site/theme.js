@@ -399,7 +399,7 @@ export async function initTheme(supabase, ongletActif){
     brand.groupe = brand.salons.length > 1 || (!!principal && principal.plan === 'studio');
   }catch(e){ brand.salons = []; }
   try{ const { data: r } = await supabase.rpc('mon_role'); brand.role = r || 'proprietaire'; }catch(e){ brand.role = 'proprietaire'; }
-  try{ const { data: pf } = await supabase.from('parametres_facturation').select('profil_pays').eq('owner_id', espaceId).maybeSingle(); definirProfil((pf && pf.profil_pays) || 'FR'); }catch(e){ definirProfil('FR'); }
+  try{ const { data: pf } = await supabase.from('parametres_facturation').select('profil_pays').eq('owner_id', espaceId).maybeSingle(); definirProfil((pf && pf.profil_pays) || 'FR'); if(window.I18N) window.I18N.imposerPays((pf && pf.profil_pays) || 'FR'); }catch(e){ definirProfil('FR'); }
   clientSupabase = supabase;
   appliquerTheme(brand);
   monterEntete(brand, ongletActif, estAdmin);

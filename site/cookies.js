@@ -73,7 +73,7 @@
     const d = document.createElement('div');
     d.id = 'mirrio-cookies'; d.setAttribute('role', 'region'); d.setAttribute('aria-labelledby', 'mc-titre');
     d.innerHTML = `<h2 id="mc-titre">Vos données, votre choix</h2>
-      <p>Mirrio utilise uniquement des cookies et stockages <strong>nécessaires</strong> (connexion, préférences). Aucun cookie publicitaire. Vous pouvez autoriser ou refuser une éventuelle mesure d'audience, et changer d'avis à tout moment. <a href="/confidentialite.html#cookies">En savoir plus</a></p>
+      <p>Mirrio utilise uniquement des cookies et stockages nécessaires (connexion, préférences). Aucun cookie publicitaire. Vous pouvez autoriser ou refuser une éventuelle mesure d'audience, et changer d'avis à tout moment.</p><p><a href="/confidentialite.html#cookies">En savoir plus</a></p>
       <div class="mc-actions">
         <button type="button" class="mc-btn" data-mc="refuser">Tout refuser</button>
         <button type="button" class="mc-btn" data-mc="perso">Personnaliser</button>

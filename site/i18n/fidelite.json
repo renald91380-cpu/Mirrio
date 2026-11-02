@@ -1,0 +1,307 @@
+{
+ "Ma carte {0}": [
+  "My {0} card",
+  "Mijn kaart {0}",
+  "كارط ديالي {0}"
+ ],
+ "Carte de fidélité {0}": [
+  "{0} loyalty card",
+  "Klantenkaart {0}",
+  "كارط الوفاء ديال {0}"
+ ],
+ "Carte introuvable": [
+  "Card not found",
+  "Kaart niet gevonden",
+  "الكارط ما لقيناهاش"
+ ],
+ "Ce lien ne correspond à aucune carte. Demandez-en un nouveau au salon.": [
+  "This link does not match any card. Ask the salon for a new one.",
+  "Deze link hoort bij geen enkele kaart. Vraag een nieuwe aan het salon.",
+  "هاد الرابط ما كيوافق حتى كارط. طلب وحد جديد من الصالون."
+ ],
+ "Démonstration.": [
+  "Demo.",
+  "Demo.",
+  "نسخة تجريبية."
+ ],
+ "Carte fictive, rien n'est enregistré.": [
+  "Sample card, nothing is saved.",
+  "Voorbeeldkaart, er wordt niets opgeslagen.",
+  "كارط تجريبية، والو ما كيتسجل."
+ ],
+ "Carte de fidélité": [
+  "Loyalty card",
+  "Klantenkaart",
+  "كارط الوفاء"
+ ],
+ "Ma carte de fidélité": [
+  "My loyalty card",
+  "Mijn klantenkaart",
+  "كارط الوفاء ديالي"
+ ],
+ "points": [
+  "points",
+  "punten",
+  "نقط"
+ ],
+ "Progression vers la récompense": [
+  "Progress towards the reward",
+  "Voortgang naar de beloning",
+  "التقدم نحو الهدية"
+ ],
+ "{0} % de remise": [
+  "{0}% off",
+  "{0}% korting",
+  "تخفيض {0}%"
+ ],
+ "une récompense": [
+  "a reward",
+  "een beloning",
+  "هدية"
+ ],
+ "Récompense disponible : {0}.": [
+  "Reward available: {0}.",
+  "Beloning beschikbaar: {0}.",
+  "الهدية واجدة: {0}."
+ ],
+ "Présentez cette carte en caisse.": [
+  "Show this card at the till.",
+  "Toon deze kaart aan de kassa.",
+  "وري هاد الكارط فالكايس."
+ ],
+ "Encore {0} points pour obtenir {1}.": [
+  "{0} more points to get {1}.",
+  "Nog {0} punten voor {1}.",
+  "باقي ليك {0} نقط باش تاخد {1}."
+ ],
+ "Encore {0} point pour obtenir {1}.": [
+  "{0} more point to get {1}.",
+  "Nog {0} punt voor {1}.",
+  "باقي ليك {0} نقطة باش تاخد {1}."
+ ],
+ "QR code de votre carte": [
+  "QR code of your card",
+  "QR-code van uw kaart",
+  "QR code ديال الكارط ديالك"
+ ],
+ "Présentez ce code au salon, il suffit de le scanner.": [
+  "Show this code at the salon, they just scan it.",
+  "Toon deze code in het salon, ze scannen hem gewoon.",
+  "وري هاد الكود فالصالون، يكفي يسكانيوه."
+ ],
+ "QR code indisponible. Adresse de votre carte :": [
+  "QR code unavailable. Your card address:",
+  "QR-code niet beschikbaar. Adres van uw kaart:",
+  "QR code ما متوفرش. عنوان الكارط ديالك:"
+ ],
+ "Ajouter à Apple Wallet": [
+  "Add to Apple Wallet",
+  "Toevoegen aan Apple Wallet",
+  "زيد فـ Apple Wallet"
+ ],
+ "Ajouter à Google Wallet": [
+  "Add to Google Wallet",
+  "Toevoegen aan Google Wallet",
+  "زيد فـ Google Wallet"
+ ],
+ "Démonstration : sur la vraie carte, ce bouton ajoute la carte à Apple Wallet.": [
+  "Demo: on a real card, this button adds the card to Apple Wallet.",
+  "Demo: op een echte kaart voegt deze knop de kaart toe aan Apple Wallet.",
+  "تجريبي: فالكارط الحقيقية، هاد الزر كيزيد الكارط فـ Apple Wallet."
+ ],
+ "Démonstration : sur la vraie carte, ce bouton ajoute la carte à Google Wallet.": [
+  "Demo: on a real card, this button adds the card to Google Wallet.",
+  "Demo: op een echte kaart voegt deze knop de kaart toe aan Google Wallet.",
+  "تجريبي: فالكارط الحقيقية، هاد الزر كيزيد الكارط فـ Google Wallet."
+ ],
+ "Ajout à Google Wallet impossible pour le moment.": [
+  "Adding to Google Wallet is not possible right now.",
+  "Toevoegen aan Google Wallet is momenteel niet mogelijk.",
+  "ما يمكنش نزيدو فـ Google Wallet دابا."
+ ],
+ "Astuce : ajoutez cette page à votre écran d'accueil pour retrouver votre carte en un geste (menu du navigateur, « Sur l'écran d'accueil »).": [
+  "Tip: add this page to your home screen to find your card in one tap (browser menu, “Add to Home Screen”).",
+  "Tip: zet deze pagina op uw startscherm om uw kaart met één tik terug te vinden (browsermenu, “Zet op beginscherm”).",
+  "نصيحة: زيد هاد الصفحة للشاشة الرئيسية باش تلقى الكارط ديالك بضغطة وحدة (قائمة المتصفح، «زيد للشاشة الرئيسية»)."
+ ],
+ "Derniers mouvements": [
+  "Recent activity",
+  "Laatste bewegingen",
+  "آخر العمليات"
+ ],
+ "Passage au salon": [
+  "Salon visit",
+  "Bezoek aan het salon",
+  "الزيارة للصالون"
+ ],
+ "Récompense utilisée": [
+  "Reward used",
+  "Beloning gebruikt",
+  "الهدية تستعملات"
+ ],
+ "Geste du salon": [
+  "Gift from the salon",
+  "Gebaar van het salon",
+  "هدية من الصالون"
+ ],
+ "Bienvenue": [
+  "Welcome",
+  "Welkom",
+  "مرحبا"
+ ],
+ "Remboursement": [
+  "Refund",
+  "Terugbetaling",
+  "استرجاع"
+ ],
+ "Comment ça marche": [
+  "How it works",
+  "Hoe het werkt",
+  "كيفاش كتخدم"
+ ],
+ "{0}. À {1} points : {2}. Les points se créditent à la caisse, après le règlement.": [
+  "{0}. At {1} points: {2}. Points are added at the till, after payment.",
+  "{0}. Bij {1} punten: {2}. De punten worden bij de kassa toegevoegd, na de betaling.",
+  "{0}. فـ {1} نقطة: {2}. النقط كتزاد فالكايس، من بعد الخلاص."
+ ],
+ "{0} points à chaque passage": [
+  "{0} points per visit",
+  "{0} punten per bezoek",
+  "{0} نقط فكل زيارة"
+ ],
+ "{0} point à chaque passage": [
+  "{0} point per visit",
+  "{0} punt per bezoek",
+  "{0} نقطة فكل زيارة"
+ ],
+ "{0} points par euro dépensé": [
+  "{0} points per euro spent",
+  "{0} punten per bestede euro",
+  "{0} نقط على كل أورو كتصرف"
+ ],
+ "{0} point par euro dépensé": [
+  "{0} point per euro spent",
+  "{0} punt per bestede euro",
+  "{0} نقطة على كل أورو كتصرف"
+ ],
+ "Cette adresse est personnelle : ne la partagez pas.": [
+  "This address is personal: do not share it.",
+  "Dit adres is persoonlijk: deel het niet.",
+  "هاد العنوان شخصي: ما تشاركوش."
+ ],
+ "Vos données sont gérées par {0}.": [
+  "Your data is managed by {0}.",
+  "Uw gegevens worden beheerd door {0}.",
+  "المعطيات ديالك كيسيرهم {0}."
+ ],
+ "Pour supprimer votre carte, demandez-le au salon.": [
+  "To delete your card, ask the salon.",
+  "Wilt u uw kaart laten verwijderen, vraag het dan aan het salon.",
+  "باش نمسحو الكارط ديالك، طلب من الصالون."
+ ],
+ "Programme introuvable": [
+  "Programme not found",
+  "Programma niet gevonden",
+  "البرنامج ما لقيناهش"
+ ],
+ "Ce salon n'a pas (ou plus) de carte de fidélité.": [
+  "This salon has no (or no longer has a) loyalty card.",
+  "Dit salon heeft geen (of geen) klantenkaart (meer).",
+  "هاد الصالون ما عندوش (ولا ما بقاش عندو) كارط الوفاء."
+ ],
+ "Votre carte de fidélité": [
+  "Your loyalty card",
+  "Uw klantenkaart",
+  "كارط الوفاء ديالك"
+ ],
+ "{0}. À {1} points : {2}.": [
+  "{0}. At {1} points: {2}.",
+  "{0}. Bij {1} punten: {2}.",
+  "{0}. فـ {1} نقطة: {2}."
+ ],
+ "{0} points offerts dès l'inscription.": [
+  "{0} points free when you sign up.",
+  "{0} punten gratis bij inschrijving.",
+  "{0} نقط مجانا من التسجيل."
+ ],
+ "Ouvrir ma carte existante": [
+  "Open my existing card",
+  "Mijn bestaande kaart openen",
+  "حل الكارط ديالي اللي عندي"
+ ],
+ "Je m'inscris": [
+  "Sign up",
+  "Ik schrijf me in",
+  "نسجل"
+ ],
+ "30 secondes, sans application à installer.": [
+  "30 seconds, no app to install.",
+  "30 seconden, geen app te installeren.",
+  "30 ثانية، بلا ما تحمل تطبيق."
+ ],
+ "Nom et prénom": [
+  "Full name",
+  "Naam en voornaam",
+  "الاسم الكامل"
+ ],
+ "L'un des deux au moins, pour retrouver votre carte.": [
+  "At least one of the two, so we can find your card.",
+  "Minstens een van beide, om uw kaart terug te vinden.",
+  "واحد فيهم على الأقل، باش نلقاو الكارط ديالك."
+ ],
+ "J'accepte que {0} conserve mon nom et mes coordonnées pour gérer ma carte de fidélité et me contacter au sujet de mes rendez-vous. Je peux demander leur suppression à tout moment.": [
+  "I agree that {0} keeps my name and contact details to manage my loyalty card and contact me about my appointments. I can ask for them to be deleted at any time.",
+  "Ik ga ermee akkoord dat {0} mijn naam en contactgegevens bewaart om mijn klantenkaart te beheren en me te contacteren over mijn afspraken. Ik kan op elk moment vragen ze te verwijderen.",
+  "كنوافق باللي {0} يحتافظ بالاسم ديالي ومعلومات الاتصال باش يسير كارط الوفاء ديالي ويتصل بيا على الرونديفو ديالي. نقدر نطلب نمسحهم فأي وقت."
+ ],
+ "Créer ma carte": [
+  "Create my card",
+  "Mijn kaart aanmaken",
+  "صاوب الكارط ديالي"
+ ],
+ "Création…": [
+  "Creating…",
+  "Aanmaken…",
+  "كنصاوبو…"
+ ],
+ "Indiquez votre nom.": [
+  "Please enter your name.",
+  "Vul uw naam in.",
+  "كتب الاسم ديالك."
+ ],
+ "Indiquez un e-mail ou un numéro de mobile.": [
+  "Please enter an email or a mobile number.",
+  "Vul een e-mailadres of gsm-nummer in.",
+  "كتب إيميل ولا نمرو ديال الموبايل."
+ ],
+ "Cette adresse e-mail semble incorrecte.": [
+  "This email address looks incorrect.",
+  "Dit e-mailadres lijkt onjuist.",
+  "هاد الإيميل بان ليا ماشي صحيح."
+ ],
+ "Cochez la case pour créer votre carte.": [
+  "Tick the box to create your card.",
+  "Vink het vakje aan om uw kaart aan te maken.",
+  "علّم على المربع باش تصاوب الكارط ديالك."
+ ],
+ "Inscription impossible.": [
+  "Sign-up failed.",
+  "Inschrijving mislukt.",
+  "التسجيل ما نجحش."
+ ],
+ "Acceptez la conservation de vos coordonnées pour recevoir votre carte.": [
+  "Please accept that your details are kept in order to receive your card.",
+  "Aanvaard de bewaring van uw gegevens om uw kaart te ontvangen.",
+  "قبل الاحتفاظ بالمعلومات ديالك باش تتوصل بالكارط."
+ ],
+ "Trop d'inscriptions aujourd'hui, réessayez demain ou demandez au salon.": [
+  "Too many sign-ups today, try again tomorrow or ask the salon.",
+  "Te veel inschrijvingen vandaag, probeer het morgen opnieuw of vraag het aan het salon.",
+  "بزاف ديال التسجيلات اليوم، عاود حاول غدا ولا طلب من الصالون."
+ ],
+ "Scannez le QR code de votre salon pour créer votre carte, ou ouvrez le lien de votre carte.": [
+  "Scan your salon's QR code to create your card, or open your card link.",
+  "Scan de QR-code van uw salon om uw kaart aan te maken, of open de link van uw kaart.",
+  "سكاني QR code ديال الصالون ديالك باش تصاوب الكارط، ولا حل الرابط ديال الكارط ديالك."
+ ]
+}

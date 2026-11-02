@@ -1,0 +1,142 @@
+{
+ "Vos données, votre choix": [
+  "Your data, your choice",
+  "Uw gegevens, uw keuze",
+  "معطياتك، قرارك"
+ ],
+ "Mirrio utilise uniquement des cookies et stockages nécessaires (connexion, préférences). Aucun cookie publicitaire. Vous pouvez autoriser ou refuser une éventuelle mesure d'audience, et changer d'avis à tout moment.": [
+  "Mirrio only uses cookies and storage that are necessary (login, preferences). No advertising cookies. You can allow or refuse any audience measurement, and change your mind at any time.",
+  "Mirrio gebruikt enkel noodzakelijke cookies en opslag (aanmelding, voorkeuren). Geen reclamecookies. U kunt een eventuele bezoekersmeting toestaan of weigeren en uw keuze op elk moment wijzigen.",
+  "Mirrio كيستعمل غير الكوكيز والتخزين الضروريين (تسجيل الدخول، التفضيلات). ما كاين حتى كوكي ديال الإشهار. تقدر تقبل ولا ترفض قياس عدد الزوار، وتبدل رأيك فأي وقت."
+ ],
+ "En savoir plus": [
+  "Learn more",
+  "Meer info",
+  "شوف التفاصيل"
+ ],
+ "Tout refuser": [
+  "Refuse all",
+  "Alles weigeren",
+  "رفض الكل"
+ ],
+ "Personnaliser": [
+  "Customise",
+  "Aanpassen",
+  "خصّص"
+ ],
+ "Tout accepter": [
+  "Accept all",
+  "Alles aanvaarden",
+  "قبول الكل"
+ ],
+ "Préférences de cookies": [
+  "Cookie preferences",
+  "Cookievoorkeuren",
+  "تفضيلات الكوكيز"
+ ],
+ "Choisissez ce que Mirrio peut enregistrer sur votre appareil. Vous pouvez modifier ce choix à tout moment depuis le lien « Gérer les cookies » en bas de page.": [
+  "Choose what Mirrio may store on your device. You can change this choice at any time from the “Manage cookies” link at the bottom of the page.",
+  "Kies wat Mirrio op uw toestel mag opslaan. U kunt deze keuze op elk moment wijzigen via de link “Cookies beheren” onderaan de pagina.",
+  "ختار شنو يقدر Mirrio يحفظ فجهازك. تقدر تبدل هاد الاختيار فأي وقت من الرابط «تسيير الكوكيز» لتحت فالصفحة."
+ ],
+ "Nécessaires": [
+  "Necessary",
+  "Noodzakelijk",
+  "ضرورية"
+ ],
+ "Connexion, sécurité, mémorisation de vos préférences et de ce choix. Indispensables, ils ne peuvent pas être désactivés.": [
+  "Login, security, remembering your preferences and this choice. Essential, so they cannot be turned off.",
+  "Aanmelding, beveiliging, onthouden van uw voorkeuren en van deze keuze. Onmisbaar, dus niet uit te schakelen.",
+  "تسجيل الدخول، الأمان، وحفظ تفضيلاتك وهاد الاختيار. ضرورية، ما يمكنش توقفها."
+ ],
+ "Cookies nécessaires, toujours actifs": [
+  "Necessary cookies, always on",
+  "Noodzakelijke cookies, altijd actief",
+  "كوكيز ضرورية، ديما خدامة"
+ ],
+ "Mesure d'audience": [
+  "Audience measurement",
+  "Bezoekersmeting",
+  "قياس عدد الزوار"
+ ],
+ "Statistiques de fréquentation pour améliorer Mirrio. Aucun outil de ce type n'est actif aujourd'hui : si nous en ajoutons un, il ne se déclenchera que si vous l'avez accepté ici.": [
+  "Visit statistics to improve Mirrio. No such tool is active today: if we add one, it will only run if you have accepted it here.",
+  "Bezoekersstatistieken om Mirrio te verbeteren. Vandaag is geen enkel zo'n hulpmiddel actief: als we er een toevoegen, start het enkel als u het hier hebt aanvaard.",
+  "إحصائيات الزيارات باش نحسنو Mirrio. ما كاين حتى أداة بحال هاذي خدامة اليوم: إلا زدنا وحدة، غادي تخدم غير إلا قبلتيها هنا."
+ ],
+ "Enregistrer mon choix": [
+  "Save my choice",
+  "Mijn keuze opslaan",
+  "سجل اختياري"
+ ],
+ "Gérer les cookies": [
+  "Manage cookies",
+  "Cookies beheren",
+  "تسيير الكوكيز"
+ ],
+ "Langue et pays": [
+  "Language and country",
+  "Taal en land",
+  "اللغة والبلاد"
+ ],
+ "Langue": [
+  "Language",
+  "Taal",
+  "اللغة"
+ ],
+ "Pays (monnaie et TVA)": [
+  "Country (currency and VAT)",
+  "Land (munt en btw)",
+  "البلاد (العملة والضريبة)"
+ ],
+ "Le pays de votre salon se règle dans Paramètres.": [
+  "Your salon's country is set in Settings.",
+  "Het land van uw salon stelt u in bij Instellingen.",
+  "بلاد الصالون ديالك كتحدد من الإعدادات."
+ ],
+ "Chargement…": [
+  "Loading…",
+  "Laden…",
+  "كيتحمل…"
+ ],
+ "Confidentialité": [
+  "Privacy",
+  "Privacy",
+  "الخصوصية"
+ ],
+ "Politique de confidentialité": [
+  "Privacy policy",
+  "Privacybeleid",
+  "سياسة الخصوصية"
+ ],
+ "E-mail": [
+  "Email",
+  "E-mail",
+  "الإيميل"
+ ],
+ "Mobile": [
+  "Mobile",
+  "Gsm",
+  "الموبايل"
+ ],
+ "Connexion impossible": [
+  "Connection failed",
+  "Verbinding mislukt",
+  "ما قدرناش نتصلو"
+ ],
+ "Vérifiez votre connexion puis rechargez la page.": [
+  "Check your connection, then reload the page.",
+  "Controleer uw verbinding en laad de pagina opnieuw.",
+  "تأكد من الاتصال ديالك وعاود حمّل الصفحة."
+ ],
+ "Service indisponible": [
+  "Service unavailable",
+  "Dienst niet beschikbaar",
+  "الخدمة ما متوفراش"
+ ],
+ "Réessayez dans un instant.": [
+  "Please try again in a moment.",
+  "Probeer het zo meteen opnieuw.",
+  "عاود حاول من بعد شوية."
+ ]
+}

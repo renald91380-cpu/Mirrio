@@ -691,6 +691,17 @@
                 <input type="text" id="rcs_ville" data-bind="facturation.rcs_ville">
               </div>
 
+              <div class="field">
+                <label for="profil_pays">Pays de facturation (monnaie et TVA)</label>
+                <select id="profil_pays" data-bind="facturation.profil_pays">
+                  <option value="FR">🇫🇷 France · euro (EUR)</option>
+                  <option value="BE">🇧🇪 Belgique · euro (EUR)</option>
+                  <option value="CH">🇨🇭 Suisse · franc suisse (CHF)</option>
+                  <option value="MA">🇲🇦 Maroc · dirham (MAD)</option>
+                </select>
+                <div class="hint" id="pays-aide" style="font-size:13px;color:rgba(28,35,51,.6);margin-top:4px;"></div>
+              </div>
+
               <div class="switch-row" style="margin-top:6px;">
                 <input type="checkbox" id="assujetti_tva" data-bind="facturation.assujetti_tva">
                 <div>
@@ -1294,6 +1305,7 @@
            appliquerThemeEnCache, monterEntete, viderCacheBrand, chargerBrand,
            idEspaceActif, viderCacheEspace, initiales, prenomConnecte } from './theme.js';
   import { rendreDocument, stylesDocument, documentExemple, PENALITES_DEFAUT } from './document-render.js';
+  import { PROFILS, definirProfil, libelleTva } from './pays-profils.js';
 
   const configured = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_ANON_KEY.includes('YOUR-ANON');
   if(!configured){
@@ -1411,6 +1423,22 @@
   }
   function colonne(bind){ return bind.split('.')[1]; }
 
+  // Pays de facturation : règle la monnaie, les taux de TVA proposés, la mention de non-assujettissement et l'aide affichée (pays-profils.js).
+  const NOMS_TAUX = { 0:'', 2.1:' — taux super-réduit', 5.5:' — taux réduit', 6:' — taux réduit', 7:' — taux réduit', 8.1:' — taux normal', 3.8:' — taux spécial', 2.6:' — taux réduit' };
+  function majPaysTva(options = {}){
+    const code = (facturation.profil_pays && PROFILS[facturation.profil_pays]) ? facturation.profil_pays : 'FR', p = PROFILS[code];
+    definirProfil(code);
+    const sel = document.getElementById('tva_taux_defaut'), actuel = String(facturation.tva_taux_defaut);
+    sel.innerHTML = p.tva.map((t, i)=>`<option value="${t}">${libelleTva(t)}${t === 0 ? '' : (i === 0 ? ' — taux normal' : (NOMS_TAUX[t] || ' — taux réduit'))}</option>`).join('');
+    const garde = p.tva.map(String).includes(actuel);
+    if(!garde || options.reinit){ facturation.tva_taux_defaut = p.tvaDefaut; }
+    sel.value = String(facturation.tva_taux_defaut);
+    document.getElementById('profil_pays').value = code;
+    document.getElementById('tva_numero').placeholder = ({ FR:'FR12345678901', BE:'BE0123456789', CH:'CHE-123.456.789 TVA', MA:'ICE 001234567890123' })[code];
+    document.getElementById('tva-desc').textContent = `Décoché, vos documents portent la mention « ${p.mentionFranchise} »`;
+    document.getElementById('pays-aide').textContent = `Monnaie : ${p.devise}. ${p.aValider ? 'Règles de ce pays à faire confirmer par votre comptable. ' : ''}${p.certification}`;
+  }
+
   function remplirChamps(){
     document.querySelectorAll('[data-bind]').forEach(el=>{
       const obj = cible(el.dataset.bind), col = colonne(el.dataset.bind);
@@ -1419,6 +1447,7 @@
       else if(el.type === 'radio') el.checked = (String(v) === el.value);
       else el.value = (v === null || v === undefined) ? '' : String(v);
     });
+    majPaysTva();
     document.getElementById('tva-fields').style.display = facturation.assujetti_tva ? 'block' : 'none';
     majLogoApercu();
     majVocabDemo();
@@ -1489,6 +1518,7 @@
       if(col === 'assujetti_tva'){
         document.getElementById('tva-fields').style.display = obj[col] ? 'block' : 'none';
       }
+      if(col === 'profil_pays'){ majPaysTva({ reinit:true }); }
       if(col === 'accent' || col === 'densite'){
         appliquerTheme({ ...profil });
         rendreApercuUI();
@@ -2610,6 +2640,13 @@
       const retry = await supabase.from('parametres_reservation').upsert(sansTarifs, { onConflict:'owner_id' });
       r3.error = retry.error;
       if(!retry.error) showToast("Enregistré, sauf les tarifs enfant et étudiant : la mise à jour de la base (schema-v34) n'a pas encore été exécutée.", true);
+    }
+    // Migration v49 (profil pays) pas encore exécutée : le reste de la facturation est enregistré, le pays non.
+    if(r2.error && /profil_pays/.test(String(r2.error.message || ''))){
+      const sansPays = { ...pFact }; delete sansPays.profil_pays;
+      const retry = await supabase.from('parametres_facturation').upsert(sansPays, { onConflict:'owner_id' });
+      r2.error = retry.error;
+      if(!retry.error) showToast("Enregistré, sauf le pays de facturation : la mise à jour de la base (schema-v49) n'a pas encore été exécutée.", true);
     }
     if(r3.error && r3.error.code === '23505'){
       setFieldError('resa-slug', 'Ce lien est déjà pris, essayez une variante.');
