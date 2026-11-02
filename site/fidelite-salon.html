@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+  // Applique le style d'interface mis en cache AVANT le premier rendu, pour
+  // éviter un flash de l'identité par défaut (Atelier, nav du haut) au clic
+  // sur un lien de nav : appliquerThemeEnCache() dans theme.js fait la même
+  // chose, mais trop tard — ce script module est différé et ne s'exécute
+  // qu'après que le navigateur a déjà peint le DOM. Doublon volontaire et
+  // minimal (un seul attribut), pas une dépendance vers theme.js.
+  (function(){
+    try{
+      var b = JSON.parse(sessionStorage.getItem('cadence:brand'));
+      if(b && b.style_interface) document.documentElement.setAttribute('data-style', b.style_interface);
+    }catch(e){}
+  })();
+</script>
+<title>Fidélité | Mirrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="chrome.css">
+<style>
+  :root{
+    --ink:#1C2333;
+    --ink-soft:#2A3346;
+    --parchment:#F5F1E7;
+    --parchment-dim:#EAE4D4;
+    --slate:#8B8F98;
+    --amber:#E2A63D;
+    --amber-soft:#f0c98a;
+    --teal:#3E7C74;
+    --brick:#B5533F;
+    --display:'Fraunces', Georgia, serif;
+    --body:'Inter', Arial, sans-serif;
+    --mono:'IBM Plex Mono', 'Courier New', monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:var(--body);
+    background:var(--parchment);
+    color:var(--ink);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  img,svg{display:block;}
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit;}
+
+  .logo{
+    font-family:var(--display); font-weight:700; font-size:20px;
+    display:flex; align-items:baseline; gap:2px;
+  }
+  .logo .dot{ color:var(--amber); animation:pulseDot 1.6s ease-in-out infinite; }
+  @keyframes pulseDot{
+    0%, 70%, 100%{ transform:scale(1); opacity:0.3; }
+    35%{ transform:scale(1.9); opacity:1; background:var(--amber); }
+  }
+  @media (prefers-reduced-motion: reduce){ .logo .dot{ animation:none !important; opacity:0.6 !important; } }
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    padding:12px 20px; border-radius:6px; font-weight:600; font-size:14.5px;
+    border:none; cursor:pointer; min-height:44px;
+    transition:transform .15s ease, box-shadow .15s ease, background .15s ease, opacity .15s ease;
+  }
+  .btn-primary{ background:var(--amber); color:var(--ink); }
+  .btn-primary:hover{ transform:translateY(-1px); box-shadow:0 8px 18px rgba(226,166,61,0.28); }
+  .btn-ghost{ background:transparent; color:var(--parchment); border:1px solid rgba(245,241,231,0.28); }
+  .btn-ghost:hover{ border-color:rgba(245,241,231,0.6); }
+  .btn:focus-visible, a:focus-visible, button:focus-visible{
+    outline:2px solid var(--teal); outline-offset:2px;
+  }
+
+  /* ---------- App header ---------- */
+  .app-header{
+    background:var(--ink); color:var(--parchment);
+    padding:16px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px;
+  }
+  .app-header-left{ display:flex; align-items:center; gap:28px; }
+  .app-nav{ display:none; gap:20px; font-size:14px; font-weight:500; overflow-x:auto; }
+  @media(min-width:640px){ .app-nav{ display:flex; } }
+  .app-nav a{ color:rgba(245,241,231,0.6); padding:6px 0; border-bottom:2px solid transparent; white-space:nowrap; }
+  .app-nav a:hover{ color:var(--parchment); }
+  .app-nav a.active{ color:var(--parchment); border-bottom-color:var(--amber); }
+  .app-header-right{ display:flex; align-items:center; gap:16px; }
+  .user-name{ font-size:13px; color:rgba(245,241,231,0.55); display:none; }
+  @media(min-width:640px){ .user-name{ display:block; } }
+  .btn-icon{ width:38px; height:38px; padding:0; min-height:0; flex-shrink:0; }
+  .btn-icon svg{ width:17px; height:17px; }
+
+  /* ---------- Main ---------- */
+  .app-main{ padding:36px 20px 60px; }
+  .app-container{ max-width:980px; margin:0 auto; }
+  .page-head{ margin-bottom:32px; }
+  .page-head h1{ font-family:var(--display); font-weight:700; font-size:30px; margin-bottom:6px; }
+  .page-head p{ font-size:14.5px; color:rgba(28,35,51,0.6); }
+
+  .loading-state{ text-align:center; padding:72px 20px; color:rgba(28,35,51,0.5); font-size:14px; }
+
+  /* ---------- Stat cards ---------- */
+  .stat-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:20px; }
+  @media(max-width:760px){ .stat-row{ grid-template-columns:1fr; } }
+  .stat-card{
+    background:#fff; border:1px solid rgba(28,35,51,0.09); border-radius:12px; padding:20px 22px;
+  }
+  .stat-label{
+    font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.05em;
+    color:rgba(28,35,51,0.5); margin-bottom:10px;
+  }
+  .stat-value{ font-family:var(--display); font-size:30px; font-weight:700; line-height:1.1; }
+  .stat-sub{ font-size:12.5px; color:rgba(28,35,51,0.5); margin-top:6px; }
+  .stat-sub.up{ color:var(--teal); }
+  .stat-sub.down{ color:var(--brick); }
+
+  /* ---------- Chart card ---------- */
+  .card{
+    background:#fff; border:1px solid rgba(28,35,51,0.09); border-radius:12px;
+    padding:22px 24px; margin-bottom:20px;
+  }
+  .card h2{ font-family:var(--display); font-size:19px; font-weight:700; margin-bottom:4px; }
+  .card-sub{ font-size:13.5px; color:rgba(28,35,51,0.55); margin-bottom:22px; }
+
+  .chart-bars{ display:flex; align-items:flex-end; gap:14px; height:160px; }
+  .chart-col{ flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; height:100%; justify-content:flex-end; }
+  .chart-col .bar-track{ flex:1; width:100%; display:flex; align-items:flex-end; }
+  .chart-col .bar{
+    width:100%; border-radius:4px 4px 0 0; min-height:3px;
+    background:linear-gradient(180deg, var(--accent-soft, var(--amber-soft)), var(--accent, var(--amber)));
+    position:relative;
+  }
+  .chart-col.current .bar{ background:linear-gradient(180deg, #fff, var(--accent, var(--amber))); }
+  .chart-col .bar-value{
+    font-family:var(--mono); font-size:11px; color:rgba(28,35,51,0.55);
+    position:absolute; top:-19px; left:0; right:0; text-align:center; white-space:nowrap;
+  }
+  .chart-col .bar-label{ font-size:12px; color:rgba(28,35,51,0.55); text-transform:capitalize; }
+
+  /* ---------- Retard list ---------- */
+  .retard-list{ display:flex; flex-direction:column; gap:8px; }
+  .retard-row{
+    display:flex; align-items:center; gap:14px; padding:12px 14px;
+    background:rgba(181,83,63,0.05); border:1px solid rgba(181,83,63,0.15); border-radius:9px;
+  }
+  .retard-row .rr-main{ flex:1; min-width:0; }
+  .retard-row .rr-client{ font-size:14px; font-weight:600; }
+  .retard-row .rr-meta{ font-size:12.5px; color:rgba(28,35,51,0.55); margin-top:2px; }
+  .retard-row .rr-montant{ font-family:var(--mono); font-size:14px; font-weight:600; color:var(--brick); white-space:nowrap; }
+  .retard-row .rr-jours{
+    font-size:11px; font-weight:600; color:var(--brick); background:rgba(181,83,63,0.12);
+    padding:3px 9px; border-radius:20px; white-space:nowrap;
+  }
+  .retard-empty{
+    text-align:center; padding:28px 20px; color:rgba(28,35,51,0.5); font-size:13.5px;
+  }
+  .retard-empty svg{ margin:0 auto 10px; stroke:var(--teal); }
+
+  /* ---------- Mur payant (formule Solo) ---------- */
+  .plan-gate{ text-align:center; padding:56px 20px; }
+  .plan-gate strong{ display:block; font-family:var(--display); font-size:22px; margin-bottom:10px; }
+  .plan-gate p{ font-size:14.5px; color:rgba(28,35,51,0.6); max-width:440px; margin:0 auto 22px; line-height:1.6; }
+
+  .eq-table{ width:100%; border-collapse:collapse; font-size:14.5px; } .eq-table th{ text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:#5B606B; padding:8px 10px; border-bottom:2px solid rgba(16,18,22,.14); white-space:nowrap; }
+  .eq-table td{ padding:11px 10px; border-bottom:1px solid rgba(16,18,22,.09); vertical-align:middle; } .eq-table td.n, .eq-table th.n{ text-align:right; font-variant-numeric:tabular-nums; }
+  .eq-table tr.total td{ font-weight:700; border-top:2px solid rgba(16,18,22,.2); border-bottom:0; }
+  .barre-remp{ display:inline-block; width:90px; height:9px; border-radius:99px; background:rgba(16,18,22,.1); vertical-align:middle; margin-right:8px; overflow:hidden; } .barre-remp i{ display:block; height:100%; background:#E2A63D; }
+  .eq-pct{ width:64px; min-height:38px; border:1px solid rgba(16,18,22,.2); border-radius:10px; padding:0 8px; font:inherit; text-align:right; }
+  .periode{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; align-items:end; } .periode select, .periode input{ min-height:42px; border:1px solid rgba(16,18,22,.2); border-radius:12px; padding:0 10px; font:inherit; background:#fff; }
+  .scroll-x{ overflow-x:auto; } .note-eq{ font-size:13px; color:#5B606B; margin-top:12px; }
+</style>
+<style>
+  .imp-steps{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; padding:0; list-style:none; }
+  .imp-steps li{ font-size:13px; font-weight:600; padding:7px 14px; border-radius:999px; background:rgba(16,18,22,.07); color:#5B606B; }
+  .imp-steps li.on{ background:#101216; color:#fff; } .imp-steps li.fait{ background:rgba(62,124,116,.15); color:#2c5d56; }
+  .imp-choix{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; } @media(max-width:760px){ .imp-choix{ grid-template-columns:1fr; } }
+  .imp-choix button{ text-align:left; background:#fff; border:2px solid rgba(16,18,22,.12); border-radius:16px; padding:16px 18px; cursor:pointer; font:inherit; min-height:44px; }
+  .imp-choix button:hover{ border-color:#E2A63D; } .imp-choix button[aria-pressed=true]{ border-color:#101216; box-shadow:0 0 0 3px rgba(226,166,61,.4); }
+  .imp-choix b{ display:block; font-size:16px; margin-bottom:4px; } .imp-choix span{ font-size:13px; color:#5B606B; }
+  .imp-champ{ display:flex; flex-direction:column; gap:4px; margin:10px 0; font-size:13.5px; font-weight:600; } .imp-champ input, .imp-champ select{ min-height:44px; border:1px solid rgba(16,18,22,.2); border-radius:12px; padding:0 12px; font:inherit; background:#fff; font-weight:400; }
+  .imp-lignes{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:0 18px; }
+  .imp-depot{ border:2px dashed rgba(16,18,22,.25); border-radius:18px; padding:34px 20px; text-align:center; background:#fff; } .imp-depot.survol{ border-color:#E2A63D; background:rgba(226,166,61,.08); }
+  .imp-map{ display:grid; grid-template-columns:minmax(150px,1fr) minmax(180px,1.4fr); gap:8px 14px; align-items:center; } .imp-map label{ font-size:14px; font-weight:600; } .imp-map select{ min-height:42px; border:1px solid rgba(16,18,22,.2); border-radius:12px; padding:0 10px; font:inherit; background:#fff; }
+  .imp-map .req::after{ content:' *'; color:#B5533F; }
+  .imp-table{ width:100%; border-collapse:collapse; font-size:13.5px; } .imp-table th{ text-align:left; font-size:11.5px; text-transform:uppercase; letter-spacing:.04em; color:#5B606B; padding:7px 9px; border-bottom:2px solid rgba(16,18,22,.14); white-space:nowrap; } .imp-table td{ padding:8px 9px; border-bottom:1px solid rgba(16,18,22,.08); max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .imp-barre{ height:12px; border-radius:99px; background:rgba(16,18,22,.1); overflow:hidden; margin:12px 0; } .imp-barre i{ display:block; height:100%; width:0; background:#E2A63D; transition:width .2s; }
+  .imp-note{ background:rgba(226,166,61,.12); border:1px solid rgba(226,166,61,.5); border-radius:12px; padding:12px 14px; font-size:13.5px; margin:12px 0; } .imp-ko{ background:rgba(181,83,63,.08); border-color:rgba(181,83,63,.35); }
+  .imp-liste{ margin:8px 0 0 18px; font-size:13.5px; } .imp-actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; } .imp-kpi{ display:flex; gap:12px; flex-wrap:wrap; margin:12px 0; } .imp-kpi div{ background:#fff; border:1px solid rgba(16,18,22,.1); border-radius:14px; padding:10px 16px; min-width:120px; } .imp-kpi b{ display:block; font-size:22px; font-family:var(--display); }
+</style>
+<style>
+  .fi-grille{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:0 18px; }
+  .fi-aff{ display:grid; grid-template-columns:200px 1fr; gap:18px; align-items:center; } @media(max-width:640px){ .fi-aff{ grid-template-columns:1fr; justify-items:center; text-align:center; } }
+  #qr-salon svg{ width:200px; height:200px; display:block; }
+  .fi-pt{ font-variant-numeric:tabular-nums; font-weight:700; }
+  .imp-champ textarea{ min-height:80px; border:1px solid rgba(16,18,22,.2); border-radius:12px; padding:10px 12px; font:inherit; }
+  .fi-sw{ display:flex; gap:10px; align-items:center; font-weight:600; font-size:15px; } .fi-sw input{ width:22px; height:22px; accent-color:#101216; }
+  #affiche{ display:none; }
+  @media print{ body > *:not(#affiche){ display:none !important; } #affiche{ display:block !important; text-align:center; padding:40px; font-family:Arial,sans-serif; } #affiche svg{ width:360px; height:360px; } #affiche h1{ font-size:40px; margin:0 0 12px; } #affiche p{ font-size:22px; } }
+</style>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#1C2333">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mirrio">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<script src="/pwa.js" defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<script src="/cookies.js" defer></script>
+<meta name="robots" content="noindex, nofollow">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-header-left">
+    <span class="logo">Mirrio<span class="dot">.</span></span>
+    <nav class="app-nav"></nav>
+  </div>
+  <div class="app-header-right">
+    <span class="user-name" id="user-name"></span>
+  </div>
+</header>
+
+<div class="app-shell">
+  <aside class="app-sidebar">
+    <div class="logo">Mirrio<span class="dot">.</span></div>
+    <div class="logo-badge" aria-hidden="true"></div>
+    <nav class="sidebar-nav"></nav>
+    <div class="sidebar-spacer"></div>
+    <div class="sidebar-user"><span class="sidebar-avatar" id="sidebar-avatar">–</span><div class="sidebar-user-text"><div class="name" id="sidebar-name">…</div><div class="email" id="sidebar-email"></div></div></div>
+  </aside>
+
+<main class="app-main">
+  <div class="app-container">
+    <div class="page-head">
+      <h1>Fidélité</h1>
+      <p>Une carte par client, avec QR code, à ajouter dans le Wallet de l'iPhone ou d'Android. Les points se créditent seuls à chaque passage en caisse.</p>
+    </div>
+    <div id="loading-state" class="loading-state">Chargement…</div>
+    <div id="base" class="card imp-ko" hidden><b>Base non préparée.</b> Exécutez <code>db/schema-v52-fidelite.sql</code> dans Supabase, puis rechargez la page.</div>
+
+    <div id="contenu" hidden>
+      <div class="imp-kpi" id="kpi"></div>
+
+      <section class="card" id="c-reglage">
+        <h2>Le programme</h2>
+        <p class="card-sub" id="c-sub"></p>
+        <form id="f" novalidate>
+          <label class="fi-sw"><input type="checkbox" id="actif"> Programme de fidélité activé</label>
+          <div class="fi-grille" style="margin-top:8px">
+            <label class="imp-champ">Comment gagner des points
+              <select id="mode"><option value="euro">Points selon le montant dépensé</option><option value="visite">Points à chaque passage</option></select></label>
+            <label class="imp-champ" id="l-euro">Points par euro dépensé (TTC)<input id="ppe" type="number" min="0.1" max="100" step="0.1" value="1"></label>
+            <label class="imp-champ" id="l-visite" hidden>Points par passage<input id="ppv" type="number" min="1" max="100" step="1" value="1"></label>
+            <label class="imp-champ">Points pour une récompense<input id="seuil" type="number" min="1" max="100000" step="1" value="100"></label>
+            <label class="imp-champ">Nature de la récompense
+              <select id="rtype"><option value="remise_pct">Une remise sur le ticket</option><option value="libre">Autre (soin offert, produit…)</option></select></label>
+            <label class="imp-champ" id="l-pct">Remise (%)<input id="rpct" type="number" min="1" max="100" step="1" value="10"></label>
+            <label class="imp-champ" id="l-lib" hidden>Libellé de la récompense<input id="rlib" type="text" maxlength="120" placeholder="Ex. un soin du visage offert"></label>
+            <label class="imp-champ">Points offerts à l'inscription<input id="bienv" type="number" min="0" max="1000" step="1" value="0"></label>
+          </div>
+          <div id="f-err" class="imp-note imp-ko" role="alert" hidden></div>
+          <div class="imp-actions"><button class="btn btn-primary" type="submit" id="enreg">Enregistrer</button></div>
+        </form>
+        <p class="card-sub" style="margin-top:12px" id="exemple"></p>
+      </section>
+
+      <section class="card" id="c-aff" hidden>
+        <h2>Affiche pour le comptoir</h2>
+        <p class="card-sub">Vos clients scannent ce QR code avec leur téléphone, saisissent leur nom et leur e-mail ou mobile, et reçoivent leur carte. Ils peuvent l'ajouter à leur Wallet.</p>
+        <div class="fi-aff"><div id="qr-salon" role="img" aria-label="QR code d'inscription"></div>
+          <div><p id="lien-salon" style="word-break:break-all;font-size:14px"></p>
+            <div class="imp-actions"><button class="btn btn-primary btn-sm" type="button" id="imprimer">Imprimer l'affiche</button><button class="btn btn-outline btn-sm" type="button" id="copier">Copier le lien</button></div></div></div>
+      </section>
+      <section class="card" id="c-noslug" hidden><b>Adresse de réservation manquante.</b> L'affiche d'inscription utilise l'adresse publique de votre salon : définissez-la dans Paramètres, onglet Réservation.</section>
+
+      <section class="card" id="c-cartes">
+        <h2>Cartes de vos clients</h2>
+        <p class="card-sub">À la caisse, choisissez le client ou scannez son QR code : ses points se créditent après la vente. Pour envoyer sa carte à un client, copiez son lien.</p>
+        <div class="scroll-x"><table class="imp-table" id="t"></table></div>
+        <p id="vide" class="card-sub" hidden>Aucune carte pour l'instant. Elles se créent à la première vente d'un client identifié, ou par l'affiche ci-dessus.</p>
+      </section>
+
+      <div class="imp-note" id="note-wallet"></div>
+      <div class="imp-note"><b>Bon à savoir.</b> Les points se calculent sur le ticket de caisse enregistré (jamais sur un montant saisi à la main), une seule fois par ticket. Un remboursement par avoir reprend les points correspondants. Les ventes de formation n'en rapportent pas. Un client qui s'inscrit lui-même donne son accord à la conservation de ses coordonnées ; en cas de demande de suppression, supprimez sa fiche dans Clients (sa carte disparaît avec).</div>
+    </div>
+  </div>
+</main>
+</div>
+<div id="affiche"><h1 id="af-salon"></h1><p>Scannez pour créer votre carte de fidélité</p><div id="af-qr"></div><p id="af-regle" style="margin-top:14px"></p></div>
+
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+  import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
+  import { initTheme, idEspaceActif, formaterNomAffichage, initiales, prenomConnecte } from './theme.js';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const $ = s => document.querySelector(s);
+  const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  let espace = null, estResp = false, slug = null, nomSalon = 'Votre salon', prog = null;
+
+  const chargerQR = () => window.qrcode ? Promise.resolve(true) : new Promise(res => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js'; s.onload = () => res(!!window.qrcode); s.onerror = () => res(false); document.head.appendChild(s); });
+  const qrSvg = t => { const q = window.qrcode(0, 'M'); q.addData(t); q.make(); return q.createSvgTag({ cellSize:6, margin:0, scalable:true }); };
+  const toast = m => { const t = document.createElement('div'); t.textContent = m; t.setAttribute('role', 'status'); t.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#101216;color:#fff;padding:12px 18px;border-radius:999px;z-index:99;font-size:14px'; document.body.appendChild(t); setTimeout(() => t.remove(), 3200); };
+  const adresse = p => `${location.origin}/fidelite.html?${p}`;
+
+  function formulaire(p){
+    $('#actif').checked = !!(p && p.actif); $('#mode').value = p ? p.mode : 'euro'; $('#ppe').value = p ? p.points_par_euro : 1; $('#ppv').value = p ? p.points_par_visite : 1;
+    $('#seuil').value = p ? p.seuil : 100; $('#rtype').value = p ? p.recompense_type : 'remise_pct'; $('#rpct').value = p ? p.recompense_pct : 10; $('#rlib').value = p ? p.recompense_libelle : ''; $('#bienv').value = p ? p.points_bienvenue : 0;
+    basculer();
+  }
+  function lire(){
+    return { owner_id:espace, actif:$('#actif').checked, mode:$('#mode').value, points_par_euro:Number($('#ppe').value), points_par_visite:Math.round(Number($('#ppv').value)), seuil:Math.round(Number($('#seuil').value)),
+      recompense_type:$('#rtype').value, recompense_pct:Math.round(Number($('#rpct').value)), recompense_libelle:$('#rlib').value.trim(), points_bienvenue:Math.round(Number($('#bienv').value) || 0), maj_le:new Date().toISOString() };
+  }
+  function basculer(){
+    const e = $('#mode').value === 'euro', r = $('#rtype').value === 'remise_pct';
+    $('#l-euro').hidden = !e; $('#l-visite').hidden = e; $('#l-pct').hidden = !r; $('#l-lib').hidden = r;
+    const p = lire(); if(!(p.seuil > 0)) return $('#exemple').textContent = '';
+    const rec = r ? `${p.recompense_pct} % de remise` : (p.recompense_libelle || 'une récompense');
+    $('#exemple').textContent = e ? `Exemple : un client qui dépense 40 € gagne ${Math.floor(40 * p.points_par_euro)} points ; il obtient ${rec} à ${p.seuil} points, soit après environ ${Math.ceil(p.seuil / p.points_par_euro)} € dépensés.` : `Exemple : ${p.points_par_visite} point par passage ; ${rec} après ${Math.ceil(p.seuil / p.points_par_visite)} passages.`;
+  }
+  ['mode', 'rtype', 'ppe', 'ppv', 'seuil', 'rpct', 'rlib'].forEach(i => $('#' + i).addEventListener('input', basculer));
+  $('#f').addEventListener('submit', async e => {
+    e.preventDefault(); const err = $('#f-err'); err.hidden = true; const p = lire();
+    const bad = m => { err.textContent = m; err.hidden = false; };
+    if(!estResp) return bad('Réservé au responsable du salon.');
+    if(p.mode === 'euro' && !(p.points_par_euro >= 0.1 && p.points_par_euro <= 100)) return bad('Points par euro : entre 0,1 et 100.');
+    if(!(p.points_par_visite >= 1 && p.points_par_visite <= 100)) return bad('Points par passage : entre 1 et 100.');
+    if(!(p.seuil >= 1)) return bad('Indiquez le nombre de points pour une récompense.');
+    if(p.recompense_type === 'remise_pct' && !(p.recompense_pct >= 1 && p.recompense_pct <= 100)) return bad('Remise : entre 1 et 100 %.');
+    if(p.recompense_type === 'libre' && !p.recompense_libelle) return bad('Décrivez la récompense.');
+    const b = $('#enreg'); b.disabled = true;
+    const { error } = await supabase.from('fidelite_programmes').upsert(p, { onConflict:'owner_id' });
+    b.disabled = false; if(error) return bad('Enregistrement impossible : ' + error.message);
+    prog = p; toast('Programme enregistré'); await tout();
+  });
+
+  async function tout(){
+    const { data:cartes, error } = await supabase.rpc('fidelite_liste');
+    const lignes = error ? [] : cartes || [];
+    $('#kpi').innerHTML = [[lignes.length, 'cartes'], [lignes.reduce((s, c) => s + c.points, 0), 'points en circulation'], [lignes.reduce((s, c) => s + c.recompenses_utilisees, 0), 'récompenses utilisées'], [lignes.filter(c => c.origine === 'inscription').length, 'inscrits par le QR']].map(([n, l]) => `<div><b>${Number(n).toLocaleString('fr-FR')}</b>${esc(l)}</div>`).join('');
+    $('#vide').hidden = lignes.length > 0; $('#t').hidden = lignes.length === 0;
+    $('#t').innerHTML = '<thead><tr><th>Client</th><th>Contact</th><th>Points</th><th>Gagnés</th><th>Récompenses</th><th>Dernier passage</th><th></th></tr></thead><tbody>' + lignes.map(c => `<tr><td>${esc(c.nom)}</td><td>${esc(c.email || c.telephone || '')}</td><td class="fi-pt">${c.points}</td><td>${c.total_gagne}</td><td>${c.recompenses_utilisees}</td><td>${c.derniere_visite ? new Date(c.derniere_visite).toLocaleDateString('fr-FR') : ''}</td><td style="white-space:nowrap"><button class="btn btn-outline btn-sm" data-lien="${esc(c.token)}" type="button">Copier le lien</button> <button class="btn btn-outline btn-sm" data-aj="${esc(c.carte_id)}" data-nom="${esc(c.nom)}" type="button">Ajuster</button></td></tr>`).join('') + '</tbody>';
+  }
+  $('#t').addEventListener('click', async e => {
+    const l = e.target.closest('[data-lien]'), a = e.target.closest('[data-aj]');
+    if(l){ try{ await navigator.clipboard.writeText(adresse('t=' + l.dataset.lien)); toast('Lien de la carte copié'); }catch(x){ prompt('Lien de la carte :', adresse('t=' + l.dataset.lien)); } }
+    if(a){
+      const d = prompt(`Points à ajouter (ou retirer, avec un signe moins) pour ${a.dataset.nom} :`, '10'); if(d === null) return;
+      const n = Math.round(Number(d)); if(!n) return toast('Nombre de points invalide.');
+      const m = prompt('Motif (obligatoire, gardé dans l\'historique) :', 'Geste commercial'); if(!m || !m.trim()) return toast('Motif obligatoire.');
+      const { error } = await supabase.rpc('fidelite_ajuster', { p_carte:a.dataset.aj, p_delta:n, p_note:m.trim() });
+      if(error) return toast(error.message.replace(/^.*?: /, '')); toast('Points ajustés'); tout();
+    }
+  });
+  $('#copier').addEventListener('click', async () => { try{ await navigator.clipboard.writeText(adresse('p=' + slug)); toast('Lien copié'); }catch(e){ prompt('Lien :', adresse('p=' + slug)); } });
+  $('#imprimer').addEventListener('click', () => {
+    $('#af-salon').textContent = nomSalon; $('#af-qr').innerHTML = qrSvg(adresse('p=' + slug));
+    $('#af-regle').textContent = prog ? (prog.mode === 'euro' ? `${prog.points_par_euro} point par euro dépensé` : `${prog.points_par_visite} point par passage`) + `, puis ${prog.recompense_type === 'remise_pct' ? prog.recompense_pct + ' % de remise' : prog.recompense_libelle} à ${prog.seuil} points.` : '';
+    window.print();
+  });
+
+  (async function init(){
+    const { data } = await supabase.auth.getSession();
+    if(!data.session){ window.location.href = 'login.html'; return; }
+    $('#user-name').textContent = await prenomConnecte(supabase, data.session); $('#sidebar-email').textContent = data.session.user.email;
+    const brand = await initTheme(supabase, 'clients');
+    nomSalon = brand.business_name && brand.business_name !== 'Mirrio' ? brand.business_name : (brand.full_name ? formaterNomAffichage(brand.full_name) : 'Votre salon');
+    $('#sidebar-name').textContent = nomSalon; $('#sidebar-avatar').textContent = initiales(nomSalon);
+    $('#loading-state').hidden = true;
+    espace = await idEspaceActif(supabase);
+    const { data:role } = await supabase.rpc('mon_role'); estResp = ['proprietaire', 'gestionnaire', 'manager'].includes(role);
+    const pr = await supabase.from('fidelite_programmes').select('*').eq('owner_id', espace).maybeSingle();
+    if(pr.error && /fidelite_programmes|schema cache|does not exist|42P01|PGRST205/.test(pr.error.message + (pr.error.code || ''))){ $('#base').hidden = false; return; }
+    prog = pr.data; $('#contenu').hidden = false; formulaire(prog);
+    $('#c-sub').textContent = estResp ? 'Réglez les règles ici. Les cartes existantes gardent leurs points.' : 'Seul le responsable du salon peut modifier les règles.';
+    if(!estResp){ $('#c-reglage').querySelectorAll('input,select,button').forEach(x => x.disabled = true); $('#c-cartes').hidden = true; $('#kpi').hidden = true; }
+    const rs = await supabase.from('parametres_reservation').select('slug').eq('owner_id', espace).maybeSingle(); slug = rs.data && rs.data.slug;
+    if(slug && estResp){ $('#c-aff').hidden = false; $('#lien-salon').textContent = adresse('p=' + slug); if(await chargerQR()) $('#qr-salon').innerHTML = qrSvg(adresse('p=' + slug)); }
+    else if(estResp) $('#c-noslug').hidden = false;
+    let w = { google:false, apple:false }; try{ w = await (await fetch('/api/fidelite?wallet=etat')).json(); }catch(e){}
+    $('#note-wallet').innerHTML = `<b>Wallet.</b> Apple Wallet : ${w.apple ? 'activé' : 'pas encore activé (compte développeur Apple requis)'} · Google Wallet : ${w.google ? 'activé' : 'pas encore activé (compte Google Cloud requis)'}. ${w.apple || w.google ? '' : 'En attendant, chaque client a une carte avec QR code qui s\'ouvre dans le navigateur et peut être ajoutée à l\'écran d\'accueil.'}`;
+    if(estResp) await tout();
+  })();
+</script>
+</body>
+</html>

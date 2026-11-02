@@ -3,7 +3,7 @@
 // Réimplémente juste ce que caisse.html demande à Supabase (select / eq / is / in / order / limit / maybeSingle / single / insert / update / delete)
 // sur quelques tables, avec le salon fictif Maison Éloïse (coiffure mixte, franchise de TVA). L'état survit au rechargement
 // (sessionStorage) pour pouvoir présenter une journée entière ; `reinitialiserDemoCaisse()` remet tout à zéro.
-const CLE = 'mirrio-demo-caisse-v11';
+const CLE = 'mirrio-demo-caisse-v12';
 const WS = 'demo';
 
 // Rendez-vous d'aujourd'hui pour montrer « Encaisser depuis l'agenda » : un simple, un avec acompte déjà versé en ligne (facture émise), un déjà réglé en ligne.
@@ -29,6 +29,8 @@ function donneesInitiales(){
   return {
     n: 1,
     caisse_sessions: [],   // la démo démarre caisse fermée : on montre l'ouverture (fond de caisse), puis les ventes
+    fidelite_programmes: [{ owner_id:WS, actif:true, mode:'euro', points_par_euro:1, points_par_visite:1, seuil:100, recompense_type:'remise_pct', recompense_pct:10, recompense_libelle:'', points_bienvenue:0 }],
+    fidelite_cartes: [{ id:'fc0', owner_id:WS, client_id:'c0', token:'d'.repeat(48), points:112, total_gagne:212, total_utilise:100, recompenses_utilisees:1 }], fidelite_mouvements: [],
     caisse_paiements: [], documents: [], document_lignes: [], caisse_tickets: [], caisse_journal: [],
     produits: [
       ['Shampoing réparateur 250 ml', 'Kérastase', 'Shampoings', 24.9, 3], ['Masque nutrition 200 ml', 'Kérastase', 'Soins', 32, 2], ['Huile sèche 100 ml', 'Moroccanoil', 'Soins', 38.5, 1],
@@ -156,7 +158,28 @@ function agregat(f){
     ventilation_tva:[...vent.entries()].sort((a, b) => a[0] - b[0]).map(([taux, x]) => ({ taux, base:r2(x.base), montant:r2(x.montant) })),
     nb_formation:DB.caisse_tickets.filter(t => t.formation && f(t)).length };
 }
+
+// ---- fidélité (simulation de schema-v52) : mêmes règles que les fonctions SQL
+function fidelite__vue(c){ const p = DB.fidelite_programmes[0]; return { carte_id:c.id, token:c.token, points:c.points, seuil:p.seuil, pret:c.points >= p.seuil, recompense_type:p.recompense_type, recompense_pct:p.recompense_pct, recompense_libelle:p.recompense_libelle, client_id:c.client_id, client_nom:(DB.clients.find(x => x.id === c.client_id) || {}).full_name }; }
+function fidelite__carte(clientId){
+  let c = DB.fidelite_cartes.find(x => x.client_id === clientId);
+  if(!c){ c = { id:'fc' + (DB.n++), owner_id:WS, client_id:clientId, token:Array.from({ length:48 }, () => '0123456789abcdef'[Math.floor(Math.random() * 16)]).join(''), points:0, total_gagne:0, total_utilise:0, recompenses_utilisees:0 }; DB.fidelite_cartes.push(c); }
+  return c;
+}
+
 const FONCTIONS = {
+  fidelite_carte_client: a => fidelite__vue(fidelite__carte(a.p_client)),
+  fidelite_scanner: a => { const t = (String(a.p_code || '').match(/[0-9a-f]{48}/) || [''])[0]; const c = DB.fidelite_cartes.find(x => x.token === t); if(!c) throw new Error('Carte de fidélité inconnue dans ce salon.'); return fidelite__vue(c); },
+  fidelite_appliquer: a => {
+    const p = DB.fidelite_programmes[0], t = DB.caisse_tickets.find(x => x.numero === a.p_numero);
+    if(!t) throw new Error('Ticket introuvable.'); if(t.formation || !t.client_id) return { actif:true, sans_client:true };
+    const c = fidelite__carte(t.client_id); let gain = 0, utilise = false;
+    if(DB.fidelite_mouvements.some(m => m.ticket_numero === a.p_numero)) return { ...fidelite__vue(c), actif:true, gain:0, utilise:false, deja:true };
+    if(t.type === 'avoir'){ gain = -Math.min(c.points, Math.floor(Math.abs(Number(t.total_ttc)) * p.points_par_euro)); c.points += gain; DB.fidelite_mouvements.push({ ticket_numero:a.p_numero, type:'avoir', points:gain }); return { ...fidelite__vue(c), actif:true, gain, utilise:false }; }
+    if(a.p_utiliser){ if(c.points < p.seuil) throw new Error('Points insuffisants pour la récompense.'); c.points -= p.seuil; c.total_utilise += p.seuil; c.recompenses_utilisees++; utilise = true; }
+    gain = p.mode === 'visite' ? p.points_par_visite : Math.floor(Math.max(Number(t.total_ttc), 0) * p.points_par_euro); c.points += gain; c.total_gagne += gain;
+    DB.fidelite_mouvements.push({ ticket_numero:a.p_numero, type:'gain', points:gain }); return { ...fidelite__vue(c), actif:true, gain, utilise };
+  },
   async caisse_ouvrir(a){
     if(!(a.p_fond >= 0)) echec('Fond de caisse invalide.');
     if(DB.caisse_sessions.some(s => !s.cloturee_le)) echec('Une caisse est déjà ouverte sur ce salon (unique).');

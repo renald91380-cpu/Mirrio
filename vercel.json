@@ -138,6 +138,10 @@
     {
       "source": "/api/caisse-terminal",
       "destination": "/api/reservation-disponibilites?action=terminal"
+    },
+    {
+      "source": "/api/fidelite",
+      "destination": "/api/reservation-disponibilites?action=fidelite"
     }
   ]
 }

@@ -34,9 +34,10 @@ create function public.est_gestionnaire(p uuid) returns boolean language sql sta
 create function public.new_feed_token() returns text language sql as $$ select encode(extensions.gen_random_bytes(12), 'hex') $$;
 create schema storage; create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]); create table storage.objects (name text, bucket_id text);
 create function storage.foldername(n text) returns text[] language sql immutable as $$ select string_to_array(n, '/') $$;
-create table public.profiles (id uuid primary key, plan text, full_name text);
+create table public.profiles (id uuid primary key, plan text, full_name text, business_name text, logo_url text);
+create table public.vitrine (owner_id uuid primary key, couleur text); create role service_role;
 create table public.vitrine_equipe (id uuid primary key default gen_random_uuid(), owner_id uuid not null, nom text, role text, jours_ouvres int[], heure_debut time, heure_fin time, position int default 0);
-create table public.parametres_reservation (owner_id uuid primary key, jours_ouvres int[] default '{1,2,3,4,5}', heure_debut time default '09:00', heure_fin time default '18:00');
+create table public.parametres_reservation (owner_id uuid primary key, slug text unique, jours_ouvres int[] default '{1,2,3,4,5}', heure_debut time default '09:00', heure_fin time default '18:00');
 create table public.workspace_members (id uuid primary key default gen_random_uuid(), workspace_id uuid not null, user_id uuid, email text not null, role text not null default 'collaborateur',
   statut text not null default 'invite', invite_token text unique, invited_at timestamptz default now(), joined_at timestamptz);
 create table public.clients(id uuid primary key default gen_random_uuid(), owner_id uuid, full_name text, email text, phone text, company text, notes text);
@@ -66,6 +67,8 @@ await db.exec(lire('schema-v47-stats-equipe.sql'));
 await db.exec(lire('schema-v48-fiche-client.sql'));
 await db.exec(lire('schema-v51-import.sql'));
 await db.exec(lire('schema-v51-import.sql'));        // rejouable
+await db.exec(lire('schema-v52-fidelite.sql'));
+await db.exec(lire('schema-v52-fidelite.sql'));        // rejouable
 await db.exec(`insert into auth.users values ('${U}'); insert into public.parametres_reservation (owner_id) values ('${U}'); insert into public.profiles values ('${U}', 'studio'); insert into public.parametres_facturation values ('${U}', true); set app.uid = '${U}';`);
 
 // ---------------------------------------------------------------- scénarios légitimes
@@ -240,6 +243,45 @@ verif('C', 'Chaque import est tracé', (await un(`select count(*) n from public.
 await db.exec(`set app.uid = '${V}'; set app.ws = '${U}';`);
 verif('S', 'Refus au vendeur : import de clients et de documents', /Réservé au responsable/.test(await refuse(() => q(`select public.importer_clients('x', 'x', '[]'::jsonb)`)) || '') && /Réservé au responsable/.test(await refuse(() => q(`select public.importer_documents('x', 'x', '[]'::jsonb)`)) || ''));
 await db.exec(`set app.uid = '${U}'; set app.ws = '';`);
+
+
+// ---------------------------------------------------------------- fidélité
+await db.exec(`update public.parametres_reservation set slug = 'salon-test' where owner_id = '${U}'; update public.profiles set business_name = 'Salon Test' where id = '${U}';
+  insert into public.fidelite_programmes (owner_id, actif, mode, points_par_euro, seuil, recompense_pct, points_bienvenue) values ('${U}', true, 'euro', 1, 50, 10, 5);`);
+const cliF = (await un(`insert into public.clients (owner_id, full_name, email, phone) values ($1, 'Camille Durand', 'camille@x.fr', '0611223344') returning id`, [U])).id;
+const sessF = (await un(`select public.caisse_ouvrir(50) r`)).r.id;
+const venteF = async (pu, client) => (await un(`select public.caisse_encaisser($1,$2,$3::jsonb,$4::jsonb,false,null) r`, [sessF, client, JSON.stringify([ligne('Coupe', 1, pu, 0)]), JSON.stringify([{ mode: 'carte', montant: pu }])])).r;
+const carteF = (await un(`select public.fidelite_carte_client($1) r`, [cliF])).r;
+verif('C', 'Fidélité : carte créée avec les points de bienvenue et un jeton long', carteF.points === 5 && /^[0-9a-f]{48}$/.test(carteF.token), JSON.stringify(carteF));
+const vf1 = await venteF(60, cliF);
+const ap1 = (await un(`select public.fidelite_appliquer($1) r`, [vf1.numero])).r;
+verif('C', 'Fidélité : 60 € = 60 points crédités (solde 65)', ap1.gain === 60 && ap1.points === 65, JSON.stringify(ap1));
+const ap1b = (await un(`select public.fidelite_appliquer($1) r`, [vf1.numero])).r;
+verif('I', 'Fidélité : un ticket ne crédite qu\'une fois (idempotent)', ap1b.gain === 0 && ap1b.points === 65 && (await un(`select count(*) n from public.fidelite_mouvements where ticket_numero = $1`, [vf1.numero])).n === 1, JSON.stringify(ap1b));
+const vf2 = await venteF(30, cliF);
+const ap2 = (await un(`select public.fidelite_appliquer($1, true) r`, [vf2.numero])).r;
+verif('C', 'Fidélité : récompense utilisée (-50), puis points de la vente (+30)', ap2.utilise === true && ap2.points === 45, JSON.stringify(ap2));
+verif('S', 'Fidélité : récompense refusée si les points manquent', /insuffisants/.test(await refuse(async () => { const v = await venteF(10, cliF); await q(`select public.fidelite_appliquer($1, true)`, [v.numero]); }) || ''));
+const sc = (await un(`select public.fidelite_scanner($1) r`, ['https://exemple.fr/fidelite.html?t=' + carteF.token])).r;
+verif('C', 'Fidélité : QR lu depuis l\'adresse de la carte', sc.client_nom === 'Camille Durand' && sc.carte_id === carteF.carte_id, JSON.stringify(sc));
+verif('S', 'Fidélité : jeton inconnu refusé', /inconnue/.test(await refuse(() => q(`select public.fidelite_scanner('0000')`)) || ''));
+verif('I', 'Fidélité : un ticket de formation ne crédite rien', await (async () => { const f = (await un(`select public.caisse_encaisser($1,$2,$3::jsonb,$4::jsonb,true,null) r`, [sessF, cliF, JSON.stringify([ligne('F', 1, 90, 0)]), JSON.stringify([{ mode: 'carte', montant: 90 }])])).r; const r = (await un(`select public.fidelite_appliquer($1) r`, [f.numero])).r; return r.sans_client === true && (await un(`select points from public.fidelite_cartes where id = $1`, [carteF.carte_id])).points === 45; })());
+const avF = (await un(`select public.caisse_avoir($1,'[{"index":1,"quantite":1}]'::jsonb,'Erreur de saisie',$2::jsonb) r`, [vf1.ticket_id, JSON.stringify([{ mode: 'carte' }])]));
+const apA = (await un(`select public.fidelite_appliquer($1) r`, [avF.r.numero])).r; verif('C', 'Fidélité : un avoir reprend les points (jamais sous zéro)', apA.points === 0 && apA.gain === -45, JSON.stringify(apA));
+const aj = (await un(`select public.fidelite_ajuster($1, 10, 'Geste commercial') r`, [carteF.carte_id])).r;
+verif('C', 'Fidélité : ajustement manuel tracé avec motif', aj.points >= 10 && (await un(`select note from public.fidelite_mouvements where type = 'ajustement'`)).note === 'Geste commercial');
+verif('S', 'Fidélité : ajustement sans motif ou négatif refusés', /motif/.test(await refuse(() => q(`select public.fidelite_ajuster($1, 5, '')`, [carteF.carte_id])) || '') && /négatif/.test(await refuse(() => q(`select public.fidelite_ajuster($1, -100000, 'x')`, [carteF.carte_id])) || ''));
+const ins = (await un(`select public.fidelite_inscrire('salon-test', 'Nina Roy', 'nina@x.fr', '') r`)).r;
+const ins2 = (await un(`select public.fidelite_inscrire('salon-test', 'Nina R.', 'NINA@x.fr', '') r`)).r;
+verif('C', 'Fidélité : inscription par QR du salon, rejouée = même carte, pas de doublon client', ins.deja === false && ins2.deja === true && ins2.token === ins.token && (await un(`select count(*) n from public.clients where lower(email) = 'nina@x.fr'`)).n === 1, JSON.stringify([ins, ins2]));
+verif('C', 'Fidélité : inscription par téléphone retrouve la fiche existante', (await un(`select public.fidelite_inscrire('salon-test', 'Camille', '', '06 11 22 33 44') r`)).r.token === carteF.token);
+verif('S', 'Fidélité : inscription sans e-mail ni téléphone refusée', /e-mail ou un téléphone/.test(await refuse(() => q(`select public.fidelite_inscrire('salon-test', 'Zoé', '', '')`)) || ''));
+const pub = (await un(`select public.fidelite_publique($1) r`, [carteF.token])).r;
+verif('S', 'Fidélité : la lecture publique ne donne que le prénom, le solde et le salon', pub.prenom === 'Camille' && pub.salon === 'Salon Test' && !JSON.stringify(pub).includes('camille@x.fr') && !JSON.stringify(pub).includes('Durand'));
+await db.exec(`set app.uid = '${V}'; set app.ws = '${U}';`);
+verif('S', 'Fidélité : un vendeur crédite mais ne règle ni n\'ajuste ni ne liste', /Réservé/.test(await refuse(() => q(`select public.fidelite_ajuster($1, 5, 'x')`, [carteF.carte_id])) || '') && /Réservé/.test(await refuse(() => q(`select * from public.fidelite_liste()`)) || ''));
+await db.exec(`set app.uid = '${U}'; set app.ws = '';`);
+verif('I', 'Fidélité : l\'historique des mouvements est cohérent avec le solde', (await un(`select (select points from public.fidelite_cartes where id = $1) = coalesce((select sum(points) from public.fidelite_mouvements where carte_id = $1), 0) ok`, [carteF.carte_id])).ok === true);
 
 // ---------------------------------------------------------------- audit intégré à l'application
 const audit = (await un(`select public.caisse_audit_isca() r`)).r;

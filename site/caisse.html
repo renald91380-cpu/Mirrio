@@ -139,6 +139,7 @@
     <div class="menu-caisse" id="menu-caisse" role="menu" hidden>
       <button type="button" role="menuitem" id="b-mouvement">Mouvement d'espèces</button>
       <button type="button" role="menuitem" id="b-produits">Produits en vente</button>
+      <a role="menuitem" id="b-fidelite" href="fidelite-salon.html">Fidélité des clients</a>
       <button type="button" role="menuitem" id="b-terminal-cfg">Terminal de paiement</button>
       <button type="button" role="menuitem" id="b-formation" aria-pressed="false" title="Les tickets de formation ne sont pas comptabilisés">Mode formation</button>
       <button type="button" role="menuitem" id="b-conformite">Conformité et archives</button>
@@ -160,6 +161,7 @@
   </section>
   <aside class="panier" id="panier" aria-label="Panier">
     <h2>Panier <span style="display:flex;gap:8px"><button class="btn petit" id="b-client" type="button">Client</button><button class="btn petit mobile-seul" id="b-fermer-panier" type="button">Fermer</button></span></h2>
+    <div id="zone-fid" style="padding:0 16px 8px"></div>
     <div id="zone-interv" style="padding:0 16px 8px"></div>
     <div class="lignes" id="lignes" aria-live="polite"></div>
     <div class="totaux">
@@ -195,7 +197,7 @@
   const MODES = { especes:'Espèces', carte:'Carte', cheque:'Chèque', virement:'Virement', autre:'Autre', acompte:'Acompte en ligne' };   // « acompte » : posé par le serveur, jamais proposé
 
   let espaceId = null, session = null, params = {}, brand = {}, prestations = [], clients = [];
-  let monRole = 'proprietaire', equipe = [], panier = [], client = null, categorie = '', formation = false, vueCat = 'prestations', produits = [], terminal = { configure:false }, demoTerm = null;
+  let fid = null, monRole = 'proprietaire', equipe = [], panier = [], client = null, categorie = '', formation = false, vueCat = 'prestations', produits = [], terminal = { configure:false }, demoTerm = null;
   // Tickets en cours : plusieurs clients à la fois, chacun avec son panier, gardés sur l'appareil (localStorage) jusqu'à l'encaissement.
   let tickets = [], courant = null;
   const assujetti = () => !!params.assujetti_tva;
@@ -228,6 +230,7 @@
     ]);
     brand = b || {}; params = f.data || {}; prestations = pr.data || []; clients = cl.data || []; produits = pd.data || [];
     await lireTerminal();
+    try{ const r = await supabase.from('fidelite_programmes').select('*').eq('owner_id', espaceId).maybeSingle(); fid = r.data && r.data.actif ? r.data : null; }catch(e){ fid = null; }
     try{ const { data: eq } = await supabase.from('vitrine_equipe').select('id,nom').eq('owner_id', espaceId).order('position'); equipe = eq || []; }catch(e){ equipe = []; }
     try{ const { data: r } = await supabase.rpc('mon_role'); monRole = r || 'proprietaire'; }catch(e){}
     const responsable = ['proprietaire', 'gestionnaire', 'manager'].includes(monRole);
@@ -357,7 +360,80 @@
     const b = e.target.closest('.ticket-chip'); if(b) basculerTicket(b.dataset.id);
   });
 
+  // ---------------------------------------------------------------- fidélité
+  // La carte d'un client (QR, points) vient de la base : fidelite_carte_client. Les points se créditent APRÈS la vente, depuis le ticket scellé (fidelite_appliquer).
+  async function chargerFidelite(){
+    if(!courant) return;
+    if(!fid || !client){ courant.fid = null; dessinerPanier(); return; }
+    try{
+      const { data, error } = await supabase.rpc('fidelite_carte_client', { p_client:client.id });
+      if(error || !data) throw error || new Error('x');
+      const avant = courant.fid && courant.fid.carte_id === data.carte_id ? courant.fid : null;
+      courant.fid = { ...data, utiliser:!!(avant && avant.utiliser), avant:avant ? avant.avant : null };
+    }catch(e){ courant.fid = null; }
+    dessinerPanier();
+  }
+  function appliquerRecompense(){
+    const f = courant && courant.fid; if(!f || !f.utiliser || f.recompense_type !== 'remise_pct') return;
+    f.avant = f.avant || {};
+    panier.forEach(l => { if(!(l.cle in f.avant)) f.avant[l.cle] = l.remise || 0; if((l.remise || 0) < f.recompense_pct) l.remise = f.recompense_pct; });
+  }
+  function retirerRecompense(){
+    const f = courant && courant.fid; if(!f) return;
+    if(f.avant) panier.forEach(l => { l.remise = f.avant[l.cle] || 0; });
+    f.utiliser = false; f.avant = null;
+  }
+  const texteRecompense = f => f.recompense_type === 'remise_pct' ? `${f.recompense_pct} % de remise` : (f.recompense_libelle || 'récompense');
+  function dessinerFidelite(){
+    const z = $('#zone-fid'); if(!z) return;
+    const f = courant && courant.fid;
+    if(!fid || !client || !f){ z.innerHTML = ''; return; }
+    z.innerHTML = `<div class="avert" style="margin:0"><b>Fidélité</b> · ${f.points} / ${f.seuil} points
+      ${f.utiliser ? `<br>Récompense appliquée : <b>${esc(texteRecompense(f))}</b>${f.recompense_type === 'libre' ? ' (à appliquer sur le ticket)' : ''}. <button class="btn petit" type="button" id="fid-annuler">Annuler</button>`
+        : f.pret ? `<br><button class="btn petit principal" type="button" id="fid-utiliser">Utiliser la récompense : ${esc(texteRecompense(f))}</button>` : `<br><span class="muted">Encore ${f.seuil - f.points} points pour ${esc(texteRecompense(f))}.</span>`}
+      <button class="btn petit" type="button" id="fid-qr">Sa carte</button></div>`;
+    const u = $('#fid-utiliser'), a = $('#fid-annuler');
+    if(u) u.onclick = () => { f.utiliser = true; dessinerPanier(); };
+    if(a) a.onclick = () => { retirerRecompense(); dessinerPanier(); };
+    $('#fid-qr').onclick = () => carteFidelite(f);
+  }
+  // Le client scanne ce QR avec son téléphone : sa carte s'ouvre et il l'ajoute à son Wallet.
+  async function carteFidelite(f){
+    const url = `${location.origin}/fidelite.html?t=${f.token}`;
+    const { d, fin } = ouvrir(`<h2>Carte de ${esc(f.client_nom || client.full_name)}</h2><p class="muted" style="margin-bottom:8px">${f.points} points · ${esc(texteRecompense(f))} à ${f.seuil}</p>
+      <div id="fid-qr-img" style="background:#fff;border-radius:16px;padding:14px;text-align:center"></div>
+      <p class="muted" style="margin:10px 0;font-size:13.5px">Faites scanner ce code avec l'appareil photo du téléphone : la carte s'ouvre, avec les boutons « Ajouter au Wallet ».</p>
+      <div class="actions"><button class="btn" id="fid-copie" type="button">Copier le lien</button><button class="btn principal" id="fid-ok" type="button">Fermer</button></div>`);
+    d.querySelector('#fid-ok').onclick = () => d.fermer(null);
+    d.querySelector('#fid-copie').onclick = async () => { try{ await navigator.clipboard.writeText(url); toast('Lien copié'); }catch(e){ prompt('Lien de la carte :', url); } };
+    if(await chargerQR()){ try{ const q = window.qrcode(0, 'M'); q.addData(url); q.make(); d.querySelector('#fid-qr-img').innerHTML = q.createSvgTag({ cellSize:5, margin:0, scalable:true }); d.querySelector('#fid-qr-img svg').style.cssText = 'width:min(260px,70vw);height:auto'; }catch(e){} }
+    await fin;
+  }
+  // Après une vente (ou un avoir) : crédite les points depuis le ticket enregistré. Jamais bloquant pour la vente.
+  async function crediterFidelite(v, utiliser){
+    if(!fid || !v || v.formation || !v.client_id || !v.numero) return null;
+    try{
+      const { data, error } = await supabase.rpc('fidelite_appliquer', { p_numero:v.numero, p_utiliser:!!utiliser });
+      if(error || !data || !data.actif || data.sans_client) return null;
+      if(!DEMO){ supabase.auth.getSession().then(({ data:s }) => { if(s.session) fetch('/api/fidelite', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Bearer ' + s.session.access_token }, body:JSON.stringify({ action:'maj', token:data.token }) }).catch(() => {}); }); }
+      return data;
+    }catch(e){ return null; }
+  }
+  // Un QR de carte est lu (caméra ou lecteur) : le client est identifié et attaché au ticket.
+  async function lireCarteFidelite(code){
+    if(!fid){ toast('Le programme de fidélité n\'est pas activé.'); return; }
+    const { data, error } = await supabase.rpc('fidelite_scanner', { p_code:code });
+    if(error || !data){ toast(error ? error.message.replace(/^.*?: /, '') : 'Carte inconnue.'); return; }
+    let cl = clients.find(c => c.id === data.client_id);
+    if(!cl){ const r = await supabase.from('clients').select('id,full_name,phone,email').eq('id', data.client_id).maybeSingle(); cl = r.data; if(cl) clients.push(cl); }
+    if(!cl){ toast('Fiche client introuvable.'); return; }
+    courant.client = client = { id:cl.id, full_name:cl.full_name };
+    toast(`${cl.full_name} : ${data.points} points${data.pret ? ' · récompense disponible' : ''}`);
+    await chargerFidelite();
+  }
+
   function dessinerPanier(){
+    if(!fid || !client) { if(courant) courant.fid = null; } else appliquerRecompense();
     const t = totaux();
     const bandeauRdv = courant && courant.rdv ? `<div class="avert" style="margin-bottom:8px"><b>Rendez-vous de ${esc(courant.rdv.heure || '')}</b> · ${esc(courant.rdv.titre || '')}${courant.rdv.acompte ? `<br>Acompte de ${eur(courant.rdv.acompte)} déjà réglé en ligne : il est déduit à l'encaissement.` : ''}${courant.rdv.facture ? '<br>Le ticket reprend la facture du rendez-vous : ne le modifiez pas (produits en plus : second ticket).' : ''}</div>` : '';
     $('#lignes').innerHTML = bandeauRdv + (panier.length ? panier.map(l => `<div class="ligne" data-k="${l.cle}">
@@ -371,6 +447,7 @@
     const n = panier.reduce((s, l) => s + l.qte, 0);
     $('#bm-n').textContent = `Panier (${n})`; $('#bm-total').textContent = eur(t.totalTTC);
     $('#zone-interv').innerHTML = equipe.length ? `<label class="muted" style="font-size:13px;display:block;margin-bottom:3px" for="sel-interv">Réalisé par</label><select id="sel-interv" style="width:100%;min-height:42px;border-radius:12px;border:1px solid var(--line);padding:0 10px;font:inherit;background:var(--bg);color:inherit"><option value="">Non précisé</option>${equipe.map(m => `<option value="${esc(m.id)}"${courant && courant.intervenant === m.id ? ' selected' : ''}>${esc(m.nom)}</option>`).join('')}</select>` : '';
+    dessinerFidelite();
     const si = $('#sel-interv'); if(si) si.onchange = () => { if(courant){ courant.intervenant = si.value || null; sauverTickets(); } };
     $('#b-encaisser').disabled = !session || !panier.length;
     $('#b-client').textContent = client ? client.full_name : 'Client';
@@ -417,7 +494,7 @@
       if(error) return toast('Création du client impossible.');
       clients.push(data); d.fermer(data);
     };
-    const r = await fin; if(r === 'aucun') client = null; else if(r) client = r; dessinerPanier();
+    const r = await fin; if(r === 'aucun') client = null; else if(r) client = r; courant.client = client ? { id:client.id, full_name:client.full_name } : null; dessinerPanier(); await chargerFidelite();
   };
 
   // ---------------------------------------------------------------- terminal de paiement SumUp
@@ -568,7 +645,7 @@
     courant.rdv = { id:r.id, titre:r.titre || 'Rendez-vous', heure:heure(r.date_debut), acompte, facture };
     courant.panier = panier = lignes.map(l => ({ cle:crypto.randomUUID(), pid:null, ...l, remise:0 }));
     courant.client = client = cl ? { id:cl.id, full_name:cl.full_name } : null;
-    dessinerPanier();
+    dessinerPanier(); chargerFidelite();
     if(!lignes.length){ toast('Ce rendez-vous n\'a pas de prestation : ajoutez le montant.'); await montantLibre(); }
   }
   $('#b-rdv').onclick = rendezVousDuJour;
@@ -709,6 +786,7 @@
   // Un code est lu : on ajoute le produit au ticket, ou on propose de le créer avec ce code.
   async function apresScan(code){
     if(!session){ toast('Ouvrez d\'abord la caisse.'); return; }
+    if(/fidelite\.html\?t=[0-9a-f]{48}/.test(code) || /^[0-9a-f]{48}$/.test(code)) return lireCarteFidelite(code);
     const p = produits.find(x => normaliserCode(x.reference) === normaliserCode(code));
     if(p){
       const lib = p.nom + (p.marque ? ' · ' + p.marque : ''), l = panier.find(x => x.pid === p.id && !x.remise);
@@ -821,7 +899,11 @@
     };
     maj();
     const vente = await fin;
-    if(vente){ terminerTicket(); $('#panier').classList.remove('ouvert'); dessinerPanier(); await ticket(vente); }
+    if(vente){
+      const utiliser = !!(courant && courant.fid && courant.fid.utiliser);
+      const fidRes = await crediterFidelite(vente, utiliser);
+      terminerTicket(); $('#panier').classList.remove('ouvert'); dessinerPanier(); await ticket(vente, fidRes);
+    }
   }
 
   async function enregistrerVente(t, paiements){
@@ -875,9 +957,10 @@
     };
     d.querySelector('#env-m').onclick = () => envoyer('mail'); d.querySelector('#env-s').onclick = () => envoyer('sms');
   }
-  async function ticket(v){
+  async function ticket(v, fidRes){
     const ficheClient = v.client_id ? clients.find(c => c.id === v.client_id) || null : null;
     const { d, fin } = ouvrir(`<h2>${v.formation ? 'Vente de formation' : v.type === 'avoir' ? 'Avoir enregistré' : 'Vente enregistrée'}</h2><p class="muted" style="margin-bottom:10px">${v.numero ? esc(v.numero) + ' · ' : ''}${eur(v.totaux.totalTTC)}</p>
+      ${fidRes ? `<p style="margin:8px 0;padding:10px 12px;border-radius:12px;background:rgba(226,166,61,.18)"><b>Fidélité</b> : ${fidRes.gain > 0 ? '+' + fidRes.gain + ' points · ' : (fidRes.gain < 0 ? fidRes.gain + ' points · ' : '')}${fidRes.utilise ? 'récompense utilisée · ' : ''}solde ${fidRes.points} / ${fidRes.seuil}${fidRes.pret ? ' · <b>récompense disponible</b>' : ''}</p>` : ''}
       ${v.paiements.some(p => p.mode === 'especes' && p.recu > p.montant) ? `<p class="gros" style="margin:8px 0">Rendre ${eur(v.paiements.filter(p => p.mode === 'especes').reduce((s, p) => s + (p.recu - p.montant), 0))}</p>` : ''}
       ${v.formation ? '' : `<div id="envoi" style="margin:12px 0;border-top:1px solid var(--line);padding-top:12px">
         <b>Envoyer le ticket au client</b>${ficheClient ? `<span class="muted" style="font-size:13px"> · coordonnées de la fiche de ${esc(ficheClient.full_name)}</span>` : ''}
@@ -922,7 +1005,7 @@
       d.fermer(venteDepuis(data));
     };
     const av = await fin;
-    if(av){ await ticket(av); }
+    if(av){ const fr = await crediterFidelite(av, false); await ticket(av, fr); }
   }
 
   $('#b-historique').onclick = async () => {
