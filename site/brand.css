@@ -33,3 +33,8 @@ body::before{ content:""; position:fixed; inset:0; z-index:-1; pointer-events:no
 .metiers .grec-eyebrow, .final .grec-eyebrow{ color:#E0C08F; }
 @media (prefers-color-scheme: dark){ .grec-eyebrow{ color:#D9B98A; } }
 @media print{ .meandre, .colonne{ display:none; } }
+
+/* Cibles tactiles : sur écran tactile, les liens de pied de page et de formulaire ont au moins 44 px de zone cliquable (sans changer la mise en page). */
+@media (pointer:coarse){
+  footer a, .pied a, .auth a[href], form a[href]{ display:inline-block; padding-block:13px; margin-block:-13px; }
+}

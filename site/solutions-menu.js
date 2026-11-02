@@ -36,7 +36,7 @@
   .sol-grille em{ position:absolute; right:12px; top:12px; font:700 11px var(--body); font-style:normal; text-transform:uppercase; letter-spacing:.05em; background:var(--ink); color:var(--bg); padding:4px 10px; border-radius:99px; }
   @media(max-width:1180px){ .sol-panneau{ display:none !important; } }
   /* Menu hamburger : sous 1180 px les liens du bandeau passent dans un menu déroulant (Solutions se déplie). */
-  .burger{ display:none; align-items:center; justify-content:center; width:44px; height:44px; border-radius:50%; border:1px solid color-mix(in srgb, var(--ink) 18%, transparent); background:transparent; color:var(--ink); cursor:pointer; margin-inline-start:auto; }
+  .burger{ display:none; flex:none; align-items:center; justify-content:center; width:44px; height:44px; border-radius:50%; border:1px solid color-mix(in srgb, var(--ink) 18%, transparent); background:transparent; color:var(--ink); cursor:pointer; margin-inline-start:auto; }
   .burger:hover{ background:color-mix(in srgb, var(--ink) 8%, transparent); } .burger:focus-visible{ outline:3px solid var(--accent, #E2A63D); outline-offset:2px; }
   .burger-panneau{ position:absolute; left:14px; right:14px; top:calc(100% + 10px); z-index:70; max-height:calc(100vh - 110px); overflow:auto; padding:10px; background:var(--surface,#FBFBFA); color:var(--ink); border:1px solid var(--line); border-radius:24px; box-shadow:0 30px 70px -24px rgba(16,18,22,.4); }
   .burger-panneau[hidden]{ display:none; }
@@ -45,7 +45,12 @@
   .burger-panneau a:hover, .burger-panneau summary:hover, .burger-panneau a:focus-visible, .burger-panneau summary:focus-visible{ background:color-mix(in srgb, var(--accent) 16%, transparent); outline:none; }
   .burger-panneau details[open] > summary svg{ transform:rotate(180deg); }
   .burger-panneau .sous{ padding:2px 6px 8px 14px; } .burger-panneau .sous a{ display:block; min-height:0; padding:10px 12px; font:500 15px var(--body); } .burger-panneau .sous a small{ display:block; font:400 13px var(--body); color:var(--muted); margin-top:2px; }
+  .burger-panneau .burger-cta{ justify-content:center; margin:8px 6px 4px; min-height:52px; background:var(--accent, #E2A63D); color:#101216; font-weight:700; }
+  .burger-panneau .burger-cta:hover{ filter:brightness(.96); }
+  .nav .droite{ flex:none; } .nav .boutique{ flex:none; }
   @media(max-width:1180px){ .burger{ display:inline-flex; } }
+  /* Téléphone : le bandeau ne doit jamais dépasser l'écran. « Créer mon salon » passe dans le menu hamburger (et reste dans le héros). */
+  @media(max-width:600px){ .nav .droite .btn{ display:none; } }
   @media(min-width:1181px){ .burger-panneau{ display:none !important; } }
   @media (prefers-reduced-motion:no-preference){ .sol-panneau{ animation:sol-in .22s cubic-bezier(.16,1,.3,1); } @keyframes sol-in{ from{ opacity:0; transform:translateY(-6px); } } }`;
   function monter(){
@@ -75,6 +80,7 @@
     const fleche = '<svg width="14" height="14" viewBox="0 0 12 12" aria-hidden="true" style="transition:transform .2s"><path d="M2 4.5 6 8.5 10 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     const liens = [...liste.querySelectorAll(':scope > li:not(.solutions) > a')].map(a => `<a href="${a.getAttribute('href')}">${a.textContent}</a>`).join('');
     bp.innerHTML = `<details><summary>Solutions ${fleche}</summary><div class="sous">${ENTREES.map(([t, d, h]) => `<a href="${h}">${t}<small>${d}</small></a>`).join('')}</div></details>${liens}`;
+    const cta = nav.querySelector('.droite .btn'); if(cta) bp.insertAdjacentHTML('beforeend', `<a class="btn burger-cta" href="${cta.getAttribute('href')}">${cta.textContent}</a>`);
     entetes.appendChild(bp);
     const bascule = o => { bp.hidden = !o; bg.setAttribute('aria-expanded', String(o)); };
     bg.addEventListener('click', () => bascule(bp.hidden));
