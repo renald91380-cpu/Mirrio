@@ -567,6 +567,8 @@ Moteur : `site/i18n.js` (un script classique, sans dépendance, à mettre dans l
 
 ### 3.50 Caisse cachée tant qu'elle n'est pas certifiée (décision du 2 novembre 2026)
 
+> **Mise à jour (2 novembre 2026, plus tard) : la caisse est de nouveau VISIBLE** (`caisse: true` dans `site/fonctions-config.js`), avec la mention « en cours de certification » (menu Solutions, accueil, démos, page caisse-logiciel) ; le certificat reste non délivré et ne jamais écrire « certifiée ». Fidélité, statistiques d'équipe et plan du site sont revenus avec elle. L'interrupteur et la description ci-dessous restent valables pour la recacher.
+
 La caisse (§3.37, §3.41 à §3.45) n'est pas certifiée NF525 et ne le sera que lorsque les fonds pour la démarche seront trouvés (`docs/dossier-certification.md`). **Elle est cachée, pas supprimée** : tout le code, les migrations et les tests restent. Interrupteur unique : `site/fonctions-config.js` (`caisse: false`). Effets :
 - onglets **Caisse** et **Équipe** (statistiques et commissions tirées des tickets de caisse) retirés de la navigation (`theme.js`) ; les pages `caisse.html`, `equipe.html`, `fidelite-salon.html`, `attestation-caisse.html` et `caisse-logiciel.html` **redirigent** (attribut `data-garde-caisse` sur `<html>`) ;
 - retirés des pages publiques et démos par l'attribut `data-caisse` : cartes « Caisse » et « Carte de fidélité » de `demos.html`, boutons et étape caisse de `demo.html`, lien « Sa caisse » de `salons.html`, bouton « Fidélité » de `clients.html` ; menu Solutions et hamburger sans les quatre entrées de caisse ; forfait Solo affiché « Devis, factures et tableau de bord » ; `/caisse-logiciel.html` retiré du plan du site (`api/_sitemap.js`) ;
