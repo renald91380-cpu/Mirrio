@@ -169,7 +169,7 @@ function fidelite__carte(clientId){
 
 const FONCTIONS = {
   fidelite_carte_client: a => fidelite__vue(fidelite__carte(a.p_client)),
-  fidelite_scanner: a => { const t = (String(a.p_code || '').match(/[0-9a-f]{48}/) || [''])[0]; const c = DB.fidelite_cartes.find(x => x.token === t); if(!c) throw new Error('Carte de fidélité inconnue dans ce salon.'); return fidelite__vue(c); },
+  fidelite_scanner: a => { const raw = String(a.p_code || '').trim(); let t = (raw.match(/[0-9a-f]{48}/) || [''])[0]; if(!t){ const m = raw.match(/^FT-([0-9A-F]{8})$/i); if(m){ const k = DB.fidelite_cartes.find(x => x.token.slice(0, 8).toUpperCase() === m[1].toUpperCase()); t = k ? k.token : ''; } } const c = DB.fidelite_cartes.find(x => x.token === t); if(!c) throw new Error('Carte de fidélité inconnue dans ce salon.'); return fidelite__vue(c); },
   fidelite_appliquer: a => {
     const p = DB.fidelite_programmes[0], t = DB.caisse_tickets.find(x => x.numero === a.p_numero);
     if(!t) throw new Error('Ticket introuvable.'); if(t.formation || !t.client_id) return { actif:true, sans_client:true };

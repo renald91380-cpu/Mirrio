@@ -99,6 +99,8 @@
       c = { salon:'Maison Éloïse', prenom:'Camille', points:62, seuil:100, mode:'euro', points_par_euro:1, points_par_visite:1, recompense_type:'remise_pct', recompense_pct:10, recompense_libelle:'', couleur:'#E2A63D', slug:'demo-coiffure', recompenses_utilisees:1, code:'FT-B2244B5F', niveau:'Bronze', visites:3, image:'img/fond-accueil.webp', couleur_fond:'#000000',
         mouvements:[{ type:'gain', points:38, date:new Date(Date.now() - 6 * 864e5).toISOString() }, { type:'utilisation', points:-100, date:new Date(Date.now() - 20 * 864e5).toISOString() }, { type:'gain', points:55, date:new Date(Date.now() - 41 * 864e5).toISOString() }] };
       if(P.get('mode') === 'tampons'){ c.mode = 'visite'; c.points_par_visite = 1; c.points = 7; c.seuil = 10; c.recompense_pct = 15; c.mouvements = [{ type:'gain', points:1, date:new Date(Date.now() - 5 * 864e5).toISOString() }, { type:'gain', points:1, date:new Date(Date.now() - 19 * 864e5).toISOString() }, { type:'gain', points:1, date:new Date(Date.now() - 33 * 864e5).toISOString() }]; }
+      if(P.get('prenom')) c.prenom = P.get('prenom').slice(0, 40);
+      if(P.get('points') && mode0(P) !== 'tampons'){ c.points = Math.max(0, parseInt(P.get('points'), 10) || c.points); if(parseInt(P.get('seuil'), 10) > 0) c.seuil = parseInt(P.get('seuil'), 10); if(c.points !== 62) c.visites = (c.visites || 0) + 1; }
       jeton = 'demo'; carteCache = { c:c, wallet:wallet };
     } else {
       var r;
@@ -147,7 +149,26 @@
   }
 
   // ------------------------------------------------------------------ inscription par le QR du salon
+  function mode0(p){ return p.get('mode'); }
   var progCache = null;
+  // Affiche du comptoir : le QR que le salon imprime et que le client scanne avec l'appareil photo de son téléphone.
+  async function afficheComptoir(){
+    var salonNom = 'Maison Éloïse';
+    if(!(demo || slug === 'demo-coiffure')){
+      try{ var r = await fetch('/api/fidelite?p=' + encodeURIComponent(slug)); if(!r.ok) return erreur('Programme introuvable', 'Ce salon n\'a pas (ou plus) de carte de fidélité.'); salonNom = (await r.json()).salon; }
+      catch(e){ return erreur('Connexion impossible', 'Vérifiez votre connexion puis rechargez la page.'); }
+    }
+    titre(T('Carte de fidélité {0}', salonNom));
+    var lien = location.origin + '/fidelite.html?p=' + encodeURIComponent(slug);
+    main.innerHTML = '<div class="marque"><b class="notranslate" translate="no">Mirrio.</b><span>' + esc(T('Affiche du comptoir')) + '</span></div>' +
+      '<article class="carte" style="text-align:center"><div class="salon"><span class="notranslate" translate="no">' + esc(salonNom) + '</span></div>' +
+      '<h1 style="font-size:28px;margin:18px 0 8px">' + esc(T('Scannez pour créer votre carte de fidélité')) + '</h1>' +
+      '<p class="doux">' + esc(T('Ouvrez l\'appareil photo de votre téléphone et visez ce code. Votre carte s\'ouvre, sans application, et s\'ajoute à Apple Wallet ou Google Wallet.')) + '</p>' +
+      '<div class="pass-qrbox"><div class="pass-qr" role="img" aria-label="' + esc(T('QR code de votre carte')) + '"></div></div>' +
+      (demo || slug === 'demo-coiffure' ? '<p class="doux">' + esc(T('Démonstration : sur votre téléphone, scannez le code. Ici, touchez le bouton pour simuler le scan.')) + '</p><div class="btns"><a class="btn" href="fidelite.html?p=' + encodeURIComponent(slug) + '">' + esc(T('Simuler le scan')) + '</a></div>' : '') +
+      '</article>';
+    MIRRIO_CARTE.remplirQr(main, lien);
+  }
   async function inscription(){
     var d, existant = lireLocal(cle(slug));
     if(progCache) d = progCache;
@@ -194,6 +215,7 @@
 
   function demarrer(){
     if(jeton){ rerendre = carte; carte(); }
+    else if(slug && P.get('affiche') === '1'){ rerendre = afficheComptoir; afficheComptoir(); }
     else if(slug || demo){ rerendre = inscription; inscription(); }
     else { rerendre = function(){ erreur('Carte de fidélité', 'Scannez le QR code de votre salon pour créer votre carte, ou ouvrez le lien de votre carte.'); }; rerendre(); }
   }

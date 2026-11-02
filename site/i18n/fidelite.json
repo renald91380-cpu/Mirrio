@@ -378,5 +378,30 @@
   "{0} points out of {1}",
   "{0} punten op {1}",
   "{0} نقط من {1}"
+ ],
+ "Affiche du comptoir": [
+  "Counter poster",
+  "Balie-affiche",
+  "ملصق الكونتوار"
+ ],
+ "Scannez pour créer votre carte de fidélité": [
+  "Scan to create your loyalty card",
+  "Scan om uw klantenkaart aan te maken",
+  "سكاني باش تصاوب كارط الوفاء ديالك"
+ ],
+ "Ouvrez l'appareil photo de votre téléphone et visez ce code. Votre carte s'ouvre, sans application, et s'ajoute à Apple Wallet ou Google Wallet.": [
+  "Open your phone's camera and point it at this code. Your card opens with no app to install, and can be added to Apple Wallet or Google Wallet.",
+  "Open de camera van uw telefoon en richt op deze code. Uw kaart opent zonder app en kan worden toegevoegd aan Apple Wallet of Google Wallet.",
+  "حل الكاميرا د التليفون وجّها لهاد الكود. الكارط كتحل بلا تطبيق وتقدر تزيدها فـ Apple Wallet ولا Google Wallet."
+ ],
+ "Démonstration : sur votre téléphone, scannez le code. Ici, touchez le bouton pour simuler le scan.": [
+  "Demo: on your phone, scan the code. Here, tap the button to simulate the scan.",
+  "Demo: scan de code met uw telefoon. Tik hier op de knop om de scan te simuleren.",
+  "ديمو: فالتليفون ديالك سكاني الكود. هنا ضغط على الزر باش تقلّد السكان."
+ ],
+ "Simuler le scan": [
+  "Simulate the scan",
+  "Scan simuleren",
+  "قلّد السكان"
  ]
 }

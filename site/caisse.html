@@ -389,11 +389,19 @@
   function dessinerFidelite(){
     const z = $('#zone-fid'); if(!z) return;
     const f = courant && courant.fid;
+    if(fid && !client){
+      z.innerHTML = `<div class="avert" style="margin:0"><b>Carte de fidélité</b><br><span class="muted">Demandez sa carte au client (QR dans son téléphone ou dans son Wallet) : scannez-la, ou saisissez le code sous le QR. Ses points sont crédités à l'encaissement.</span><br>
+        <button class="btn petit principal" type="button" id="fid-scan">Scanner sa carte ou saisir son code</button> <button class="btn petit" type="button" id="fid-choisir">Choisir le client</button>${DEMO ? ' <button class="btn petit" type="button" id="fid-demo">Démo : Marie présente sa carte</button>' : ''}</div>`;
+      $('#fid-scan').onclick = async () => { const c = await lireCodeCamera('Scanner la carte de fidélité'); if(c) apresScan(c.trim()); };
+      $('#fid-choisir').onclick = () => $('#b-client').click();
+      const dm = $('#fid-demo'); if(dm) dm.onclick = () => lireCarteFidelite('d'.repeat(48));
+      return;
+    }
     if(!fid || !client || !f){ z.innerHTML = ''; return; }
     z.innerHTML = `<div class="avert" style="margin:0"><b>Fidélité</b> · ${f.points} / ${f.seuil} ${f.mode === 'visite' ? 'tampons' : 'points'}
       ${f.utiliser ? `<br>Récompense appliquée : <b>${esc(texteRecompense(f))}</b>${f.recompense_type === 'libre' ? ' (à appliquer sur le ticket)' : ''}. <button class="btn petit" type="button" id="fid-annuler">Annuler</button>`
         : f.pret ? `<br><button class="btn petit principal" type="button" id="fid-utiliser">Utiliser la récompense : ${esc(texteRecompense(f))}</button>` : `<br><span class="muted">Encore ${f.seuil - f.points} ${f.mode === 'visite' ? 'tampons' : 'points'} pour ${esc(texteRecompense(f))}${f.mode === 'visite' ? ' au passage suivant' : ''}.</span>`}
-      <button class="btn petit" type="button" id="fid-qr">Sa carte</button></div>`;
+      <button class="btn petit" type="button" id="fid-qr">Voir sa carte</button></div>`;
     const u = $('#fid-utiliser'), a = $('#fid-annuler');
     if(u) u.onclick = () => { f.utiliser = true; dessinerPanier(); };
     if(a) a.onclick = () => { retirerRecompense(); dessinerPanier(); };
@@ -405,6 +413,7 @@
     const { d, fin } = ouvrir(`<h2>Carte de ${esc(f.client_nom || client.full_name)}</h2><p class="muted" style="margin-bottom:8px">${f.points} points · ${esc(texteRecompense(f))} à ${f.seuil}</p>
       <div id="fid-qr-img" style="background:#fff;border-radius:16px;padding:14px;text-align:center"></div>
       <p class="muted" style="margin:10px 0;font-size:13.5px">Faites scanner ce code avec l'appareil photo du téléphone : la carte s'ouvre, avec les boutons « Ajouter au Wallet ».</p>
+      <p style="margin:8px 0"><a class="btn petit" id="fid-voir-client" target="_blank" rel="noopener" href="${DEMO ? 'fidelite.html?t=demo&prenom=' + encodeURIComponent((f.client_nom || client.full_name || '').split(' ')[0]) + '&points=' + f.points + '&seuil=' + f.seuil : esc(url)}">Voir la carte côté client</a></p>
       <div class="actions"><button class="btn" id="fid-copie" type="button">Copier le lien</button><button class="btn principal" id="fid-ok" type="button">Fermer</button></div>`);
     d.querySelector('#fid-ok').onclick = () => d.fermer(null);
     d.querySelector('#fid-copie').onclick = async () => { try{ await navigator.clipboard.writeText(url); toast('Lien copié'); }catch(e){ prompt('Lien de la carte :', url); } };
@@ -752,11 +761,11 @@
       sc.onload = () => res(!!window.ZXing); sc.onerror = () => res(false); document.head.appendChild(sc);
     }));
   }
-  async function lireCodeCamera(){
-    const { d, fin } = ouvrir(`<h2>Scanner un code-barres</h2>
+  async function lireCodeCamera(titre){
+    const { d, fin } = ouvrir(`<h2>${esc(titre || 'Scanner un code-barres')}</h2>
       <div style="background:#000;border-radius:16px;overflow:hidden"><video id="cam" playsinline muted style="width:100%;max-height:46vh;display:block"></video></div>
       <p class="muted" id="cam-etat" role="status" style="margin:8px 0">Ouverture de la caméra…</p>
-      <div class="champ"><label for="cam-code">Ou saisissez le code (un lecteur USB ou Bluetooth le saisit ici)</label><input id="cam-code" inputmode="numeric" autocomplete="off"></div>
+      <div class="champ"><label for="cam-code">Ou saisissez le code (un lecteur USB ou Bluetooth le saisit ici ; carte de fidélité : le code FT-… sous le QR)</label><input id="cam-code" autocomplete="off" autocapitalize="characters"></div>
       <div class="actions"><button class="btn" id="non" type="button">Annuler</button><button class="btn principal" id="ok" type="button">Valider le code saisi</button></div>`);
     let flux = null, minuteur = null, zx = null, termine = false;
     const clore = v => { if(termine) return; termine = true; clearInterval(minuteur); if(flux) flux.getTracks().forEach(t => t.stop()); try{ if(zx) zx.reset(); }catch(e){} d.fermer(v); };
@@ -775,7 +784,7 @@
       }catch(e){ etat('Accès à la caméra refusé ou impossible : saisissez le code ou utilisez un lecteur.'); d.querySelector('#cam-code').focus(); return; }
       etat('Présentez le code-barres devant la caméra.');
       if('BarcodeDetector' in window){
-        const det = new BarcodeDetector({ formats:['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39'] });
+        const det = new BarcodeDetector({ formats:['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code'] });
         minuteur = setInterval(async () => { try{ const r = await det.detect(video); if(r.length) clore(r[0].rawValue); }catch(e){} }, 300);
       } else if(await chargerZXing()){
         zx = new ZXing.BrowserMultiFormatReader();
@@ -788,7 +797,7 @@
   // Un code est lu : on ajoute le produit au ticket, ou on propose de le créer avec ce code.
   async function apresScan(code){
     if(!session){ toast('Ouvrez d\'abord la caisse.'); return; }
-    if(/fidelite\.html\?t=[0-9a-f]{48}/.test(code) || /^[0-9a-f]{48}$/.test(code)) return lireCarteFidelite(code);
+    if(/fidelite\.html\?t=[0-9a-f]{48}/.test(code) || /^[0-9a-f]{48}$/.test(code) || /^FT-[0-9A-F]{8}$/i.test(code)) return lireCarteFidelite(code);
     const p = produits.find(x => normaliserCode(x.reference) === normaliserCode(code));
     if(p){
       const lib = p.nom + (p.marque ? ' · ' + p.marque : ''), l = panier.find(x => x.pid === p.id && !x.remise);
@@ -962,7 +971,7 @@
   async function ticket(v, fidRes){
     const ficheClient = v.client_id ? clients.find(c => c.id === v.client_id) || null : null;
     const { d, fin } = ouvrir(`<h2>${v.formation ? 'Vente de formation' : v.type === 'avoir' ? 'Avoir enregistré' : 'Vente enregistrée'}</h2><p class="muted" style="margin-bottom:10px">${v.numero ? esc(v.numero) + ' · ' : ''}${eur(v.totaux.totalTTC)}</p>
-      ${fidRes ? `<p style="margin:8px 0;padding:10px 12px;border-radius:12px;background:rgba(226,166,61,.18)"><b>Fidélité</b> : ${fidRes.gain > 0 ? '+' + fidRes.gain + (fidRes.mode === 'visite' ? ' tampon · ' : ' points · ') : (fidRes.gain < 0 ? fidRes.gain + ' points · ' : '')}${fidRes.utilise ? 'récompense utilisée · ' : ''}solde ${fidRes.points} / ${fidRes.seuil}${fidRes.pret ? ' · <b>récompense disponible</b>' : ''}</p>` : ''}
+      ${fidRes ? `<p style="margin:8px 0;padding:10px 12px;border-radius:12px;background:rgba(226,166,61,.18)"><b>Fidélité</b> : ${fidRes.gain > 0 ? '+' + fidRes.gain + (fidRes.mode === 'visite' ? ' tampon · ' : ' points · ') : (fidRes.gain < 0 ? fidRes.gain + ' points · ' : '')}${fidRes.utilise ? 'récompense utilisée · ' : ''}solde ${fidRes.points} / ${fidRes.seuil}${fidRes.pret ? ' · <b>récompense disponible</b>' : ''}<br><button class="btn petit" type="button" id="fid-voir" style="margin-top:6px">Voir sa carte mise à jour</button></p>` : ''}
       ${v.paiements.some(p => p.mode === 'especes' && p.recu > p.montant) ? `<p class="gros" style="margin:8px 0">Rendre ${eur(v.paiements.filter(p => p.mode === 'especes').reduce((s, p) => s + (p.recu - p.montant), 0))}</p>` : ''}
       ${v.formation ? '' : `<div id="envoi" style="margin:12px 0;border-top:1px solid var(--line);padding-top:12px">
         <b>Envoyer le ticket au client</b>${ficheClient ? `<span class="muted" style="font-size:13px"> · coordonnées de la fiche de ${esc(ficheClient.full_name)}</span>` : ''}
@@ -973,6 +982,7 @@
         <p id="env-msg" role="status" class="muted" style="font-size:13.5px;margin:6px 0 0"></p></div>`}
       <div class="actions" style="justify-content:space-between"><button class="btn" id="imp" type="button">Imprimer le ticket</button><button class="btn principal" id="nouv" type="button" autofocus>Nouvelle vente</button></div>`);
     d.querySelector('#imp').onclick = () => imprimer(ticketHTML(v)); d.querySelector('#nouv').onclick = () => d.fermer(true);
+    const fv = d.querySelector('#fid-voir'); if(fv) fv.onclick = () => carteFidelite({ ...fidRes, client_nom: ficheClient && ficheClient.full_name });
     if(!v.formation) brancherEnvoi(d, v, ficheClient);
     await fin;
   }
