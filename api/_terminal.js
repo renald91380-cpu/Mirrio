@@ -7,6 +7,7 @@
 //     payer       { session_id, montant }                             envoie le montant au Solo → { id }
 //     verifier    { id }                                              interroge SumUp si le webhook tarde
 //     annuler     { id }                                              arrête la transaction en attente sur le lecteur
+//     ticket      { ticket_id, email?, telephone? }                   envoie le ticket de caisse au client par e-mail (Resend) et/ou SMS (Twilio) : pour les itinérants sans imprimante
 //     lien        { session_id, montant }                             lien et QR de paiement (Stripe du salon) : le client paie sur son téléphone → { id, url }
 //                 Même circuit que le terminal : une ligne caisse_terminal_paiements (source « lien »), résultat par le webhook Stripe du salon
 //                 (api/paiement-webhook-stripe.js, métadonnée caisse_lien_id) ou par « verifier ». Pour les professionnels itinérants sans terminal.
@@ -19,12 +20,36 @@
 // Variables : SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SITE_URL (adresse publique, pour le webhook).
 
 import { randomBytes, timingSafeEqual } from 'node:crypto';
+import { envoyerSms, smsConfigure, normaliserTelephone } from './_sms.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ANON = 'sb_publishable_ZO93qi6gjZvsHU5lxKqLWA_fdif4BHl';
 const SITE_URL = (process.env.SITE_URL || 'https://cadence-site-cadence-65cc.vercel.app').replace(/\/$/, '');
 const SUMUP = 'https://api.sumup.com';
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const RESEND_FROM = process.env.RESEND_FROM || 'Mirrio <onboarding@resend.dev>';
+const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
+const DEVISES = { FR:['fr-FR', 'EUR'], BE:['fr-BE', 'EUR'], CH:['fr-CH', 'CHF'], MA:['fr-MA', 'MAD'] };
+const montantFr = (n, pays) => { const [l, d] = DEVISES[pays] || DEVISES.FR; return new Intl.NumberFormat(l, { style:'currency', currency:d }).format(Number(n) || 0); };
+const dateParis = iso => new Date(iso).toLocaleString('fr-FR', { timeZone:'Europe/Paris', day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+
+// Ticket de caisse par e-mail : même contenu que le ticket imprimé (lignes, TVA par taux, paiements, signature), en HTML d'e-mail sobre.
+function emailTicket(t, salon, pays){
+  const m = n => montantFr(n, pays), avoir = t.type === 'avoir';
+  const lignes = (t.lignes || []).map(l => `<tr><td style="padding:6px 0">${esc(Math.abs(l.quantite))} × ${esc(l.description)}</td><td style="padding:6px 0;text-align:right;white-space:nowrap">${m(l.quantite * l.prix_unitaire * (t.assujetti_tva ? 1 + (Number(l.tva_taux) || 0) / 100 : 1))}</td></tr>`).join('');
+  const tva = t.assujetti_tva ? `<tr><td style="color:#5B606B">Total HT</td><td style="text-align:right">${m(t.total_ht)}</td></tr>` + (t.ventilation || []).map(v => `<tr><td style="color:#5B606B">TVA ${esc(String(v.taux).replace('.', ','))} %</td><td style="text-align:right">${m(v.montant)}</td></tr>`).join('') : '';
+  const modes = { especes:'Espèces', carte:'Carte', cheque:'Chèque', virement:'Virement', autre:'Autre', acompte:'Acompte réglé en ligne' };
+  const pay = (t.paiements || []).map(p => `<tr><td style="color:#5B606B">${avoir ? 'Remboursé : ' : ''}${esc(modes[p.mode] || p.mode)}${p.reference ? ' (réf. ' + esc(p.reference) + ')' : ''}</td><td style="text-align:right">${m(p.montant)}</td></tr>`).join('');
+  return `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#101216;line-height:1.45">
+    <h2 style="margin:0 0 4px">${esc(salon)}</h2><p style="margin:0 0 14px;color:#5B606B">${avoir ? 'Avoir' : 'Ticket de caisse'} ${esc(t.numero)} · ${esc(dateParis(t.date_ticket))}${t.client_nom ? '<br>Client : ' + esc(t.client_nom) : ''}${t.vendeur ? '<br>Vendeur : ' + esc(t.vendeur) : ''}</p>
+    ${avoir && t.motif ? `<p style="margin:0 0 10px">${esc(t.motif)}</p>` : ''}
+    <table style="width:100%;border-collapse:collapse;border-top:1px solid #ddd;border-bottom:1px solid #ddd">${lignes}</table>
+    <table style="width:100%;border-collapse:collapse;margin-top:8px">${tva}<tr><td style="padding-top:6px"><b>TOTAL</b></td><td style="text-align:right;padding-top:6px"><b>${m(t.total_ttc)}</b></td></tr></table>
+    <table style="width:100%;border-collapse:collapse;margin-top:10px">${pay}</table>
+    ${t.assujetti_tva ? '' : '<p style="font-size:12px;color:#5B606B;margin-top:12px">TVA non applicable.</p>'}
+    <p style="font-size:11px;color:#5B606B;margin-top:16px">Signature du ticket ${esc(String(t.journal_hash || '').slice(0, 16))}. Merci de votre visite.</p></div>`;
+}
 
 const json = (res, statut, corps) => { res.statusCode = statut; res.setHeader('Content-Type', 'application/json; charset=utf-8'); res.setHeader('X-Robots-Tag', 'noindex, nofollow'); res.end(JSON.stringify(corps)); };
 const entetes = { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' };
@@ -115,6 +140,37 @@ export default async function handler(req, res){
       if(!a.admin) return json(res, 403, { error: 'Seul le propriétaire du salon règle le terminal.' });
       await rest(`caisse_terminal_config?owner_id=eq.${a.espace}`, { method: 'DELETE' });
       return json(res, 200, { ok: true });
+    }
+
+    if(action === 'ticket'){
+      const email = String(c.email || '').trim().toLowerCase(), tel = c.telephone ? normaliserTelephone(c.telephone) : null;
+      const veutMail = !!email, veutSms = !!String(c.telephone || '').trim();
+      if(!veutMail && !veutSms) return json(res, 400, { error: 'Indiquez une adresse e-mail ou un numéro de mobile.' });
+      if(veutMail && !(/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) && email.length <= 254)) return json(res, 400, { error: 'Adresse e-mail invalide.' });
+      if(veutSms && !tel) return json(res, 400, { error: 'Numéro de mobile invalide (06 ou 07 pour la France, ou format international +…).' });
+      const [t] = await lire(`caisse_tickets?id=eq.${encodeURIComponent(String(c.ticket_id || ''))}&owner_id=eq.${a.espace}&select=*`);
+      if(!t) return json(res, 404, { error: 'Ticket introuvable.' });
+      if(t.formation) return json(res, 400, { error: 'Un ticket de formation ne s\'envoie pas.' });
+      const [profil] = await lire(`profiles?id=eq.${a.espace}&select=business_name,full_name`);
+      const [fact] = await lire(`parametres_facturation?owner_id=eq.${a.espace}&select=emetteur_email,profil_pays`);
+      const salon = (profil && (profil.business_name || profil.full_name)) || 'Votre salon', pays = (fact && fact.profil_pays) || 'FR';
+      const resultat = { email:null, sms:null };
+      if(veutMail){
+        if(!RESEND_API_KEY) resultat.email = 'non_configure';
+        else{
+          const r = await fetch('https://api.resend.com/emails', { method:'POST', headers:{ Authorization:`Bearer ${RESEND_API_KEY}`, 'Content-Type':'application/json' },
+            body: JSON.stringify({ from:RESEND_FROM, to:[email], reply_to:(fact && fact.emetteur_email) || undefined, subject:`${t.type === 'avoir' ? 'Votre avoir' : 'Votre ticket'} ${t.numero} · ${salon}`, html:emailTicket(t, salon, pays) }) }).catch(() => null);
+          resultat.email = r && r.ok ? 'envoye' : 'echec';
+        }
+      }
+      if(veutSms){
+        if(!smsConfigure()) resultat.sms = 'non_configure';
+        else{
+          try{ await envoyerSms(tel, `${salon} : ${t.type === 'avoir' ? 'avoir' : 'ticket'} ${t.numero} du ${dateParis(t.date_ticket).slice(0, 10)}, total ${montantFr(t.total_ttc, pays)}${t.assujetti_tva ? ` dont TVA ${montantFr(t.total_tva, pays)}` : ''}. Merci !`.slice(0, 300)); resultat.sms = 'envoye'; }
+          catch(e){ resultat.sms = 'echec'; }
+        }
+      }
+      return json(res, 200, resultat);
     }
 
     if(action === 'lien'){

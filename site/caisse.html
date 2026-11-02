@@ -833,7 +833,7 @@
 
   // ---------------------------------------------------------------- ticket
   // Un ticket affiché ou imprimé vient TOUJOURS de la réponse du serveur (numéro, totaux, signature) : jamais recalculé ici.
-  const venteDepuis = r => ({ ticket_id:r.ticket_id, numero:r.numero, type:r.type, formation:!!r.formation, date:r.date, motif:r.motif || null, origine:r.origine_numero || null, duplicata:r.duplicata || 0,
+  const venteDepuis = r => ({ ticket_id:r.ticket_id, client_id:r.client_id || null, numero:r.numero, type:r.type, formation:!!r.formation, date:r.date, motif:r.motif || null, origine:r.origine_numero || null, duplicata:r.duplicata || 0,
     lignes:r.lignes, client:r.client_nom ? { full_name:r.client_nom } : null, vendeur:r.vendeur || null, signature:r.signature || '', gt:Number(r.gt_perpetuel),
     totaux:{ assujetti:!!r.assujetti, totalHT:Number(r.total_ht), totalTVA:Number(r.total_tva), totalTTC:Number(r.total_ttc), ventilation:(r.ventilation || []).map(x => ({ taux:Number(x.taux), montant:Number(x.montant) })) },
     paiements:(r.paiements || []).map(p => ({ mode:p.mode, montant:Number(p.montant), recu:p.recu == null ? null : Number(p.recu), reference:p.reference || null, source:p.source || null })) });
@@ -853,11 +853,42 @@
       <table>${pay}</table>${v.totaux.assujetti ? '' : `<hr><p class="c" style="font-size:10px">${esc(MENTION_FRANCHISE_TVA)}</p>`}${sceau}<hr><p class="c">Merci de votre visite</p>`;
   }
   function imprimer(html){ $('#zone-impression').innerHTML = html; window.print(); }
+  // Envoi du ticket par e-mail ou SMS (itinérants sans imprimante) : coordonnées reprises de la fiche client, ou saisies ici (et gardées sur la fiche si on le souhaite).
+  function brancherEnvoi(d, v, fiche){
+    const msg = (t, ko) => { const e = d.querySelector('#env-msg'); e.textContent = t; e.style.color = ko ? 'var(--alerte)' : 'var(--ok)'; };
+    const envoyer = async canal => {
+      const email = d.querySelector('#env-mail').value.trim(), tel = d.querySelector('#env-tel').value.trim();
+      if(canal === 'mail' && !email){ msg('Saisissez une adresse e-mail.', true); d.querySelector('#env-mail').focus(); return; }
+      if(canal === 'sms' && !tel){ msg('Saisissez un numéro de mobile.', true); d.querySelector('#env-tel').focus(); return; }
+      d.querySelector('#env-m').disabled = d.querySelector('#env-s').disabled = true; msg('Envoi…');
+      const r = await appelTerminal('ticket', { ticket_id:v.ticket_id, ...(canal === 'mail' ? { email } : { telephone:tel }) });
+      d.querySelector('#env-m').disabled = d.querySelector('#env-s').disabled = false;
+      if(r.error){ msg(r.error, true); return; }
+      const etat = canal === 'mail' ? r.email : r.sms;
+      if(etat !== 'envoye'){ msg(etat === 'non_configure' ? (canal === 'mail' ? 'L\'envoi d\'e-mails n\'est pas encore configuré sur Mirrio.' : 'L\'envoi de SMS n\'est pas encore configuré sur Mirrio.') : 'L\'envoi a échoué. Vérifiez les coordonnées et réessayez.', true); return; }
+      msg(canal === 'mail' ? `Ticket envoyé à ${email}.` : `SMS envoyé au ${tel}.`);
+      const save = d.querySelector('#env-save');
+      if(fiche && save && save.checked){   // coordonnées gardées sur la fiche si elles manquaient ou ont changé
+        const maj = {}; if(canal === 'mail' && email !== (fiche.email || '')) maj.email = email; if(canal === 'sms' && tel !== (fiche.phone || '')) maj.phone = tel;
+        if(Object.keys(maj).length){ const { error } = await supabase.from('clients').update(maj).eq('id', fiche.id); if(!error){ Object.assign(fiche, maj); const c = clients.find(x => x.id === fiche.id); if(c) Object.assign(c, maj); } }
+      }
+    };
+    d.querySelector('#env-m').onclick = () => envoyer('mail'); d.querySelector('#env-s').onclick = () => envoyer('sms');
+  }
   async function ticket(v){
+    const ficheClient = v.client_id ? clients.find(c => c.id === v.client_id) || null : null;
     const { d, fin } = ouvrir(`<h2>${v.formation ? 'Vente de formation' : v.type === 'avoir' ? 'Avoir enregistré' : 'Vente enregistrée'}</h2><p class="muted" style="margin-bottom:10px">${v.numero ? esc(v.numero) + ' · ' : ''}${eur(v.totaux.totalTTC)}</p>
       ${v.paiements.some(p => p.mode === 'especes' && p.recu > p.montant) ? `<p class="gros" style="margin:8px 0">Rendre ${eur(v.paiements.filter(p => p.mode === 'especes').reduce((s, p) => s + (p.recu - p.montant), 0))}</p>` : ''}
+      ${v.formation ? '' : `<div id="envoi" style="margin:12px 0;border-top:1px solid var(--line);padding-top:12px">
+        <b>Envoyer le ticket au client</b>${ficheClient ? `<span class="muted" style="font-size:13px"> · coordonnées de la fiche de ${esc(ficheClient.full_name)}</span>` : ''}
+        <div class="champ" style="margin-top:8px"><label for="env-mail">Adresse e-mail</label><input id="env-mail" type="email" inputmode="email" autocomplete="off" value="${esc(ficheClient && ficheClient.email || '')}"></div>
+        <div class="champ"><label for="env-tel">Mobile (SMS)</label><input id="env-tel" type="tel" inputmode="tel" autocomplete="off" value="${esc(ficheClient && ficheClient.phone || '')}"></div>
+        ${ficheClient ? '<label style="display:flex;gap:8px;align-items:center;margin:4px 0 8px;font-size:14px"><input type="checkbox" id="env-save" checked> Enregistrer ces coordonnées sur la fiche du client</label>' : ''}
+        <div class="actions" style="justify-content:flex-start"><button class="btn" id="env-m" type="button">Envoyer par e-mail</button><button class="btn" id="env-s" type="button">Envoyer par SMS</button></div>
+        <p id="env-msg" role="status" class="muted" style="font-size:13.5px;margin:6px 0 0"></p></div>`}
       <div class="actions" style="justify-content:space-between"><button class="btn" id="imp" type="button">Imprimer le ticket</button><button class="btn principal" id="nouv" type="button" autofocus>Nouvelle vente</button></div>`);
     d.querySelector('#imp').onclick = () => imprimer(ticketHTML(v)); d.querySelector('#nouv').onclick = () => d.fermer(true);
+    if(!v.formation) brancherEnvoi(d, v, ficheClient);
     await fin;
   }
 

@@ -4,7 +4,7 @@
 // qu'un message « hors connexion ». On ne met en cache que la coquille
 // statique (pages, styles, scripts, icônes) pour que l'app s'ouvre vite et
 // affiche une page claire sans réseau.
-const VERSION = 'cadence-v64';
+const VERSION = 'cadence-v65';
 const COQUILLE = ['/offline.html', '/chrome.css', '/theme.js', '/pwa.js', '/icons/icon-192.png'];
 
 self.addEventListener('install', e => {

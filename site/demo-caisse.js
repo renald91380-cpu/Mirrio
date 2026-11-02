@@ -3,7 +3,7 @@
 // Réimplémente juste ce que caisse.html demande à Supabase (select / eq / is / in / order / limit / maybeSingle / single / insert / update / delete)
 // sur quelques tables, avec le salon fictif Maison Éloïse (coiffure mixte, franchise de TVA). L'état survit au rechargement
 // (sessionStorage) pour pouvoir présenter une journée entière ; `reinitialiserDemoCaisse()` remet tout à zéro.
-const CLE = 'mirrio-demo-caisse-v10';
+const CLE = 'mirrio-demo-caisse-v11';
 const WS = 'demo';
 
 // Rendez-vous d'aujourd'hui pour montrer « Encaisser depuis l'agenda » : un simple, un avec acompte déjà versé en ligne (facture émise), un déjà réglé en ligne.
@@ -39,7 +39,7 @@ function donneesInitiales(){
     terminal: { configure:true, reader_pret:true, lien_pret:true, reader_name:'Solo (démo)', merchant_code:'DEMO0001', app_id:'app.mirrio.caisse' }, terminaux: [],
     ...rendezVousDuJour(),
     chaine: { seq:0, hash:'GENESIS', gt:0, gta:0, n_ticket:0, n_avoir:0, n_formation:0, n_z:0, cle:'cle-demo' },
-    clients: ['Marie Durand', 'Sophie Leroy', 'Karim Benali', 'Julien Martin', 'Emma Petit'].map((full_name, i) => ({ id:'c' + i, owner_id:WS, full_name })),
+    clients: ['Marie Durand', 'Sophie Leroy', 'Karim Benali', 'Julien Martin', 'Emma Petit'].map((full_name, i) => ({ id:'c' + i, owner_id:WS, full_name, email:i === 4 ? '' : full_name.split(' ')[0].toLowerCase() + '@exemple.fr', phone:i % 2 === 0 ? '06 12 34 56 7' + i : '' })),
     prestations: [
       p('d1', 'Shampoing, coupe, brushing', 55, 'Femme', 1), p('d2', 'Coloration racines', 58, 'Femme', 2), p('d3', 'Balayage', 120, 'Femme', 3),
       p('d4', 'Brushing', 25, 'Femme', 4), p('d5', 'Chignon', 60, 'Femme', 5), p('d6', 'Lissage', 90, 'Femme', 6),
@@ -142,7 +142,7 @@ function paiements(p, cible){
   out[out.length - 1].montant = r2(out[out.length - 1].montant + cible - somme);
   return out;
 }
-const jsonTicket = (t, j, dup) => ({ ticket_id:t.id, numero:t.numero, type:t.type, formation:t.formation, date:t.date_ticket, client_nom:t.client_nom, lignes:t.lignes, total_ht:t.total_ht, total_tva:t.total_tva,
+const jsonTicket = (t, j, dup) => ({ ticket_id:t.id, client_id:t.client_id || null, numero:t.numero, type:t.type, formation:t.formation, date:t.date_ticket, client_nom:t.client_nom, lignes:t.lignes, total_ht:t.total_ht, total_tva:t.total_tva,
   total_ttc:t.total_ttc, ventilation:t.ventilation, paiements:t.paiements, assujetti:t.assujetti_tva, motif:t.motif, origine_numero:(DB.caisse_tickets.find(o => o.id === t.ticket_origine) || {}).numero || null,
   hash:t.journal_hash, signature:j.signature, gt_perpetuel:j.gt_perpetuel, duplicata:dup, vendeur:t.vendeur || null, intervenant_id:t.intervenant_id || null });
 const sessionOuverte = id => DB.caisse_sessions.find(s => s.id === id && !s.cloturee_le);
@@ -347,6 +347,7 @@ export async function appelTerminalDemo(action, corps){
   if(action === 'config'){ DB.terminal = { ...DB.terminal, configure:true, merchant_code:corps.merchant_code || 'DEMO0001', app_id:corps.app_id || 'app.mirrio.caisse' }; return fin({ ok:true }); }
   if(action === 'appairer'){ DB.terminal.reader_pret = true; DB.terminal.reader_name = corps.name || 'Solo (démo)'; return fin({ ok:true }); }
   if(action === 'supprimer'){ DB.terminal = { configure:false, reader_pret:false }; return fin({ ok:true }); }
+  if(action === 'ticket') return fin({ email:corps.email ? 'envoye' : null, sms:corps.telephone ? 'envoye' : null });   // démo : rien n'est réellement envoyé
   if(action === 'lien'){
     const p = { id:'tp' + (DB.n++), montant:r2(corps.montant), statut:'en_attente', du:Date.now() + 7000, ticket_id:null, transaction_code:null, source:'lien' };
     DB.terminaux.push(p); return fin({ id:p.id, url:'https://pay.mirrio.invalid/demo/' + p.id });
