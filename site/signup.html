@@ -206,6 +206,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Uncial+Antiqua&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="brand.css">
 
+<script src="/i18n.js" data-pages="connexion"></script>
+<script src="/tarifs-mirrio.js"></script>
 <script src="/cookies.js" defer></script>
 <link rel="canonical" href="https://cadence-site-cadence-65cc.vercel.app/signup.html">
 <meta property="og:site_name" content="Mirrio">
@@ -237,7 +239,7 @@
       <ul class="auth-points">
         <li>Réservation en ligne 24h/24, avec le choix du coiffeur</li>
         <li>Acompte par carte, solde en espèces : fini les lapins</li>
-        <li>Zéro commission, dès 19 € par mois</li>
+        <li>Zéro commission, dès <span data-prix="solo-m">19 €</span> par mois</li>
       </ul>
     </div>
     <div class="auth-aside-bottom">© Mirrio</div>
@@ -276,7 +278,7 @@
             <div class="plan-picker" style="grid-template-columns:1fr;">
               <div class="plan-option" style="border-color:var(--teal); background:rgba(62,124,116,0.06);">
                 <div class="name" id="tu-nom">Boulangerie-pâtisserie</div>
-                <div class="price" id="tu-prix">29&nbsp;€&nbsp;/mois, tout inclus, tarif unique</div>
+                <div class="price" id="tu-prix"><span data-prix="patisserie-m">29 €</span>/mois, tout inclus, tarif unique</div>
               </div>
             </div>
           </div>
@@ -295,12 +297,12 @@
               <label class="plan-option">
                 <input type="radio" name="plan" value="solo">
                 <div class="name">Solo</div>
-                <div class="price">19&nbsp;€&nbsp;/mois · 1 professionnel</div>
+                <div class="price"><span data-prix="solo-m">19 €</span>/mois · 1 professionnel</div>
               </label>
               <label class="plan-option">
                 <input type="radio" name="plan" value="studio" checked>
                 <div class="name">Équipe</div>
-                <div class="price">39&nbsp;€&nbsp;/mois · 5 pros, puis 5&nbsp;€ de plus par pro</div>
+                <div class="price"><span data-prix="equipe-m">39 €</span>/mois · 5 pros, puis <span data-prix="sup-m">5 €</span> de plus par pro</div>
               </label>
             </div>
           </div>
@@ -565,10 +567,10 @@
     document.getElementById('plan-field').style.display = (invite || v !== 'beaute') ? 'none' : '';
     document.getElementById('periodicite-field').style.display = (invite || v === 'mariage') ? 'none' : '';
     const T = {
-      patisserie: ['Boulangerie-pâtisserie', '29&nbsp;€&nbsp;/mois, tout inclus, tarif unique (290&nbsp;€ par an)'],
+      patisserie: ['Boulangerie-pâtisserie', '<span data-prix="patisserie-m">29 €</span>/mois, tout inclus, tarif unique (<span data-prix="patisserie-a">290 €</span> par an)'],
       mariage:    ['Futurs mariés', 'Gratuit : planning, budget, invités, demandes de devis']
     }[v];
-    if(T){ document.getElementById('tu-nom').textContent = T[0]; document.getElementById('tu-prix').innerHTML = T[1]; }
+    if(T){ document.getElementById('tu-nom').textContent = T[0]; document.getElementById('tu-prix').innerHTML = T[1]; if(window.MIRRIO_TARIFS) window.MIRRIO_TARIFS.appliquer(); }
   }
   activiteEl.addEventListener('change', majActivite);
   if(['patisserie', 'mariage'].includes(params.get('activite'))) activiteEl.value = params.get('activite');

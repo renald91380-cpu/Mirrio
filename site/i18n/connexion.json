@@ -1,0 +1,437 @@
+{
+ "Se connecter | Mirrio": [
+  "Log in | Mirrio",
+  "Aanmelden | Mirrio",
+  "تسجيل الدخول | Mirrio"
+ ],
+ "Créer un compte pour votre salon | Mirrio": [
+  "Create an account for your salon | Mirrio",
+  "Een account voor uw salon aanmaken | Mirrio",
+  "صاوب حساب للصالون ديالك | Mirrio"
+ ],
+ "Vos rendez-vous vous attendent.": [
+  "Your appointments are waiting for you.",
+  "Uw afspraken wachten op u.",
+  "الرونديفوات ديالك كيتسناوك."
+ ],
+ "Agenda, clients et factures au même endroit": [
+  "Calendar, clients and invoices in one place",
+  "Agenda, klanten en facturen op een plek",
+  "الأجندة، الكليان والفواتير فبلاصة وحدة"
+ ],
+ "Réservations confirmées sans que vous leviez le petit doigt": [
+  "Bookings confirmed without lifting a finger",
+  "Reservaties bevestigd zonder een vinger uit te steken",
+  "الحجوزات كيتأكدو بلا ما تحرك صبعك"
+ ],
+ "Aucune commission sur vos rendez-vous": [
+  "No commission on your appointments",
+  "Geen commissie op uw afspraken",
+  "بلا عمولة على الرونديفوات ديالك"
+ ],
+ "© Mirrio": [
+  "© Mirrio",
+  "© Mirrio",
+  "© Mirrio"
+ ],
+ "Connexion": [
+  "Log in",
+  "Aanmelden",
+  "تسجيل الدخول"
+ ],
+ "Pas encore de compte ?": [
+  "No account yet?",
+  "Nog geen account?",
+  "باقي ما عندكش حساب؟"
+ ],
+ "En créer un": [
+  "Create one",
+  "Maak er een aan",
+  "صاوب واحد"
+ ],
+ "Corrigez les champs suivants avant de continuer :": [
+  "Correct the following fields before continuing:",
+  "Corrigeer de volgende velden voor u verdergaat:",
+  "صلح هاد الخانات قبل ما تكمل:"
+ ],
+ "Email": [
+  "Email",
+  "E-mail",
+  "الإيميل"
+ ],
+ "Mot de passe": [
+  "Password",
+  "Wachtwoord",
+  "كلمة السر"
+ ],
+ "Se souvenir de moi": [
+  "Remember me",
+  "Onthoud mij",
+  "تفكرني"
+ ],
+ "Mot de passe oublié ?": [
+  "Forgot your password?",
+  "Wachtwoord vergeten?",
+  "نسيتي كلمة السر؟"
+ ],
+ "Se connecter": [
+  "Log in",
+  "Aanmelden",
+  "دخل"
+ ],
+ "Continuer avec Google": [
+  "Continue with Google",
+  "Doorgaan met Google",
+  "كمّل بـ Google"
+ ],
+ "Mot de passe oublié": [
+  "Forgot password",
+  "Wachtwoord vergeten",
+  "نسيت كلمة السر"
+ ],
+ "Indiquez votre adresse : si un compte Mirrio lui correspond, un lien de réinitialisation vous sera envoyé.": [
+  "Enter your address: if a Mirrio account matches it, a reset link will be sent to you.",
+  "Geef uw adres in: als er een Mirrio-account bij hoort, ontvangt u een link om uw wachtwoord opnieuw in te stellen.",
+  "كتب الإيميل ديالك: إلا كان عندو حساب Mirrio، غادي يتصيفط ليك رابط باش تبدل كلمة السر."
+ ],
+ "Envoyer le lien": [
+  "Send the link",
+  "Link versturen",
+  "صيفط الرابط"
+ ],
+ "Retour à la connexion": [
+  "Back to login",
+  "Terug naar aanmelden",
+  "رجع لتسجيل الدخول"
+ ],
+ "Vérifiez votre boîte mail": [
+  "Check your inbox",
+  "Controleer uw mailbox",
+  "شوف الإيميل ديالك"
+ ],
+ "Si un compte existe pour cette adresse, un lien de réinitialisation vient d'être envoyé. Il reste valable une heure.": [
+  "If an account exists for this address, a reset link has just been sent. It stays valid for one hour.",
+  "Als er voor dit adres een account bestaat, is zopas een link om uw wachtwoord opnieuw in te stellen verstuurd. Hij blijft een uur geldig.",
+  "إلا كان حساب بهاد الإيميل، تصيفط ليه رابط دابا. كيبقى صالح ساعة وحدة."
+ ],
+ "Vérification en deux étapes": [
+  "Two-step verification",
+  "Verificatie in twee stappen",
+  "التحقق بجوج مراحل"
+ ],
+ "Entrez le code à 6 chiffres affiché dans votre application d'authentification (Google Authenticator ou équivalent).": [
+  "Enter the 6-digit code shown in your authenticator app (Google Authenticator or similar).",
+  "Voer de code van 6 cijfers in die uw authenticatie-app toont (Google Authenticator of gelijkwaardig).",
+  "كتب الكود د 6 د الأرقام اللي كيبان فتطبيق المصادقة ديالك (Google Authenticator ولا بحالو)."
+ ],
+ "Le code n'a pas pu être vérifié :": [
+  "The code could not be verified:",
+  "De code kon niet worden gecontroleerd:",
+  "الكود ما قدرناش نتحققو منو:"
+ ],
+ "Code": [
+  "Code",
+  "Code",
+  "الكود"
+ ],
+ "Vérifier": [
+  "Verify",
+  "Controleren",
+  "تحقق"
+ ],
+ "Ce n'est pas vous ? Se déconnecter": [
+  "Not you? Log out",
+  "Niet u? Afmelden",
+  "ماشي نتا؟ خرج"
+ ],
+ "Connexion réussie": [
+  "Logged in",
+  "Aangemeld",
+  "تسجلتي الدخول"
+ ],
+ "Redirection vers vos fiches clients…": [
+  "Redirecting to your client files…",
+  "Doorverwijzen naar uw klantenfiches…",
+  "كنحولوك لفيشات الكليان ديالك…"
+ ],
+ "Afficher le mot de passe": [
+  "Show password",
+  "Wachtwoord tonen",
+  "بين كلمة السر"
+ ],
+ "Masquer le mot de passe": [
+  "Hide password",
+  "Wachtwoord verbergen",
+  "خبي كلمة السر"
+ ],
+ "L'adresse email doit être au format nom@domaine.fr.": [
+  "The email address must be in the format name@domain.com.",
+  "Het e-mailadres moet de vorm naam@domein.be hebben.",
+  "الإيميل خاصو يكون بحال nom@domaine.fr."
+ ],
+ "Saisissez votre mot de passe.": [
+  "Enter your password.",
+  "Voer uw wachtwoord in.",
+  "كتب كلمة السر ديالك."
+ ],
+ "Mirrio n'est pas encore connecté à Supabase (configurez supabase-config.js).": [
+  "Mirrio is not yet connected to Supabase (configure supabase-config.js).",
+  "Mirrio is nog niet verbonden met Supabase (configureer supabase-config.js).",
+  "Mirrio باقي ما مرتبطش بـ Supabase (ضبط supabase-config.js)."
+ ],
+ "Impossible de se connecter avec Google pour le moment. Réessayez dans un instant.": [
+  "Unable to log in with Google right now. Please try again in a moment.",
+  "Aanmelden met Google is momenteel niet mogelijk. Probeer het zo meteen opnieuw.",
+  "ما قدرناش ندخلو بـ Google دابا. عاود حاول من بعد شوية."
+ ],
+ "Email ou mot de passe incorrect.": [
+  "Incorrect email or password.",
+  "E-mailadres of wachtwoord onjuist.",
+  "الإيميل ولا كلمة السر ماشي صحيحين."
+ ],
+ "Confirmez votre email avant de vous connecter : vérifiez votre boîte de réception.": [
+  "Confirm your email before logging in: check your inbox.",
+  "Bevestig uw e-mailadres voor u zich aanmeldt: controleer uw inbox.",
+  "أكد الإيميل ديالك قبل ما تدخل: شوف البوعة د الرسائل."
+ ],
+ "Impossible de vous connecter pour le moment. Réessayez dans un instant.": [
+  "Unable to log you in right now. Please try again in a moment.",
+  "Aanmelden is momenteel niet mogelijk. Probeer het zo meteen opnieuw.",
+  "ما قدرناش ندخلوك دابا. عاود حاول من بعد شوية."
+ ],
+ "Redirection vers votre invitation d'équipe…": [
+  "Redirecting to your team invitation…",
+  "Doorverwijzen naar uw teamuitnodiging…",
+  "كنحولوك للدعوة ديال الفريق ديالك…"
+ ],
+ "Saisissez les 6 chiffres du code.": [
+  "Enter the 6 digits of the code.",
+  "Voer de 6 cijfers van de code in.",
+  "كتب 6 د الأرقام ديال الكود."
+ ],
+ "Vérification…": [
+  "Verifying…",
+  "Controleren…",
+  "كنتحققو…"
+ ],
+ "Aucune application d'authentification n'est reliée à ce compte. Contactez le support.": [
+  "No authenticator app is linked to this account. Contact support.",
+  "Er is geen authenticatie-app gekoppeld aan dit account. Neem contact op met de support.",
+  "ما كاين حتى تطبيق مصادقة مربوط بهاد الحساب. تواصل مع الدعم."
+ ],
+ "La vérification n'a pas pu être lancée. Réessayez.": [
+  "The verification could not be started. Please try again.",
+  "De verificatie kon niet worden gestart. Probeer opnieuw.",
+  "التحقق ما بداش. عاود حاول."
+ ],
+ "Ce code est incorrect ou a expiré.": [
+  "This code is incorrect or has expired.",
+  "Deze code is onjuist of verlopen.",
+  "هاد الكود ماشي صحيح ولا سالات صلاحيتو."
+ ],
+ "Ouvrez les réservations de votre salon aujourd'hui.": [
+  "Open your salon's bookings today.",
+  "Open de reservaties van uw salon vandaag nog.",
+  "حل الحجوزات ديال الصالون ديالك اليوم."
+ ],
+ "Réservation en ligne 24h/24, avec le choix du coiffeur": [
+  "Online booking 24/7, with a choice of hairdresser",
+  "Online reserveren 24/7, met keuze van kapper",
+  "الحجز أونلاين 24/24، مع اختيار الحلاق"
+ ],
+ "Acompte par carte, solde en espèces : fini les lapins": [
+  "Deposit by card, balance in cash: no more no-shows",
+  "Voorschot met de kaart, saldo cash: geen no-shows meer",
+  "عربون بالكارط، الباقي كاش: سالات الغيابات"
+ ],
+ "Zéro commission, dès <span data-prix=\"solo-m\">{0}</span> par mois": [
+  "Zero commission, from <span data-prix=\"solo-m\">{0}</span> per month",
+  "Geen commissie, vanaf <span data-prix=\"solo-m\">{0}</span> per maand",
+  "بلا عمولة، من <span data-prix=\"solo-m\">{0}</span> فالشهر"
+ ],
+ "Créer votre compte": [
+  "Create your account",
+  "Maak uw account aan",
+  "صاوب الحساب ديالك"
+ ],
+ "Déjà chez Mirrio ?": [
+  "Already on Mirrio?",
+  "Al bij Mirrio?",
+  "ولفتي Mirrio؟"
+ ],
+ "<strong style=\"color:var(--ink);\">Vous reprenez la fiche de votre salon.</strong> Créez votre compte : nous vérifions que cette fiche est bien la vôtre avant d'ouvrir les réservations.": [
+  "<strong style=\"color:var(--ink);\">You are taking over your salon's listing.</strong> Create your account: we check that this listing is really yours before opening bookings.",
+  "<strong style=\"color:var(--ink);\">U neemt de fiche van uw salon over.</strong> Maak uw account aan: we controleren dat deze fiche echt van u is voor we de reservaties openen.",
+  "<strong style=\"color:var(--ink);\">كتاخد الفيشة ديال الصالون ديالك.</strong> صاوب الحساب ديالك: كنتأكدو باللي هاد الفيشة ديالك بصح قبل ما نحلو الحجوزات."
+ ],
+ "<strong style=\"color:var(--ink);\">Vous rejoignez une équipe déjà installée sur Mirrio.</strong> Créez votre compte ci-dessous : vous retrouverez directement ses clients, son agenda et ses devis, sans rien reconfigurer.": [
+  "<strong style=\"color:var(--ink);\">You are joining a team already set up on Mirrio.</strong> Create your account below: you will find its clients, calendar and quotes straight away, with nothing to reconfigure.",
+  "<strong style=\"color:var(--ink);\">U sluit zich aan bij een team dat al op Mirrio staat.</strong> Maak hieronder uw account aan: u vindt meteen de klanten, agenda en offertes terug, zonder iets opnieuw in te stellen.",
+  "<strong style=\"color:var(--ink);\">كتنضم لفريق ديجا كيخدم فـ Mirrio.</strong> صاوب الحساب ديالك لتحت: غادي تلقا مباشرة الكليان، الأجندة والديفي ديالو، بلا ما تعاود تضبط والو."
+ ],
+ "Votre activité": [
+  "Your activity",
+  "Uw activiteit",
+  "النشاط ديالك"
+ ],
+ "Salon de beauté, coiffure, institut, massage": [
+  "Beauty salon, hairdressing, institute, massage",
+  "Schoonheidssalon, kapper, institituut, massage",
+  "صالون الجمال، الحلاقة، المعهد، المساج"
+ ],
+ "Boulangerie, pâtisserie": [
+  "Bakery, pastry shop",
+  "Bakkerij, banketbakkerij",
+  "الخباز، الحلويات"
+ ],
+ "Futurs mariés (gratuit)": [
+  "Future newlyweds (free)",
+  "Toekomstige bruidsparen (gratis)",
+  "العروسين الجداد (بلاش)"
+ ],
+ "Boulangerie-pâtisserie": [
+  "Bakery and pastry shop",
+  "Bakkerij-banketbakkerij",
+  "الخباز والحلويات"
+ ],
+ "<span data-prix=\"patisserie-m\">{0}</span>/mois, tout inclus, tarif unique": [
+  "<span data-prix=\"patisserie-m\">{0}</span>/month, everything included, single price",
+  "<span data-prix=\"patisserie-m\">{0}</span>/maand, alles inbegrepen, enkel tarief",
+  "<span data-prix=\"patisserie-m\">{0}</span>/الشهر، كلشي مشمول، ثمن واحد"
+ ],
+ "<span data-prix=\"patisserie-m\">{0}</span>/mois, tout inclus, tarif unique (<span data-prix=\"patisserie-a\">{1}</span> par an)": [
+  "<span data-prix=\"patisserie-m\">{0}</span>/month, everything included, single price (<span data-prix=\"patisserie-a\">{1}</span> per year)",
+  "<span data-prix=\"patisserie-m\">{0}</span>/maand, alles inbegrepen, enkel tarief (<span data-prix=\"patisserie-a\">{1}</span> per jaar)",
+  "<span data-prix=\"patisserie-m\">{0}</span>/الشهر، كلشي مشمول، ثمن واحد (<span data-prix=\"patisserie-a\">{1}</span> فالعام)"
+ ],
+ "Futurs mariés": [
+  "Future newlyweds",
+  "Toekomstige bruidsparen",
+  "العروسين الجداد"
+ ],
+ "Gratuit : planning, budget, invités, demandes de devis": [
+  "Free: planning, budget, guests, quote requests",
+  "Gratis: planning, budget, gasten, offerteaanvragen",
+  "بلاش: بلانينغ، ميزانية، المعروضين، طلبات الديفي"
+ ],
+ "Facturation": [
+  "Billing",
+  "Facturering",
+  "الفاتورة"
+ ],
+ "Mensuelle": [
+  "Monthly",
+  "Maandelijks",
+  "شهرية"
+ ],
+ "Annuelle : deux mois offerts": [
+  "Yearly: two months free",
+  "Jaarlijks: twee maanden gratis",
+  "سنوية: شهرين بلاش"
+ ],
+ "Formule": [
+  "Plan",
+  "Abonnement",
+  "الباقة"
+ ],
+ "<span data-prix=\"solo-m\">{0}</span>/mois · 1 professionnel": [
+  "<span data-prix=\"solo-m\">{0}</span>/month · 1 professional",
+  "<span data-prix=\"solo-m\">{0}</span>/maand · 1 professional",
+  "<span data-prix=\"solo-m\">{0}</span>/الشهر · 1 مهني"
+ ],
+ "<span data-prix=\"equipe-m\">{0}</span>/mois · 5 pros, puis <span data-prix=\"sup-m\">{1}</span> de plus par pro": [
+  "<span data-prix=\"equipe-m\">{0}</span>/month · 5 pros, then <span data-prix=\"sup-m\">{1}</span> more per pro",
+  "<span data-prix=\"equipe-m\">{0}</span>/maand · 5 pro's, daarna <span data-prix=\"sup-m\">{1}</span> extra per pro",
+  "<span data-prix=\"equipe-m\">{0}</span>/الشهر · 5 مهنيين، من بعد <span data-prix=\"sup-m\">{1}</span> زايدين على كل مهني"
+ ],
+ "Nom complet": [
+  "Full name",
+  "Volledige naam",
+  "الاسم الكامل"
+ ],
+ "Email professionnel": [
+  "Work email",
+  "Zakelijk e-mailadres",
+  "الإيميل المهني"
+ ],
+ "8 caractères minimum.": [
+  "8 characters minimum.",
+  "Minstens 8 tekens.",
+  "8 حروف على الأقل."
+ ],
+ "J'accepte les <a href=\"cgu.html\" target=\"_blank\" rel=\"noopener\">conditions générales</a> et la <a href=\"confidentialite.html\" target=\"_blank\" rel=\"noopener\">politique de confidentialité</a> de Mirrio.": [
+  "I accept the <a href=\"cgu.html\" target=\"_blank\" rel=\"noopener\">terms and conditions</a> and the <a href=\"confidentialite.html\" target=\"_blank\" rel=\"noopener\">privacy policy</a> of Mirrio.",
+  "Ik aanvaard de <a href=\"cgu.html\" target=\"_blank\" rel=\"noopener\">algemene voorwaarden</a> en het <a href=\"confidentialite.html\" target=\"_blank\" rel=\"noopener\">privacybeleid</a> van Mirrio.",
+  "كنقبل <a href=\"cgu.html\" target=\"_blank\" rel=\"noopener\">الشروط العامة</a> و<a href=\"confidentialite.html\" target=\"_blank\" rel=\"noopener\">سياسة الخصوصية</a> ديال Mirrio."
+ ],
+ "Créer mon compte": [
+  "Create my account",
+  "Mijn account aanmaken",
+  "صاوب الحساب ديالي"
+ ],
+ "Compte créé": [
+  "Account created",
+  "Account aangemaakt",
+  "الحساب تصاوب"
+ ],
+ "Un e-mail de confirmation a été envoyé à": [
+  "A confirmation email has been sent to",
+  "Er is een bevestigingsmail verstuurd naar",
+  "تصيفط إيميل ديال التأكيد ل"
+ ],
+ ". Cliquez sur le lien qu'il contient pour activer votre compte Mirrio.": [
+  ". Click the link it contains to activate your Mirrio account.",
+  ". Klik op de link erin om uw Mirrio-account te activeren.",
+  ". كليكي على الرابط اللي فيه باش تفعل الحساب ديالك ف Mirrio."
+ ],
+ "Aller à la connexion": [
+  "Go to login",
+  "Naar aanmelden",
+  "مشي لتسجيل الدخول"
+ ],
+ "Choisir une formule": [
+  "Choose a plan",
+  "Een abonnement kiezen",
+  "ختار باقة"
+ ],
+ "Indiquez votre nom complet.": [
+  "Enter your full name.",
+  "Vul uw volledige naam in.",
+  "كتب الاسم الكامل ديالك."
+ ],
+ "Le mot de passe doit contenir au moins 8 caractères.": [
+  "The password must contain at least 8 characters.",
+  "Het wachtwoord moet minstens 8 tekens bevatten.",
+  "كلمة السر خاصها تكون فيها 8 حروف على الأقل."
+ ],
+ "Vous devez accepter les conditions pour continuer.": [
+  "You must accept the terms to continue.",
+  "U moet de voorwaarden aanvaarden om verder te gaan.",
+  "خاصك تقبل الشروط باش تكمل."
+ ],
+ "Impossible de continuer avec Google pour le moment. Réessayez dans un instant.": [
+  "Unable to continue with Google right now. Please try again in a moment.",
+  "Doorgaan met Google is momenteel niet mogelijk. Probeer het zo meteen opnieuw.",
+  "ما قدرناش نكملو بـ Google دابا. عاود حاول من بعد شوية."
+ ],
+ "Cet email est déjà associé à un compte. Connectez-vous plutôt.": [
+  "This email is already linked to an account. Log in instead.",
+  "Dit e-mailadres hoort al bij een account. Meld u liever aan.",
+  "هاد الإيميل مربوط ديجا بحساب. دخل بيه."
+ ],
+ "Le mot de passe ne respecte pas les critères requis.": [
+  "The password does not meet the required criteria.",
+  "Het wachtwoord voldoet niet aan de vereiste criteria.",
+  "كلمة السر ما كتطابقش الشروط المطلوبة."
+ ],
+ "Impossible de créer le compte pour le moment. Réessayez dans un instant.": [
+  "Unable to create the account right now. Please try again in a moment.",
+  "Het account aanmaken is momenteel niet mogelijk. Probeer het zo meteen opnieuw.",
+  "ما قدرناش نصاوبو الحساب دابا. عاود حاول من بعد شوية."
+ ],
+ "Création en cours…": [
+  "Creating…",
+  "Aanmaken…",
+  "كنصاوبو…"
+ ]
+}

@@ -198,5 +198,30 @@
   "Edit",
   "Wijzigen",
   "بدل"
+ ],
+ "Équipe": [
+  "Team",
+  "Team",
+  "الفريق"
+ ],
+ "Solo": [
+  "Solo",
+  "Solo",
+  "Solo"
+ ],
+ "Groupe": [
+  "Group",
+  "Groep",
+  "المجموعة"
+ ],
+ "Mensuel": [
+  "Monthly",
+  "Maandelijks",
+  "شهري"
+ ],
+ "Annuel": [
+  "Yearly",
+  "Jaarlijks",
+  "سنوي"
  ]
 }
