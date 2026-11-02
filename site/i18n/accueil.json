@@ -664,11 +664,6 @@
   "Voor een salon met zijn team.",
   "لصالون مع الفريق ديالو."
  ],
- "<i class=\"ph ph-check-circle\" aria-hidden=\"true\"></i>5 professionnels inclus, puis <span data-prix=\"sup-m\">{0}</span> par professionnel (20 au plus)": [
-  "<i class=\"ph ph-check-circle\" aria-hidden=\"true\"></i>5 professionals included, then <span data-prix=\"sup-m\">{0}</span> per additional professional (20 at most)",
-  "<i class=\"ph ph-check-circle\" aria-hidden=\"true\"></i>5 professionals inbegrepen, daarna <span data-prix=\"sup-m\">{0}</span> per extra professional (maximaal 20)",
-  "<i class=\"ph ph-check-circle\" aria-hidden=\"true\"></i>5 مهنيين مضمونين، من بعد <span data-prix=\"sup-m\">{0}</span> على كل مهني زايد (20 ماكسيموم)"
- ],
  "Agenda en colonnes, spécialités et horaires de chacun": [
   "Calendar in columns, everyone's specialities and hours",
   "Agenda in kolommen, specialiteiten en uren van iedereen",
@@ -863,5 +858,10 @@
   "Billing period",
   "Factureringsperiode",
   "مدة الفاتورة"
+ ],
+ "5 professionnels inclus, puis <span data-prix=\"sup-m\">{0}</span> par professionnel (20 au plus)": [
+  "5 professionals included, then <span data-prix=\"sup-m\">{0}</span> per additional professional (20 at most)",
+  "5 professionals inbegrepen, daarna <span data-prix=\"sup-m\">{0}</span> per extra professional (maximaal 20)",
+  "5 مهنيين مضمونين، من بعد <span data-prix=\"sup-m\">{0}</span> على كل مهني زايد (20 ماكسيموم)"
  ]
 }

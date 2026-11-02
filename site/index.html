@@ -177,9 +177,18 @@
   .plan .eco-an{ color:var(--muted); font-size:14px; margin:-4px 0 0; } .plan.fort .eco-an{ color:var(--sombre-muted); }
   @media(max-width:900px){ .tarifs{ grid-template-columns:1fr; } }
   .plan{ border-radius:var(--r); padding:34px; background:var(--surface); border:1px solid var(--line); display:flex; flex-direction:column; gap:10px; }
-  .plan.fort{ background:var(--sombre); color:var(--sombre-ink); border:none; position:relative; overflow:hidden; }
+  .plan.fort{ background:var(--sombre); color:var(--sombre-ink); border:1px solid transparent; position:relative; overflow:hidden; }   /* même épaisseur de bordure que les autres cartes : les titres restent alignés */
   .plan.fort::after{ content:""; position:absolute; right:-60px; bottom:-90px; width:300px; height:300px; background:radial-gradient(closest-side, rgba(226,166,61,.45), transparent 72%); }
-  .plan h3{ font-size:24px; font-weight:700; }
+  /* Grille des tarifs : titres, prix, descriptions, listes et boutons alignés d'une carte à l'autre (sous-grille : une ligne par élément, partagée par les trois cartes). */
+  @media(min-width:901px){
+    .tarifs{ grid-template-rows:auto auto auto auto 1fr auto; }
+    .plan{ display:grid; grid-row:span 6; grid-template-rows:subgrid; row-gap:10px; }
+    .plan .eco-an[hidden]{ display:block; visibility:hidden; min-height:20px; }
+    .plan ul{ margin:6px 0 16px; align-content:start; }
+    .plan .btn{ align-self:end; justify-self:start; margin-top:0; }
+  }
+  .plan h3{ font-size:24px; font-weight:700; line-height:1.15; margin:0; }
+  .plan > p:not(.eco-an){ margin:0; min-height:2.9em; }
   .plan .prix{ font-family:var(--display); font-weight:800; font-size:64px; letter-spacing:-.05em; line-height:1; }
   .plan .prix small{ font-size:17px; font-family:var(--body); font-weight:500; letter-spacing:0; color:var(--muted); }
   .plan.fort .prix small, .plan.fort p{ color:var(--sombre-muted); }
@@ -272,6 +281,7 @@
   .faq details p{ color:var(--muted); padding:0 0 22px; max-width:62ch; }
   .nav .connexion{ font-size:14.5px; font-weight:500; color:color-mix(in srgb, var(--ink) 80%, transparent); padding:0 6px; } .nav .connexion:hover{ color:var(--ink); }
   .nav .droite{ display:flex; align-items:center; gap:10px; }
+  .nav .boutique{ display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:50%; border:1px solid color-mix(in srgb, var(--ink) 18%, transparent); color:var(--ink); font-size:22px; transition:background .2s, border-color .2s; } .nav .boutique:hover{ background:color-mix(in srgb, var(--ink) 8%, transparent); border-color:var(--ink); } .nav .boutique:focus-visible{ outline:3px solid var(--accent, #E2A63D); outline-offset:2px; }
   @media(max-width:1319px){ .nav .connexion[href="mon-espace.html"]{ display:none; } }   /* le bandeau ne doit jamais déborder : « Mes rendez-vous » passe dans le pied de page sous 1320 px */
   @media(max-width:560px){ .nav .connexion{ display:none; } }
 </style>
@@ -306,13 +316,10 @@
     <a class="logo" href="index.html">Mirrio<b>.</b></a>
     <ul>
       <li><a href="#fonctions">Fonctions</a></li>
-      <li><a href="#tarifs">Tarifs</a></li>
       <li><a href="demos.html">Démo</a></li>
-      <li><a href="explorer.html">Trouver un salon</a></li>
-      <li><a href="bouche.html">Boulangerie</a></li>
-      <li><a href="mariage.html">Mariage</a></li>
+      <li><a href="#tarifs">Tarifs</a></li>
     </ul>
-    <div class="droite"><a class="connexion" href="mon-espace.html">Mes rendez-vous</a><a class="connexion" href="login.html">Espace salon</a><a class="btn petit" href="signup.html">Créer mon salon</a></div>
+    <div class="droite"><a class="boutique" href="login.html" title="Espace salon" aria-label="Espace salon"><i class="ph ph-storefront" aria-hidden="true"></i></a><a class="btn petit" href="signup.html">Créer mon salon</a></div>
   </nav>
 </header>
 
@@ -494,7 +501,7 @@
           <p class="eco-an" hidden></p>
           <p>Pour un salon avec son équipe.</p>
           <ul>
-            <li><i class="ph ph-check-circle" aria-hidden="true"></i>5 professionnels inclus, puis <span data-prix="sup-m">5 €</span> par professionnel (20 au plus)</li>
+            <li><i class="ph ph-check-circle" aria-hidden="true"></i><span>5 professionnels inclus, puis <span data-prix="sup-m">5 €</span> par professionnel (20 au plus)</span></li>
             <li><i class="ph ph-check-circle" aria-hidden="true"></i>Agenda en colonnes, spécialités et horaires de chacun</li>
             <li><i class="ph ph-check-circle" aria-hidden="true"></i>Tout le forfait Solo, pour toute l'équipe</li>
           </ul>
@@ -550,7 +557,7 @@
 </main>
 
 <div class="meandre" aria-hidden="true"></div>
-<footer><div class="wrap"><span>© Mirrio · La plateforme qu'il vous faut</span><span><a href="cgu.html">CGU</a> &nbsp; <a href="confidentialite.html">Confidentialité</a> &nbsp; <a href="#" data-cookies>Gérer les cookies</a> &nbsp; <a href="explorer.html">Trouver un salon</a> &nbsp; <a href="mon-espace.html">Mes rendez-vous</a> &nbsp; <a href="#" data-installer>Installer l'app</a> &nbsp; <a href="demo.html">Démo</a> &nbsp; <a href="login.html">Espace salon</a></span></div></footer>
+<footer><div class="wrap"><span>© Mirrio · La plateforme qu'il vous faut</span><span><a href="cgu.html">CGU</a> &nbsp; <a href="confidentialite.html">Confidentialité</a> &nbsp; <a href="#" data-cookies>Gérer les cookies</a> &nbsp; <a href="explorer.html">Trouver un salon</a> &nbsp; <a href="bouche.html">Boulangerie</a> &nbsp; <a href="mariage.html">Mariage</a> &nbsp; <a href="mon-espace.html">Mes rendez-vous</a> &nbsp; <a href="#" data-installer>Installer l'app</a> &nbsp; <a href="demo.html">Démo</a> &nbsp; <a href="login.html">Espace salon</a></span></div></footer>
 
 <script>
   // ---- Catalogue : onglets Femme / Homme (exemples réalistes, prix indicatifs)
