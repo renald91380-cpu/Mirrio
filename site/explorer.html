@@ -71,6 +71,13 @@
   @media(max-width:620px){ .puces{ flex-wrap:nowrap; overflow-x:auto; margin:20px -24px 0; padding:0 24px 6px; scrollbar-width:none; } .puces::-webkit-scrollbar{ display:none; } .puces button{ flex-shrink:0; } }
   @media(max-width:520px){ .nav .discret{ display:none; } .nav{ padding-left:18px; } }
   .puces button[aria-pressed=true]{ background:var(--ink); color:var(--bg); border-color:var(--ink); }
+  .autour{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:14px; }
+  .autour .titre{ font-size:14px; font-weight:600; display:inline-flex; align-items:center; gap:8px; margin-right:4px; } .autour .titre i{ color:var(--icone); }
+  .autour select{ min-height:44px; border-radius:var(--pill); border:1px solid var(--line); background:transparent; color:var(--ink); font:500 14px var(--body); padding:0 14px; }
+  .geo-msg{ font-size:13.5px; color:var(--muted, #5B606B); margin:8px 0 0; max-width:62ch; }
+  .geo-invite{ margin-top:16px; border:1px solid var(--line); border-radius:22px; padding:16px 18px; background:color-mix(in srgb, var(--ambre, #E2A63D) 10%, transparent); max-width:760px; }
+  .geo-invite h2{ font:700 17px var(--titre, inherit); margin:0 0 6px; } .geo-invite p{ margin:0 0 12px; font-size:14.5px; } .geo-invite .actions{ display:flex; gap:10px; flex-wrap:wrap; }
+  .dist{ display:inline-flex; align-items:center; gap:4px; font-weight:600; }
   .budget{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:14px; }
   .budget .titre{ font-size:14px; font-weight:600; display:inline-flex; align-items:center; gap:8px; margin-right:4px; }
   .budget .titre i{ color:var(--icone); }
@@ -178,6 +185,11 @@
       <select id="public"><option value="">Femme ou homme</option><option value="femme">Femme</option><option value="homme">Homme</option></select></div>
     <button class="btn" type="submit">Rechercher</button>
   </form>
+  <div class="geo-invite" id="geo-invite" hidden role="region" aria-labelledby="geo-titre">
+    <h2 id="geo-titre"><i class="ph ph-crosshair" aria-hidden="true"></i> Trouver les salons autour de vous ?</h2>
+    <p>Si vous l'autorisez, Mirrio utilise la position de votre appareil pour afficher d'abord les salons les plus proches et leur distance, et centrer la carte sur vous. Votre position reste dans votre navigateur : elle n'est ni enregistrée, ni envoyée à un salon, ni partagée. Vous pouvez aussi simplement saisir une ville.</p>
+    <div class="actions"><button class="btn" type="button" id="geo-oui"><i class="ph ph-map-pin-line" aria-hidden="true"></i> Utiliser ma position</button><button class="btn discret" type="button" id="geo-non">Plus tard</button></div>
+  </div>
   <div class="puces" id="puces" role="group" aria-label="Catégories">
     <button type="button" data-m="" aria-pressed="true">Tout</button>
     <button type="button" data-m="coiffure" aria-pressed="false"><i class="ph ph-scissors" aria-hidden="true"></i>Coiffure</button>
@@ -186,6 +198,13 @@
     <button type="button" data-m="onglerie" aria-pressed="false"><svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true" focusable="false" fill="currentColor"><path d="M8 40V22c0-4 2.4-7 5-7s5 3 5 7v18Z"/><path d="M19 40V13c0-4.6 2.4-8 5-8s5 3.4 5 8v27Z"/><path d="M30 40V22c0-4 2.4-7 5-7s5 3 5 7v18Z"/><g fill="#000" opacity=".22"><path d="M10.5 22.5c0-2 1-3.6 2.5-3.6v8h-2.5Z"/><path d="M21.5 14c0-2.3 1-4 2.5-4v10h-2.5Z"/><path d="M32.5 22.5c0-2 1-3.6 2.5-3.6v8h-2.5Z"/></g><path d="M41.5 6l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1Z"/></svg>Onglerie</button>
     <button type="button" data-m="massage" aria-pressed="false"><i class="ph ph-leaf" aria-hidden="true"></i>Massage et spa</button>
   </div>
+  <div class="autour" role="group" aria-label="Autour de moi">
+    <span class="titre"><i class="ph ph-crosshair" aria-hidden="true"></i>Autour de moi</span>
+    <div class="puces"><button type="button" id="geo-btn" aria-pressed="false"><i class="ph ph-map-pin-line" aria-hidden="true"></i>Me géolocaliser</button></div>
+    <label for="rayon" class="sr-only" style="position:absolute;left:-9999px">Rayon de recherche</label>
+    <select id="rayon" aria-label="Rayon de recherche" hidden><option value="5">5 km</option><option value="10">10 km</option><option value="25" selected>25 km</option><option value="50">50 km</option><option value="100">100 km</option><option value="0">Sans limite</option></select>
+  </div>
+  <p class="geo-msg" id="geo-msg" role="status" aria-live="polite" hidden></p>
   <div class="budget" role="group" aria-label="Budget">
     <span class="titre"><i class="ph ph-coins" aria-hidden="true"></i>Budget</span>
     <div class="puces" id="puces-budget">
@@ -302,7 +321,9 @@
     pts.forEach(x => L.marker([x.latitude, x.longitude]).addTo(marqueurs)
       .bindPopup(`<b>${esc(x.nom)}</b><br>${x.nb_avis ? '★ ' + x.note_moyenne + '<br>' : ''}<a href="pro.html?p=${encodeURIComponent(x.slug)}">Voir la fiche</a>`));
     const tous = [...pts, ...ext];
-    if(tous.length) carteL.fitBounds(tous.map(x => [x.latitude, x.longitude]), { padding:[40, 40], maxZoom:14 });
+    if(pos) L.circleMarker([pos.lat, pos.lng], { radius:9, color:'#fff', weight:3, fillColor:'#2563EB', fillOpacity:1 }).addTo(marqueurs).bindTooltip('Vous êtes ici');
+    const cadre = tous.map(x => [x.latitude, x.longitude]).concat(pos ? [[pos.lat, pos.lng]] : []);
+    if(cadre.length) carteL.fitBounds(cadre, { padding:[40, 40], maxZoom:14 });
   }
 
   // Salons pas encore inscrits : « Prévenir ce salon » (une demande par visiteur) et « C'est mon salon » (page de revendication).
@@ -314,7 +335,7 @@
     const demo = new URLSearchParams(location.search).get('demo') === '1' ? '&demo=1' : '';
     cont.innerHTML = liste.map(x => `<article class="ext">
       <h3>${esc(x.nom)}</h3>
-      <div class="meta">${esc(LIB[x.metier] || 'Autre')}${x.ville ? ', ' + esc(x.ville) : ''}${x.adresse ? '<br>' + esc(x.adresse) : ''}</div>
+      <div class="meta">${esc(LIB[x.metier] || 'Autre')}${x.ville ? ', ' + esc(x.ville) : ''}${x._km != null ? ` · <span class="dist"><i class="ph ph-navigation-arrow" aria-hidden="true"></i>${kmTexte(x._km)}</span>` : ''}${x.adresse ? '<br>' + esc(x.adresse) : ''}</div>
       ${x.nb_demandes ? `<span class="demandes"><i class="ph ph-hand-waving" aria-hidden="true"></i>${x.nb_demandes} ${x.nb_demandes > 1 ? 'personnes ont demandé' : 'personne a demandé'} à réserver ici</span>` : ''}
       <div class="actions">
         ${x.statut === 'en_cours' ? '<span class="meta">Le salon a demandé à reprendre cette fiche.</span>' : `
@@ -334,6 +355,41 @@
 
   const squelettes = () => Array.from({ length:6 }, () => '<div class="squelette"><div class="v"></div><div class="l"></div><div class="l"></div></div>').join('');
 
+  // ---------------------------------------------------------------- autour de moi (géolocalisation demandée avec explication, jamais enregistrée)
+  let pos = null;   // { lat, lng } : seulement en mémoire de cette page
+  const rad = d => d * Math.PI / 180;
+  const distanceKm = (a, b) => { const dLat = rad(b.lat - a.lat), dLng = rad(b.lng - a.lng), h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2; return 12742 * Math.asin(Math.sqrt(h)); };
+  const kmTexte = km => km < 1 ? Math.max(100, Math.round(km * 10) * 100) + ' m' : (km < 10 ? km.toFixed(1).replace('.', ',') : Math.round(km)) + ' km';
+  const geoMsg = t => { const m = document.getElementById('geo-msg'); m.hidden = !t; m.textContent = t || ''; };
+  function demanderPosition(){
+    if(!navigator.geolocation){ geoMsg('Votre navigateur ne permet pas la géolocalisation : saisissez une ville.'); return; }
+    document.getElementById('geo-invite').hidden = true; geoMsg('Recherche de votre position…');
+    navigator.geolocation.getCurrentPosition(p => {
+      pos = { lat:p.coords.latitude, lng:p.coords.longitude };
+      try{ sessionStorage.setItem('mirrio-geo', 'ok'); }catch(e){}
+      document.getElementById('geo-btn').setAttribute('aria-pressed', 'true'); document.getElementById('rayon').hidden = false;
+      geoMsg(''); chercher();
+    }, err => {
+      pos = null; document.getElementById('geo-btn').setAttribute('aria-pressed', 'false'); document.getElementById('rayon').hidden = true;
+      try{ sessionStorage.setItem('mirrio-geo', 'refus'); }catch(e){}
+      geoMsg(err && err.code === 1 ? 'Position non autorisée. Pour la réactiver, autorisez la localisation pour ce site dans les réglages de votre navigateur, ou saisissez une ville.' : 'Votre position n\'a pas pu être trouvée. Saisissez une ville.');
+      chercher();
+    }, { enableHighAccuracy:false, timeout:12000, maximumAge:300000 });
+  }
+  function arreterPosition(){ pos = null; document.getElementById('geo-btn').setAttribute('aria-pressed', 'false'); document.getElementById('rayon').hidden = true; geoMsg(''); chercher(); }
+  document.getElementById('geo-btn').addEventListener('click', () => pos ? arreterPosition() : demanderPosition());
+  document.getElementById('geo-oui').addEventListener('click', demanderPosition);
+  document.getElementById('geo-non').addEventListener('click', () => { document.getElementById('geo-invite').hidden = true; try{ sessionStorage.setItem('mirrio-geo', 'plus-tard'); }catch(e){} });
+  document.getElementById('rayon').addEventListener('change', chercher);
+  // Trie par distance, retire ce qui dépasse le rayon ; les salons sans coordonnées passent en fin de liste, sans distance.
+  function parDistance(liste){
+    if(!pos) return liste;
+    const km = Number(document.getElementById('rayon').value);
+    liste.forEach(x => { x._km = x.latitude != null && x.longitude != null ? distanceKm(pos, { lat:Number(x.latitude), lng:Number(x.longitude) }) : null; });
+    const avec = liste.filter(x => x._km != null && (!km || x._km <= km)).sort((a, b) => a._km - b._km), sans = liste.filter(x => x._km == null);
+    return avec.concat(sans);
+  }
+
   async function chercher(){
     const p = new URLSearchParams();
     const vals = { q:document.getElementById('q').value.trim(), ville:document.getElementById('ville').value.trim(), public:document.getElementById('public').value, metier,
@@ -349,14 +405,14 @@
     try{
       const r = await fetch('/api/annuaire?' + p);
       if(!r.ok) throw 0;
-      const { praticiens, non_inscrits } = await r.json();
+      const rep = await r.json(); const praticiens = parDistance(rep.praticiens || []), non_inscrits = parDistance(rep.non_inscrits || []);
       rendreNonInscrits(non_inscrits || []);
       if(!praticiens?.length){
         grille.innerHTML = '<div class="vide"><img src="img/emblem-femme.webp" width="150" height="150" alt="" aria-hidden="true" style="display:block;margin:0 auto 6px;opacity:.9"><h3>Aucun salon trouvé</h3><p>Essayez une autre ville, une autre catégorie ou un budget plus large.</p><button class="btn" type="button" id="effacer">Effacer les filtres</button></div>';
         document.getElementById('effacer').addEventListener('click', effacerFiltres);
         compte.textContent = 'Aucun résultat.'; majCarte([], non_inscrits || []); return;
       }
-      compte.textContent = `${praticiens.length} ${praticiens.length > 1 ? 'professionnels' : 'professionnel'}`;
+      compte.textContent = `${praticiens.length} ${praticiens.length > 1 ? 'professionnels' : 'professionnel'}` + (pos ? (Number(document.getElementById('rayon').value) ? ` dans un rayon de ${document.getElementById('rayon').value} km` : ' autour de vous') : '');
       grille.innerHTML = praticiens.map(x => {
         const [a, b] = PALETTES[hash(x.slug) % PALETTES.length];
         const fond = https(x.photo) ? `url("${esc(https(x.photo))}")` : `linear-gradient(135deg, ${a}, ${b})`;
@@ -367,7 +423,7 @@
             ${x.nb_avis ? `<span class="note"><i class="ph-fill ph-star" aria-hidden="true"></i>${x.note_moyenne} (${x.nb_avis})</span>` : ''}</div>
           <div class="contenu">
             <h3>${esc(x.nom)}</h3>
-            <div class="meta">${esc(LIB[x.metier] || 'Autre')}${x.ville ? ', ' + esc(x.ville) : ''}</div>
+            <div class="meta">${esc(LIB[x.metier] || 'Autre')}${x.ville ? ', ' + esc(x.ville) : ''}${x._km != null ? ` · <span class="dist"><i class="ph ph-navigation-arrow" aria-hidden="true"></i>${kmTexte(x._km)}</span>` : ''}</div>
             ${pub.length || (x.styles || []).length || (x.tarifs && (x.tarifs.enfant || x.tarifs.etudiant)) ? `<div class="etiquettes">${pub.map(q => `<span>${q === 'femme' ? 'Femme' : 'Homme'}</span>`).join('')}${(x.styles || []).includes('afro') ? '<span>Coiffure afro</span>' : ''}${x.tarifs && x.tarifs.enfant ? `<span>Enfant −${esc(x.tarifs.enfant.pourcentage)} %</span>` : ''}${x.tarifs && x.tarifs.etudiant ? `<span>Étudiant −${esc(x.tarifs.etudiant.pourcentage)} %</span>` : ''}</div>` : ''}
             ${x.correspondance ? `<div class="correspondance"><i class="ph ph-tag" aria-hidden="true"></i>${esc(x.correspondance.libelle)} : ${Number(x.correspondance.prix).toFixed(0)} €${x.correspondance.nb > 1 ? ` (+${x.correspondance.nb - 1})` : ''}</div>` : ''}
             <p class="desc">${esc(x.description || '')}</p>
@@ -441,6 +497,10 @@
   if(['enfant', 'etudiant'].includes(init.get('tarif'))) document.getElementById(init.get('tarif') + '-btn').setAttribute('aria-pressed', 'true');
   majPucesBudget();
   if(init.get('metier')){ metier = init.get('metier'); document.querySelectorAll('#puces button').forEach(o => o.setAttribute('aria-pressed', o.dataset.m === metier)); }
+  const etatGeo = (() => { try{ return sessionStorage.getItem('mirrio-geo'); }catch(e){ return null; } })();
+  if(init.get('ville') || init.get('q')){ /* recherche ciblée : pas d'invitation */ }
+  else if(etatGeo === 'ok'){ demanderPosition(); }
+  else if(!etatGeo && navigator.geolocation){ document.getElementById('geo-invite').hidden = false; }
   chercher();
 </script>
 <script src="/pwa.js" defer></script>
