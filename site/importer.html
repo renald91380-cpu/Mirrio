@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+  // Applique le style d'interface mis en cache AVANT le premier rendu, pour
+  // éviter un flash de l'identité par défaut (Atelier, nav du haut) au clic
+  // sur un lien de nav : appliquerThemeEnCache() dans theme.js fait la même
+  // chose, mais trop tard — ce script module est différé et ne s'exécute
+  // qu'après que le navigateur a déjà peint le DOM. Doublon volontaire et
+  // minimal (un seul attribut), pas une dépendance vers theme.js.
+  (function(){
+    try{
+      var b = JSON.parse(sessionStorage.getItem('cadence:brand'));
+      if(b && b.style_interface) document.documentElement.setAttribute('data-style', b.style_interface);
+    }catch(e){}
+  })();
+</script>
+<title>Importer mes données | Mirrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="chrome.css">
+<style>
+  :root{
+    --ink:#1C2333;
+    --ink-soft:#2A3346;
+    --parchment:#F5F1E7;
+    --parchment-dim:#EAE4D4;
+    --slate:#8B8F98;
+    --amber:#E2A63D;
+    --amber-soft:#f0c98a;
+    --teal:#3E7C74;
+    --brick:#B5533F;
+    --display:'Fraunces', Georgia, serif;
+    --body:'Inter', Arial, sans-serif;
+    --mono:'IBM Plex Mono', 'Courier New', monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:var(--body);
+    background:var(--parchment);
+    color:var(--ink);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  img,svg{display:block;}
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit;}
+
+  .logo{
+    font-family:var(--display); font-weight:700; font-size:20px;
+    display:flex; align-items:baseline; gap:2px;
+  }
+  .logo .dot{ color:var(--amber); animation:pulseDot 1.6s ease-in-out infinite; }
+  @keyframes pulseDot{
+    0%, 70%, 100%{ transform:scale(1); opacity:0.3; }
+    35%{ transform:scale(1.9); opacity:1; background:var(--amber); }
+  }
+  @media (prefers-reduced-motion: reduce){ .logo .dot{ animation:none !important; opacity:0.6 !important; } }
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    padding:12px 20px; border-radius:6px; font-weight:600; font-size:14.5px;
+    border:none; cursor:pointer; min-height:44px;
+    transition:transform .15s ease, box-shadow .15s ease, background .15s ease, opacity .15s ease;
+  }
+  .btn-primary{ background:var(--amber); color:var(--ink); }
+  .btn-primary:hover{ transform:translateY(-1px); box-shadow:0 8px 18px rgba(226,166,61,0.28); }
+  .btn-ghost{ background:transparent; color:var(--parchment); border:1px solid rgba(245,241,231,0.28); }
+  .btn-ghost:hover{ border-color:rgba(245,241,231,0.6); }
+  .btn:focus-visible, a:focus-visible, button:focus-visible{
+    outline:2px solid var(--teal); outline-offset:2px;
+  }
+
+  /* ---------- App header ---------- */
+  .app-header{
+    background:var(--ink); color:var(--parchment);
+    padding:16px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px;
+  }
+  .app-header-left{ display:flex; align-items:center; gap:28px; }
+  .app-nav{ display:none; gap:20px; font-size:14px; font-weight:500; overflow-x:auto; }
+  @media(min-width:640px){ .app-nav{ display:flex; } }
+  .app-nav a{ color:rgba(245,241,231,0.6); padding:6px 0; border-bottom:2px solid transparent; white-space:nowrap; }
+  .app-nav a:hover{ color:var(--parchment); }
+  .app-nav a.active{ color:var(--parchment); border-bottom-color:var(--amber); }
+  .app-header-right{ display:flex; align-items:center; gap:16px; }
+  .user-name{ font-size:13px; color:rgba(245,241,231,0.55); display:none; }
+  @media(min-width:640px){ .user-name{ display:block; } }
+  .btn-icon{ width:38px; height:38px; padding:0; min-height:0; flex-shrink:0; }
+  .btn-icon svg{ width:17px; height:17px; }
+
+  /* ---------- Main ---------- */
+  .app-main{ padding:36px 20px 60px; }
+  .app-container{ max-width:980px; margin:0 auto; }
+  .page-head{ margin-bottom:32px; }
+  .page-head h1{ font-family:var(--display); font-weight:700; font-size:30px; margin-bottom:6px; }
+  .page-head p{ font-size:14.5px; color:rgba(28,35,51,0.6); }
+
+  .loading-state{ text-align:center; padding:72px 20px; color:rgba(28,35,51,0.5); font-size:14px; }
+
+  /* ---------- Stat cards ---------- */
+  .stat-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:20px; }
+  @media(max-width:760px){ .stat-row{ grid-template-columns:1fr; } }
+  .stat-card{
+    background:#fff; border:1px solid rgba(28,35,51,0.09); border-radius:12px; padding:20px 22px;
+  }
+  .stat-label{
+    font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.05em;
+    color:rgba(28,35,51,0.5); margin-bottom:10px;
+  }
+  .stat-value{ font-family:var(--display); font-size:30px; font-weight:700; line-height:1.1; }
+  .stat-sub{ font-size:12.5px; color:rgba(28,35,51,0.5); margin-top:6px; }
+  .stat-sub.up{ color:var(--teal); }
+  .stat-sub.down{ color:var(--brick); }
+
+  /* ---------- Chart card ---------- */
+  .card{
+    background:#fff; border:1px solid rgba(28,35,51,0.09); border-radius:12px;
+    padding:22px 24px; margin-bottom:20px;
+  }
+  .card h2{ font-family:var(--display); font-size:19px; font-weight:700; margin-bottom:4px; }
+  .card-sub{ font-size:13.5px; color:rgba(28,35,51,0.55); margin-bottom:22px; }
+
+  .chart-bars{ display:flex; align-items:flex-end; gap:14px; height:160px; }
+  .chart-col{ flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; height:100%; justify-content:flex-end; }
+  .chart-col .bar-track{ flex:1; width:100%; display:flex; align-items:flex-end; }
+  .chart-col .bar{
+    width:100%; border-radius:4px 4px 0 0; min-height:3px;
+    background:linear-gradient(180deg, var(--accent-soft, var(--amber-soft)), var(--accent, var(--amber)));
+    position:relative;
+  }
+  .chart-col.current .bar{ background:linear-gradient(180deg, #fff, var(--accent, var(--amber))); }
+  .chart-col .bar-value{
+    font-family:var(--mono); font-size:11px; color:rgba(28,35,51,0.55);
+    position:absolute; top:-19px; left:0; right:0; text-align:center; white-space:nowrap;
+  }
+  .chart-col .bar-label{ font-size:12px; color:rgba(28,35,51,0.55); text-transform:capitalize; }
+
+  /* ---------- Retard list ---------- */
+  .retard-list{ display:flex; flex-direction:column; gap:8px; }
+  .retard-row{
+    display:flex; align-items:center; gap:14px; padding:12px 14px;
+    background:rgba(181,83,63,0.05); border:1px solid rgba(181,83,63,0.15); border-radius:9px;
+  }
+  .retard-row .rr-main{ flex:1; min-width:0; }
+  .retard-row .rr-client{ font-size:14px; font-weight:600; }
+  .retard-row .rr-meta{ font-size:12.5px; color:rgba(28,35,51,0.55); margin-top:2px; }
+  .retard-row .rr-montant{ font-family:var(--mono); font-size:14px; font-weight:600; color:var(--brick); white-space:nowrap; }
+  .retard-row .rr-jours{
+    font-size:11px; font-weight:600; color:var(--brick); background:rgba(181,83,63,0.12);
+    padding:3px 9px; border-radius:20px; white-space:nowrap;
+  }
+  .retard-empty{
+    text-align:center; padding:28px 20px; color:rgba(28,35,51,0.5); font-size:13.5px;
+  }
+  .retard-empty svg{ margin:0 auto 10px; stroke:var(--teal); }
+
+  /* ---------- Mur payant (formule Solo) ---------- */
+  .plan-gate{ text-align:center; padding:56px 20px; }
+  .plan-gate strong{ display:block; font-family:var(--display); font-size:22px; margin-bottom:10px; }
+  .plan-gate p{ font-size:14.5px; color:rgba(28,35,51,0.6); max-width:440px; margin:0 auto 22px; line-height:1.6; }
+
+  .eq-table{ width:100%; border-collapse:collapse; font-size:14.5px; } .eq-table th{ text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:#5B606B; padding:8px 10px; border-bottom:2px solid rgba(16,18,22,.14); white-space:nowrap; }
+  .eq-table td{ padding:11px 10px; border-bottom:1px solid rgba(16,18,22,.09); vertical-align:middle; } .eq-table td.n, .eq-table th.n{ text-align:right; font-variant-numeric:tabular-nums; }
+  .eq-table tr.total td{ font-weight:700; border-top:2px solid rgba(16,18,22,.2); border-bottom:0; }
+  .barre-remp{ display:inline-block; width:90px; height:9px; border-radius:99px; background:rgba(16,18,22,.1); vertical-align:middle; margin-right:8px; overflow:hidden; } .barre-remp i{ display:block; height:100%; background:#E2A63D; }
+  .eq-pct{ width:64px; min-height:38px; border:1px solid rgba(16,18,22,.2); border-radius:10px; padding:0 8px; font:inherit; text-align:right; }
+  .periode{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; align-items:end; } .periode select, .periode input{ min-height:42px; border:1px solid rgba(16,18,22,.2); border-radius:12px; padding:0 10px; font:inherit; background:#fff; }
+  .scroll-x{ overflow-x:auto; } .note-eq{ font-size:13px; color:#5B606B; margin-top:12px; }
+</style>
+<style>
+  .imp-steps{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; padding:0; list-style:none; }
+  .imp-steps li{ font-size:13px; font-weight:600; padding:7px 14px; border-radius:999px; background:rgba(16,18,22,.07); color:#5B606B; }
+  .imp-steps li.on{ background:#101216; color:#fff; } .imp-steps li.fait{ background:rgba(62,124,116,.15); color:#2c5d56; }
+  .imp-choix{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; } @media(max-width:760px){ .imp-choix{ grid-template-columns:1fr; } }
+  .imp-choix button{ text-align:left; background:#fff; border:2px solid rgba(16,18,22,.12); border-radius:16px; padding:16px 18px; cursor:pointer; font:inherit; min-height:44px; }
+  .imp-choix button:hover{ border-color:#E2A63D; } .imp-choix button[aria-pressed=true]{ border-color:#101216; box-shadow:0 0 0 3px rgba(226,166,61,.4); }
+  .imp-choix b{ display:block; font-size:16px; margin-bottom:4px; } .imp-choix span{ font-size:13px; color:#5B606B; }
+  .imp-champ{ display:flex; flex-direction:column; gap:4px; margin:10px 0; font-size:13.5px; font-weight:600; } .imp-champ input, .imp-champ select{ min-height:44px; border:1px solid rgba(16,18,22,.2); border-radius:12px; padding:0 12px; font:inherit; background:#fff; font-weight:400; }
+  .imp-lignes{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:0 18px; }
+  .imp-depot{ border:2px dashed rgba(16,18,22,.25); border-radius:18px; padding:34px 20px; text-align:center; background:#fff; } .imp-depot.survol{ border-color:#E2A63D; background:rgba(226,166,61,.08); }
+  .imp-map{ display:grid; grid-template-columns:minmax(150px,1fr) minmax(180px,1.4fr); gap:8px 14px; align-items:center; } .imp-map label{ font-size:14px; font-weight:600; } .imp-map select{ min-height:42px; border:1px solid rgba(16,18,22,.2); border-radius:12px; padding:0 10px; font:inherit; background:#fff; }
+  .imp-map .req::after{ content:' *'; color:#B5533F; }
+  .imp-table{ width:100%; border-collapse:collapse; font-size:13.5px; } .imp-table th{ text-align:left; font-size:11.5px; text-transform:uppercase; letter-spacing:.04em; color:#5B606B; padding:7px 9px; border-bottom:2px solid rgba(16,18,22,.14); white-space:nowrap; } .imp-table td{ padding:8px 9px; border-bottom:1px solid rgba(16,18,22,.08); max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .imp-barre{ height:12px; border-radius:99px; background:rgba(16,18,22,.1); overflow:hidden; margin:12px 0; } .imp-barre i{ display:block; height:100%; width:0; background:#E2A63D; transition:width .2s; }
+  .imp-note{ background:rgba(226,166,61,.12); border:1px solid rgba(226,166,61,.5); border-radius:12px; padding:12px 14px; font-size:13.5px; margin:12px 0; } .imp-ko{ background:rgba(181,83,63,.08); border-color:rgba(181,83,63,.35); }
+  .imp-liste{ margin:8px 0 0 18px; font-size:13.5px; } .imp-actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; } .imp-kpi{ display:flex; gap:12px; flex-wrap:wrap; margin:12px 0; } .imp-kpi div{ background:#fff; border:1px solid rgba(16,18,22,.1); border-radius:14px; padding:10px 16px; min-width:120px; } .imp-kpi b{ display:block; font-size:22px; font-family:var(--display); }
+</style>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#1C2333">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mirrio">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<script src="/pwa.js" defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<script src="/cookies.js" defer></script>
+<meta name="robots" content="noindex, nofollow">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-header-left">
+    <span class="logo">Mirrio<span class="dot">.</span></span>
+    <nav class="app-nav"></nav>
+  </div>
+  <div class="app-header-right">
+    <span class="user-name" id="user-name"></span>
+  </div>
+</header>
+
+<div class="app-shell">
+  <aside class="app-sidebar">
+    <div class="logo">Mirrio<span class="dot">.</span></div>
+    <div class="logo-badge" aria-hidden="true"></div>
+    <nav class="sidebar-nav"></nav>
+    <div class="sidebar-spacer"></div>
+    <div class="sidebar-user"><span class="sidebar-avatar" id="sidebar-avatar">–</span><div class="sidebar-user-text"><div class="name" id="sidebar-name">…</div><div class="email" id="sidebar-email"></div></div></div>
+  </aside>
+
+<main class="app-main">
+  <div class="app-container">
+    <div class="page-head">
+      <h1>Importer mes données</h1>
+      <p>Reprenez votre fichier clients, vos factures et devis passés et votre carte de prestations depuis votre ancien logiciel ou votre tableur.</p>
+    </div>
+    <div id="loading-state" class="loading-state">Chargement…</div>
+    <div id="refus" class="card" hidden><b>Réservé au responsable du salon.</b> Un import écrit en masse dans votre espace.</div>
+    <div id="base" class="card imp-ko" hidden><b>Base non préparée.</b> Exécutez <code>db/schema-v51-import.sql</code> dans Supabase, puis rechargez la page.</div>
+
+    <div id="contenu" hidden>
+      <ol class="imp-steps" id="etapes" aria-label="Étapes"><li data-e="1">1. Que reprendre ?</li><li data-e="2">2. Fichier</li><li data-e="3">3. Colonnes</li><li data-e="4">4. Vérification</li><li data-e="5">5. Résultat</li></ol>
+
+      <section id="e1" class="card">
+        <h2>Que souhaitez-vous reprendre ?</h2>
+        <p class="card-sub">Commencez par les clients, puis les factures : elles se rattachent aux clients déjà repris.</p>
+        <div class="imp-choix" role="group" aria-label="Type de données">
+          <button type="button" data-nat="clients" aria-pressed="false"><b>Fiches clients</b><span>Nom, e-mail, téléphone, société, notes, allergies.</span></button>
+          <button type="button" data-nat="documents" aria-pressed="false"><b>Factures et devis passés</b><span>Historique comptable, avec le numéro d'origine conservé.</span></button>
+          <button type="button" data-nat="prestations" aria-pressed="false"><b>Prestations</b><span>Votre carte : libellé, prix, durée, TVA.</span></button>
+        </div>
+        <div class="imp-lignes" style="margin-top:14px">
+          <label class="imp-champ">Logiciel d'origine (pour mémoire)
+            <select id="source"><option>Planity</option><option>Booksy</option><option>Fresha</option><option>Treatwell</option><option>Shortcuts</option><option>Ikosoft</option><option>Tableur (Excel, Google Sheets)</option><option>Autre logiciel</option></select>
+          </label>
+        </div>
+        <div class="imp-note"><b>Comment obtenir le fichier ?</b> Dans votre ancien logiciel, cherchez « Exporter » (clients, factures, chiffre d'affaires). Depuis Excel ou Google Sheets : « Enregistrer sous » ou « Télécharger » au format <b>CSV</b>. Les colonnes sont reconnues automatiquement et vous pouvez les corriger à l'étape 3. Si votre logiciel ne propose aucun export, demandez-le à son support : vous avez droit à la récupération de vos données.</div>
+        <div class="imp-actions"><button class="btn btn-outline btn-sm" type="button" id="modele">Télécharger un fichier modèle</button></div>
+      </section>
+
+      <section id="e2" class="card" hidden>
+        <h2>Déposez votre fichier</h2>
+        <p class="card-sub" id="e2-sub"></p>
+        <div class="imp-depot" id="depot"><p><b>Glissez le fichier CSV ici</b> ou</p><p style="margin-top:10px"><label class="btn btn-primary" style="cursor:pointer">Choisir un fichier<input type="file" id="fichier" accept=".csv,.txt,.tsv,text/csv,text/plain" hidden></label></p><p class="card-sub" style="margin:12px 0 0">CSV ou TXT, 5 Mo et 20 000 lignes au plus. Le fichier est lu sur votre appareil, il n'est envoyé nulle part tel quel.</p></div>
+        <div id="e2-err" class="imp-note imp-ko" hidden role="alert"></div>
+        <div class="imp-actions"><button class="btn btn-outline btn-sm" type="button" data-retour="1">Retour</button></div>
+      </section>
+
+      <section id="e3" class="card" hidden>
+        <h2>Vérifiez la correspondance des colonnes</h2>
+        <p class="card-sub" id="e3-sub"></p>
+        <div class="imp-map" id="map"></div>
+        <div id="options" class="imp-lignes" style="margin-top:14px"></div>
+        <h3 style="margin:18px 0 6px;font-size:15px">Aperçu du fichier</h3>
+        <div class="scroll-x"><table class="imp-table" id="apercu"></table></div>
+        <div class="imp-actions"><button class="btn btn-outline btn-sm" type="button" data-retour="2">Retour</button><button class="btn btn-primary" type="button" id="verifier">Vérifier avant d'importer</button></div>
+      </section>
+
+      <section id="e4" class="card" hidden>
+        <h2>Vérification</h2>
+        <p class="card-sub">Rien n'est encore écrit dans votre espace.</p>
+        <div class="imp-kpi" id="bilan"></div>
+        <div id="alertes"></div>
+        <div class="scroll-x"><table class="imp-table" id="prevue"></table></div>
+        <div class="imp-actions"><button class="btn btn-outline btn-sm" type="button" data-retour="3">Retour aux colonnes</button><button class="btn btn-primary" type="button" id="lancer">Importer</button></div>
+      </section>
+
+      <section id="e5" class="card" hidden aria-live="polite">
+        <h2 id="e5-titre">Import en cours…</h2>
+        <div class="imp-barre"><i id="barre"></i></div>
+        <div class="imp-kpi" id="resultat"></div>
+        <div id="e5-notes"></div>
+        <div class="imp-actions"><button class="btn btn-outline btn-sm" type="button" id="rapport" hidden>Télécharger les lignes refusées (CSV)</button><button class="btn btn-primary" type="button" id="encore" hidden>Importer autre chose</button><a class="btn btn-outline btn-sm" id="voir" href="clients.html" hidden>Voir le résultat</a></div>
+      </section>
+
+      <section class="card" id="histo" hidden>
+        <h2>Imports précédents</h2>
+        <div class="scroll-x"><table class="imp-table" id="histo-t"></table></div>
+      </section>
+
+      <div class="imp-note"><b>À savoir.</b> Les factures et devis importés sont des <b>pièces d'historique</b> : ils gardent leur numéro d'origine, ne passent pas par le journal inaltérable de la caisse et ne déclenchent aucune relance automatique. Vos propres numéros continuent après le dernier numéro importé de la même année (format FAC-AAAA-NNN). Relancer le même fichier ne crée aucun doublon. En important la liste de vos clients, vous restez responsable de leurs données : ne reprenez que ce dont vous avez besoin, et conservez l'export d'origine de votre ancien logiciel pour votre comptabilité (conservation de 6 ans au minimum).</div>
+    </div>
+  </div>
+</main>
+</div>
+
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+  import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
+  import { initTheme, idEspaceActif, formaterNomAffichage, initiales, prenomConnecte } from './theme.js';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const $ = s => document.querySelector(s);
+  const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  const MAX_LIGNES = 20000, MAX_OCTETS = 5 * 1024 * 1024;
+
+  // ---------------------------------------------------------------- lecture du fichier
+  function decoder(buf){
+    const o = new Uint8Array(buf);
+    if(o[0] === 0x50 && o[1] === 0x4B) throw new Error('Ce fichier est un classeur Excel (.xlsx). Ouvrez-le puis faites « Enregistrer sous » au format CSV (délimité par des points-virgules ou des virgules).');
+    try { return new TextDecoder('utf-8', { fatal:true }).decode(o).replace(/^﻿/, ''); }
+    catch(e){ return new TextDecoder('windows-1252').decode(o); }
+  }
+  function parserCsv(texte){
+    const premiere = texte.split(/\r?\n/, 1)[0] || '';
+    let sep = ';', best = -1;
+    for(const c of [';', ',', '\t', '|']){ const n = premiere.split(c).length; if(n > best){ best = n; sep = c; } }
+    const rows = []; let cur = [], cell = '', q = false;
+    for(let i = 0; i < texte.length; i++){
+      const ch = texte[i];
+      if(q){ if(ch === '"'){ if(texte[i + 1] === '"'){ cell += '"'; i++; } else q = false; } else cell += ch; }
+      else if(ch === '"') q = true;
+      else if(ch === sep){ cur.push(cell); cell = ''; }
+      else if(ch === '\n' || ch === '\r'){ if(ch === '\r' && texte[i + 1] === '\n') i++; cur.push(cell); cell = ''; if(cur.some(x => x.trim() !== '')) rows.push(cur); cur = []; if(rows.length > MAX_LIGNES + 1) break; }
+      else cell += ch;
+    }
+    if(cell !== '' || cur.length){ cur.push(cell); if(cur.some(x => x.trim() !== '')) rows.push(cur); }
+    return rows;
+  }
+  const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9%]+/g, ' ').trim();
+
+  // ---------------------------------------------------------------- champs attendus et synonymes d'en-têtes
+  const CHAMPS = {
+    clients: [
+      { k:'ref', l:'Identifiant dans l\'ancien logiciel', s:['id client', 'id', 'identifiant', 'numero client', 'reference client', 'code client', 'reference'] },
+      { k:'prenom', l:'Prénom', s:['prenom', 'first name', 'firstname', 'given name'] },
+      { k:'nom', l:'Nom (ou nom complet)', req:true, s:['nom complet', 'nom du client', 'nom client', 'full name', 'name', 'nom de famille', 'last name', 'lastname', 'nom', 'client'] },
+      { k:'email', l:'E-mail', s:['email', 'e mail', 'mail', 'courriel', 'adresse email', 'adresse e mail'] },
+      { k:'telephone', l:'Téléphone', s:['telephone', 'tel', 'mobile', 'portable', 'phone', 'gsm', 'numero de telephone', 'telephone mobile'] },
+      { k:'societe', l:'Société', s:['societe', 'entreprise', 'company', 'raison sociale'] },
+      { k:'notes', l:'Notes', s:['notes', 'note', 'commentaire', 'commentaires', 'remarques', 'observations'] },
+      { k:'allergies', l:'Allergies, contre-indications', s:['allergies', 'allergie', 'contre indications', 'contre indication'] }
+    ],
+    documents: [
+      { k:'numero', l:'Numéro du document', req:true, s:['numero de facture', 'numero facture', 'n facture', 'no facture', 'numero document', 'invoice number', 'numero', 'facture', 'n', 'reference'] },
+      { k:'type', l:'Type (facture ou devis)', s:['type', 'nature', 'type de document', 'document'] },
+      { k:'date', l:'Date d\'émission', req:true, s:['date d emission', 'date emission', 'date de facture', 'date facture', 'invoice date', 'date'] },
+      { k:'echeance', l:'Date d\'échéance', s:['date d echeance', 'date echeance', 'echeance', 'due date'] },
+      { k:'statut', l:'Statut (payée, envoyée…)', s:['statut', 'status', 'etat', 'paiement', 'reglement'] },
+      { k:'client_nom', l:'Nom du client', s:['nom du client', 'nom client', 'client nom', 'customer', 'client', 'nom'] },
+      { k:'client_email', l:'E-mail du client', s:['email client', 'e mail client', 'email', 'mail', 'courriel'] },
+      { k:'client_ref', l:'Identifiant du client (ancien logiciel)', s:['id client', 'numero client', 'code client'] },
+      { k:'description', l:'Désignation de la ligne', s:['designation', 'description', 'libelle', 'prestation', 'article', 'produit', 'service'] },
+      { k:'quantite', l:'Quantité', s:['quantite', 'qte', 'qty', 'quantity'] },
+      { k:'pu', l:'Prix unitaire', s:['prix unitaire ht', 'pu ht', 'prix ht', 'prix unitaire', 'pu', 'unit price', 'tarif'] },
+      { k:'tva', l:'Taux de TVA (%)', s:['taux de tva', 'taux tva', 'tva %', 'tva', 'vat', 'vat rate'] },
+      { k:'total_ht', l:'Total HT', s:['total ht', 'montant ht', 'sous total', 'ht'] },
+      { k:'total_ttc', l:'Total TTC', s:['total ttc', 'montant ttc', 'ttc', 'total', 'montant', 'amount'] },
+      { k:'notes', l:'Notes', s:['notes', 'note', 'commentaire', 'remarques'] }
+    ],
+    prestations: [
+      { k:'libelle', l:'Libellé de la prestation', req:true, s:['libelle', 'prestation', 'designation', 'service', 'nom de la prestation', 'nom', 'intitule'] },
+      { k:'prix', l:'Prix', req:true, s:['prix ttc', 'prix ht', 'prix', 'tarif', 'montant', 'price'] },
+      { k:'duree', l:'Durée (minutes)', s:['duree', 'duree minutes', 'duree min', 'temps', 'minutes', 'duration'] },
+      { k:'tva', l:'Taux de TVA (%)', s:['taux de tva', 'taux tva', 'tva %', 'tva'] },
+      { k:'categorie', l:'Catégorie', s:['categorie', 'famille', 'groupe', 'category'] },
+      { k:'description', l:'Description', s:['description', 'details', 'detail'] }
+    ]
+  };
+  const MODELES = {
+    clients: 'prenom;nom;email;telephone;societe;notes;allergies\nLéa;Martin;lea@exemple.fr;06 12 34 56 78;;Préfère le samedi;Aucune\n',
+    documents: 'numero;type;date;echeance;statut;client_nom;client_email;designation;quantite;prix_unitaire_ht;tva;\nFAC-2025-001;facture;04/03/2025;;payee;Léa Martin;lea@exemple.fr;Coupe femme;1;25,00;20;\nFAC-2025-001;facture;04/03/2025;;payee;Léa Martin;lea@exemple.fr;Soin;2;10,00;20;\n',
+    prestations: 'libelle;prix;duree;tva;categorie\nCoupe femme;38,00;45;20;Coiffure\nBarbe;15,00;20;20;Barbier\n'
+  };
+
+  // ---------------------------------------------------------------- conversions
+  function nombre(v){
+    if(v == null) return null; let s = String(v).trim(); if(s === '') return null;
+    s = s.replace(/[€$£\s ]/g, '').replace(/%$/, ''); let neg = false;
+    if(/^\(.*\)$/.test(s)){ neg = true; s = s.slice(1, -1); }
+    if(s.includes(',') && s.includes('.')) s = s.lastIndexOf(',') > s.lastIndexOf('.') ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+    else if(s.includes(',')) s = s.replace(',', '.');
+    const n = Number(s); return Number.isFinite(n) ? (neg ? -n : n) : null;
+  }
+  function dateIso(v){
+    const s = String(v || '').trim(); if(!s) return null; let m;
+    if((m = s.match(/^(\d{4})-(\d{2})-(\d{2})/))) return ctrl(+m[1], +m[2], +m[3]);
+    if((m = s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})/))){ let a = +m[3]; if(a < 100) a += a < 70 ? 2000 : 1900; return ctrl(a, +m[2], +m[1]); }
+    return null;
+  }
+  function ctrl(a, mo, j){ const d = new Date(Date.UTC(a, mo - 1, j)); return d.getUTCFullYear() === a && d.getUTCMonth() === mo - 1 && d.getUTCDate() === j && a >= 1990 && a <= 2100 ? `${a}-${String(mo).padStart(2, '0')}-${String(j).padStart(2, '0')}` : null; }
+  function minutes(v){ const s = norm(v); if(!s) return null; let m = s.match(/^(\d+)\s*h\s*(\d+)?/); if(m) return (+m[1]) * 60 + (+(m[2] || 0)); m = s.match(/^(\d+(?:\.\d+)?)/); return m ? Math.round(+m[1]) : null; }
+  function statut(v, type, defaut){
+    const s = norm(v);
+    if(/(payee?|regle|paid|solde)/.test(s) && !/(non|impay)/.test(s)) return type === 'devis' ? 'accepte' : 'paye';
+    if(/(impay|non regle|unpaid|attente|envoy|sent|emis)/.test(s)) return 'envoye';
+    if(/(retard|overdue)/.test(s)) return 'en_retard';
+    if(/(brouillon|draft)/.test(s)) return 'brouillon';
+    if(/(accept)/.test(s)) return 'accepte';
+    if(/(refus|annul|cancel)/.test(s)) return 'refuse';
+    return type === 'devis' ? (defaut === 'paye' ? 'accepte' : defaut) : defaut;
+  }
+  const TAUX = [0, 2.1, 5.5, 8.5, 10, 20];
+  const r4 = n => Math.round((n + Number.EPSILON) * 10000) / 10000, r2 = n => Math.round((n + Number.EPSILON) * 100) / 100;
+  const nearest = t => TAUX.reduce((a, b) => Math.abs(b - t) < Math.abs(a - t) ? b : a, 0);
+  const eur = n => (Number(n) || 0).toLocaleString('fr-FR', { style:'currency', currency:'EUR' });
+
+  // ---------------------------------------------------------------- état
+  let nature = null, entetes = [], rows = [], nomFichier = '', mapping = {}, prepares = [], refuses = [], etape = 1;
+  const montre = n => { etape = n; for(let i = 1; i <= 5; i++) $('#e' + i).hidden = i !== n; document.querySelectorAll('#etapes li').forEach(li => { const k = +li.dataset.e; li.className = k === n ? 'on' : (k < n ? 'fait' : ''); li.setAttribute('aria-current', k === n ? 'step' : 'false'); }); window.scrollTo({ top:0, behavior:'smooth' }); };
+  const telecharger = (nom, contenu) => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + contenu], { type:'text/csv;charset=utf-8' })); a.download = nom; document.body.appendChild(a); a.click(); a.remove(); };
+
+  document.querySelectorAll('.imp-choix button').forEach(b => b.addEventListener('click', () => {
+    nature = b.dataset.nat; document.querySelectorAll('.imp-choix button').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+    $('#e2-sub').textContent = { clients:'Un fichier avec une ligne par client.', documents:'Un fichier avec une ligne par ligne de facture (le numéro se répète), ou une ligne par facture avec ses totaux.', prestations:'Un fichier avec une ligne par prestation.' }[nature];
+    $('#e2-err').hidden = true; montre(2);
+  }));
+  $('#modele').addEventListener('click', () => telecharger('modele-' + (nature || 'clients') + '.csv', MODELES[nature || 'clients']));
+  document.querySelectorAll('[data-retour]').forEach(b => b.addEventListener('click', () => montre(+b.dataset.retour)));
+  const depot = $('#depot');
+  ['dragenter', 'dragover'].forEach(e => depot.addEventListener(e, ev => { ev.preventDefault(); depot.classList.add('survol'); }));
+  ['dragleave', 'drop'].forEach(e => depot.addEventListener(e, ev => { ev.preventDefault(); depot.classList.remove('survol'); }));
+  depot.addEventListener('drop', ev => { const f = ev.dataTransfer.files[0]; if(f) lire(f); });
+  $('#fichier').addEventListener('change', ev => { const f = ev.target.files[0]; if(f) lire(f); ev.target.value = ''; });
+
+  async function lire(f){
+    const err = m => { $('#e2-err').textContent = m; $('#e2-err').hidden = false; };
+    $('#e2-err').hidden = true;
+    if(f.size > MAX_OCTETS) return err('Fichier trop volumineux (5 Mo au plus). Découpez-le par année.');
+    let tab;
+    try { tab = parserCsv(decoder(await f.arrayBuffer())); } catch(e){ return err(e.message); }
+    if(tab.length < 2) return err('Le fichier ne contient aucune ligne de données.');
+    if(tab.length > MAX_LIGNES + 1) return err('Plus de ' + MAX_LIGNES + ' lignes : découpez le fichier.');
+    entetes = tab[0].map((h, i) => (h || '').trim() || 'Colonne ' + (i + 1));
+    rows = tab.slice(1).map((r, i) => ({ n: i + 2, c: r })); nomFichier = f.name; deviner(); dessinerMap(); montre(3);
+  }
+
+  function deviner(){
+    mapping = {}; const pris = new Set(); const nh = entetes.map(norm);
+    const champs = CHAMPS[nature];
+    for(const ch of champs){
+      let idx = -1;
+      for(const syn of ch.s){ idx = nh.findIndex((h, i) => !pris.has(i) && h === syn); if(idx >= 0) break; }
+      if(idx < 0) for(const syn of ch.s){ if(syn.length < 4) continue; idx = nh.findIndex((h, i) => !pris.has(i) && h.includes(syn)); if(idx >= 0) break; }
+      if(idx >= 0){ mapping[ch.k] = idx; pris.add(idx); }
+    }
+    if(nature === 'clients' && mapping.prenom != null && mapping.nom == null) delete mapping.prenom;
+  }
+  function dessinerMap(){
+    const m = $('#map'); m.innerHTML = '';
+    $('#e3-sub').textContent = `${rows.length.toLocaleString('fr-FR')} lignes lues dans « ${nomFichier} ». Les colonnes reconnues sont déjà choisies : corrigez si besoin. Un astérisque marque les champs indispensables.`;
+    for(const ch of CHAMPS[nature]){
+      const lab = document.createElement('label'); lab.textContent = ch.l; if(ch.req) lab.className = 'req'; lab.htmlFor = 'm-' + ch.k;
+      const sel = document.createElement('select'); sel.id = 'm-' + ch.k;
+      sel.append(new Option('Ne pas importer', ''));
+      entetes.forEach((h, i) => sel.append(new Option(h, i)));
+      sel.value = mapping[ch.k] != null ? String(mapping[ch.k]) : '';
+      sel.addEventListener('change', () => { if(sel.value === '') delete mapping[ch.k]; else mapping[ch.k] = +sel.value; });
+      m.append(lab, sel);
+    }
+    const o = $('#options');
+    if(nature === 'documents') o.innerHTML = `
+      <label class="imp-champ">Type quand le fichier ne le précise pas<select id="o-type"><option value="facture">Facture</option><option value="devis">Devis</option></select></label>
+      <label class="imp-champ">Statut quand il est absent ou inconnu<select id="o-statut"><option value="paye">Payée (historique réglé)</option><option value="envoye">Envoyée, non réglée</option><option value="brouillon">Brouillon</option></select></label>
+      <label class="imp-champ">Les prix du fichier sont<select id="o-ttc"><option value="ht">Hors taxes (HT)</option><option value="ttc">Toutes taxes comprises (TTC)</option></select></label>
+      <label class="imp-champ">TVA par défaut (%) quand elle n'est pas dans le fichier<input id="o-tva" type="number" min="0" max="30" step="0.1" value="0"></label>`;
+    else if(nature === 'prestations') o.innerHTML = `<label class="imp-champ">TVA par défaut (%)<input id="o-tva" type="number" min="0" max="30" step="0.1" value="0"></label>`;
+    else o.innerHTML = `<label class="imp-champ">Client déjà présent (même e-mail, téléphone ou identifiant)<select id="o-mode"><option value="ignorer">Le laisser tel quel</option><option value="completer">Compléter ses champs vides (rien n'est écrasé)</option></select></label>`;
+    const t = $('#apercu'); t.innerHTML = '<thead><tr>' + entetes.map(h => `<th>${esc(h)}</th>`).join('') + '</tr></thead><tbody>' + rows.slice(0, 5).map(r => '<tr>' + entetes.map((_, i) => `<td title="${esc(r.c[i])}">${esc(r.c[i])}</td>`).join('') + '</tr>').join('') + '</tbody>';
+  }
+  const val = (r, k) => mapping[k] == null ? '' : String(r.c[mapping[k]] == null ? '' : r.c[mapping[k]]).trim();
+
+  // ---------------------------------------------------------------- vérification
+  $('#verifier').addEventListener('click', () => {
+    const manque = CHAMPS[nature].filter(c => c.req && mapping[c.k] == null);
+    if(nature === 'documents' && mapping.description == null && mapping.pu == null && mapping.total_ht == null && mapping.total_ttc == null) manque.push({ l:'Un prix ou un total' });
+    if(manque.length){ alert('Il manque : ' + manque.map(m => m.l).join(', ') + '.'); return; }
+    prepares = []; refuses = [];
+    ({ clients: prepClients, documents: prepDocuments, prestations: prepPrestations })[nature]();
+    afficherBilan(); montre(4);
+  });
+
+  function prepClients(){
+    for(const r of rows){
+      const prenom = val(r, 'prenom'), nom = val(r, 'nom'), full = [prenom, nom].filter(Boolean).join(' ').trim();
+      if(!full){ refuses.push({ n:r.n, raison:'Nom manquant', r }); continue; }
+      prepares.push({ _n:r.n, ref:val(r, 'ref'), nom:full, email:val(r, 'email'), telephone:val(r, 'telephone'), societe:val(r, 'societe'), notes:val(r, 'notes'), allergies:val(r, 'allergies') });
+    }
+  }
+  function prepDocuments(){
+    const typeDef = $('#o-type').value, stDef = $('#o-statut').value, ttc = $('#o-ttc').value === 'ttc', tvaDef = nombre($('#o-tva').value) || 0;
+    const groupes = new Map();
+    for(const r of rows){
+      const numero = val(r, 'numero');
+      if(!numero){ refuses.push({ n:r.n, raison:'Numéro manquant', r }); continue; }
+      const tbrut = norm(val(r, 'type')), type = /devis|quote|estimate/.test(tbrut) ? 'devis' : (/factur|invoice|avoir|credit/.test(tbrut) ? 'facture' : typeDef);
+      const cle = type + '|' + numero;
+      let g = groupes.get(cle);
+      if(!g){ g = { _n:r.n, numero, type, date:dateIso(val(r, 'date')), echeance:dateIso(val(r, 'echeance')), statut:statut(val(r, 'statut'), type, stDef), client_nom:val(r, 'client_nom'), client_email:val(r, 'client_email'), client_ref:val(r, 'client_ref'), notes:val(r, 'notes'), lignes:[], ttcFichier:0, ttcCalc:0 }; groupes.set(cle, g); }
+      const tva0 = nombre(val(r, 'tva')), th = nombre(val(r, 'total_ht')), tt = nombre(val(r, 'total_ttc')), pu = nombre(val(r, 'pu')), qte = nombre(val(r, 'quantite'));
+      const desc = val(r, 'description');
+      let taux = tva0 != null ? tva0 : (th != null && tt != null && th !== 0 ? nearest((tt / th - 1) * 100) : tvaDef);
+      if(pu != null || (desc && (th != null || tt != null))){
+        const q = qte != null ? qte : 1; let puHt = pu;
+        if(puHt == null) puHt = (th != null ? th : (tt != null ? tt / (1 + taux / 100) : 0)) / (q || 1);
+        else if(ttc) puHt = puHt / (1 + taux / 100);
+        g.lignes.push({ description:desc || 'Prestation', quantite:q, prix_unitaire:r4(puHt), tva_taux:taux }); g.ttcCalc += q * puHt * (1 + taux / 100);
+      } else if(th != null || tt != null){
+        if(g.lignes.length === 0 || desc){ const ht = th != null ? th : tt / (1 + taux / 100); g.lignes.push({ description:desc || 'Prestations (import)', quantite:1, prix_unitaire:r4(ht), tva_taux:taux }); g.ttcCalc += ht * (1 + taux / 100); }
+      } else if(desc){ g.lignes.push({ description:desc, quantite:qte != null ? qte : 1, prix_unitaire:0, tva_taux:taux }); }
+      if(tt != null) g.ttcFichier = Math.max(g.ttcFichier, tt);
+    }
+    for(const g of groupes.values()){
+      if(!g.date) refuses.push({ n:g._n, raison:`Date illisible (${g.numero})`, r:{ c:[g.numero] } });
+      else if(!g.lignes.length) refuses.push({ n:g._n, raison:`Aucune ligne ni montant (${g.numero})`, r:{ c:[g.numero] } });
+      else prepares.push(g);
+    }
+  }
+  function prepPrestations(){
+    const tvaDef = nombre($('#o-tva').value) || 0;
+    for(const r of rows){
+      const libelle = val(r, 'libelle'), prix = nombre(val(r, 'prix'));
+      if(!libelle){ refuses.push({ n:r.n, raison:'Libellé manquant', r }); continue; }
+      if(prix == null || prix < 0){ refuses.push({ n:r.n, raison:'Prix illisible', r }); continue; }
+      prepares.push({ _n:r.n, libelle:libelle.slice(0, 200), description:val(r, 'description').slice(0, 1000) || null, prix_unitaire:r2(prix), duree_minutes:Math.min(minutes(val(r, 'duree')) || 60, 1440), tva_taux:nombre(val(r, 'tva')) ?? tvaDef, categorie:val(r, 'categorie').slice(0, 40) || null });
+    }
+  }
+  function afficherBilan(){
+    const k = (b, l) => `<div><b>${b}</b>${esc(l)}</div>`; let h = k(prepares.length.toLocaleString('fr-FR'), nature === 'documents' ? 'documents à importer' : (nature === 'clients' ? 'clients à importer' : 'prestations à importer')) + k(refuses.length.toLocaleString('fr-FR'), 'lignes refusées');
+    const al = []; const t = $('#prevue');
+    if(nature === 'documents'){
+      const ht = prepares.reduce((s, d) => s + d.lignes.reduce((a, l) => a + l.quantite * l.prix_unitaire, 0), 0); h += k(eur(ht), 'total HT');
+      const annees = [...new Set(prepares.map(d => d.date.slice(0, 4)))].sort(); if(annees.length) h += k(annees.length > 1 ? annees[0] + ' à ' + annees.at(-1) : annees[0], 'période');
+      const ecarts = prepares.filter(d => d.ttcFichier && Math.abs(d.ttcFichier - d.ttcCalc) > 0.05); if(ecarts.length) al.push(`<div class="imp-note imp-ko"><b>${ecarts.length} document(s) dont le total TTC diffère du fichier</b> (par exemple ${esc(ecarts[0].numero)} : ${eur(ecarts[0].ttcFichier)} dans le fichier, ${eur(ecarts[0].ttcCalc)} recalculé). Vérifiez les colonnes « prix unitaire », « TVA » et l'option HT/TTC avant d'importer.</div>`);
+      if(!prepares.some(d => d.client_nom || d.client_email || d.client_ref)) al.push('<div class="imp-note">Aucune colonne client : les documents seront importés sans client rattaché.</div>');
+      t.innerHTML = '<thead><tr><th>Numéro</th><th>Type</th><th>Date</th><th>Statut</th><th>Client</th><th>Lignes</th><th>Total HT</th></tr></thead><tbody>' + prepares.slice(0, 8).map(d => `<tr><td>${esc(d.numero)}</td><td>${d.type}</td><td>${esc(d.date)}</td><td>${d.statut}</td><td>${esc(d.client_nom)}</td><td>${d.lignes.length}</td><td>${eur(d.lignes.reduce((a, l) => a + l.quantite * l.prix_unitaire, 0))}</td></tr>`).join('') + '</tbody>';
+    } else if(nature === 'clients'){
+      const sans = prepares.filter(c => !c.email && !c.telephone).length; if(sans) al.push(`<div class="imp-note">${sans} client(s) sans e-mail ni téléphone : ils seront importés, mais sans moyen de les joindre ni de détecter un doublon.</div>`);
+      t.innerHTML = '<thead><tr><th>Nom</th><th>E-mail</th><th>Téléphone</th><th>Société</th></tr></thead><tbody>' + prepares.slice(0, 8).map(c => `<tr><td>${esc(c.nom)}</td><td>${esc(c.email)}</td><td>${esc(c.telephone)}</td><td>${esc(c.societe)}</td></tr>`).join('') + '</tbody>';
+    } else {
+      t.innerHTML = '<thead><tr><th>Libellé</th><th>Prix</th><th>Durée</th><th>TVA</th><th>Catégorie</th></tr></thead><tbody>' + prepares.slice(0, 8).map(p => `<tr><td>${esc(p.libelle)}</td><td>${eur(p.prix_unitaire)}</td><td>${p.duree_minutes} min</td><td>${p.tva_taux} %</td><td>${esc(p.categorie)}</td></tr>`).join('') + '</tbody>';
+    }
+    if(refuses.length) al.push(`<div class="imp-note imp-ko"><b>${refuses.length} ligne(s) seront ignorées</b> :<ul class="imp-liste">${refuses.slice(0, 5).map(x => `<li>ligne ${x.n} : ${esc(x.raison)}</li>`).join('')}</ul>${refuses.length > 5 ? 'Le détail complet se télécharge après l\'import.' : ''}</div>`);
+    $('#bilan').innerHTML = h; $('#alertes').innerHTML = al.join('');
+    $('#lancer').disabled = prepares.length === 0;
+  }
+
+  // ---------------------------------------------------------------- import par lots
+  let enCours = false;
+  $('#lancer').addEventListener('click', async () => {
+    if(enCours) return; enCours = true; montre(5);
+    $('#e5-titre').textContent = 'Import en cours…'; $('#barre').style.width = '0'; $('#resultat').innerHTML = ''; $('#e5-notes').innerHTML = ''; ['#rapport', '#encore', '#voir'].forEach(s => $(s).hidden = true);
+    const source = $('#source').value, total = { crees:0, completes:0, ignores:0, erreurs:[], clients_crees:0 };
+    const taille = nature === 'documents' ? 50 : 200;
+    try {
+      if(nature === 'prestations') await importerPrestations(total);
+      else for(let i = 0; i < prepares.length; i += taille){
+        const lot = prepares.slice(i, i + taille);
+        const charge = nature === 'clients' ? lot.map(({ _n, ...c }) => c) : lot.map(({ _n, ttcFichier, ttcCalc, ...d }) => d);
+        const { data, error } = nature === 'clients'
+          ? await supabase.rpc('importer_clients', { p_source:source, p_fichier:nomFichier, p_lignes:charge, p_mode:$('#o-mode') ? $('#o-mode').value : 'ignorer' })
+          : await supabase.rpc('importer_documents', { p_source:source, p_fichier:nomFichier, p_docs:charge });
+        if(error) throw new Error(error.message);
+        total.crees += data.crees || 0; total.completes += data.completes || 0; total.ignores += data.ignores || 0; total.clients_crees += data.clients_crees || 0;
+        (data.erreurs || []).forEach(e => total.erreurs.push({ n:lot[e.ligne - 1]._n, raison:e.message }));
+        $('#barre').style.width = Math.round(Math.min(i + taille, prepares.length) / prepares.length * 100) + '%';
+      }
+      $('#barre').style.width = '100%'; $('#e5-titre').textContent = 'Import terminé';
+    } catch(e){
+      $('#e5-titre').textContent = 'Import interrompu';
+      $('#e5-notes').innerHTML = `<div class="imp-note imp-ko" role="alert"><b>${esc(e.message)}</b><br>Ce qui a déjà été importé est conservé. Vous pouvez relancer le même fichier : les éléments déjà importés sont reconnus et ne sont pas dupliqués.</div>`;
+    }
+    const k = (b, l) => `<div><b>${Number(b).toLocaleString('fr-FR')}</b>${esc(l)}</div>`;
+    $('#resultat').innerHTML = k(total.crees, 'créés') + (nature === 'clients' ? k(total.completes, 'complétés') : '') + k(total.ignores, 'déjà présents, ignorés') + (nature === 'documents' ? k(total.clients_crees, 'clients créés au passage') : '') + k(refuses.length + total.erreurs.length, 'lignes refusées');
+    const tous = [...refuses.map(x => ({ n:x.n, raison:x.raison })), ...total.erreurs];
+    if(tous.length){ $('#rapport').hidden = false; $('#rapport').onclick = () => telecharger('lignes-refusees.csv', 'ligne;raison\r\n' + tous.map(x => `${x.n};"${String(x.raison).replace(/"/g, '""')}"`).join('\r\n')); }
+    $('#encore').hidden = false; $('#voir').hidden = false; $('#voir').href = { clients:'clients.html', documents:'devis-factures.html', prestations:'parametres.html' }[nature];
+    enCours = false; chargerHisto();
+  });
+  async function importerPrestations(total){
+    const espace = await idEspaceActif(supabase);
+    const { data:ex, error:e0 } = await supabase.from('prestations').select('libelle'); if(e0) throw new Error(e0.message);
+    const connus = new Set((ex || []).map(p => norm(p.libelle))); const aInserer = [];
+    prepares.forEach((p, i) => { if(connus.has(norm(p.libelle))){ total.ignores++; return; } connus.add(norm(p.libelle)); aInserer.push({ owner_id:espace, libelle:p.libelle, description:p.description, prix_unitaire:p.prix_unitaire, duree_minutes:p.duree_minutes, tva_taux:p.tva_taux, categorie:p.categorie, actif:true, position:100 + i }); });
+    for(let i = 0; i < aInserer.length; i += 100){
+      const lot = aInserer.slice(i, i + 100);
+      let r = await supabase.from('prestations').insert(lot);
+      if(r.error && /categorie/.test(r.error.message)) r = await supabase.from('prestations').insert(lot.map(({ categorie, ...x }) => x));
+      if(r.error) throw new Error(r.error.message);
+      total.crees += lot.length; $('#barre').style.width = Math.round(Math.min(i + 100, aInserer.length) / aInserer.length * 100) + '%';
+    }
+  }
+  $('#encore').addEventListener('click', () => montre(1));
+
+  async function chargerHisto(){
+    const { data, error } = await supabase.rpc('imports_recents');
+    if(error || !data || !data.length){ $('#histo').hidden = true; return; }
+    $('#histo').hidden = false;
+    const nat = { clients:'Clients', documents:'Factures et devis', prestations:'Prestations' };
+    $('#histo-t').innerHTML = '<thead><tr><th>Date</th><th>Type</th><th>Source</th><th>Fichier</th><th>Créés</th><th>Ignorés</th><th>Refusés</th></tr></thead><tbody>' + data.map(h => `<tr><td>${esc(new Date(h.cree_le).toLocaleString('fr-FR'))}</td><td>${esc(nat[h.nature] || h.nature)}</td><td>${esc(h.source)}</td><td>${esc(h.fichier)}</td><td>${h.nb_crees}</td><td>${h.nb_ignores}</td><td>${h.nb_erreurs}</td></tr>`).join('') + '</tbody>';
+  }
+
+  (async function init(){
+    const { data } = await supabase.auth.getSession();
+    if(!data.session){ window.location.href = 'login.html'; return; }
+    $('#user-name').textContent = await prenomConnecte(supabase, data.session); $('#sidebar-email').textContent = data.session.user.email;
+    const brand = await initTheme(supabase, 'reglages');
+    const nom = brand.business_name && brand.business_name !== 'Mirrio' ? brand.business_name : (brand.full_name ? formaterNomAffichage(brand.full_name) : data.session.user.email);
+    $('#sidebar-name').textContent = nom; $('#sidebar-avatar').textContent = initiales(nom);
+    $('#loading-state').hidden = true;
+    const { data:role } = await supabase.rpc('mon_role');
+    if(!['proprietaire', 'gestionnaire', 'manager'].includes(role)){ $('#refus').hidden = false; return; }
+    const t = await supabase.rpc('imports_recents');
+    if(t.error && /imports_recents|schema cache|does not exist|42883|PGRST202/.test(t.error.message + (t.error.code || ''))){ $('#base').hidden = false; return; }
+    $('#contenu').hidden = false; montre(1); chargerHisto();
+  })();
+</script>
+</body>
+</html>

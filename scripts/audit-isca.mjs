@@ -39,12 +39,12 @@ create table public.vitrine_equipe (id uuid primary key default gen_random_uuid(
 create table public.parametres_reservation (owner_id uuid primary key, jours_ouvres int[] default '{1,2,3,4,5}', heure_debut time default '09:00', heure_fin time default '18:00');
 create table public.workspace_members (id uuid primary key default gen_random_uuid(), workspace_id uuid not null, user_id uuid, email text not null, role text not null default 'collaborateur',
   statut text not null default 'invite', invite_token text unique, invited_at timestamptz default now(), joined_at timestamptz);
-create table public.clients(id uuid primary key default gen_random_uuid(), owner_id uuid, full_name text);
+create table public.clients(id uuid primary key default gen_random_uuid(), owner_id uuid, full_name text, email text, phone text, company text, notes text);
 create table public.parametres_facturation(owner_id uuid primary key, assujetti_tva boolean default false);
 create table public.parametres_paiement (owner_id uuid primary key, stripe_actif boolean default false, stripe_secret_key text);
 create table public.documents (id uuid primary key default gen_random_uuid(), owner_id uuid not null, client_id uuid references public.clients on delete set null, type text not null, numero text,
   statut text not null default 'brouillon', date_emission date not null default current_date, date_echeance date, converted_from uuid references public.documents on delete set null, notes text,
-  created_at timestamptz default now(), updated_at timestamptz default now());
+  created_at timestamptz default now(), updated_at timestamptz default now(), nombre_relances int not null default 0);
 create table public.document_lignes (id uuid primary key default gen_random_uuid(), document_id uuid not null references public.documents on delete cascade, description text not null,
   quantite numeric not null default 1, prix_unitaire numeric not null default 0, position int not null default 0, tva_taux numeric not null default 0);
 create table public.document_counters (owner_id uuid not null, type text not null, year int not null, last_number int not null default 0, primary key (owner_id, type, year));
@@ -64,6 +64,8 @@ await db.exec(lire('schema-v45-equipes-roles.sql'));
 await db.exec(lire('schema-v46-absences.sql'));
 await db.exec(lire('schema-v47-stats-equipe.sql'));
 await db.exec(lire('schema-v48-fiche-client.sql'));
+await db.exec(lire('schema-v51-import.sql'));
+await db.exec(lire('schema-v51-import.sql'));        // rejouable
 await db.exec(`insert into auth.users values ('${U}'); insert into public.parametres_reservation (owner_id) values ('${U}'); insert into public.profiles values ('${U}', 'studio'); insert into public.parametres_facturation values ('${U}', true); set app.uid = '${U}';`);
 
 // ---------------------------------------------------------------- scénarios légitimes
@@ -208,6 +210,36 @@ const debut = new Date(Date.now() - 300 * 86400000).toISOString().slice(0, 10), 
 const arch = (await un(`select public.caisse_archiver($1::date, $2::date) r`, [debut, fin])).r;
 verif('A', 'Archive : journal, tickets, vérification et empreinte globale', arch.journal.length > 0 && arch.tickets.length > 0 && /^[0-9a-f]{64}$/.test(arch.empreinte) && arch.verification.ok === true);
 verif('A', 'Archive : empreinte scellée dans le journal (date certaine)', (await un(`select payload->>'empreinte' e from public.caisse_journal where type = 'archive' order by seq desc limit 1`)).e === arch.empreinte);
+
+
+// ---------------------------------------------------------------- import depuis un ancien logiciel
+const cl = JSON.stringify([{ ref: 'A1', nom: 'Léa Martin', email: 'LEA@x.fr', telephone: '06 12 34 56 78' }, { ref: 'A2', nom: 'Karim B', telephone: '+33 7 11 22 33 44' }, { nom: '', email: 'x@y.fr' }]);
+const ic = (await un(`select public.importer_clients('Planity', 'clients.csv', $1::jsonb, 'ignorer') r`, [cl])).r;
+verif('C', 'Import clients : 2 créés, 1 ligne sans nom refusée', ic.crees === 2 && ic.erreurs.length === 1 && ic.erreurs[0].ligne === 3, JSON.stringify(ic));
+const ic2 = (await un(`select public.importer_clients('Planity', 'clients.csv', $1::jsonb, 'ignorer') r`, [cl])).r;
+verif('C', 'Import clients rejoué : aucun doublon (référence, e-mail ou téléphone)', ic2.crees === 0 && ic2.ignores === 2, JSON.stringify(ic2));
+const ic3 = (await un(`select public.importer_clients('Autre', 'b.csv', $1::jsonb, 'completer') r`, [JSON.stringify([{ nom: 'Léa M.', telephone: '0612345678', email: 'autre@x.fr', societe: 'SARL Léa' }])])).r;
+const lea = await un(`select email, company from public.clients where ref_externe = 'A1'`);
+verif('C', 'Import clients « compléter » : remplit les champs vides sans rien écraser', ic3.completes === 1 && lea.email === 'lea@x.fr' && lea.company === 'SARL Léa', JSON.stringify(lea));
+const dc = JSON.stringify([
+  { numero: 'FAC-2025-041', type: 'facture', date: '2025-03-04', client_ref: 'A1', lignes: [{ description: 'Coupe', quantite: 1, prix_unitaire: 25, tva_taux: 20 }, { description: 'Soin', quantite: 2, prix_unitaire: 10, tva_taux: 10 }] },
+  { numero: 'OLD-7', type: 'facture', date: '2024-12-31', statut: 'envoye', client_nom: 'Nouveau Client', lignes: [{ description: 'Forfait', prix_unitaire: 100 }] },
+  { numero: 'DEV-2025-003', type: 'devis', date: '2025-02-01', statut: 'paye', client_nom: 'Karim B', lignes: [{ description: 'Mariage', prix_unitaire: 300 }] },
+  { numero: 'X', type: 'facture', date: 'pas une date', lignes: [{ description: 'a' }] },
+  { numero: 'Y', type: 'facture', date: '2025-01-01', lignes: [] }]);
+const id1 = (await un(`select public.importer_documents('Planity', 'factures.csv', $1::jsonb) r`, [dc])).r;
+verif('C', 'Import documents : 3 créés, 2 refusés (date illisible, aucune ligne), 1 client créé', id1.crees === 3 && id1.erreurs.length === 2 && id1.clients_crees === 1, JSON.stringify(id1));
+const d41 = await un(`select numero, statut, nombre_relances, client_id from public.documents d where numero = 'FAC-2025-041'`);
+verif('C', 'Document importé : numéro d\'origine conservé, statut « payé » par défaut, relances bloquées, rattaché au client', d41 && d41.statut === 'paye' && d41.nombre_relances === 99 && d41.client_id != null);
+verif('C', 'Import : un devis « payé » devient « accepté »', (await un(`select statut from public.documents where numero = 'DEV-2025-003'`)).statut === 'accepte');
+verif('C', 'Import : le compteur de numérotation dépasse le numéro importé (FAC-2025-042 sera le prochain)', (await un(`select last_number n from public.document_counters where owner_id = $1 and type = 'facture' and year = 2025`, [U])).n === 41);
+const id2 = (await un(`select public.importer_documents('Planity', 'factures.csv', $1::jsonb) r`, [dc])).r;
+verif('C', 'Import documents rejoué : aucun doublon', id2.crees === 0 && id2.ignores === 3, JSON.stringify(id2));
+verif('I', 'Un document importé n\'entre pas dans le journal de la caisse', (await un(`select count(*) n from public.caisse_journal where numero in ('FAC-2025-041', 'OLD-7')`)).n === 0);
+verif('C', 'Chaque import est tracé', (await un(`select count(*) n from public.imports`)).n >= 5);
+await db.exec(`set app.uid = '${V}'; set app.ws = '${U}';`);
+verif('S', 'Refus au vendeur : import de clients et de documents', /Réservé au responsable/.test(await refuse(() => q(`select public.importer_clients('x', 'x', '[]'::jsonb)`)) || '') && /Réservé au responsable/.test(await refuse(() => q(`select public.importer_documents('x', 'x', '[]'::jsonb)`)) || ''));
+await db.exec(`set app.uid = '${U}'; set app.ws = '';`);
 
 // ---------------------------------------------------------------- audit intégré à l'application
 const audit = (await un(`select public.caisse_audit_isca() r`)).r;
