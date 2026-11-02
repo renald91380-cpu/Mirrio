@@ -287,7 +287,7 @@
             <label for="periodicite">Facturation</label>
             <select id="periodicite" name="periodicite">
               <option value="mensuel">Mensuelle</option>
-              <option value="annuel">Annuelle : deux mois offerts</option>
+              <option value="annuel">Annuelle : un mois offert</option>
             </select>
           </div>
 
@@ -567,7 +567,7 @@
     document.getElementById('plan-field').style.display = (invite || v !== 'beaute') ? 'none' : '';
     document.getElementById('periodicite-field').style.display = (invite || v === 'mariage') ? 'none' : '';
     const T = {
-      patisserie: ['Boulangerie-pâtisserie', '<span data-prix="patisserie-m">29 €</span>/mois, tout inclus, tarif unique (<span data-prix="patisserie-a">290 €</span> par an)'],
+      patisserie: ['Boulangerie-pâtisserie', '<span data-prix="patisserie-m">29 €</span>/mois, tout inclus, tarif unique (<span data-prix="patisserie-a">319 €</span> par an)'],
       mariage:    ['Futurs mariés', 'Gratuit : planning, budget, invités, demandes de devis']
     }[v];
     if(T){ document.getElementById('tu-nom').textContent = T[0]; document.getElementById('tu-prix').innerHTML = T[1]; if(window.MIRRIO_TARIFS) window.MIRRIO_TARIFS.appliquer(); }

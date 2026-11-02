@@ -604,10 +604,10 @@
   "Jaarlijks",
   "سنوي"
  ],
- "2 mois offerts": [
-  "2 months free",
-  "2 maanden gratis",
-  "شهرين بلاش"
+ "1 mois offert": [
+  "1 month free",
+  "1 maand gratis",
+  "شهر بلاش"
  ],
  "/mois": [
   "/month",
@@ -619,10 +619,10 @@
   "/jaar",
   "/عام"
  ],
- "soit {0} par mois, deux mois offerts": [
-  "that is {0} per month, two months free",
-  "dat is {0} per maand, twee maanden gratis",
-  "يعني {0} فالشهر، شهرين بلاش"
+ "soit {0} par mois, un mois offert": [
+  "that is {0} per month, one month free",
+  "dat is {0} per maand, één maand gratis",
+  "يعني {0} فالشهر، شهر بلاش"
  ],
  "Solo": [
   "Solo",
@@ -704,15 +704,15 @@
   "Mijn groep aanmaken",
   "صاوب المجموعة ديالي"
  ],
- "<strong>Boulangerie, pâtisserie :</strong> un seul tarif, <strong><span data-prix=\"patisserie-m\">{0}</span>/mois</strong> (ou <span data-prix=\"patisserie-a\">{1}</span> par an, deux mois offerts), tout inclus : commandes de gâteaux, calendrier de charge, paiement en ligne, clients illimités. <a href=\"signup.html?activite=patisserie\" style=\"text-decoration:underline\">Créer ma boulangerie</a>": [
-  "<strong>Bakery, pastry shop:</strong> a single price, <strong><span data-prix=\"patisserie-m\">{0}</span>/month</strong> (or <span data-prix=\"patisserie-a\">{1}</span> per year, two months free), everything included: cake orders, workload calendar, online payment, unlimited clients. <a href=\"signup.html?activite=patisserie\" style=\"text-decoration:underline\">Create my bakery</a>",
-  "<strong>Bakkerij, banketbakkerij:</strong> een enkel tarief, <strong><span data-prix=\"patisserie-m\">{0}</span>/maand</strong> (of <span data-prix=\"patisserie-a\">{1}</span> per jaar, twee maanden gratis), alles inbegrepen: taartbestellingen, werkbelastingkalender, online betaling, onbeperkt klanten. <a href=\"signup.html?activite=patisserie\" style=\"text-decoration:underline\">Mijn bakkerij aanmaken</a>",
-  "<strong>الخباز، الحلويات:</strong> ثمن واحد، <strong><span data-prix=\"patisserie-m\">{0}</span>/الشهر</strong> (ولا <span data-prix=\"patisserie-a\">{1}</span> فالعام، شهرين بلاش)، كلشي مشمول: طلبات الكيك، كالندريي الشحن، الخلاص أونلاين، كليان بلا حدود. <a href=\"signup.html?activite=patisserie\" style=\"text-decoration:underline\">صاوب الخباز ديالي</a>"
+ "<strong>Boulangerie, pâtisserie :</strong> un seul tarif, <strong><span data-prix=\"patisserie-m\">{0}</span>/mois</strong> (ou <span data-prix=\"patisserie-a\">{1}</span> par an, un mois offert), tout inclus : commandes de gâteaux, calendrier de charge, paiement en ligne, clients illimités. <a href=\"signup.html?activite=patisserie\" style=\"text-decoration:underline\">Créer ma boulangerie</a>": [
+  "<strong>Bakery, pastry shop:</strong> a single price, <strong><span data-prix=\"patisserie-m\">{0}</span>/month</strong> (or <span data-prix=\"patisserie-a\">{1}</span> per year, one month free), everything included: cake orders, workload calendar, online payment, unlimited clients. <a href=\"signup.html?activite=patisserie\" style=\"text-decoration:underline\">Create my bakery</a>",
+  "<strong>Bakkerij, banketbakkerij:</strong> een enkel tarief, <strong><span data-prix=\"patisserie-m\">{0}</span>/maand</strong> (of <span data-prix=\"patisserie-a\">{1}</span> per jaar, één maand gratis), alles inbegrepen: taartbestellingen, werkbelastingkalender, online betaling, onbeperkt klanten. <a href=\"signup.html?activite=patisserie\" style=\"text-decoration:underline\">Mijn bakkerij aanmaken</a>",
+  "<strong>الخباز، الحلويات:</strong> ثمن واحد، <strong><span data-prix=\"patisserie-m\">{0}</span>/الشهر</strong> (ولا <span data-prix=\"patisserie-a\">{1}</span> فالعام، شهر بلاش)، كلشي مشمول: طلبات الكيك، كالندريي الشحن، الخلاص أونلاين، كليان بلا حدود. <a href=\"signup.html?activite=patisserie\" style=\"text-decoration:underline\">صاوب الخباز ديالي</a>"
  ],
- "Abonnement fixe dès <span data-prix=\"solo-m\">{0}</span> par mois, deux mois offerts à l'année.": [
-  "Fixed subscription from <span data-prix=\"solo-m\">{0}</span> per month, two months free when paid yearly.",
-  "Vast abonnement vanaf <span data-prix=\"solo-m\">{0}</span> per maand, twee maanden gratis bij jaarlijkse betaling.",
-  "اشتراك ثابت من <span data-prix=\"solo-m\">{0}</span> فالشهر، شهرين بلاش إلا خلصتي بالعام."
+ "Abonnement fixe dès <span data-prix=\"solo-m\">{0}</span> par mois, un mois offert à l'année.": [
+  "Fixed subscription from <span data-prix=\"solo-m\">{0}</span> per month, one month free when paid yearly.",
+  "Vast abonnement vanaf <span data-prix=\"solo-m\">{0}</span> per maand, één maand gratis bij jaarlijkse betaling.",
+  "اشتراك ثابت من <span data-prix=\"solo-m\">{0}</span> فالشهر، شهر بلاش إلا خلصتي بالعام."
  ],
  "Planity": [
   "Planity",
@@ -749,10 +749,10 @@
   "Rekent u echt 0% commissie?",
   "واش بصح ما كتاخدو حتى عمولة؟"
  ],
- "Oui. Vous payez un abonnement fixe : Solo <span data-prix=\"solo-m\">{0}</span> par mois, Équipe <span data-prix=\"equipe-m\">{1}</span> par mois (5 professionnels inclus, puis <span data-prix=\"sup-m\">{2}</span> par mois et par professionnel, jusqu'à 20), Groupe <span data-prix=\"groupe-m\">{3}</span> par mois (jusqu'à 10 salons). Payé à l'année, vous avez deux mois offerts. Les paiements en ligne passent par votre propre compte Stripe ou PayPal : seuls leurs frais habituels s'appliquent.": [
-  "Yes. You pay a fixed subscription: Solo <span data-prix=\"solo-m\">{0}</span> per month, Team <span data-prix=\"equipe-m\">{1}</span> per month (5 professionals included, then <span data-prix=\"sup-m\">{2}</span> per month per professional, up to 20), Group <span data-prix=\"groupe-m\">{3}</span> per month (up to 10 salons). Paid yearly, you get two months free. Online payments go through your own Stripe or PayPal account: only their usual fees apply.",
-  "Ja. U betaalt een vast abonnement: Solo <span data-prix=\"solo-m\">{0}</span> per maand, Team <span data-prix=\"equipe-m\">{1}</span> per maand (5 professionals inbegrepen, daarna <span data-prix=\"sup-m\">{2}</span> per maand per professional, tot 20), Groep <span data-prix=\"groupe-m\">{3}</span> per maand (tot 10 salons). Bij jaarlijkse betaling krijgt u twee maanden gratis. Online betalingen lopen via uw eigen Stripe- of PayPal-account: enkel hun gebruikelijke kosten zijn van toepassing.",
-  "آه. كتخلص اشتراك ثابت: Solo <span data-prix=\"solo-m\">{0}</span> فالشهر، الفريق <span data-prix=\"equipe-m\">{1}</span> فالشهر (5 مهنيين مضمونين، من بعد <span data-prix=\"sup-m\">{2}</span> فالشهر على كل مهني، حتى 20)، المجموعة <span data-prix=\"groupe-m\">{3}</span> فالشهر (حتى 10 صالونات). إلا خلصتي بالعام كيتزاد ليك شهرين بلاش. الخلاص أونلاين كيدوز من حساب Stripe ولا PayPal ديالك: غير المصاريف ديالهم العادية."
+ "Oui. Vous payez un abonnement fixe : Solo <span data-prix=\"solo-m\">{0}</span> par mois, Équipe <span data-prix=\"equipe-m\">{1}</span> par mois (5 professionnels inclus, puis <span data-prix=\"sup-m\">{2}</span> par mois et par professionnel, jusqu'à 20), Groupe <span data-prix=\"groupe-m\">{3}</span> par mois (jusqu'à 10 salons). Payé à l'année, vous avez un mois offert. Les paiements en ligne passent par votre propre compte Stripe ou PayPal : seuls leurs frais habituels s'appliquent.": [
+  "Yes. You pay a fixed subscription: Solo <span data-prix=\"solo-m\">{0}</span> per month, Team <span data-prix=\"equipe-m\">{1}</span> per month (5 professionals included, then <span data-prix=\"sup-m\">{2}</span> per month per professional, up to 20), Group <span data-prix=\"groupe-m\">{3}</span> per month (up to 10 salons). Paid yearly, you get one month free. Online payments go through your own Stripe or PayPal account: only their usual fees apply.",
+  "Ja. U betaalt een vast abonnement: Solo <span data-prix=\"solo-m\">{0}</span> per maand, Team <span data-prix=\"equipe-m\">{1}</span> per maand (5 professionals inbegrepen, daarna <span data-prix=\"sup-m\">{2}</span> per maand per professional, tot 20), Groep <span data-prix=\"groupe-m\">{3}</span> per maand (tot 10 salons). Bij jaarlijkse betaling krijgt u één maand gratis. Online betalingen lopen via uw eigen Stripe- of PayPal-account: enkel hun gebruikelijke kosten zijn van toepassing.",
+  "آه. كتخلص اشتراك ثابت: Solo <span data-prix=\"solo-m\">{0}</span> فالشهر، الفريق <span data-prix=\"equipe-m\">{1}</span> فالشهر (5 مهنيين مضمونين، من بعد <span data-prix=\"sup-m\">{2}</span> فالشهر على كل مهني، حتى 20)، المجموعة <span data-prix=\"groupe-m\">{3}</span> فالشهر (حتى 10 صالونات). إلا خلصتي بالعام كيتزاد ليك شهر بلاش. الخلاص أونلاين كيدوز من حساب Stripe ولا PayPal ديالك: غير المصاريف ديالهم العادية."
  ],
  "Mes clients doivent-ils créer un compte ?": [
   "Do my clients have to create an account?",

@@ -13,11 +13,11 @@ Ce fichier est chargé automatiquement par Claude Code à chaque session ouverte
 **Positionnement :** France/Belgique/Suisse en priorité. Ton direct, chiffré, sans superlatif marketing creux (voir `Asset/cadence-brand-guidelines.md` pour le détail complet de la charte : couleurs, typographies, voix).
 
 **Tarifs actuels affichés (non encore facturés réellement, pas de Stripe branché pour les abonnements Mirrio) — décidés le 29 octobre 2026, après étude de marché :**
-- **Solo — 19 €/mois (190 €/an)** : 1 professionnel (valeur interne `plan = 'solo'`).
-- **Équipe — 39 €/mois (390 €/an)** : 5 professionnels inclus, puis **5 €/mois par professionnel supplémentaire** (50 €/an), 20 au plus par salon (`plan = 'studio'`) ; la limite de 20 est appliquée par `inviter_collaborateur()` (`db/schema-v45-equipes-roles.sql` : propriétaire compris, invitations en attente comprises) ; le supplément n'est pas encore facturé réellement, comme le reste. **Rôles d'un membre** (v45) : `manager` (responsable), `collaborateur`, `vendeur` ; voir §3.46.
-- **Groupe — 79 €/mois (790 €/an)** : jusqu'à 10 salons, chacun au niveau Équipe (`plan = 'studio'` + plusieurs salons, voir §3.36).
-- **Boulangerie-pâtisserie — 29 €/mois (290 €/an)**, tout inclus (`plan = 'studio'`).
-- **Paiement annuel = deux mois offerts** sur tous les forfaits. L'accueil a une bascule Mensuel / Annuel (prix, équivalent par mois et lien d'inscription avec `?periodicite=annuel`) ; `signup.html` enregistre la préférence dans `profiles.periodicite`, sans effet de facturation réelle pour l'instant.
+- **Solo — 19 €/mois (209 €/an)** : 1 professionnel (valeur interne `plan = 'solo'`).
+- **Équipe — 39 €/mois (429 €/an)** : 5 professionnels inclus, puis **5 €/mois par professionnel supplémentaire** (55 €/an), 20 au plus par salon (`plan = 'studio'`) ; la limite de 20 est appliquée par `inviter_collaborateur()` (`db/schema-v45-equipes-roles.sql` : propriétaire compris, invitations en attente comprises) ; le supplément n'est pas encore facturé réellement, comme le reste. **Rôles d'un membre** (v45) : `manager` (responsable), `collaborateur`, `vendeur` ; voir §3.46.
+- **Groupe — 79 €/mois (869 €/an)** : jusqu'à 10 salons, chacun au niveau Équipe (`plan = 'studio'` + plusieurs salons, voir §3.36).
+- **Boulangerie-pâtisserie — 29 €/mois (319 €/an)**, tout inclus (`plan = 'studio'`).
+- **Paiement annuel = un mois offert** sur tous les forfaits. L'accueil a une bascule Mensuel / Annuel (prix, équivalent par mois et lien d'inscription avec `?periodicite=annuel`) ; `signup.html` enregistre la préférence dans `profiles.periodicite`, sans effet de facturation réelle pour l'instant.
 - **Tout est inclus dans chaque forfait** (réservation, annuaire, caisse, devis et factures, tableau de bord : le mur payant du tableau de bord a été retiré). Seule l'équipe distingue Solo d'Équipe. Les anciens forfaits (Indépendant 15 €, Salon 29 puis 20 €, Groupe 50 €) ne sont plus proposés ; les comptes existants sont conservés tels quels.
 - Boulangerie-pâtisserie — **tarif unique 29 €/mois**, tout inclus (pas de choix de formule). À l'inscription (`signup.html`, champ « Votre activité »), `activite = 'patisserie'` part dans les métadonnées ; `handle_new_user()` (`db/schema-v36-patisserie-tarif-unique.sql`) pose alors `metier = 'patisserie'` et force `plan = 'studio'`. Limite : la connexion Google ne transmet ni l'activité ni la formule.
 
@@ -555,13 +555,13 @@ Moteur : `site/i18n.js` (un script classique, sans dépendance, à mettre dans l
 
   | Forfait | EUR / mois (an) | MAD / mois (an) | CHF / mois (an) |
   |---|---|---|---|
-  | Solo | 19 (190) | 199 (1 990) | 18 (180) |
-  | Équipe | 39 (390) | 419 (4 190) | 36 (360) |
-  | Groupe | 79 (790) | 849 (8 490) | 74 (740) |
-  | Boulangerie-pâtisserie | 29 (290) | 309 (3 090) | 27 (270) |
-  | Professionnel en plus (Équipe) | 5 (50) | 55 (550) | 5 (50) |
+  | Solo | 19 (209) | 199 (2 189) | 18 (198) |
+  | Équipe | 39 (429) | 419 (4 609) | 36 (396) |
+  | Groupe | 79 (869) | 849 (9 339) | 74 (814) |
+  | Boulangerie-pâtisserie | 29 (319) | 309 (3 399) | 27 (297) |
+  | Professionnel en plus (Équipe) | 5 (55) | 55 (605) | 5 (55) |
 
-  Annuel = deux mois offerts (10 × le mensuel) dans chaque monnaie. **Pas encore reporté** : `signup.html`, les CGU, `salons.html` (constante `FORFAIT_GROUPE`), le JSON-LD et les méta-descriptions de l'accueil (restent en euros). Aucun prélèvement réel n'existe (voir §1) : la monnaie de facturation d'un futur abonnement sera celle du pays du salon. Les prix d'un salon restent dans SA monnaie : ils ne sont jamais convertis pour le visiteur.
+  Annuel = un mois offert (10 × le mensuel) dans chaque monnaie. **Pas encore reporté** : `signup.html`, les CGU, `salons.html` (constante `FORFAIT_GROUPE`), le JSON-LD et les méta-descriptions de l'accueil (restent en euros). Aucun prélèvement réel n'existe (voir §1) : la monnaie de facturation d'un futur abonnement sera celle du pays du salon. Les prix d'un salon restent dans SA monnaie : ils ne sont jamais convertis pour le visiteur.
 - **Ordre prévu** : parcours client (reste : page du salon `pro.html` (déjà à la monnaie du salon, textes à traduire), commande de gâteaux (idem), espace client `mon-espace.html`, avis, paiement, RSVP, annuaire, e-mails et SMS ; la réservation est faite), accueil et inscription, puis l'application du salon (caisse, agenda, clients, paramètres), puis les pages juridiques relues.
 
 ### 3.38 Export comptable et partage au comptable
