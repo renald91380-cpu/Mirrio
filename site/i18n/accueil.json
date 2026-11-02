@@ -644,11 +644,6 @@
   "Online reserveren, gids en een pagina met uw foto's",
   "الحجز أونلاين، الدليل وصفحة بالصور ديالك"
  ],
- "Caisse, devis, factures et tableau de bord": [
-  "Till, quotes, invoices and dashboard",
-  "Kassa, offertes, facturen en dashboard",
-  "الكايس، الديفي، الفواتير ولوحة القيادة"
- ],
  "Créer mon compte Solo": [
   "Create my Solo account",
   "Mijn Solo-account aanmaken",
@@ -863,5 +858,10 @@
   "5 professionals included, then <span data-prix=\"sup-m\">{0}</span> per additional professional (20 at most)",
   "5 professionals inbegrepen, daarna <span data-prix=\"sup-m\">{0}</span> per extra professional (maximaal 20)",
   "5 مهنيين مضمونين، من بعد <span data-prix=\"sup-m\">{0}</span> على كل مهني زايد (20 ماكسيموم)"
+ ],
+ "Devis, factures et tableau de bord": [
+  "Quotes, invoices and dashboard",
+  "Offertes, facturen en dashboard",
+  "الديفي، الفواتير ولوحة القيادة"
  ]
 }

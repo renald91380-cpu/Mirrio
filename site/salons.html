@@ -245,7 +245,7 @@
     }
     z.innerHTML = `<div class="carte" style="margin-bottom:16px"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start">
         <div><span class="puce">Salon ${rang + 1} sur ${salons.length}${sal.principal ? ' · principal' : ''}</span><h2 style="font-size:24px;margin-top:8px">${esc(sal.nom)}</h2><p class="muted">${esc(METIERS_LIB[sal.metier] || '')}${sal.ville ? ' · ' + esc(sal.ville) : ''} · forfait Équipe, inclus dans le forfait Groupe</p></div>
-        <div class="actions" style="margin:0">${lien ? `<a class="btn petit principal" href="${lien}">Voir sa page publique</a>` : ''}<a class="btn petit" href="caisse.html?demo=1">Sa caisse</a></div></div>
+        <div class="actions" style="margin:0">${lien ? `<a class="btn petit principal" href="${lien}">Voir sa page publique</a>` : ''}<a class="btn petit" href="caisse.html?demo=1" data-caisse>Sa caisse</a></div></div>
       <div class="sous-onglets" role="tablist" aria-label="Paramétrage du salon">${onglets.map(([k, l]) => `<button type="button" role="tab" data-onglet="${k}" aria-selected="${ongletFiche === k}">${l}</button>`).join('')}</div>
       <div id="corps-fiche">${corps}</div>
       <p class="muted" id="enreg" style="font-size:13px;margin-top:10px" role="status">Chaque modification est enregistrée tout de suite (démo).</p></div>

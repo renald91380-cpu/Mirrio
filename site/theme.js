@@ -20,6 +20,7 @@
 // ses pastilles « Payé » illisibles — la contrainte est ici un service rendu.
 
 import { definirProfil } from './pays-profils.js';
+import './fonctions-config.js';   // interrupteurs de fonctions (caisse cachée tant qu'elle n'est pas certifiée)
 export const ACCENTS = {
   ambre:  { hex:'#E2A63D', texte:'#1C2333', doux:'#F0C98A', nom:'Ambre',      note:'Le réglage d’origine de Mirrio' },
   marine: { hex:'#244990', texte:'#F5F1E7', doux:'#8FA6D4', nom:'Marine',     note:'Sobre, orienté conseil' },
@@ -257,6 +258,8 @@ export function monterEntete(brand, actif, estAdmin){
   const role = b.role || 'proprietaire';
   if(role === 'vendeur') base = base.filter(o => ['agenda', 'caisse'].includes(o.cle));
   else if(role === 'collaborateur') base = base.filter(o => !['dashboard', 'documents', 'reglages', 'equipe', 'salons', 'vitrine'].includes(o.cle));
+  // Caisse non certifiée : onglets Caisse et Équipe (statistiques tirées des tickets de caisse) cachés (fonctions-config.js).
+  if(!(globalThis.MIRRIO_FONCTIONS && globalThis.MIRRIO_FONCTIONS.caisse)) base = base.filter(o => !['caisse', 'equipe'].includes(o.cle));
   const onglets = estAdmin ? [...base, ONGLET_ADMIN] : base;
 
   if(b.salons && b.salons.length > 1 && clientSupabase) monterSelecteurSalon(b.salons);

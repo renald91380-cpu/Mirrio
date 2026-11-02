@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<script src="/fonctions-config.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Démo : essayez Mirrio comme un client | Mirrio</title>
 <meta name="description" content="Trois salons fictifs entièrement fonctionnels pour tester la réservation en ligne, le choix du coiffeur, l'acompte obligatoire et la confirmation immédiate.">
@@ -132,7 +133,7 @@
         <a class="btn" href="demo-creation.html">Simuler la création d'un salon</a>
         <a class="btn discret" href="demo-messages.html">Voir les SMS et emails clients</a>
         <a class="btn discret" href="explorer.html?demo=1">Voir l'annuaire</a>
-        <a class="btn discret" href="caisse.html?demo=1">Essayer la caisse</a>
+        <a class="btn discret" href="caisse.html?demo=1" data-caisse>Essayer la caisse</a>
       </div>
     </div>
   </section>
@@ -186,7 +187,7 @@
         <li><div><b>Payer un acompte, solde en espèces</b><small>L'acompte de 5 € est déduit du prix et conservé en cas d'absence.</small></div><a class="btn discret petit" href="reservation.html?p=demo-barber">Ouvrir</a></li>
         <li><div><b>Confirmer sans attendre</b><small>Dès l'acompte réglé, le rendez-vous est confirmé tout de suite, avec le fichier calendrier.</small></div><a class="btn discret petit" href="reservation.html?p=demo-coiffure">Ouvrir</a></li>
         <li><div><b>Reprendre le même créneau</b><small>Réservez deux fois : le créneau déjà pris disparaît. Le bouton « Réinitialiser » remet tout à zéro.</small></div><a class="btn discret petit" href="reservation.html?p=demo-coiffure">Ouvrir</a></li>
-        <li><div><b>Encaisser en caisse</b><small>Plusieurs clients à la fois, des prestations ajoutées pendant la coupe, remise, paiement mixte carte et espèces, ticket et clôture de caisse. Sur iPad ou ordinateur.</small></div><a class="btn discret petit" href="caisse.html?demo=1">Ouvrir</a></li>
+        <li data-caisse><div><b>Encaisser en caisse</b><small>Plusieurs clients à la fois, des prestations ajoutées pendant la coupe, remise, paiement mixte carte et espèces, ticket et clôture de caisse. Sur iPad ou ordinateur.</small></div><a class="btn discret petit" href="caisse.html?demo=1">Ouvrir</a></li>
       </ol>
     </div>
   </section>
