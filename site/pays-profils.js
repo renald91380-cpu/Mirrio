@@ -34,8 +34,12 @@ export function definirProfil(code){
   return actif;
 }
 export const profil = () => PROFILS[actif];
+// La LANGUE du visiteur (i18n.js) règle la mise en forme ; la MONNAIE est celle du pays de facturation du salon.
 export function formaterMontant(n, options = {}){
-  const p = PROFILS[actif];
-  return new Intl.NumberFormat(p.locale, { style:'currency', currency:p.devise, ...options }).format(Number(n) || 0);
+  const p = PROFILS[actif], langue = (typeof window !== 'undefined' && window.I18N) ? window.I18N.locale : p.locale;
+  return new Intl.NumberFormat(langue, { style:'currency', currency:p.devise, ...options }).format(Number(n) || 0);
 }
+export const deviseActive = () => PROFILS[actif].devise;
+export const tauxTva = () => PROFILS[actif].tva;
+export const tauxTvaDefaut = () => PROFILS[actif].tvaDefaut;
 export const libelleTva = t => `${String(t).replace('.', ',')} %`;

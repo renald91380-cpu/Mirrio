@@ -474,6 +474,7 @@
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
   import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
   import { initTheme, viderCacheBrand, idEspaceActif, formaterNomAffichage, prenomConnecte } from './theme.js';
+  import { formaterMontant, profil as profilPays } from './pays-profils.js';
 
   // Mode démo (?demo=1) : aucune connexion, une pâtisserie fictive en mémoire (demo-patisserie.js).
   // Les réglages et le catalogue modifiés ici sont gardés le temps de la session et repris par commander.html?p=demo-patisserie.
@@ -511,7 +512,7 @@
   const supabase = DEMO ? fausseBase() : createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const $ = (s, r) => (r || document).querySelector(s);
   const echapper = s => { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; };
-  const euros = n => new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR' }).format(n);
+  const euros = n => formaterMontant(n);
   const OCCASIONS = Object.assign({}, ...window.DEMO_PATISSERIE.groupes.map(g => g.items));   // même liste que api/_gateaux.js (demo-patisserie.js la porte pour les deux écrans)
   const STATUTS = { a_payer:'Paiement en attente', nouvelle:'Nouvelle demande', confirmee:'Confirmée', prete:'Prête', retiree:'Retirée', annulee:'Annulée' };
   const JOURS = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];

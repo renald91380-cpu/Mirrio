@@ -70,7 +70,7 @@ async function pâtisserie(slug){
   const [[cfg], [profil], [fact]] = await Promise.all([
     get(`parametres_gateaux?owner_id=eq.${id}&select=*`),
     get(`profiles?id=eq.${id}&select=business_name,full_name,logo_url,metier`),
-    get(`parametres_facturation?owner_id=eq.${id}&select=emetteur_ville,emetteur_email`).catch(() => [{}])
+    get(`parametres_facturation?owner_id=eq.${id}&select=emetteur_ville,emetteur_email,profil_pays`).catch(() => get(`parametres_facturation?owner_id=eq.${id}&select=emetteur_ville,emetteur_email`)).catch(() => [{}])
   ]);
   if(!cfg || !cfg.activee) return null;
   return { id, cfg, profil: profil || {}, fact: fact || {} };
@@ -193,7 +193,7 @@ export default async function handler(req, res){
       const c = p.cfg;
       return json(res, 200, {
         slug, nom: p.profil.business_name || p.profil.full_name || 'Pâtisserie', logo_url: p.profil.logo_url || null,
-        ville: p.fact.emetteur_ville || null,
+        ville: p.fact.emetteur_ville || null, pays: p.fact.profil_pays || 'FR',
         occasions: OCCASIONS, groupes: GROUPES_OCCASIONS, produits,
         regles: {
           date_min: ajouterJours(aujourdhui, c.delai_min_jours), date_max: fin, delai_min_jours: c.delai_min_jours,

@@ -462,6 +462,7 @@
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
   import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
   import { initTheme, vocabulaire, viderCacheBrand, idEspaceActif, formaterNomAffichage, initiales, prenomConnecte } from './theme.js';
+  import { formaterMontant, profil as profilPays } from './pays-profils.js';
   import { pousserPlusieurs, supprimerRendezVous, messagePour } from './google-calendar.js';
 
   const configured = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_ANON_KEY.includes('YOUR-ANON');
@@ -720,7 +721,7 @@
               // Règlement en espèces (schema-v19) : solde encore dû au salon, ou déjà encaissé.
               const resteEspeces = a.paiement_mode === 'sur_place' && !a.reste_encaisse_le && Number(a.reste_sur_place) > 0 ? Number(a.reste_sur_place) : 0;
               const especesEncaissees = a.paiement_mode === 'sur_place' && !!a.reste_encaisse_le;
-              const eur = n => new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR' }).format(n);
+              const eur = n => formaterMontant(n);
               // Rien de réglé : ni carte, ni acompte, ni espèces encaissées (rendez-vous saisi à la main, ou payé sur place plus tard).
               const nonRegle = !enAttente && a.statut !== 'annule' && !paiementPaye && !paiementEnAttente && !resteEspeces && !especesEncaissees;
               // Demander un paiement suppose un rendez-vous déjà confirmé
@@ -812,7 +813,7 @@
   // Le client a réglé le solde en espèces au salon : on le note sur le rendez-vous et,
   // s'il existe, on passe la facture liée en « payé » (voir api/paiement-webhook-stripe.js).
   async function encaisserEspeces(appt){
-    const montant = new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR' }).format(Number(appt.reste_sur_place) || 0);
+    const montant = formaterMontant(Number(appt.reste_sur_place) || 0);
     if(!window.confirm(`Confirmer la réception de ${montant} en espèces ?`)) return;
     const { error } = await supabase.from('rendez_vous')
       .update({ reste_sur_place: 0, reste_encaisse_le: new Date().toISOString() }).eq('id', appt.id);
@@ -1098,7 +1099,7 @@
   }
 
   const COULEURS_EQ = ['#E2A63D', '#C25B7E', '#2F7D6B', '#3B6FD4', '#FF6B35', '#0E8F8F'];
-  const eur0 = n => new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR', maximumFractionDigits: 2 }).format(n);
+  const eur0 = n => formaterMontant(n, { maximumFractionDigits: 2 });
 
   // État de règlement d'un rendez-vous : réglé, reste à encaisser, ou rien reçu.
   function reglementDe(a){

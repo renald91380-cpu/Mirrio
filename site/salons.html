@@ -110,18 +110,19 @@
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
   import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
   import { monterPlanning } from './planning-groupe.js';
+  import { formaterMontant } from './pays-profils.js';
   const DEMO = new URLSearchParams(location.search).get('demo') === '1';
   let supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   let demoMod = null;
   const $ = s => document.querySelector(s);
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
-  const eur = n => (Number(n) || 0).toLocaleString('fr-FR', { style:'currency', currency:'EUR', maximumFractionDigits:0 });
+  const eur = n => formaterMontant(Number(n) || 0, { maximumFractionDigits:0 });
   function toast(t){ const e = $('#toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 3200); }
   const METIERS = [['coiffure', 'Coiffure'], ['barbier', 'Barbier'], ['esthetique', 'Institut, esthétique'], ['onglerie', 'Onglerie'], ['massage', 'Massage et spa'], ['patisserie', 'Boulangerie, pâtisserie'], ['autre', 'Autre']];
   const LIB = Object.fromEntries(METIERS);
   // Tarif : forfait Groupe unique, quel que soit le nombre de salons (jusqu'à 10). Affichage ; aucune facturation réelle pour l'instant.
   const FORFAIT_GROUPE = 79;
-  const eur2 = n => n.toLocaleString('fr-FR', { style:'currency', currency:'EUR', minimumFractionDigits:0, maximumFractionDigits:2 });
+  const eur2 = n => formaterMontant(n, { minimumFractionDigits:0, maximumFractionDigits:2 });
   let session = null, salons = [], stats = [];
 
   async function charger(){

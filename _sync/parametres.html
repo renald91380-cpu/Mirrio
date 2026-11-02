@@ -1,0 +1,2288 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paramètres — Cadence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="chrome.css">
+<style>
+  :root{
+    --ink:#1C2333;
+    --ink-soft:#2A3346;
+    --parchment:#F5F1E7;
+    --parchment-dim:#EAE4D4;
+    --slate:#8B8F98;
+    --amber:#E2A63D;
+    --amber-soft:#f0c98a;
+    --accent:#E2A63D;
+    --accent-soft:#f0c98a;
+    --accent-text:#1C2333;
+    --teal:#3E7C74;
+    --brick:#B5533F;
+    --display:'Fraunces', Georgia, serif;
+    --body:'Inter', Arial, sans-serif;
+    --mono:'IBM Plex Mono', 'Courier New', monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:var(--body); background:var(--parchment); color:var(--ink);
+    line-height:1.5; -webkit-font-smoothing:antialiased; min-height:100vh;
+    padding-bottom:96px;
+  }
+  img,svg{display:block;}
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit;}
+
+  .logo{ font-family:var(--display); font-weight:700; font-size:20px; display:flex; align-items:baseline; gap:2px; }
+  .logo .dot{ color:var(--accent); animation:pulseDot 1.6s ease-in-out infinite; }
+  @keyframes pulseDot{
+    0%, 70%, 100%{ transform:scale(1); opacity:0.3; }
+    35%{ transform:scale(1.9); opacity:1; background:var(--accent); }
+  }
+  @media (prefers-reduced-motion: reduce){ .logo .dot{ animation:none !important; opacity:0.6 !important; } }
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    padding:12px 20px; border-radius:6px; font-weight:600; font-size:14.5px;
+    border:none; cursor:pointer; min-height:44px;
+    transition:transform .15s ease, box-shadow .15s ease, background .15s ease, opacity .15s ease;
+  }
+  .btn-primary{ background:var(--accent); color:var(--accent-text); }
+  .btn-primary:hover:not(:disabled){ transform:translateY(-1px); }
+  .btn-primary:disabled{ opacity:.55; cursor:not-allowed; transform:none; }
+  .btn-ghost{ background:transparent; color:var(--parchment); border:1px solid rgba(245,241,231,0.28); }
+  .btn-ghost:hover{ border-color:rgba(245,241,231,0.6); }
+  .btn-secondary{ background:var(--parchment-dim); color:var(--ink); }
+  .btn-secondary:hover{ background:#e2dbc7; }
+  .btn-outline{ background:#fff; color:var(--ink); border:1px solid rgba(28,35,51,0.2); }
+  .btn-outline:hover{ background:rgba(28,35,51,0.03); border-color:rgba(28,35,51,0.34); }
+  .btn-danger-text{ background:transparent; color:var(--brick); padding:10px 12px; min-height:40px; font-size:13.5px; }
+  .btn-danger-text:hover{ background:rgba(181,83,63,0.09); }
+  .btn-sm{ padding:9px 14px; min-height:38px; font-size:13.5px; }
+  .btn:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible,
+  textarea:focus-visible, button:focus-visible{ outline:2px solid var(--teal); outline-offset:2px; }
+
+  /* ---------- App header ---------- */
+  .app-header{
+    background:var(--ink); color:var(--parchment);
+    padding:16px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px;
+  }
+  .app-header-left{ display:flex; align-items:center; gap:28px; }
+  .app-nav{ display:none; gap:20px; font-size:14px; font-weight:500; }
+  @media(min-width:640px){ .app-nav{ display:flex; } }
+  .app-nav a{ color:rgba(245,241,231,0.6); padding:6px 0; border-bottom:2px solid transparent; white-space:nowrap; }
+  .app-nav a:hover{ color:var(--parchment); }
+  .app-nav a.active{ color:var(--parchment); border-bottom-color:var(--accent); }
+  .app-header-right{ display:flex; align-items:center; gap:16px; }
+  .user-email{ font-size:13px; color:rgba(245,241,231,0.55); display:none; }
+  @media(min-width:760px){ .user-email{ display:block; } }
+
+  /* ---------- Main ---------- */
+  .app-main{ padding:36px 20px 60px; }
+  .app-container{ max-width:1080px; margin:0 auto; }
+  .page-head{ margin-bottom:26px; }
+  .page-head h1{ font-family:var(--display); font-weight:700; font-size:30px; margin-bottom:6px; }
+  .page-head p{ font-size:14.5px; color:rgba(28,35,51,0.6); max-width:620px; }
+
+  /* ---------- Onglets ---------- */
+  .tabs{
+    display:flex; gap:4px; margin-bottom:28px; overflow-x:auto;
+    border-bottom:1px solid rgba(28,35,51,0.14); padding-bottom:0;
+    scrollbar-width:thin;
+  }
+  .tab{
+    background:transparent; border:none; cursor:pointer; white-space:nowrap;
+    padding:11px 16px; font-size:14.5px; font-weight:500; color:rgba(28,35,51,0.55);
+    border-bottom:2px solid transparent; margin-bottom:-1px; min-height:44px;
+  }
+  .tab:hover{ color:var(--ink); }
+  .tab[aria-selected="true"]{ color:var(--ink); font-weight:600; border-bottom-color:var(--accent); }
+
+  .panel[hidden]{ display:none; }
+
+  /* ---------- Cartes de section ---------- */
+  .card{
+    background:#fff; border:1px solid rgba(28,35,51,0.09); border-radius:12px;
+    padding:26px; margin-bottom:18px;
+  }
+  .card > h2{ font-family:var(--display); font-size:19px; font-weight:600; margin-bottom:5px; }
+  .card > .card-sub{ font-size:13.5px; color:rgba(28,35,51,0.58); margin-bottom:22px; max-width:600px; }
+
+  .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .grid-3{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  @media(max-width:620px){ .grid-2, .grid-3{ grid-template-columns:1fr; } }
+
+  /* ---------- Champs ---------- */
+  .field{ margin-bottom:16px; }
+  .field:last-child{ margin-bottom:0; }
+  .field label{ display:flex; font-size:13.5px; font-weight:600; margin-bottom:7px; gap:4px; align-items:baseline; }
+  .field .req{ color:var(--brick); }
+  .field input[type="text"], .field input[type="email"], .field input[type="tel"],
+  .field input[type="number"], .field select, .field textarea{
+    width:100%; padding:11px 13px; font-size:14.5px; font-family:var(--body);
+    background:#fff; border:1px solid rgba(28,35,51,0.2); border-radius:7px; color:var(--ink);
+  }
+  .field input, .field select{ min-height:46px; }
+  .field textarea{ min-height:84px; resize:vertical; line-height:1.55; }
+  .field input:focus, .field select:focus, .field textarea:focus{
+    outline:none; border-color:var(--teal); box-shadow:0 0 0 3px rgba(62,124,116,0.15);
+  }
+  .field input[aria-invalid="true"], .field textarea[aria-invalid="true"]{ border-color:var(--brick); }
+  .field .hint{ font-size:12.5px; color:rgba(28,35,51,0.5); margin-top:6px; }
+  .field .hint code{ font-family:var(--mono); font-size:12px; background:rgba(28,35,51,0.06); padding:1px 5px; border-radius:3px; }
+  .error{ font-size:12.5px; color:var(--brick); margin-top:6px; display:none; align-items:flex-start; gap:6px; }
+  .error.show{ display:flex; }
+  .error svg{ flex-shrink:0; margin-top:1px; stroke:var(--brick); }
+
+  .switch-row{
+    display:flex; align-items:flex-start; gap:12px; padding:13px 0;
+    border-top:1px solid rgba(28,35,51,0.08);
+  }
+  .switch-row:first-of-type{ border-top:none; }
+  .switch-row input[type="checkbox"]{ width:20px; height:20px; margin-top:2px; flex-shrink:0; accent-color:var(--teal); }
+  .switch-row .switch-label{ font-size:14px; font-weight:600; }
+  .switch-row .switch-desc{ font-size:12.5px; color:rgba(28,35,51,0.55); margin-top:2px; }
+
+  /* ---------- Sélecteur d'accent ---------- */
+  .accent-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  @media(max-width:620px){ .accent-grid{ grid-template-columns:repeat(2,1fr); } }
+  .style-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+  @media(max-width:480px){ .style-grid{ grid-template-columns:1fr; } }
+  .style-option{
+    position:relative; border:1.5px solid rgba(28,35,51,0.14); border-radius:10px;
+    padding:12px; cursor:pointer; transition:border-color .15s ease, box-shadow .15s ease; background:#fff;
+  }
+  .style-option:hover{ border-color:rgba(28,35,51,0.34); }
+  .style-option input{ position:absolute; opacity:0; width:1px; height:1px; }
+  .style-option:has(input:checked){ border-color:var(--ink); box-shadow:0 0 0 3px rgba(28,35,51,0.09); }
+  .style-option:has(input:focus-visible){ outline:2px solid var(--teal); outline-offset:2px; }
+  .style-option .accent-nom{ margin-top:9px; }
+  .accent-option{
+    position:relative; border:1.5px solid rgba(28,35,51,0.14); border-radius:10px;
+    padding:14px; cursor:pointer; transition:border-color .15s ease, box-shadow .15s ease; background:#fff;
+  }
+  .accent-option:hover{ border-color:rgba(28,35,51,0.34); }
+  .accent-option input{ position:absolute; opacity:0; width:1px; height:1px; }
+  .accent-option:has(input:checked){ border-color:var(--ink); box-shadow:0 0 0 3px rgba(28,35,51,0.09); }
+  .accent-option:has(input:focus-visible){ outline:2px solid var(--teal); outline-offset:2px; }
+  .accent-swatch{
+    height:34px; border-radius:6px; margin-bottom:10px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:700;
+  }
+  .accent-nom{ font-size:13.5px; font-weight:600; }
+  .accent-note{ font-size:11.5px; color:rgba(28,35,51,0.5); margin-top:1px; }
+
+  .densite-row{ display:flex; gap:10px; flex-wrap:wrap; }
+  .densite-option{
+    border:1.5px solid rgba(28,35,51,0.14); border-radius:9px; padding:12px 16px;
+    cursor:pointer; background:#fff; flex:1; min-width:170px;
+  }
+  .densite-option input{ position:absolute; opacity:0; width:1px; height:1px; }
+  .densite-option:has(input:checked){ border-color:var(--ink); box-shadow:0 0 0 3px rgba(28,35,51,0.09); }
+  .densite-option:has(input:focus-visible){ outline:2px solid var(--teal); outline-offset:2px; }
+  .densite-option .t{ font-size:14px; font-weight:600; }
+  .densite-option .d{ font-size:12.5px; color:rgba(28,35,51,0.55); margin-top:2px; }
+
+  /* ---------- Logo ---------- */
+  .logo-row{ display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+  .logo-preview{
+    width:96px; height:96px; border-radius:10px; background:var(--parchment-dim);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden;
+    border:1px solid rgba(28,35,51,0.1);
+  }
+  .logo-preview img{ max-width:84px; max-height:84px; object-fit:contain; }
+  .logo-preview .ph{ font-size:11px; color:var(--slate); text-align:center; padding:0 8px; line-height:1.4; }
+  .logo-actions{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+
+  /* ---------- Aperçu interface ---------- */
+  .ui-preview{
+    border:1px solid rgba(28,35,51,0.12); border-radius:10px; overflow:hidden; background:var(--parchment);
+  }
+  .ui-preview .up-head{
+    background:var(--ink); color:var(--parchment); padding:10px 14px;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+  }
+  .ui-preview .up-logo{ font-family:var(--display); font-weight:700; font-size:14px; }
+  .ui-preview .up-logo span{ color:var(--accent); }
+  .ui-preview .up-nav{ display:flex; gap:12px; font-size:11px; color:rgba(245,241,231,.55); }
+  .ui-preview .up-nav .on{ color:var(--parchment); border-bottom:2px solid var(--accent); padding-bottom:2px; }
+  .ui-preview .up-body{ padding:14px; }
+  .ui-preview .up-title{ font-family:var(--display); font-size:16px; font-weight:700; margin-bottom:10px; }
+  .ui-preview .up-row{
+    background:#fff; border:1px solid rgba(28,35,51,.09); border-radius:8px;
+    padding:10px 12px; margin-bottom:6px; display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  :root[data-densite="compacte"] .ui-preview .up-row{ padding:6px 10px; margin-bottom:4px; }
+  .ui-preview .up-row .n{ font-size:12.5px; font-weight:600; }
+  .ui-preview .up-row .m{ font-size:10.5px; color:rgba(28,35,51,.5); font-family:var(--mono); }
+  .ui-preview .up-pill{
+    font-family:var(--mono); font-size:9.5px; padding:3px 8px; border-radius:999px;
+    background:rgba(62,124,116,0.14); color:var(--teal); white-space:nowrap;
+  }
+  .ui-preview .up-cta{
+    display:inline-block; margin-top:8px; background:var(--accent); color:var(--accent-text);
+    font-size:12px; font-weight:600; padding:8px 14px; border-radius:6px;
+  }
+
+  /* ---------- Devis & factures : formulaire + aperçu ---------- */
+  .doc-layout{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,420px); gap:22px; align-items:start; }
+  @media(max-width:1000px){ .doc-layout{ grid-template-columns:1fr; } }
+  .doc-preview-col{ position:sticky; top:20px; }
+  @media(max-width:1000px){ .doc-preview-col{ position:static; order:-1; } }
+  .preview-shell{
+    background:#fff; border:1px solid rgba(28,35,51,0.12); border-radius:12px;
+    overflow:hidden; box-shadow:0 10px 30px rgba(28,35,51,0.09);
+  }
+  .preview-bar{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:9px 14px; background:var(--parchment-dim); border-bottom:1px solid rgba(28,35,51,0.1);
+    font-size:11.5px; color:rgba(28,35,51,0.6); font-weight:600;
+    text-transform:uppercase; letter-spacing:.05em;
+  }
+  .preview-scroll{ max-height:74vh; overflow-y:auto; overflow-x:hidden; }
+  @media(max-width:1000px){ .preview-scroll{ max-height:520px; } }
+
+  /* ---------- Prestations ---------- */
+  .prest-list{ display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+  .prest-row{
+    background:#fff; border:1px solid rgba(28,35,51,0.1); border-radius:9px;
+    padding:13px 15px; display:flex; align-items:center; gap:14px;
+  }
+  .prest-row .pr-main{ flex:1; min-width:0; }
+  .prest-row .pr-lib{ font-size:14px; font-weight:600; }
+  .prest-row .pr-meta{ font-size:12px; color:rgba(28,35,51,0.52); font-family:var(--mono); margin-top:2px; }
+  .prest-row .pr-prix{ font-family:var(--mono); font-size:14px; font-weight:500; color:var(--teal); white-space:nowrap; }
+  .icon-btn{
+    width:36px; height:36px; border-radius:7px; border:none; background:transparent;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--slate); flex-shrink:0;
+  }
+  .icon-btn:hover{ background:rgba(28,35,51,0.06); color:var(--ink); }
+  .icon-btn.danger:hover{ background:rgba(181,83,63,0.1); color:var(--brick); }
+
+  /* ---------- Agenda ---------- */
+  .feed-box{
+    display:flex; gap:8px; align-items:stretch; flex-wrap:wrap;
+  }
+  .feed-url{
+    flex:1; min-width:240px; font-family:var(--mono); font-size:12.5px;
+    padding:11px 13px; background:var(--parchment-dim); border:1px solid rgba(28,35,51,0.14);
+    border-radius:7px; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .steps{ list-style:none; counter-reset:s; margin-top:16px; }
+  .steps li{
+    counter-increment:s; position:relative; padding-left:32px; margin-bottom:11px;
+    font-size:13.5px; color:rgba(28,35,51,0.72); line-height:1.55;
+  }
+  .steps li::before{
+    content:counter(s); position:absolute; left:0; top:0;
+    width:22px; height:22px; border-radius:50%; background:var(--parchment-dim);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-size:11px; font-weight:600; color:var(--ink);
+  }
+  .conn-state{
+    display:flex; align-items:center; gap:12px; padding:14px 16px; border-radius:9px;
+    background:var(--parchment-dim); margin-bottom:16px; flex-wrap:wrap;
+  }
+  .conn-state .dot-state{ width:9px; height:9px; border-radius:50%; background:var(--slate); flex-shrink:0; }
+  .conn-state.on .dot-state{ background:var(--teal); }
+  .conn-state .cs-text{ flex:1; min-width:180px; font-size:13.5px; }
+  .conn-state .cs-text strong{ display:block; font-size:14px; }
+  .conn-state .cs-text span{ color:rgba(28,35,51,0.58); font-size:12.5px; }
+
+  .note-box{
+    border-left:3px solid var(--teal); background:rgba(62,124,116,0.07);
+    padding:13px 16px; border-radius:0 8px 8px 0; font-size:13px;
+    color:rgba(28,35,51,0.75); line-height:1.6; margin-top:16px;
+  }
+  .note-box strong{ color:var(--ink); }
+  .note-box.warn{ border-left-color:var(--brick); background:rgba(181,83,63,0.06); }
+
+  /* ---------- Équipe ---------- */
+  .membre-list{ display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+  .membre-row{
+    background:#fff; border:1px solid rgba(28,35,51,0.1); border-radius:9px;
+    padding:13px 15px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  }
+  .membre-row .mb-main{ flex:1; min-width:160px; }
+  .membre-row .mb-email{ font-size:14px; font-weight:600; }
+  .membre-row .mb-meta{ font-size:12px; color:rgba(28,35,51,0.52); margin-top:2px; }
+  .badge-role{
+    font-size:11px; font-weight:600; padding:4px 9px; border-radius:20px;
+    text-transform:uppercase; letter-spacing:.03em; white-space:nowrap;
+  }
+  .badge-role.actif{ background:rgba(62,124,116,0.14); color:var(--teal); }
+  .badge-role.invite{ background:rgba(226,166,61,0.18); color:#a8791f; }
+  .badge-role.revoque{ background:rgba(181,83,63,0.12); color:var(--brick); }
+  .invite-link-box{
+    display:flex; gap:8px; align-items:stretch; flex-wrap:wrap; margin-top:14px;
+    padding:13px 15px; background:var(--parchment-dim); border-radius:9px;
+  }
+  .invite-link-box .il-url{
+    flex:1; min-width:220px; font-family:var(--mono); font-size:12.5px;
+    padding:10px 12px; background:#fff; border:1px solid rgba(28,35,51,0.14);
+    border-radius:7px; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .plan-gate{
+    text-align:center; padding:32px 20px; color:rgba(28,35,51,0.62); font-size:14px; line-height:1.6;
+  }
+  .plan-gate strong{ display:block; color:var(--ink); font-size:16px; margin-bottom:6px; font-family:var(--display); }
+
+  /* ---------- Barre d'enregistrement ---------- */
+  .save-bar{
+    position:fixed; left:0; right:0; bottom:0; z-index:150;
+    background:var(--ink); color:var(--parchment);
+    padding:14px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px;
+    transform:translateY(110%); transition:transform .22s ease; flex-wrap:wrap;
+  }
+  .save-bar.show{ transform:translateY(0); }
+  .save-bar .sb-text{ font-size:14px; }
+  .save-bar .sb-actions{ display:flex; gap:10px; margin-left:auto; }
+  @media (prefers-reduced-motion: reduce){ .save-bar{ transition:none; } }
+
+  .toast{
+    position:fixed; bottom:96px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--ink); color:var(--parchment); padding:14px 22px; border-radius:8px;
+    font-size:14px; opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease;
+    z-index:200; display:flex; align-items:center; gap:10px; max-width:calc(100% - 40px);
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  .toast svg{ stroke:var(--teal); flex-shrink:0; }
+  .toast.err svg{ stroke:var(--brick); }
+
+  .loading-state{ text-align:center; padding:72px 20px; color:rgba(28,35,51,0.5); font-size:14px; }
+  .sr-only{
+    position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+    overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-header-left">
+    <span class="logo">Cadence<span class="dot">.</span></span>
+    <nav class="app-nav">
+      <a href="clients.html">Clients</a>
+      <a href="agenda.html">Agenda</a>
+      <a href="devis-factures.html">Devis &amp; factures</a>
+      <a href="parametres.html" class="active">Paramètres</a>
+    </nav>
+  </div>
+  <div class="app-header-right">
+    <span class="user-email" id="user-email"></span>
+    <button class="btn btn-ghost" id="logout-btn" type="button">Se déconnecter</button>
+  </div>
+</header>
+
+<div class="app-shell">
+  <aside class="app-sidebar">
+    <div class="logo">Cadence<span class="dot">.</span></div>
+    <div class="logo-badge" aria-hidden="true"></div>
+    <nav class="sidebar-nav"></nav>
+    <div class="sidebar-spacer"></div>
+    <div class="sidebar-user">
+      <span class="sidebar-avatar" id="sidebar-avatar">–</span>
+      <div class="sidebar-user-text">
+        <div class="name" id="sidebar-name">…</div>
+        <div class="email" id="sidebar-email"></div>
+      </div>
+      <button class="icon-btn" id="sidebar-logout-btn" type="button" aria-label="Se déconnecter" title="Se déconnecter">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </aside>
+
+<main class="app-main">
+  <div class="app-container">
+    <div class="page-head">
+      <h1>Paramètres</h1>
+      <p>Votre identité, l'allure de vos documents et vos connexions d'agenda. Ce que vous réglez ici s'applique partout — dans l'application comme sur ce que reçoivent vos clients.</p>
+    </div>
+
+    <div id="loading-state" class="loading-state">Chargement de vos paramètres…</div>
+
+    <div id="content" style="display:none;">
+      <div class="tabs" role="tablist" aria-label="Sections des paramètres">
+        <button class="tab" role="tab" id="tab-entreprise" aria-controls="panel-entreprise" aria-selected="true" data-tab="entreprise" type="button">Entreprise</button>
+        <button class="tab" role="tab" id="tab-securite" aria-controls="panel-securite" aria-selected="false" data-tab="securite" type="button">Sécurité</button>
+        <button class="tab" role="tab" id="tab-apparence" aria-controls="panel-apparence" aria-selected="false" data-tab="apparence" type="button">Apparence</button>
+        <button class="tab" role="tab" id="tab-documents" aria-controls="panel-documents" aria-selected="false" data-tab="documents" type="button">Devis &amp; factures</button>
+        <button class="tab" role="tab" id="tab-prestations" aria-controls="panel-prestations" aria-selected="false" data-tab="prestations" type="button">Prestations</button>
+        <button class="tab" role="tab" id="tab-agenda" aria-controls="panel-agenda" aria-selected="false" data-tab="agenda" type="button">Agenda</button>
+        <button class="tab" role="tab" id="tab-reservation" aria-controls="panel-reservation" aria-selected="false" data-tab="reservation" type="button">Réservation</button>
+        <button class="tab" role="tab" id="tab-equipe" aria-controls="panel-equipe" aria-selected="false" data-tab="equipe" type="button">Équipe</button>
+      </div>
+
+      <!-- ============================ ENTREPRISE ============================ -->
+      <div class="panel" role="tabpanel" id="panel-entreprise" aria-labelledby="tab-entreprise" tabindex="0">
+        <div class="card">
+          <h2>Votre identité</h2>
+          <p class="card-sub">Le nom que vous utilisez avec vos clients. Il remplace « Cadence » en haut de l'application et apparaît en tête de vos devis et factures.</p>
+
+          <div class="field">
+            <label for="business_name">Nom commercial <span class="req">*</span></label>
+            <input type="text" id="business_name" data-bind="profil.business_name" placeholder="Studio Duval, Marion Duval Coaching…" aria-describedby="business_name-error">
+            <div class="error" id="business_name-error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg><span></span></div>
+          </div>
+
+          <div class="field">
+            <label for="logo-input">Logo</label>
+            <div class="logo-row">
+              <div class="logo-preview" id="logo-preview">
+                <span class="ph">Aucun logo</span>
+              </div>
+              <div>
+                <div class="logo-actions">
+                  <button class="btn btn-outline btn-sm" type="button" id="logo-btn">Choisir une image</button>
+                  <button class="btn btn-danger-text" type="button" id="logo-remove" style="display:none;">Retirer</button>
+                </div>
+                <div class="hint" style="margin-top:8px;">PNG ou JPG, 2 Mo maximum. L'image est redimensionnée à 400 px de large avant l'envoi.</div>
+                <input type="file" id="logo-input" accept="image/png,image/jpeg,image/webp" class="sr-only">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Votre métier</h2>
+          <p class="card-sub">Cadence emploie vos mots. Un photographe fait des shootings, un professeur donne des cours — le vocabulaire change dans tout l'écran Agenda et dans les lignes de vos documents.</p>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="metier">Métier</label>
+              <select id="metier" data-bind="profil.metier">
+                <option value="photographe">Photographe</option>
+                <option value="coach">Coach sportif</option>
+                <option value="formateur">Formateur</option>
+                <option value="professeur">Professeur particulier</option>
+                <option value="consultant">Consultant</option>
+                <option value="therapeute">Praticien bien-être</option>
+                <option value="esthetique">Esthéticienne / institut</option>
+                <option value="coiffure">Coiffeur·euse</option>
+                <option value="onglerie">Prothésiste ongulaire</option>
+                <option value="autre">Autre métier</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="terme_singulier">Vous appelez un rendez-vous…</label>
+              <input type="text" id="terme_singulier" data-bind="profil.terme_singulier" placeholder="séance">
+              <div class="hint">Laissez vide pour le mot par défaut du métier choisi.</div>
+            </div>
+          </div>
+          <div class="field" style="max-width:calc(50% - 8px);">
+            <label for="terme_pluriel">…et plusieurs</label>
+            <input type="text" id="terme_pluriel" data-bind="profil.terme_pluriel" placeholder="séances">
+          </div>
+
+          <div class="note-box">
+            Aperçu : « <strong id="vocab-demo">Vos séances</strong> » en titre d'agenda, « <strong id="vocab-demo2">Ajouter une séance</strong> » sur le bouton principal.
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================ SÉCURITÉ ============================ -->
+      <div class="panel" role="tabpanel" id="panel-securite" aria-labelledby="tab-securite" tabindex="0" hidden>
+        <div class="card">
+          <h2>Mot de passe</h2>
+          <p class="card-sub">Changez le mot de passe de connexion à votre compte Cadence. Si vous vous connectez uniquement avec Google, ceci en ajoute un, utilisable en plus.</p>
+
+          <div class="form-errors" id="password-errors" role="alert" tabindex="-1">
+            <h3 id="password-errors-heading"></h3>
+          </div>
+
+          <form id="password-form">
+            <div class="field">
+              <label for="new-password">Nouveau mot de passe <span class="req">*</span></label>
+              <input type="password" id="new-password" autocomplete="new-password" aria-describedby="new-password-error">
+              <div class="hint">8 caractères minimum.</div>
+              <div class="error" id="new-password-error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg><span></span></div>
+            </div>
+            <div class="field" style="max-width:340px;">
+              <label for="new-password-confirm">Confirmer le mot de passe <span class="req">*</span></label>
+              <input type="password" id="new-password-confirm" autocomplete="new-password" aria-describedby="new-password-confirm-error">
+              <div class="error" id="new-password-confirm-error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg><span></span></div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm" id="password-save" style="align-self:flex-start;">Mettre à jour le mot de passe</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>Authentification à deux facteurs</h2>
+          <p class="card-sub">Ajoutez un code à usage unique généré par une application comme Google Authenticator, en plus de votre mot de passe — même un mot de passe volé ne suffit alors plus pour accéder à votre compte.</p>
+
+          <div id="mfa-off-state">
+            <div class="note-box">Aucune application d'authentification n'est reliée à ce compte pour l'instant.</div>
+            <button type="button" class="btn btn-outline btn-sm" id="mfa-activer-btn" style="margin-top:14px;">Activer la vérification en deux étapes</button>
+          </div>
+
+          <div id="mfa-on-state" style="display:none;">
+            <div class="membre-list">
+              <div class="membre-row">
+                <div class="mb-main">
+                  <div class="mb-email">Application d'authentification</div>
+                  <div class="mb-meta" id="mfa-on-meta"></div>
+                </div>
+                <span class="badge-role actif">Activée</span>
+                <button type="button" class="btn btn-danger-text" id="mfa-desactiver-btn">Désactiver</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="mfa-enroll-state" style="display:none; margin-top:16px; border-top:1px solid rgba(28,35,51,0.1); padding-top:18px;">
+            <div style="display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start;">
+              <img id="mfa-qr" alt="Code QR à scanner avec votre application d'authentification" width="176" height="176" style="width:176px; height:176px; border:1px solid rgba(28,35,51,0.14); border-radius:8px; background:#fff;">
+              <div style="flex:1; min-width:220px;">
+                <p style="font-size:12.5px; color:rgba(28,35,51,0.5); margin-bottom:10px;">Scannez ce code avec Google Authenticator (ou une application équivalente), ou saisissez cette clé manuellement :</p>
+                <div class="invite-link-box" style="display:flex; align-items:center;">
+                  <div class="il-url" id="mfa-secret"></div>
+                  <button class="btn btn-outline btn-sm" type="button" id="mfa-secret-copy">Copier</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="field" style="max-width:180px; margin-top:16px;">
+              <label for="mfa-enroll-code">Code à 6 chiffres</label>
+              <input type="text" id="mfa-enroll-code" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="6" aria-describedby="mfa-enroll-code-error">
+              <div class="error" id="mfa-enroll-code-error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg><span></span></div>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:6px;">
+              <button type="button" class="btn btn-primary btn-sm" id="mfa-confirmer-btn">Confirmer</button>
+              <button type="button" class="btn btn-ghost btn-sm" id="mfa-annuler-btn" style="color:var(--ink); border-color:rgba(28,35,51,0.2);">Annuler</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================ APPARENCE ============================ -->
+      <div class="panel" role="tabpanel" id="panel-apparence" aria-labelledby="tab-apparence" tabindex="0" hidden>
+        <div class="doc-layout">
+          <div>
+            <div class="card">
+              <h2>Couleur d'accent</h2>
+              <p class="card-sub">Elle porte l'action principale de chaque écran. Les six choix ont été vérifiés pour rester lisibles et pour ne jamais se confondre avec le vert « payé » ni le rouge d'alerte — c'est pourquoi la liste est fermée plutôt qu'un sélecteur libre.</p>
+              <div class="accent-grid" id="accent-grid" role="radiogroup" aria-label="Couleur d'accent"></div>
+            </div>
+
+            <div class="card">
+              <h2>Densité d'affichage</h2>
+              <p class="card-sub">Si vous suivez beaucoup de clients, le mode compact fait tenir davantage de lignes à l'écran.</p>
+              <div class="densite-row">
+                <label class="densite-option">
+                  <input type="radio" name="densite" value="confortable" data-bind="profil.densite">
+                  <div class="t">Confortable</div>
+                  <div class="d">Espacement large, lecture posée</div>
+                </label>
+                <label class="densite-option">
+                  <input type="radio" name="densite" value="compacte" data-bind="profil.densite">
+                  <div class="t">Compacte</div>
+                  <div class="d">Plus de lignes visibles d'un coup</div>
+                </label>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>Style d'interface</h2>
+              <p class="card-sub">Nav en haut ou menu latéral, sobre ou classique — c'est vos client·e·s qui verront et utiliseront cet écran, choisissez ce qui leur parlera. Actif sur Clients et Agenda pour l'instant, les autres écrans suivent.</p>
+              <div class="style-grid" id="style-grid" role="radiogroup" aria-label="Style d'interface"></div>
+            </div>
+          </div>
+
+          <div class="doc-preview-col">
+            <div class="preview-shell">
+              <div class="preview-bar"><span>Aperçu de l'interface</span></div>
+              <div style="padding:14px; background:var(--parchment-dim);">
+                <div class="ui-preview" id="ui-preview"></div>
+              </div>
+            </div>
+            <p class="hint" style="margin-top:10px;">Cette couleur est aussi celle que voient vos clients sur vos devis/factures et sur votre page de réservation en ligne, avec votre logo (réglé dans l'onglet Entreprise).</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================= DEVIS & FACTURES ========================= -->
+      <div class="panel" role="tabpanel" id="panel-documents" aria-labelledby="tab-documents" tabindex="0" hidden>
+        <div class="doc-layout">
+          <div>
+            <div class="card">
+              <h2>Émetteur</h2>
+              <p class="card-sub">Vos coordonnées telles qu'elles apparaissent en tête du document. Obligatoires sur une facture.</p>
+              <div class="field">
+                <label for="emetteur_nom">Raison sociale ou nom</label>
+                <input type="text" id="emetteur_nom" data-bind="facturation.emetteur_nom">
+              </div>
+              <div class="field">
+                <label for="emetteur_adresse">Adresse</label>
+                <input type="text" id="emetteur_adresse" data-bind="facturation.emetteur_adresse" placeholder="12 rue des Lilas">
+              </div>
+              <div class="grid-3">
+                <div class="field">
+                  <label for="emetteur_cp">Code postal</label>
+                  <input type="text" id="emetteur_cp" data-bind="facturation.emetteur_cp" inputmode="numeric">
+                </div>
+                <div class="field">
+                  <label for="emetteur_ville">Ville</label>
+                  <input type="text" id="emetteur_ville" data-bind="facturation.emetteur_ville">
+                </div>
+                <div class="field">
+                  <label for="emetteur_pays">Pays</label>
+                  <input type="text" id="emetteur_pays" data-bind="facturation.emetteur_pays">
+                </div>
+              </div>
+              <div class="grid-2">
+                <div class="field">
+                  <label for="emetteur_email">Email</label>
+                  <input type="email" id="emetteur_email" data-bind="facturation.emetteur_email" aria-describedby="emetteur_email-error">
+                  <div class="error" id="emetteur_email-error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg><span></span></div>
+                </div>
+                <div class="field">
+                  <label for="emetteur_tel">Téléphone</label>
+                  <input type="tel" id="emetteur_tel" data-bind="facturation.emetteur_tel">
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>Mentions légales</h2>
+              <p class="card-sub">Ce qui figure en pied de document. Une facture française sans SIRET ni mention de TVA n'est pas conforme.</p>
+              <div class="grid-2">
+                <div class="field">
+                  <label for="forme_juridique">Forme juridique</label>
+                  <input type="text" id="forme_juridique" data-bind="facturation.forme_juridique" placeholder="Micro-entrepreneur, SASU…">
+                </div>
+                <div class="field">
+                  <label for="siret">SIRET</label>
+                  <input type="text" id="siret" data-bind="facturation.siret" inputmode="numeric" aria-describedby="siret-error">
+                  <div class="error" id="siret-error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg><span></span></div>
+                </div>
+              </div>
+              <div class="field">
+                <label for="rcs_ville">Ville du RCS <span style="font-weight:400;color:rgba(28,35,51,.5);">(si applicable)</span></label>
+                <input type="text" id="rcs_ville" data-bind="facturation.rcs_ville">
+              </div>
+
+              <div class="switch-row" style="margin-top:6px;">
+                <input type="checkbox" id="assujetti_tva" data-bind="facturation.assujetti_tva">
+                <div>
+                  <label for="assujetti_tva" class="switch-label" style="margin:0;">Je suis assujetti à la TVA</label>
+                  <div class="switch-desc" id="tva-desc">Décoché, vos documents portent la mention « TVA non applicable, art. 293 B du CGI ».</div>
+                </div>
+              </div>
+
+              <div id="tva-fields" style="display:none;">
+                <div class="grid-2" style="margin-top:14px;">
+                  <div class="field">
+                    <label for="tva_numero">Numéro de TVA intracom.</label>
+                    <input type="text" id="tva_numero" data-bind="facturation.tva_numero" placeholder="FR12345678901">
+                  </div>
+                  <div class="field">
+                    <label for="tva_taux_defaut">Taux par défaut</label>
+                    <select id="tva_taux_defaut" data-bind="facturation.tva_taux_defaut">
+                      <option value="20">20 % — taux normal</option>
+                      <option value="10">10 % — taux intermédiaire</option>
+                      <option value="5.5">5,5 % — taux réduit</option>
+                      <option value="2.1">2,1 % — taux super-réduit</option>
+                      <option value="0">0 %</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>Paiement</h2>
+              <p class="card-sub">Comment vos clients vous règlent, et sous quel délai.</p>
+              <div class="grid-2">
+                <div class="field">
+                  <label for="iban">IBAN</label>
+                  <input type="text" id="iban" data-bind="facturation.iban" placeholder="FR76 …">
+                </div>
+                <div class="field">
+                  <label for="bic">BIC</label>
+                  <input type="text" id="bic" data-bind="facturation.bic">
+                </div>
+              </div>
+              <div class="field" style="max-width:calc(50% - 8px);">
+                <label for="delai_paiement_jours">Délai de paiement (jours)</label>
+                <input type="number" id="delai_paiement_jours" data-bind="facturation.delai_paiement_jours" min="0" max="120">
+              </div>
+              <div class="field">
+                <label for="conditions_paiement">Conditions de paiement</label>
+                <textarea id="conditions_paiement" data-bind="facturation.conditions_paiement" placeholder="Laissez vide pour la phrase générée à partir du délai ci-dessus."></textarea>
+              </div>
+              <div class="field">
+                <label for="penalites_retard">Pénalités de retard</label>
+                <textarea id="penalites_retard" data-bind="facturation.penalites_retard"></textarea>
+                <div class="hint">N'apparaît que sur les factures. Vide, le texte légal par défaut s'applique.</div>
+              </div>
+              <div class="field">
+                <label for="mentions_pied">Mention libre en pied</label>
+                <textarea id="mentions_pied" data-bind="facturation.mentions_pied" placeholder="Assurance RC pro, adhésion à un centre de gestion agréé…"></textarea>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>Relances automatiques</h2>
+              <p class="card-sub">Une facture envoyée qui dépasse son échéance sans être réglée déclenche un email de rappel à votre client — sans que vous ayez à y penser.</p>
+              <div class="switch-row">
+                <input type="checkbox" id="relances_activees" data-bind="facturation.relances_activees">
+                <div>
+                  <label for="relances_activees" class="switch-label" style="margin:0;">Relancer automatiquement les factures en retard</label>
+                  <div class="switch-desc">Un email est envoyé au nom de votre entreprise, avec votre adresse en réponse — jamais plus de 3 rappels par facture.</div>
+                </div>
+              </div>
+              <div class="field" style="max-width:calc(50% - 8px); margin-top:14px;">
+                <label for="relance_delai_jours">Délai entre deux rappels (jours)</label>
+                <input type="number" id="relance_delai_jours" data-bind="facturation.relance_delai_jours" min="1" max="60">
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>Numérotation</h2>
+              <p class="card-sub">Le préfixe de vos numéros. La séquence repart à 001 chaque année, comme l'exige une numérotation continue et sans trou.</p>
+              <div class="grid-2">
+                <div class="field">
+                  <label for="prefixe_devis">Préfixe des devis</label>
+                  <input type="text" id="prefixe_devis" data-bind="facturation.prefixe_devis" maxlength="8">
+                  <div class="hint">Donne <code id="ex-devis">DEV-2026-001</code></div>
+                </div>
+                <div class="field">
+                  <label for="prefixe_facture">Préfixe des factures</label>
+                  <input type="text" id="prefixe_facture" data-bind="facturation.prefixe_facture" maxlength="8">
+                  <div class="hint">Donne <code id="ex-facture">FAC-2026-001</code></div>
+                </div>
+              </div>
+              <div class="note-box warn">
+                <strong>Attention :</strong> changer un préfixe ne renumérote pas les documents déjà émis. Une facture émise ne doit jamais être renumérotée.
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>Allure du document</h2>
+              <p class="card-sub">L'aperçu à droite se met à jour à chaque changement.</p>
+              <div class="grid-2">
+                <div class="field">
+                  <label for="modele">Modèle</label>
+                  <select id="modele" data-bind="facturation.modele">
+                    <option value="moderne">Moderne — bandeau de couleur</option>
+                    <option value="classique">Classique — filets fins</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="couleur_document">Couleur du document</label>
+                  <select id="couleur_document" data-bind="facturation.couleur_document">
+                    <option value="theme">Identique à l'interface</option>
+                  </select>
+                </div>
+              </div>
+              <div class="switch-row">
+                <input type="checkbox" id="afficher_logo" data-bind="facturation.afficher_logo">
+                <div>
+                  <label for="afficher_logo" class="switch-label" style="margin:0;">Afficher mon logo</label>
+                  <div class="switch-desc">Le logo réglé dans l'onglet Entreprise.</div>
+                </div>
+              </div>
+              <div class="switch-row">
+                <input type="checkbox" id="afficher_mention_cadence" data-bind="facturation.afficher_mention_cadence">
+                <div>
+                  <label for="afficher_mention_cadence" class="switch-label" style="margin:0;">Afficher « Édité avec Cadence »</label>
+                  <div class="switch-desc">Petite mention discrète en pied de page.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="doc-preview-col">
+            <div class="preview-shell">
+              <div class="preview-bar">
+                <span>Aperçu — facture d'exemple</span>
+                <div style="display:flex; gap:6px;">
+                  <button class="btn btn-outline btn-sm" type="button" id="preview-acquitte-btn" style="min-height:30px;padding:5px 10px;font-size:11.5px;text-transform:none;letter-spacing:0;">Marquer acquittée</button>
+                  <button class="btn btn-outline btn-sm" type="button" id="preview-type-btn" style="min-height:30px;padding:5px 10px;font-size:11.5px;text-transform:none;letter-spacing:0;">Voir en devis</button>
+                </div>
+              </div>
+              <div class="preview-scroll"><div id="doc-preview"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- =========================== PRESTATIONS =========================== -->
+      <div class="panel" role="tabpanel" id="panel-prestations" aria-labelledby="tab-prestations" tabindex="0" hidden>
+        <div class="card">
+          <h2>Vos prestations</h2>
+          <p class="card-sub">Saisissez une fois « Séance individuelle 60 min — 60 € », et retrouvez-la en un clic à la création d'un rendez-vous comme d'une ligne de devis. C'est ici que se gagne le plus de temps au quotidien.</p>
+
+          <div class="prest-list" id="prest-list"></div>
+          <div id="prest-empty" class="note-box" style="display:none;">
+            Aucune prestation pour l'instant — ajoutez celle que vous vendez le plus souvent.
+          </div>
+
+          <form id="prest-form" style="margin-top:18px; border-top:1px solid rgba(28,35,51,0.1); padding-top:18px;">
+            <input type="hidden" id="prest-id">
+            <div class="grid-2">
+              <div class="field">
+                <label for="prest-libelle">Libellé <span class="req">*</span></label>
+                <input type="text" id="prest-libelle" placeholder="Séance individuelle" aria-describedby="prest-libelle-error">
+                <div class="error" id="prest-libelle-error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg><span></span></div>
+              </div>
+              <div class="field">
+                <label for="prest-description">Description</label>
+                <input type="text" id="prest-description" placeholder="Apparaît sous le libellé sur le devis">
+              </div>
+            </div>
+            <div class="grid-3">
+              <div class="field">
+                <label for="prest-prix">Prix unitaire (€)</label>
+                <input type="number" id="prest-prix" min="0" step="0.01" value="0">
+              </div>
+              <div class="field">
+                <label for="prest-duree">Durée (minutes)</label>
+                <input type="number" id="prest-duree" min="5" step="5" value="60">
+              </div>
+              <div class="field">
+                <label for="prest-tva">TVA (%)</label>
+                <input type="number" id="prest-tva" min="0" step="0.1" value="0">
+              </div>
+            </div>
+            <div style="display:flex; gap:10px; justify-content:flex-end;">
+              <button type="button" class="btn btn-secondary btn-sm" id="prest-cancel" style="display:none;">Annuler</button>
+              <button type="submit" class="btn btn-primary btn-sm" id="prest-save">Ajouter la prestation</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- ============================= AGENDA ============================== -->
+      <div class="panel" role="tabpanel" id="panel-agenda" aria-labelledby="tab-agenda" tabindex="0" hidden>
+        <div class="card">
+          <h2>S'abonner depuis n'importe quel agenda</h2>
+          <p class="card-sub">Cadence publie vos rendez-vous à une adresse privée au format iCalendar. Google Agenda, Apple Calendrier et Outlook savent tous s'y abonner — aucun compte à relier, et ça marche aussi sur votre téléphone.</p>
+
+          <div class="feed-box">
+            <div class="feed-url" id="feed-url" title="">Chargement…</div>
+            <button class="btn btn-outline btn-sm" type="button" id="feed-copy">Copier</button>
+            <button class="btn btn-danger-text btn-sm" type="button" id="feed-rotate">Régénérer</button>
+          </div>
+          <div class="hint" style="margin-top:8px;">Cette adresse vaut clé d'accès : qui l'a peut lire votre agenda. Régénérez-la si vous l'avez partagée par erreur — les abonnements existants cesseront alors de se mettre à jour.</div>
+
+          <ol class="steps">
+            <li>Copiez l'adresse ci-dessus.</li>
+            <li>Dans Google Agenda : <strong>Autres agendas</strong> → <strong>+</strong> → <strong>À partir de l'URL</strong>, puis collez-la. Sur Apple Calendrier : <strong>Fichier</strong> → <strong>Nouvel abonnement à un calendrier</strong>.</li>
+            <li>Vos rendez-vous apparaissent dans un calendrier à part, que vous pouvez masquer ou colorer comme vous voulez.</li>
+          </ol>
+
+          <div class="note-box">
+            <strong>Ce que fait cet abonnement :</strong> il va dans un seul sens, de Cadence vers votre agenda. Les calendriers rafraîchissent un abonnement quand ils le décident — Google compte souvent plusieurs heures. Pour une mise à jour immédiate, reliez Google Calendar ci-dessous.
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Google Calendar</h2>
+          <p class="card-sub">Relié, chaque rendez-vous créé ou modifié dans Cadence est poussé dans votre agenda Google dans la seconde.</p>
+
+          <div class="conn-state" id="google-state">
+            <span class="dot-state"></span>
+            <div class="cs-text">
+              <strong id="google-state-title">Non relié</strong>
+              <span id="google-state-desc">Aucun compte Google n'est connecté à cet espace.</span>
+            </div>
+            <button class="btn btn-outline btn-sm" type="button" id="google-connect">Relier mon compte Google</button>
+            <button class="btn btn-danger-text btn-sm" type="button" id="google-disconnect" style="display:none;">Délier</button>
+          </div>
+
+          <div class="note-box warn" id="google-setup-note">
+            <strong>À activer d'abord côté Supabase.</strong> Le fournisseur Google doit être activé dans Authentication → Providers, avec les identifiants OAuth d'un projet Google Cloud et l'autorisation <code>calendar.events</code>. Tant que ce n'est pas fait, ce bouton renverra une erreur.
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================== RÉSERVATION ============================ -->
+      <div class="panel" role="tabpanel" id="panel-reservation" aria-labelledby="tab-reservation" tabindex="0" hidden>
+        <div class="card">
+          <h2>Réservation en ligne</h2>
+          <p class="card-sub">Laissez vos futurs clients réserver un créneau depuis votre propre site (widget à intégrer) ou depuis un simple lien que vous partagez. Chaque demande arrive dans votre agenda « en attente » — vous décidez ensuite de la confirmer ou de la refuser, jamais de fiche client créée automatiquement.</p>
+
+          <div class="note-box" style="margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;">
+            <span>Le logo et la couleur affichés sur cette page vue par vos prospects reprennent automatiquement ceux réglés dans <strong>Entreprise</strong> et <strong>Apparence</strong> — rien à configurer ici.</span>
+            <span style="display:flex; gap:8px; flex-shrink:0;">
+              <button class="btn btn-outline btn-sm" type="button" id="resa-vers-entreprise">Logo</button>
+              <button class="btn btn-outline btn-sm" type="button" id="resa-vers-apparence">Couleur</button>
+            </span>
+          </div>
+
+          <div class="field" style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+            <input type="checkbox" id="resa-activee" data-bind="reservation.activee" style="width:20px; height:20px;">
+            <label for="resa-activee" style="margin:0;">Activer la réservation en ligne</label>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="resa-slug">Identifiant public</label>
+              <input type="text" id="resa-slug" data-bind="reservation.slug" placeholder="cabinet-marie" aria-describedby="resa-slug-error">
+              <div class="hint">Apparaît dans votre lien : .../reservation.html?p=<span id="resa-slug-apercu">…</span></div>
+              <div class="error" id="resa-slug-error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg><span></span></div>
+            </div>
+          </div>
+
+          <h3 style="margin:22px 0 10px; font-size:15px;">Horaires ouverts à la réservation</h3>
+          <div id="resa-jours" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;"></div>
+
+          <div class="grid-3">
+            <div class="field">
+              <label for="resa-heure-debut">Heure de début</label>
+              <input type="time" id="resa-heure-debut" data-bind="reservation.heure_debut">
+            </div>
+            <div class="field">
+              <label for="resa-heure-fin">Heure de fin</label>
+              <input type="time" id="resa-heure-fin" data-bind="reservation.heure_fin">
+            </div>
+            <div class="field">
+              <label for="resa-intervalle">Intervalle proposé</label>
+              <select id="resa-intervalle" data-bind="reservation.intervalle_minutes">
+                <option value="5">5 minutes</option>
+                <option value="10">10 minutes</option>
+                <option value="15">15 minutes</option>
+                <option value="30">30 minutes</option>
+                <option value="45">45 minutes</option>
+                <option value="55">55 minutes</option>
+                <option value="60">1 heure</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="resa-delai">Délai minimum avant un rendez-vous (heures)</label>
+              <input type="number" id="resa-delai" data-bind="reservation.delai_min_heures" min="0" step="1">
+            </div>
+            <div class="field">
+              <label for="resa-horizon">Réservable jusqu'à (jours à l'avance)</label>
+              <input type="number" id="resa-horizon" data-bind="reservation.horizon_jours" min="1" step="1">
+            </div>
+          </div>
+
+          <div id="resa-partage" style="display:none; margin-top:22px; border-top:1px solid rgba(28,35,51,0.1); padding-top:18px;">
+            <h3 style="margin-bottom:10px; font-size:15px;">Votre lien de réservation</h3>
+            <div class="feed-box">
+              <div class="feed-url" id="resa-lien" title=""></div>
+              <button class="btn btn-outline btn-sm" type="button" id="resa-lien-copy">Copier</button>
+            </div>
+
+            <h3 style="margin:18px 0 10px; font-size:15px;">À intégrer sur votre site</h3>
+            <div class="feed-box">
+              <div class="feed-url" id="resa-iframe" title=""></div>
+              <button class="btn btn-outline btn-sm" type="button" id="resa-iframe-copy">Copier</button>
+            </div>
+            <div class="hint" style="margin-top:8px;">Collez cet extrait dans le code de votre site, à l'endroit où la réservation doit apparaître.</div>
+          </div>
+
+          <div class="note-box" id="resa-inactif-note" style="margin-top:18px;">
+            Activez la réservation et choisissez un identifiant pour obtenir votre lien et l'extrait à intégrer.
+          </div>
+
+          <div class="note-box warn" style="margin-top:18px;">
+            <strong>Limite actuelle :</strong> un seul horaire hebdomadaire récurrent — pas encore de fermetures ponctuelles (vacances, jour férié). Désactivez temporairement la réservation si besoin.
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================= ÉQUIPE ============================== -->
+      <div class="panel" role="tabpanel" id="panel-equipe" aria-labelledby="tab-equipe" tabindex="0" hidden>
+
+        <!-- Bascule visible dès qu'on appartient à plus d'un espace, ou qu'on
+             travaille actuellement dans celui d'un tiers. -->
+        <div class="card" id="espace-card" style="display:none;">
+          <h2>Votre espace de travail</h2>
+          <p class="card-sub" id="espace-sub"></p>
+          <div class="membre-list" id="espace-list"></div>
+        </div>
+
+        <!-- Propriétaire, formule Studio : gestion complète. -->
+        <div class="card" id="equipe-gestion-card" style="display:none;">
+          <h2>Membres de votre équipe</h2>
+          <p class="card-sub">Invitez des collaborateurs à travailler sur les mêmes clients, rendez-vous et devis que vous — chacun garde son propre compte et son propre agenda.</p>
+
+          <div class="membre-list" id="membre-list"></div>
+          <div id="membre-empty" class="note-box" style="display:none;">
+            Personne d'autre pour l'instant — invitez un premier collaborateur ci-dessous.
+          </div>
+
+          <form id="invite-form" style="margin-top:18px; border-top:1px solid rgba(28,35,51,0.1); padding-top:18px;">
+            <div class="field">
+              <label for="invite-email">Inviter par email</label>
+              <div style="display:flex; gap:8px;">
+                <input type="email" id="invite-email" placeholder="collegue@exemple.fr" aria-describedby="invite-email-error" style="flex:1;">
+                <button type="submit" class="btn btn-primary btn-sm" id="invite-save">Envoyer l'invitation</button>
+              </div>
+              <div class="error" id="invite-email-error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg><span></span></div>
+            </div>
+          </form>
+
+          <div class="invite-link-box" id="invite-link-box" style="display:none;">
+            <div class="il-url" id="invite-link-url"></div>
+            <button class="btn btn-outline btn-sm" type="button" id="invite-link-copy">Copier le lien</button>
+          </div>
+          <div class="hint" id="invite-link-hint" style="display:none; margin-top:8px;">
+            Envoyez ce lien à la personne invitée — il connecte directement son compte à votre espace, qu'elle en crée un nouveau ou qu'elle se connecte à un compte existant.
+          </div>
+        </div>
+
+        <!-- Propriétaire, formule Solo : mur payant. -->
+        <div class="card" id="equipe-gate-card" style="display:none;">
+          <div class="plan-gate">
+            <strong>Le partage multi-collaborateurs fait partie de l'offre Studio.</strong>
+            Invitez votre équipe à travailler sur les mêmes clients, rendez-vous et devis que vous, en passant à la formule Studio.
+            <div style="margin-top:18px;"><a href="index.html#tarifs" class="btn btn-primary btn-sm" style="display:inline-flex;">Voir les formules</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+
+<div class="save-bar" id="save-bar" role="region" aria-label="Enregistrer les modifications">
+  <div class="sb-text" id="save-bar-text">Vous avez des modifications non enregistrées.</div>
+  <div class="sb-actions">
+    <button class="btn btn-ghost btn-sm" type="button" id="discard-btn">Annuler</button>
+    <button class="btn btn-primary btn-sm" type="button" id="save-btn">Enregistrer</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+  <span id="toast-text"></span>
+</div>
+
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+  import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
+  import { ACCENTS, ACCENT_DEFAUT, STYLES, STYLE_DEFAUT, METIERS, vocabulaire, appliquerTheme,
+           appliquerThemeEnCache, monterEntete, viderCacheBrand, chargerBrand,
+           idEspaceActif, viderCacheEspace, initiales } from './theme.js';
+  import { rendreDocument, stylesDocument, documentExemple, PENALITES_DEFAUT } from './document-render.js';
+
+  const configured = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_ANON_KEY.includes('YOUR-ANON');
+  if(!configured){
+    document.body.innerHTML = '<div style="max-width:480px;margin:80px auto;text-align:center;padding:0 20px;font-family:Inter,Arial,sans-serif;">' +
+      '<h1 style="font-family:Fraunces,Georgia,serif;font-size:24px;margin-bottom:12px;">Supabase non configuré</h1>' +
+      '<p style="color:rgba(28,35,51,0.6);line-height:1.6;">Renseignez <code>supabase-config.js</code> pour accéder aux paramètres.</p>' +
+      '<a href="index.html" style="color:#3E7C74;font-weight:600;display:inline-block;margin-top:20px;">Retour à l\'accueil</a></div>';
+  } else {
+  appliquerThemeEnCache();
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const toast = document.getElementById('toast');
+  const toastText = document.getElementById('toast-text');
+  const saveBar = document.getElementById('save-bar');
+  const saveBtn = document.getElementById('save-btn');
+
+  // État : `courant` est ce que l'utilisateur voit, `initial` ce qui est en base.
+  // La comparaison des deux pilote la barre d'enregistrement.
+  let profil = {}, facturation = {}, prestations = [], reservation = {}, estAdmin = false;
+  let initial = { profil:{}, facturation:{}, reservation:{} };
+  let session = null, feedToken = null, googleConn = null, espaceId = null;
+  let previewType = 'facture';
+
+  // ---------------------------------------------------------------- utilitaires
+  // Reflète le nom/avatar affichés dans le menu latéral — appelé partout où
+  // monterEntete() l'est déjà (le logo suit le même rythme), pour que les deux
+  // chromes possibles (nav du haut, menu latéral) restent synchronisés.
+  function majIdentiteSidebar(brand){
+    const sidebarName = document.getElementById('sidebar-name');
+    const sidebarAvatar = document.getElementById('sidebar-avatar');
+    if(!sidebarName || !sidebarAvatar) return;
+    // Par défaut le profil qu'on modifie ; à l'ouverture un collaborateur peut
+    // recevoir explicitement la marque de l'ESPACE actif (voir appel dans
+    // init()) — `profil.business_name` retombe déjà sur `full_name`.
+    const b = brand || profil;
+    const nomAffiche = b.business_name || (session?.user?.email || '');
+    sidebarName.textContent = nomAffiche;
+    sidebarAvatar.textContent = initiales(nomAffiche);
+  }
+
+  function showToast(message, erreur){
+    toastText.textContent = message;
+    toast.classList.toggle('err', !!erreur);
+    toast.querySelector('svg').innerHTML = erreur
+      ? '<circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/>'
+      : '<path d="M20 6 9 17l-5-5"/>';
+    toast.classList.add('show');
+    setTimeout(()=> toast.classList.remove('show'), 3400);
+  }
+
+  function setFieldError(id, message){
+    const input = document.getElementById(id);
+    const errorEl = document.getElementById(id + '-error');
+    if(!errorEl || !input) return !!message;
+    if(message){
+      input.setAttribute('aria-invalid','true');
+      errorEl.querySelector('span').textContent = message;
+      errorEl.classList.add('show');
+    } else {
+      input.removeAttribute('aria-invalid');
+      errorEl.classList.remove('show');
+    }
+    return !!message;
+  }
+
+  const clone = (o) => JSON.parse(JSON.stringify(o));
+  const estModifie = () =>
+    JSON.stringify(profil) !== JSON.stringify(initial.profil) ||
+    JSON.stringify(facturation) !== JSON.stringify(initial.facturation) ||
+    JSON.stringify(reservation) !== JSON.stringify(initial.reservation);
+
+  function majBarre(){
+    saveBar.classList.toggle('show', estModifie());
+  }
+
+  // ------------------------------------------------------------------- onglets
+  const tabs = [...document.querySelectorAll('.tab')];
+  function activerOnglet(cle, focus){
+    tabs.forEach(t=>{
+      const on = t.dataset.tab === cle;
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      document.getElementById('panel-' + t.dataset.tab).hidden = !on;
+      if(on && focus) t.focus();
+    });
+    const url = new URL(window.location);
+    url.searchParams.set('tab', cle);
+    history.replaceState(null, '', url);
+    if(cle === 'documents') rendreApercuDoc();
+    if(cle === 'apparence') rendreApercuUI();
+  }
+  tabs.forEach(t => t.addEventListener('click', ()=> activerOnglet(t.dataset.tab)));
+  document.getElementById('resa-vers-entreprise').addEventListener('click', ()=> activerOnglet('entreprise', true));
+  document.getElementById('resa-vers-apparence').addEventListener('click', ()=> activerOnglet('apparence', true));
+  document.querySelector('.tabs').addEventListener('keydown', (e)=>{
+    const i = tabs.findIndex(t => t.getAttribute('aria-selected') === 'true');
+    if(e.key === 'ArrowRight'){ e.preventDefault(); activerOnglet(tabs[(i+1) % tabs.length].dataset.tab, true); }
+    if(e.key === 'ArrowLeft'){ e.preventDefault(); activerOnglet(tabs[(i-1+tabs.length) % tabs.length].dataset.tab, true); }
+  });
+
+  // ------------------------------------------------------- liaison champ ↔ état
+  // Chaque champ porte `data-bind="table.colonne"`. Une seule boucle relie donc
+  // tout le formulaire, plutôt qu'un écouteur écrit à la main par champ.
+  function cible(bind){
+    const obj = bind.split('.')[0];
+    if(obj === 'reservation') return reservation;
+    return obj === 'profil' ? profil : facturation;
+  }
+  function colonne(bind){ return bind.split('.')[1]; }
+
+  function remplirChamps(){
+    document.querySelectorAll('[data-bind]').forEach(el=>{
+      const obj = cible(el.dataset.bind), col = colonne(el.dataset.bind);
+      const v = obj[col];
+      if(el.type === 'checkbox') el.checked = !!v;
+      else if(el.type === 'radio') el.checked = (String(v) === el.value);
+      else el.value = (v === null || v === undefined) ? '' : String(v);
+    });
+    document.getElementById('tva-fields').style.display = facturation.assujetti_tva ? 'block' : 'none';
+    majLogoApercu();
+    majVocabDemo();
+    majExemplesNumero();
+    monterJoursReservation();
+    majApercuReservation();
+  }
+
+  document.querySelectorAll('[data-bind]').forEach(el=>{
+    const evt = (el.tagName === 'SELECT' || el.type === 'checkbox' || el.type === 'radio') ? 'change' : 'input';
+    el.addEventListener(evt, ()=>{
+      const obj = cible(el.dataset.bind), col = colonne(el.dataset.bind);
+      if(el.type === 'checkbox') obj[col] = el.checked;
+      else if(el.type === 'radio'){ if(el.checked) obj[col] = el.value; }
+      else if(el.type === 'number') obj[col] = el.value === '' ? null : Number(el.value);
+      else obj[col] = el.value.trim() === '' ? null : el.value;
+
+      if(col === 'assujetti_tva'){
+        document.getElementById('tva-fields').style.display = obj[col] ? 'block' : 'none';
+      }
+      if(col === 'accent' || col === 'densite'){
+        appliquerTheme({ ...profil });
+        rendreApercuUI();
+      }
+      if(col === 'business_name' || col === 'logo_url'){
+        monterEntete({ ...profil }, 'reglages', estAdmin);
+        majIdentiteSidebar();
+        rendreApercuUI();
+      }
+      if(col === 'metier' || col === 'terme_singulier' || col === 'terme_pluriel'){
+        majVocabDemo();
+      }
+      if(col === 'prefixe_devis' || col === 'prefixe_facture') majExemplesNumero();
+      if(col === 'slug' || col === 'activee') majApercuReservation();
+
+      rendreApercuDoc();
+      majBarre();
+    });
+  });
+
+  // ------------------------------------------------------------- réservation
+  const JOURS_LABELS = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+
+  function monterJoursReservation(){
+    const cont = document.getElementById('resa-jours');
+    const actifs = new Set(reservation.jours_ouvres || []);
+    cont.innerHTML = JOURS_LABELS.map((label, i) => `
+      <label style="display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border:1px solid rgba(28,35,51,0.16); border-radius:7px; font-size:13px; cursor:pointer;">
+        <input type="checkbox" value="${i}" ${actifs.has(i) ? 'checked' : ''} style="width:16px;height:16px;">
+        ${label}
+      </label>`).join('');
+    cont.querySelectorAll('input[type="checkbox"]').forEach(el=>{
+      el.addEventListener('change', ()=>{
+        const jour = Number(el.value);
+        const set = new Set(reservation.jours_ouvres || []);
+        if(el.checked) set.add(jour); else set.delete(jour);
+        reservation.jours_ouvres = [...set].sort((a,b)=>a-b);
+        majBarre();
+      });
+    });
+  }
+
+  function majApercuReservation(){
+    const pret = !!(reservation.activee && reservation.slug);
+    document.getElementById('resa-partage').style.display = pret ? 'block' : 'none';
+    document.getElementById('resa-inactif-note').style.display = pret ? 'none' : 'block';
+    document.getElementById('resa-slug-apercu').textContent = reservation.slug || '…';
+    if(!pret) return;
+    const lien = `${window.location.origin}/reservation.html?p=${reservation.slug}`;
+    const iframe = `<iframe src="${lien}" style="width:100%;border:0;height:760px" title="Réserver un rendez-vous"></iframe>`;
+    document.getElementById('resa-lien').textContent = lien;
+    document.getElementById('resa-lien').title = lien;
+    document.getElementById('resa-iframe').textContent = iframe;
+    document.getElementById('resa-iframe').title = iframe;
+  }
+
+  document.getElementById('resa-slug').addEventListener('blur', (e)=>{
+    const v = e.target.value.trim().toLowerCase();
+    e.target.value = v;
+    reservation.slug = v || null;
+    setFieldError('resa-slug', v && !/^[a-z0-9-]{3,40}$/.test(v)
+      ? 'Utilisez seulement des lettres minuscules, des chiffres et des tirets (3 à 40 caractères).' : '');
+    majApercuReservation();
+    majBarre();
+  });
+
+  document.getElementById('resa-lien-copy').addEventListener('click', async ()=>{
+    try{ await navigator.clipboard.writeText(document.getElementById('resa-lien').textContent); showToast('Lien copié.'); }
+    catch(e){ showToast('La copie automatique a échoué — sélectionnez le texte à la main.', true); }
+  });
+  document.getElementById('resa-iframe-copy').addEventListener('click', async ()=>{
+    try{ await navigator.clipboard.writeText(document.getElementById('resa-iframe').textContent); showToast('Extrait copié.'); }
+    catch(e){ showToast('La copie automatique a échoué — sélectionnez le texte à la main.', true); }
+  });
+
+  // Validation au blur, jamais à la frappe (convention du projet).
+  document.getElementById('business_name').addEventListener('blur', (e)=>{
+    setFieldError('business_name', e.target.value.trim().length < 2 ? 'Indiquez le nom sous lequel vous travaillez.' : '');
+  });
+  document.getElementById('emetteur_email').addEventListener('blur', (e)=>{
+    const v = e.target.value.trim();
+    setFieldError('emetteur_email', v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? "L'adresse email doit être au format nom@domaine.fr." : '');
+  });
+  document.getElementById('siret').addEventListener('blur', (e)=>{
+    const v = e.target.value.replace(/\s/g,'');
+    setFieldError('siret', v && !/^\d{14}$/.test(v) ? 'Le numéro SIRET doit contenir 14 chiffres.' : '');
+  });
+
+  function majVocabDemo(){
+    const v = vocabulaire(profil);
+    document.getElementById('vocab-demo').textContent = `Vos ${v.pluriel}`;
+    document.getElementById('vocab-demo2').textContent = `Ajouter ${v.article} ${v.singulier}`;
+    const base = METIERS[profil.metier] || METIERS.autre;
+    document.getElementById('terme_singulier').placeholder = base.singulier;
+    document.getElementById('terme_pluriel').placeholder = base.pluriel;
+  }
+
+  function majExemplesNumero(){
+    const an = new Date().getFullYear();
+    document.getElementById('ex-devis').textContent = `${(facturation.prefixe_devis || 'DEV')}-${an}-001`;
+    document.getElementById('ex-facture').textContent = `${(facturation.prefixe_facture || 'FAC')}-${an}-001`;
+  }
+
+  // ------------------------------------------------------------------- accents
+  function monterAccents(){
+    const grid = document.getElementById('accent-grid');
+    grid.innerHTML = Object.entries(ACCENTS).map(([cle, a]) => `
+      <label class="accent-option">
+        <input type="radio" name="accent" value="${cle}" data-bind="profil.accent">
+        <div class="accent-swatch" style="background:${a.hex}; color:${a.texte};">Aa</div>
+        <div class="accent-nom">${a.nom}</div>
+        <div class="accent-note">${a.note}</div>
+      </label>`).join('');
+
+    grid.querySelectorAll('input[type="radio"]').forEach(el=>{
+      el.checked = (profil.accent || ACCENT_DEFAUT) === el.value;
+      el.addEventListener('change', ()=>{
+        if(!el.checked) return;
+        profil.accent = el.value;
+        appliquerTheme({ ...profil });
+        rendreApercuUI();
+        rendreApercuDoc();
+        majCouleursDocument();
+        majBarre();
+      });
+    });
+  }
+
+  // -------------------------------------------------------------- style d'interface
+  // Quatre identités visuelles au choix — pas une préférence personnelle : ce
+  // sont vos client·e·s qui verront/utiliseront l'écran, choisissez donc ce
+  // qui leur parlera le mieux. Un aperçu miniature (forme du chrome, police,
+  // tonalité) accompagne chaque option ; la couleur d'accent ci-dessus reste
+  // appliquée quel que soit le style choisi.
+  const STYLE_APERCU = {
+    atelier:  { forme:'top',  fond:'#F5F1E7', chrome:'#1C2333', police:"'Fraunces', serif" },
+    nocturne: { forme:'side', fond:'#F2F1F8', chrome:'#12131B', police:"'Manrope', sans-serif" },
+    clair:    { forme:'top2', fond:'#FBFAF7', chrome:'#FBFAF7', police:"'Inter', sans-serif" },
+    repere:   { forme:'side', fond:'#F5F1E7', chrome:'#FFFFFF', police:"'Fraunces', serif" }
+  };
+  function apercuStyleHtml(cle){
+    const a = STYLE_APERCU[cle];
+    const barreHaut = (a.forme === 'top' || a.forme === 'top2')
+      ? `<div style="height:9px; background:${a.chrome}; border-bottom:${a.forme==='top2' ? '1px solid rgba(0,0,0,0.1)' : 'none'};"></div>`
+      : '';
+    const rail = (a.forme === 'side')
+      ? `<div style="position:absolute; top:0; left:0; bottom:0; width:15px; background:${a.chrome};"></div>`
+      : '';
+    return `
+      <div style="position:relative; height:44px; border-radius:6px; overflow:hidden; background:${a.fond}; border:1px solid rgba(28,35,51,0.12);">
+        ${barreHaut}${rail}
+        <div style="position:absolute; ${a.forme==='side' ? 'left:21px;' : 'left:8px; top:15px;'} right:8px; top:${a.forme==='side'?'8px':'auto'}; bottom:8px; display:flex; flex-direction:column; gap:3px;">
+          <div style="width:60%; height:5px; border-radius:2px; background:rgba(28,35,51,0.18);"></div>
+          <div style="width:40%; height:5px; border-radius:2px; background:rgba(28,35,51,0.1);"></div>
+        </div>
+      </div>`;
+  }
+  function monterStyles(){
+    const grid = document.getElementById('style-grid');
+    if(!grid) return;
+    grid.innerHTML = Object.entries(STYLES).map(([cle, s]) => `
+      <label class="style-option">
+        <input type="radio" name="style_interface" value="${cle}" data-bind="profil.style_interface">
+        ${apercuStyleHtml(cle)}
+        <div class="accent-nom">${s.nom}</div>
+        <div class="accent-note">${s.note}</div>
+      </label>`).join('');
+
+    grid.querySelectorAll('input[type="radio"]').forEach(el=>{
+      el.checked = (profil.style_interface || STYLE_DEFAUT) === el.value;
+      el.addEventListener('change', ()=>{
+        if(!el.checked) return;
+        profil.style_interface = el.value;
+        appliquerTheme({ ...profil });
+        majBarre();
+      });
+    });
+  }
+
+  // La couleur du document peut suivre l'interface ou s'en détacher.
+  function majCouleursDocument(){
+    const sel = document.getElementById('couleur_document');
+    const actuel = facturation.couleur_document || 'theme';
+    sel.innerHTML = '<option value="theme">Identique à l\'interface</option>' +
+      Object.entries(ACCENTS).map(([, a]) => `<option value="${a.hex}">${a.nom}</option>`).join('') +
+      '<option value="#1C2333">Encre (noir bleuté)</option>';
+    sel.value = [...sel.options].some(o => o.value === actuel) ? actuel : 'theme';
+  }
+
+  // ------------------------------------------------------------------ aperçus
+  function rendreApercuUI(){
+    const v = vocabulaire(profil);
+    const nom = (profil.business_name || 'Votre activité').trim() || 'Votre activité';
+    const logo = profil.logo_url
+      ? `<img src="${profil.logo_url}" alt="" style="height:17px;width:auto;max-width:92px;object-fit:contain;">`
+      : `${nom.length > 16 ? nom.slice(0,16) + '…' : nom}<span>.</span>`;
+    document.getElementById('ui-preview').innerHTML = `
+      <div class="up-head">
+        <div class="up-logo">${logo}</div>
+        <div class="up-nav"><span class="on">Clients</span><span>Agenda</span><span>Devis</span></div>
+      </div>
+      <div class="up-body">
+        <div class="up-title">Vos clients</div>
+        <div class="up-row"><div><div class="n">Marion Duval</div><div class="m">12 ${v.pluriel}/an</div></div><span class="up-pill">Actif</span></div>
+        <div class="up-row"><div><div class="n">Thomas Lecoq</div><div class="m">4 ${v.pluriel}/an</div></div><span class="up-pill">Actif</span></div>
+        <div class="up-row"><div><div class="n">Sofia Ramos</div><div class="m">8 ${v.pluriel}/an</div></div><span class="up-pill">Actif</span></div>
+        <span class="up-cta">Ajouter un client</span>
+      </div>`;
+  }
+
+  let styleDoc = null;
+  let previewAcquitte = false;
+  function rendreApercuDoc(){
+    const v = vocabulaire(profil);
+    const ex = documentExemple(v);
+    const doc = { ...ex.doc, type: previewType, statut: previewAcquitte ? 'paye' : 'brouillon' };
+    const html = rendreDocument({
+      doc, lignes: ex.lignes, client: ex.client,
+      params: facturation, brand: profil
+    });
+    const couleur = (facturation.couleur_document && facturation.couleur_document !== 'theme')
+      ? facturation.couleur_document
+      : (ACCENTS[profil.accent] || ACCENTS[ACCENT_DEFAUT]).hex;
+
+    if(!styleDoc){
+      styleDoc = document.createElement('style');
+      document.head.appendChild(styleDoc);
+    }
+    styleDoc.textContent = stylesDocument(couleur, facturation.modele || 'moderne');
+    document.getElementById('doc-preview').innerHTML = html;
+  }
+
+  document.getElementById('preview-type-btn').addEventListener('click', (e)=>{
+    previewType = previewType === 'facture' ? 'devis' : 'facture';
+    e.target.textContent = previewType === 'facture' ? 'Voir en devis' : 'Voir en facture';
+    document.querySelector('#panel-documents .preview-bar span').textContent =
+      previewType === 'facture' ? "Aperçu — facture d'exemple" : "Aperçu — devis d'exemple";
+    rendreApercuDoc();
+  });
+
+  document.getElementById('preview-acquitte-btn').addEventListener('click', (e)=>{
+    previewAcquitte = !previewAcquitte;
+    e.target.textContent = previewAcquitte ? 'Voir non acquittée' : 'Marquer acquittée';
+    rendreApercuDoc();
+  });
+
+  // --------------------------------------------------------------------- logo
+  const logoInput = document.getElementById('logo-input');
+  document.getElementById('logo-btn').addEventListener('click', ()=> logoInput.click());
+
+  function majLogoApercu(){
+    const box = document.getElementById('logo-preview');
+    const rm = document.getElementById('logo-remove');
+    if(profil.logo_url){
+      box.innerHTML = `<img src="${profil.logo_url}" alt="Votre logo">`;
+      rm.style.display = '';
+    } else {
+      box.innerHTML = '<span class="ph">Aucun logo</span>';
+      rm.style.display = 'none';
+    }
+  }
+
+  // Redimensionné dans le navigateur avant l'envoi : un logo de 4000 px serait
+  // rechargé sur chaque écran et sur chaque document pour un rendu de 52 px.
+  function redimensionner(file, maxLargeur){
+    return new Promise((resolve, reject)=>{
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = ()=>{
+        URL.revokeObjectURL(url);
+        const ratio = Math.min(1, maxLargeur / img.width);
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * ratio);
+        c.height = Math.round(img.height * ratio);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        c.toBlob(b => b ? resolve(b) : reject(new Error('conversion')), 'image/png', 0.92);
+      };
+      img.onerror = ()=>{ URL.revokeObjectURL(url); reject(new Error('lecture')); };
+      img.src = url;
+    });
+  }
+
+  logoInput.addEventListener('change', async ()=>{
+    const file = logoInput.files && logoInput.files[0];
+    if(!file) return;
+    if(file.size > 2 * 1024 * 1024){
+      showToast('Le fichier dépasse 2 Mo. Choisissez une image plus légère.', true);
+      logoInput.value = '';
+      return;
+    }
+    const btn = document.getElementById('logo-btn');
+    btn.disabled = true; btn.textContent = 'Envoi…';
+    try{
+      const blob = await redimensionner(file, 400);
+      const chemin = `${session.user.id}/logo-${Date.now()}.png`;
+      const { error } = await supabase.storage.from('logos').upload(chemin, blob, {
+        contentType:'image/png', upsert:true
+      });
+      if(error) throw error;
+      const { data } = supabase.storage.from('logos').getPublicUrl(chemin);
+      profil.logo_url = data.publicUrl;
+      majLogoApercu();
+      monterEntete({ ...profil }, 'reglages', estAdmin);
+      rendreApercuUI();
+      rendreApercuDoc();
+      majBarre();
+      showToast('Logo chargé. Pensez à enregistrer.');
+    }catch(err){
+      showToast("L'envoi du logo a échoué. Vérifiez que le bucket « logos » existe dans Supabase.", true);
+    }finally{
+      btn.disabled = false; btn.textContent = 'Choisir une image';
+      logoInput.value = '';
+    }
+  });
+
+  document.getElementById('logo-remove').addEventListener('click', ()=>{
+    profil.logo_url = null;
+    majLogoApercu();
+    monterEntete({ ...profil }, 'reglages', estAdmin);
+    rendreApercuUI(); rendreApercuDoc(); majBarre();
+  });
+
+  // -------------------------------------------------------------- prestations
+  function echapper(s){ const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+
+  function rendrePrestations(){
+    const liste = document.getElementById('prest-list');
+    const vide = document.getElementById('prest-empty');
+    if(!prestations.length){
+      liste.innerHTML = ''; vide.style.display = 'block'; return;
+    }
+    vide.style.display = 'none';
+    liste.innerHTML = prestations.map(p => `
+      <div class="prest-row" data-id="${p.id}">
+        <div class="pr-main">
+          <div class="pr-lib">${echapper(p.libelle)}</div>
+          <div class="pr-meta">${p.duree_minutes} min${p.description ? ' · ' + echapper(p.description) : ''}</div>
+        </div>
+        <div class="pr-prix">${new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(p.prix_unitaire || 0)}</div>
+        <button class="icon-btn edit" type="button" aria-label="Modifier ${echapper(p.libelle)}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
+        </button>
+        <button class="icon-btn danger del" type="button" aria-label="Supprimer ${echapper(p.libelle)}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
+        </button>
+      </div>`).join('');
+
+    liste.querySelectorAll('.prest-row').forEach(row=>{
+      const p = prestations.find(x => x.id === row.dataset.id);
+      row.querySelector('.edit').addEventListener('click', ()=> editerPrestation(p));
+      row.querySelector('.del').addEventListener('click', ()=> supprimerPrestation(p));
+    });
+  }
+
+  function editerPrestation(p){
+    document.getElementById('prest-id').value = p.id;
+    document.getElementById('prest-libelle').value = p.libelle;
+    document.getElementById('prest-description').value = p.description || '';
+    document.getElementById('prest-prix').value = p.prix_unitaire;
+    document.getElementById('prest-duree').value = p.duree_minutes;
+    document.getElementById('prest-tva').value = p.tva_taux;
+    document.getElementById('prest-save').textContent = 'Mettre à jour';
+    document.getElementById('prest-cancel').style.display = '';
+    document.getElementById('prest-libelle').focus();
+  }
+
+  function reinitPrestationForm(){
+    document.getElementById('prest-id').value = '';
+    document.getElementById('prest-form').reset();
+    document.getElementById('prest-prix').value = 0;
+    document.getElementById('prest-duree').value = 60;
+    document.getElementById('prest-tva').value = facturation.assujetti_tva ? (facturation.tva_taux_defaut || 20) : 0;
+    document.getElementById('prest-save').textContent = 'Ajouter la prestation';
+    document.getElementById('prest-cancel').style.display = 'none';
+    setFieldError('prest-libelle','');
+  }
+  document.getElementById('prest-cancel').addEventListener('click', reinitPrestationForm);
+
+  document.getElementById('prest-form').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const libelle = document.getElementById('prest-libelle').value.trim();
+    if(setFieldError('prest-libelle', libelle.length < 2 ? 'Indiquez le nom de la prestation.' : '')) return;
+
+    const id = document.getElementById('prest-id').value;
+    const payload = {
+      libelle,
+      description: document.getElementById('prest-description').value.trim() || null,
+      prix_unitaire: Number(document.getElementById('prest-prix').value) || 0,
+      duree_minutes: Number(document.getElementById('prest-duree').value) || 60,
+      tva_taux: Number(document.getElementById('prest-tva').value) || 0,
+      position: id ? undefined : prestations.length
+    };
+    if(payload.position === undefined) delete payload.position;
+
+    const btn = document.getElementById('prest-save');
+    btn.disabled = true;
+    const { error } = id
+      ? await supabase.from('prestations').update(payload).eq('id', id)
+      // Posé explicitement à l'espace actif — voir la note dans clients.html.
+      : await supabase.from('prestations').insert({ ...payload, owner_id: espaceId });
+    btn.disabled = false;
+
+    if(error){ showToast("L'enregistrement de la prestation a échoué.", true); return; }
+    showToast(id ? 'Prestation mise à jour.' : 'Prestation ajoutée.');
+    reinitPrestationForm();
+    await chargerPrestations();
+  });
+
+  async function supprimerPrestation(p){
+    if(!window.confirm(`Supprimer « ${p.libelle} » ? Les documents déjà créés ne sont pas modifiés.`)) return;
+    const { error } = await supabase.from('prestations').delete().eq('id', p.id);
+    if(error){ showToast('La suppression a échoué.', true); return; }
+    showToast('Prestation supprimée.');
+    await chargerPrestations();
+  }
+
+  async function chargerPrestations(){
+    const { data } = await supabase.from('prestations').select('*').order('position');
+    prestations = data || [];
+    rendrePrestations();
+  }
+
+  // ------------------------------------------------------------------- agenda
+  function urlFlux(token){
+    return `${window.location.origin}/api/agenda?t=${token}`;
+  }
+
+  async function chargerFlux(){
+    const { data } = await supabase.from('calendar_feeds').select('token').maybeSingle();
+    const box = document.getElementById('feed-url');
+    if(data && data.token){
+      feedToken = data.token;
+      box.textContent = urlFlux(feedToken);
+      box.title = urlFlux(feedToken);
+    } else {
+      box.textContent = 'Aucun flux — cliquez sur « Régénérer » pour en créer un.';
+      box.title = '';
+    }
+  }
+
+  document.getElementById('feed-copy').addEventListener('click', async ()=>{
+    if(!feedToken){ showToast("Aucun flux à copier — régénérez-le d'abord.", true); return; }
+    try{
+      await navigator.clipboard.writeText(urlFlux(feedToken));
+      showToast('Adresse copiée.');
+    }catch(e){
+      showToast('La copie automatique a échoué — sélectionnez l’adresse à la main.', true);
+    }
+  });
+
+  document.getElementById('feed-rotate').addEventListener('click', async ()=>{
+    if(feedToken && !window.confirm("Régénérer l'adresse ? Les agendas déjà abonnés cesseront de se mettre à jour et devront être réabonnés.")) return;
+    const { data, error } = await supabase.rpc('rotate_calendar_feed_token');
+    if(error){ showToast('La régénération a échoué.', true); return; }
+    feedToken = data;
+    document.getElementById('feed-url').textContent = urlFlux(feedToken);
+    document.getElementById('feed-url').title = urlFlux(feedToken);
+    showToast('Nouvelle adresse générée.');
+  });
+
+  async function chargerGoogle(){
+    const { data } = await supabase.from('calendar_connections').select('*').maybeSingle();
+    googleConn = data || null;
+    const box = document.getElementById('google-state');
+    const titre = document.getElementById('google-state-title');
+    const desc = document.getElementById('google-state-desc');
+    const connect = document.getElementById('google-connect');
+    const deco = document.getElementById('google-disconnect');
+    const note = document.getElementById('google-setup-note');
+
+    if(googleConn && googleConn.actif){
+      box.classList.add('on');
+      titre.textContent = 'Relié';
+      desc.textContent = googleConn.account_email
+        ? `Vos rendez-vous sont poussés vers ${googleConn.account_email}.`
+        : 'Vos rendez-vous sont poussés vers votre agenda Google.';
+      connect.style.display = 'none';
+      deco.style.display = '';
+      note.style.display = 'none';
+    } else {
+      box.classList.remove('on');
+      titre.textContent = 'Non relié';
+      desc.textContent = "Aucun compte Google n'est connecté à cet espace.";
+      connect.style.display = '';
+      deco.style.display = 'none';
+      note.style.display = '';
+    }
+  }
+
+  document.getElementById('google-connect').addEventListener('click', async ()=>{
+    const btn = document.getElementById('google-connect');
+    btn.disabled = true;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider:'google',
+      options:{
+        scopes:'https://www.googleapis.com/auth/calendar.events',
+        redirectTo: window.location.origin + '/parametres.html?tab=agenda&google=retour',
+        queryParams:{ access_type:'offline', prompt:'consent' }
+      }
+    });
+    if(error){
+      btn.disabled = false;
+      showToast("Google n'est pas encore activé côté Supabase (Authentication → Providers).", true);
+    }
+  });
+
+  document.getElementById('google-disconnect').addEventListener('click', async ()=>{
+    if(!window.confirm('Délier Google Calendar ? Les rendez-vous déjà poussés restent dans votre agenda Google.')) return;
+    const { error } = await supabase.from('calendar_connections').delete().eq('owner_id', session.user.id);
+    if(error){ showToast('La déconnexion a échoué.', true); return; }
+    await chargerGoogle();
+    showToast('Google Calendar délié.');
+  });
+
+  // Retour du consentement Google : la session porte alors un provider_token.
+  async function traiterRetourGoogle(){
+    const params = new URLSearchParams(window.location.search);
+    if(params.get('google') !== 'retour') return;
+    const { data } = await supabase.auth.getSession();
+    const s = data.session;
+    if(s && s.provider_token){
+      await supabase.from('calendar_connections').upsert({
+        owner_id: s.user.id,
+        provider: 'google',
+        account_email: s.user.email,
+        calendar_id: 'primary',
+        actif: true,
+        connected_at: new Date().toISOString()
+      });
+      showToast('Google Calendar relié.');
+    } else {
+      showToast("Le consentement Google n'a pas abouti. Réessayez.", true);
+    }
+    const url = new URL(window.location);
+    url.searchParams.delete('google');
+    history.replaceState(null, '', url);
+    await chargerGoogle();
+  }
+
+  // ------------------------------------------------------------- équipe
+  // `monPlan` est renseigné par init() depuis la ligne `profiles` de l'utilisateur
+  // CONNECTÉ (jamais celle de l'espace actif) : c'est bien SON abonnement Studio
+  // qui autorise ou non l'invitation, pas celui de l'espace où il travaille.
+  let monPlan = 'solo';
+
+  function estProprietaire(){ return espaceId === session.user.id; }
+
+  function urlInvitation(token){
+    return `${window.location.origin}/parametres.html?invite=${encodeURIComponent(token)}`;
+  }
+
+  async function accepterInvitationEnAttente(){
+    const params = new URLSearchParams(window.location.search);
+    let jeton = params.get('invite');
+    if(!jeton){
+      try{ jeton = sessionStorage.getItem('cadence:invite_token'); }catch(e){}
+    }
+    if(!jeton) return;
+
+    const { error } = await supabase.rpc('accepter_invitation', { p_token: jeton });
+    // Une erreur ici couvre surtout le cas où le jeton a déjà été consommé —
+    // notamment par handle_new_user() au moment même de l'inscription, si la
+    // personne s'est créé un compte depuis ce lien. Ce n'est pas une vraie
+    // erreur pour l'utilisateur : on nettoie et on continue sans toast rouge.
+    if(!error){
+      viderCacheEspace();
+      viderCacheBrand();
+      showToast('Vous avez rejoint l’espace de travail.');
+    }
+    try{ sessionStorage.removeItem('cadence:invite_token'); }catch(e){}
+    const url = new URL(window.location);
+    url.searchParams.delete('invite');
+    history.replaceState(null, '', url);
+  }
+
+  async function chargerEquipe(){
+    monPlan = (await supabase.from('profiles').select('plan').eq('id', session.user.id).maybeSingle()).data?.plan || 'solo';
+
+    const proprio = estProprietaire();
+
+    // -------- carte « espace de travail » : bascule entre espaces --------
+    const { data: appartenances } = await supabase
+      .from('workspace_members')
+      .select('workspace_id')
+      .eq('user_id', session.user.id)
+      .eq('statut', 'actif');
+
+    const espaceCard = document.getElementById('espace-card');
+    const espaceSub = document.getElementById('espace-sub');
+    const espaceList = document.getElementById('espace-list');
+
+    if(!proprio || (appartenances && appartenances.length)){
+      espaceCard.style.display = '';
+      let nomEspaceActuel = 'votre espace';
+      if(!proprio){
+        const { data: pOwner } = await supabase.from('profiles').select('business_name, full_name').eq('id', espaceId).maybeSingle();
+        nomEspaceActuel = pOwner?.business_name || pOwner?.full_name || 'cet espace';
+      }
+      espaceSub.textContent = proprio
+        ? 'Vous appartenez à plusieurs espaces — choisissez celui dans lequel vous travaillez.'
+        : `Vous travaillez actuellement dans l'espace de ${nomEspaceActuel}.`;
+
+      const lignes = [`
+        <div class="membre-row">
+          <div class="mb-main"><div class="mb-email">Mon espace personnel</div></div>
+          ${proprio
+            ? '<span class="badge-role actif">Actuel</span>'
+            : '<button type="button" class="btn btn-outline btn-sm" data-basculer="">Revenir ici</button>'}
+        </div>
+      `];
+
+      for(const a of (appartenances || [])){
+        const { data: pAutre } = await supabase.from('profiles').select('business_name, full_name').eq('id', a.workspace_id).maybeSingle();
+        const nom = pAutre?.business_name || pAutre?.full_name || 'Espace sans nom';
+        const actuel = a.workspace_id === espaceId;
+        lignes.push(`
+          <div class="membre-row">
+            <div class="mb-main"><div class="mb-email">${echapperTexte(nom)}</div></div>
+            ${actuel
+              ? '<span class="badge-role actif">Actuel</span>'
+              : `<button type="button" class="btn btn-outline btn-sm" data-basculer="${a.workspace_id}">Basculer ici</button>`}
+          </div>
+        `);
+      }
+      espaceList.innerHTML = lignes.join('');
+
+      espaceList.querySelectorAll('[data-basculer]').forEach(btn=>{
+        btn.addEventListener('click', async ()=>{
+          btn.disabled = true;
+          const cible = btn.dataset.basculer || null;
+          const { error } = await supabase.rpc('basculer_espace', { p_espace_id: cible });
+          if(error){ showToast("Le changement d'espace a échoué.", true); btn.disabled = false; return; }
+          viderCacheEspace(); viderCacheBrand();
+          window.location.href = 'parametres.html?tab=equipe';
+        });
+      });
+    } else {
+      espaceCard.style.display = 'none';
+    }
+
+    // -------- cartes « gestion d'équipe » : réservées au propriétaire --------
+    document.getElementById('equipe-gestion-card').style.display = (proprio && monPlan === 'studio') ? '' : 'none';
+    document.getElementById('equipe-gate-card').style.display = (proprio && monPlan !== 'studio') ? '' : 'none';
+    if(!proprio || monPlan !== 'studio') return;
+
+    const { data: membres } = await supabase
+      .from('workspace_members')
+      .select('*')
+      .eq('workspace_id', espaceId)
+      .in('statut', ['invite','actif'])
+      .order('invited_at');
+
+    const liste = document.getElementById('membre-list');
+    const vide = document.getElementById('membre-empty');
+    if(!membres || !membres.length){
+      liste.innerHTML = '';
+      vide.style.display = '';
+    } else {
+      vide.style.display = 'none';
+      liste.innerHTML = membres.map(m => `
+        <div class="membre-row" data-id="${m.id}">
+          <div class="mb-main">
+            <div class="mb-email">${echapperTexte(m.email)}</div>
+            <div class="mb-meta">${m.statut === 'actif' ? 'Membre actif depuis le ' + formatDateFr(m.joined_at) : 'Invitation envoyée le ' + formatDateFr(m.invited_at)}</div>
+          </div>
+          <span class="badge-role ${m.statut}">${m.statut === 'actif' ? 'Actif' : 'Invité'}</span>
+          <button type="button" class="icon-btn danger" data-revoquer="${m.id}" title="Révoquer" aria-label="Révoquer ${echapperTexte(m.email)}">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
+          </button>
+        </div>
+      `).join('');
+
+      liste.querySelectorAll('[data-revoquer]').forEach(btn=>{
+        btn.addEventListener('click', async ()=>{
+          if(!window.confirm('Révoquer ce membre ? Il perdra immédiatement l’accès à cet espace.')) return;
+          const { error } = await supabase.rpc('revoquer_collaborateur', { p_membre_id: btn.dataset.revoquer });
+          if(error){ showToast('La révocation a échoué.', true); return; }
+          showToast('Membre révoqué.');
+          chargerEquipe();
+        });
+      });
+    }
+  }
+
+  function echapperTexte(str){
+    const d = document.createElement('div');
+    d.textContent = str == null ? '' : String(str);
+    return d.innerHTML;
+  }
+  function formatDateFr(iso){
+    if(!iso) return '';
+    return new Date(iso).toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
+  }
+
+  // ------------------------------------------------------------- sécurité
+  function showPasswordError(message){
+    document.getElementById('password-errors-heading').textContent = message;
+    document.getElementById('password-errors').classList.add('show');
+  }
+
+  document.getElementById('password-form').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    document.getElementById('password-errors').classList.remove('show');
+
+    const pwd = document.getElementById('new-password').value;
+    const pwd2 = document.getElementById('new-password-confirm').value;
+    let bad = false;
+    bad = setFieldError('new-password', pwd.length < 8 ? '8 caractères minimum.' : '') || bad;
+    bad = setFieldError('new-password-confirm', pwd2 !== pwd ? 'Les deux mots de passe ne correspondent pas.' : '') || bad;
+    if(bad) return;
+
+    const btn = document.getElementById('password-save');
+    btn.disabled = true;
+    btn.textContent = 'Mise à jour…';
+    const { error } = await supabase.auth.updateUser({ password: pwd });
+    btn.disabled = false;
+    btn.textContent = 'Mettre à jour le mot de passe';
+
+    if(error){
+      showPasswordError("Impossible de mettre à jour le mot de passe pour le moment. Réessayez dans un instant.");
+      return;
+    }
+    document.getElementById('password-form').reset();
+    showToast('Mot de passe mis à jour.');
+  });
+
+  // MFA (TOTP) — `chargerSecurite()` lit l'état réel depuis Supabase (source de
+  // vérité), jamais un simple booléen mis en cache côté client : un facteur
+  // désenrôlé depuis un autre appareil doit se refléter au prochain chargement.
+  let facteurEnAttente = null; // { id } — posé pendant l'enrôlement, avant confirmation du code
+
+  function setMfaEnrollError(message){
+    const input = document.getElementById('mfa-enroll-code');
+    const errorEl = document.getElementById('mfa-enroll-code-error');
+    if(message){
+      input.setAttribute('aria-invalid','true');
+      errorEl.querySelector('span').textContent = message;
+      errorEl.classList.add('show');
+    } else {
+      input.removeAttribute('aria-invalid');
+      errorEl.classList.remove('show');
+    }
+  }
+
+  async function chargerSecurite(){
+    const { data, error } = await supabase.auth.mfa.listFactors();
+    const facteur = !error && data.totp && data.totp.find(f => f.status === 'verified');
+
+    document.getElementById('mfa-enroll-state').style.display = 'none';
+    document.getElementById('mfa-off-state').style.display = facteur ? 'none' : '';
+    document.getElementById('mfa-on-state').style.display = facteur ? '' : 'none';
+    if(facteur){
+      document.getElementById('mfa-on-meta').textContent = facteur.created_at
+        ? 'Activée le ' + formatDateFr(facteur.created_at)
+        : 'Activée';
+    }
+  }
+
+  document.getElementById('mfa-activer-btn').addEventListener('click', async ()=>{
+    const btn = document.getElementById('mfa-activer-btn');
+    btn.disabled = true;
+    // Un compte peut accumuler des facteurs `unverified` abandonnés (QR affiché
+    // puis onglet fermé sans confirmer) : Supabase en autorise un nombre limité
+    // par utilisateur, donc on nettoie les précédents avant d'en recréer un —
+    // sinon un deuxième essai finit par échouer sans explication visible.
+    const { data: existants } = await supabase.auth.mfa.listFactors();
+    if(existants && existants.totp){
+      for(const f of existants.totp){
+        if(f.status !== 'verified') await supabase.auth.mfa.unenroll({ factorId: f.id });
+      }
+    }
+
+    const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Cadence' });
+    btn.disabled = false;
+    if(error){
+      showToast("L'activation n'a pas pu démarrer. Vérifiez que la vérification en deux étapes est activée côté Supabase (Authentication → Providers).", true);
+      return;
+    }
+
+    facteurEnAttente = { id: data.id };
+    document.getElementById('mfa-qr').src = data.totp.qr_code;
+    document.getElementById('mfa-secret').textContent = data.totp.secret;
+    setMfaEnrollError('');
+    document.getElementById('mfa-enroll-code').value = '';
+    document.getElementById('mfa-off-state').style.display = 'none';
+    document.getElementById('mfa-enroll-state').style.display = '';
+    document.getElementById('mfa-enroll-code').focus();
+  });
+
+  document.getElementById('mfa-secret-copy').addEventListener('click', async ()=>{
+    try{
+      await navigator.clipboard.writeText(document.getElementById('mfa-secret').textContent);
+      showToast('Clé copiée.');
+    }catch(e){
+      showToast('Impossible de copier automatiquement — sélectionnez la clé à la main.', true);
+    }
+  });
+
+  document.getElementById('mfa-confirmer-btn').addEventListener('click', async ()=>{
+    if(!facteurEnAttente) return;
+    const code = document.getElementById('mfa-enroll-code').value.trim();
+    if(!/^\d{6}$/.test(code)){
+      setMfaEnrollError('Saisissez les 6 chiffres du code.');
+      return;
+    }
+    setMfaEnrollError('');
+
+    const btn = document.getElementById('mfa-confirmer-btn');
+    btn.disabled = true;
+    btn.textContent = 'Vérification…';
+
+    const { data: challengeData, error: challengeErr } = await supabase.auth.mfa.challenge({ factorId: facteurEnAttente.id });
+    if(challengeErr){
+      btn.disabled = false;
+      btn.textContent = 'Confirmer';
+      setMfaEnrollError("La vérification n'a pas pu être lancée. Réessayez.");
+      return;
+    }
+
+    const { error: verifyErr } = await supabase.auth.mfa.verify({
+      factorId: facteurEnAttente.id, challengeId: challengeData.id, code
+    });
+
+    btn.disabled = false;
+    btn.textContent = 'Confirmer';
+
+    if(verifyErr){
+      setMfaEnrollError('Ce code est incorrect ou a expiré.');
+      return;
+    }
+
+    facteurEnAttente = null;
+    await chargerSecurite();
+    showToast('Vérification en deux étapes activée.');
+  });
+
+  document.getElementById('mfa-annuler-btn').addEventListener('click', async ()=>{
+    if(facteurEnAttente){
+      await supabase.auth.mfa.unenroll({ factorId: facteurEnAttente.id });
+      facteurEnAttente = null;
+    }
+    await chargerSecurite();
+  });
+
+  document.getElementById('mfa-desactiver-btn').addEventListener('click', async ()=>{
+    if(!window.confirm("Désactiver la vérification en deux étapes ? Un mot de passe seul suffira de nouveau pour se connecter à ce compte.")) return;
+    const { data } = await supabase.auth.mfa.listFactors();
+    const facteur = data && data.totp && data.totp.find(f => f.status === 'verified');
+    if(!facteur) return;
+    const { error } = await supabase.auth.mfa.unenroll({ factorId: facteur.id });
+    if(error){ showToast('La désactivation a échoué.', true); return; }
+    await chargerSecurite();
+    showToast('Vérification en deux étapes désactivée.');
+  });
+
+  document.getElementById('invite-form').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const input = document.getElementById('invite-email');
+    const email = input.value.trim();
+    if(setFieldError('invite-email', !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? "L'adresse email doit être au format nom@domaine.fr." : '')) return;
+
+    const btn = document.getElementById('invite-save');
+    btn.disabled = true;
+    btn.textContent = 'Envoi…';
+    const { data, error } = await supabase.rpc('inviter_collaborateur', { p_email: email });
+    btn.disabled = false;
+    btn.textContent = "Envoyer l'invitation";
+
+    if(error){
+      showToast(error.message?.includes('Studio') ? error.message : "L'invitation a échoué. Réessayez.", true);
+      return;
+    }
+
+    input.value = '';
+    const box = document.getElementById('invite-link-box');
+    const hint = document.getElementById('invite-link-hint');
+    const url = urlInvitation(data.invite_token);
+    document.getElementById('invite-link-url').textContent = url;
+    document.getElementById('invite-link-url').title = url;
+    box.style.display = '';
+    hint.style.display = '';
+    showToast('Invitation créée — partagez le lien ci-dessous.');
+    chargerEquipe();
+  });
+
+  document.getElementById('invite-link-copy').addEventListener('click', async ()=>{
+    const url = document.getElementById('invite-link-url').textContent;
+    try{
+      await navigator.clipboard.writeText(url);
+      showToast('Lien copié.');
+    }catch(e){
+      showToast('Copie impossible — sélectionnez le lien manuellement.', true);
+    }
+  });
+
+  // ---------------------------------------------------------- enregistrement
+  function valider(){
+    let ko = false;
+    ko = setFieldError('business_name', (profil.business_name || '').trim().length < 2 ? 'Indiquez le nom sous lequel vous travaillez.' : '') || ko;
+    const mail = (facturation.emetteur_email || '').trim();
+    ko = setFieldError('emetteur_email', mail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail) ? "L'adresse email doit être au format nom@domaine.fr." : '') || ko;
+    const siret = (facturation.siret || '').replace(/\s/g,'');
+    ko = setFieldError('siret', siret && !/^\d{14}$/.test(siret) ? 'Le numéro SIRET doit contenir 14 chiffres.' : '') || ko;
+    return !ko;
+  }
+
+  saveBtn.addEventListener('click', async ()=>{
+    if(!valider()){
+      showToast('Corrigez les champs signalés avant d’enregistrer.', true);
+      const premier = document.querySelector('[aria-invalid="true"]');
+      if(premier){
+        const panneau = premier.closest('.panel');
+        if(panneau) activerOnglet(panneau.id.replace('panel-',''));
+        premier.focus();
+      }
+      return;
+    }
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Enregistrement…';
+
+    const pProfil = {
+      id: session.user.id,
+      business_name: profil.business_name,
+      metier: profil.metier || 'autre',
+      terme_singulier: profil.terme_singulier,
+      terme_pluriel: profil.terme_pluriel,
+      accent: profil.accent || ACCENT_DEFAUT,
+      densite: profil.densite || 'confortable',
+      logo_url: profil.logo_url,
+      style_interface: STYLES[profil.style_interface] ? profil.style_interface : STYLE_DEFAUT
+    };
+    // owner_id vise l'espace actif, pas forcément la ligne de l'utilisateur
+    // connecté : un collaborateur qui modifie la facturation doit corriger les
+    // réglages PARTAGÉS de l'espace, sinon son enregistrement créerait une
+    // ligne orpheline sous son propre id, jamais relue par personne (la RLS de
+    // lecture filtre déjà sur l'espace actif — voir migration v3, section 5).
+    const pFact = { ...facturation, owner_id: espaceId };
+    delete pFact.created_at; delete pFact.updated_at;
+
+    const pReserv = { ...reservation, owner_id: espaceId };
+    delete pReserv.created_at; delete pReserv.updated_at;
+
+    const [r1, r2, r3] = await Promise.all([
+      supabase.from('profiles').upsert(pProfil, { onConflict:'id' }),
+      supabase.from('parametres_facturation').upsert(pFact, { onConflict:'owner_id' }),
+      supabase.from('parametres_reservation').upsert(pReserv, { onConflict:'owner_id' })
+    ]);
+
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Enregistrer';
+
+    if(r3.error && r3.error.code === '23505'){
+      setFieldError('resa-slug', 'Ce lien est déjà pris, essayez une variante.');
+      showToast("L'enregistrement a échoué.", true);
+      return;
+    }
+    if(r1.error || r2.error || r3.error){
+      showToast("L'enregistrement a échoué. Réessayez dans un instant.", true);
+      return;
+    }
+
+    initial = { profil: clone(profil), facturation: clone(facturation), reservation: clone(reservation) };
+    viderCacheBrand();
+    appliquerTheme({ ...profil });
+    monterEntete({ ...profil }, 'reglages', estAdmin);
+    majIdentiteSidebar();
+    majBarre();
+    showToast('Paramètres enregistrés.');
+  });
+
+  document.getElementById('discard-btn').addEventListener('click', ()=>{
+    profil = clone(initial.profil);
+    facturation = clone(initial.facturation);
+    reservation = clone(initial.reservation);
+    remplirChamps();
+    monterAccents();
+    monterStyles();
+    majCouleursDocument();
+    appliquerTheme({ ...profil });
+    monterEntete({ ...profil }, 'reglages', estAdmin);
+    majIdentiteSidebar();
+    rendreApercuUI(); rendreApercuDoc(); majBarre();
+    showToast('Modifications annulées.');
+  });
+
+  window.addEventListener('beforeunload', (e)=>{
+    if(estModifie()){ e.preventDefault(); e.returnValue = ''; }
+  });
+
+  async function seDeconnecter(){
+    viderCacheBrand();
+    await supabase.auth.signOut();
+    window.location.href = 'login.html';
+  }
+  document.getElementById('logout-btn').addEventListener('click', seDeconnecter);
+  document.getElementById('sidebar-logout-btn').addEventListener('click', seDeconnecter);
+
+  // -------------------------------------------------------------- démarrage
+  (async function init(){
+    const { data } = await supabase.auth.getSession();
+    session = data.session;
+    if(!session){ window.location.href = 'login.html'; return; }
+    document.getElementById('user-email').textContent = session.user.email;
+    document.getElementById('sidebar-email').textContent = session.user.email;
+
+    // Une invitation en attente doit être acceptée AVANT de résoudre l'espace
+    // actif ci-dessous : accepter_invitation() modifie espace_actif_id, et le
+    // cache de idEspaceActif() doit repartir de zéro pour ne pas renvoyer la
+    // valeur d'avant l'acceptation.
+    await accepterInvitationEnAttente();
+    espaceId = await idEspaceActif(supabase);
+
+    const [rp, rf, rr] = await Promise.all([
+      supabase.from('profiles').select('*').maybeSingle(),
+      supabase.from('parametres_facturation').select('*').maybeSingle(),
+      supabase.from('parametres_reservation').select('*').maybeSingle()
+    ]);
+
+    profil = {
+      business_name: rp.data?.business_name || rp.data?.full_name || '',
+      metier: rp.data?.metier || 'autre',
+      terme_singulier: rp.data?.terme_singulier || null,
+      terme_pluriel: rp.data?.terme_pluriel || null,
+      accent: ACCENTS[rp.data?.accent] ? rp.data.accent : ACCENT_DEFAUT,
+      densite: rp.data?.densite === 'compacte' ? 'compacte' : 'confortable',
+      logo_url: rp.data?.logo_url || null,
+      style_interface: STYLES[rp.data?.style_interface] ? rp.data.style_interface : STYLE_DEFAUT
+    };
+
+    facturation = rf.data ? { ...rf.data } : {
+      emetteur_nom: rp.data?.full_name || '', emetteur_email: session.user.email,
+      emetteur_pays:'France', assujetti_tva:false, tva_taux_defaut:20,
+      delai_paiement_jours:30, penalites_retard: PENALITES_DEFAUT,
+      prefixe_devis:'DEV', prefixe_facture:'FAC',
+      modele:'moderne', couleur_document:'theme',
+      afficher_logo:true, afficher_mention_cadence:true,
+      relances_activees:true, relance_delai_jours:7
+    };
+    delete facturation.owner_id;
+
+    reservation = rr.data ? { ...rr.data } : {
+      activee: false, slug: null,
+      jours_ouvres: [1,2,3,4,5],
+      heure_debut: '09:00', heure_fin: '18:00',
+      intervalle_minutes: 30, delai_min_heures: 24, horizon_jours: 30
+    };
+    delete reservation.owner_id;
+
+    // `is_admin` est un attribut du compte connecté (celui de `rp`, jamais
+    // filtré sur l'espace actif) — voir la même remarque dans theme.js.
+    estAdmin = !!rp.data?.is_admin;
+
+    initial = { profil: clone(profil), facturation: clone(facturation), reservation: clone(reservation) };
+
+    // L'en-tête affiche la marque de l'ESPACE actif (celle qu'imprimera un devis),
+    // pas forcément le profil qu'on modifie ci-dessous : un collaborateur édite
+    // son propre profil individuel, mais travaille sous l'identité du propriétaire.
+    const brandAffiche = estProprietaire() ? { ...profil } : await chargerBrand(supabase, espaceId);
+    appliquerTheme(brandAffiche);
+    monterEntete(brandAffiche, 'reglages', estAdmin);
+    majIdentiteSidebar(brandAffiche);
+    monterAccents();
+    monterStyles();
+    majCouleursDocument();
+    remplirChamps();
+    rendreApercuUI();
+    rendreApercuDoc();
+    reinitPrestationForm();
+
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+
+    const onglet = new URLSearchParams(window.location.search).get('tab');
+    activerOnglet(tabs.some(t => t.dataset.tab === onglet) ? onglet : 'entreprise');
+
+    await Promise.all([chargerPrestations(), chargerFlux(), chargerGoogle(), chargerEquipe(), chargerSecurite()]);
+    await traiterRetourGoogle();
+  })();
+  }
+</script>
+
+</body>
+</html>

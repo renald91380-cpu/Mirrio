@@ -120,6 +120,11 @@ export default async function handler(req, res){
     const a = await appelant(req);
     if(!a) return json(res, 401, { error: 'Connexion requise.' });
     const c = await corps(req), action = String(c.action || '');
+    // Le terminal SumUp et le lien de paiement Stripe sont écrits pour l'euro : refusés aux salons suisses et marocains (profil pays, schema-v49).
+    if(['config', 'appairer', 'payer', 'lien'].includes(action)){
+      const [pf] = await lire(`parametres_facturation?owner_id=eq.${a.espace}&select=profil_pays`).catch(() => []);
+      if(pf && ['CH', 'MA'].includes(pf.profil_pays)) return json(res, 400, { error: 'Le terminal de paiement et le lien de paiement ne sont pas encore disponibles pour la Suisse et le Maroc : encaissez sur votre terminal habituel puis choisissez « Carte ».' });
+    }
 
     if(action === 'config'){
       if(!a.admin) return json(res, 403, { error: 'Seul le propriétaire du salon règle le terminal.' });

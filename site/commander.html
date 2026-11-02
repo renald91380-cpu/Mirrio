@@ -147,7 +147,8 @@
 
   var $ = function(s, r){ return (r || document).querySelector(s); };
   var esc = function(s){ var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; };
-  var euros = function(n){ return new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR' }).format(n); };
+  var DEVISE = 'EUR';   // monnaie du salon : posée dès que l'API répond (champ `pays`)
+  var euros = function(n){ return new Intl.NumberFormat(window.I18N ? window.I18N.locale : 'fr-FR', { style:'currency', currency:DEVISE }).format(n); };
   var JOURS = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
   var ICONES = { 'Entremets':'ph-cake', 'Gâteaux de fête et layer cakes':'ph-cake', 'Gâteaux de fête':'ph-cake', 'Pièces montées':'ph-confetti', 'Pièces montées et croquembouches':'ph-confetti', 'Tartes et tartelettes':'ph-pie-chart', 'Tartes':'ph-pie-chart', 'Petits fours':'ph-cookie', 'Petits fours et mignardises':'ph-cookie', 'Pâtisseries individuelles':'ph-cookie', 'Macarons':'ph-cookie', 'Viennoiseries':'ph-bread', 'Pains spéciaux et brioches':'ph-bread', 'Salé et buffets':'ph-bread' };
 
@@ -183,7 +184,7 @@
   }
 
   function rendre(d){
-    etat.donnees = d;
+    etat.donnees = d; DEVISE = ({ CH:"CHF", MA:"MAD" })[d.pays] || "EUR";
     document.title = 'Commander une pâtisserie | ' + d.nom;
     $('#nom-boutique').textContent = d.nom + (d.ville ? ' · ' + d.ville : '');
     var r = d.regles;

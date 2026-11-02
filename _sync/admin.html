@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Back-office — Cadence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="chrome.css">
+<style>
+  :root{
+    --ink:#1C2333;
+    --parchment:#F5F1E7;
+    --slate:#8B8F98;
+    --amber:#E2A63D;
+    --amber-soft:#f0c98a;
+    --teal:#3E7C74;
+    --brick:#B5533F;
+    --display:'Fraunces', Georgia, serif;
+    --body:'Inter', Arial, sans-serif;
+    --mono:'IBM Plex Mono', 'Courier New', monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:var(--body); background:var(--parchment); color:var(--ink);
+    line-height:1.5; -webkit-font-smoothing:antialiased; min-height:100vh;
+  }
+  img,svg{display:block;}
+  a{color:inherit; text-decoration:none;}
+  button, input, select{font-family:inherit;}
+
+  .logo{ font-family:var(--display); font-weight:700; font-size:20px; display:flex; align-items:baseline; gap:2px; }
+  .logo .dot{ color:var(--amber); }
+  .badge-admin{
+    font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--ink); background:var(--amber); padding:3px 9px; border-radius:20px;
+  }
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    padding:10px 18px; border-radius:6px; font-weight:600; font-size:14px;
+    border:none; cursor:pointer; min-height:40px;
+    transition:transform .15s ease, box-shadow .15s ease, background .15s ease, opacity .15s ease;
+  }
+  .btn-primary{ background:var(--amber); color:var(--ink); }
+  .btn-primary:hover{ transform:translateY(-1px); box-shadow:0 8px 18px rgba(226,166,61,0.28); }
+  .btn-ghost{ background:transparent; color:var(--parchment); border:1px solid rgba(245,241,231,0.28); }
+  .btn-ghost:hover{ border-color:rgba(245,241,231,0.6); }
+  .btn-outline{ background:transparent; border:1px solid rgba(28,35,51,0.2); color:var(--ink); }
+  .btn-outline:hover{ border-color:rgba(28,35,51,0.4); }
+  .btn-sm{ padding:8px 14px; font-size:13px; min-height:34px; }
+  .btn:focus-visible, a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible{
+    outline:2px solid var(--teal); outline-offset:2px;
+  }
+
+  .app-header{
+    background:var(--ink); color:var(--parchment);
+    padding:16px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px;
+  }
+  .app-header-left{ display:flex; align-items:center; gap:14px; }
+  .app-header-right{ display:flex; align-items:center; gap:16px; }
+  .user-email{ font-size:13px; color:rgba(245,241,231,0.55); display:none; }
+  @media(min-width:640px){ .user-email{ display:block; } }
+
+  .app-main{ padding:36px 20px 60px; }
+  .app-container{ max-width:1100px; margin:0 auto; }
+  .page-head{ margin-bottom:28px; display:flex; align-items:baseline; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+  .page-head h1{ font-family:var(--display); font-weight:700; font-size:28px; margin-bottom:6px; }
+  .page-head p{ font-size:14px; color:rgba(28,35,51,0.6); }
+  .retour-app{ font-size:13.5px; font-weight:600; color:var(--teal); white-space:nowrap; }
+
+  .loading-state, .denied-state{ text-align:center; padding:72px 20px; color:rgba(28,35,51,0.5); font-size:14px; }
+
+  .stat-row{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:16px; margin-bottom:20px; }
+  .stat-card{ background:#fff; border:1px solid rgba(28,35,51,0.09); border-radius:12px; padding:18px 20px; }
+  .stat-label{ font-size:11.5px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:rgba(28,35,51,0.5); margin-bottom:8px; }
+  .stat-value{ font-family:var(--display); font-size:27px; font-weight:700; line-height:1.1; }
+  .stat-sub{ font-size:12px; color:rgba(28,35,51,0.5); margin-top:6px; }
+
+  .grid-2col{ display:grid; grid-template-columns:1.1fr 1fr; gap:20px; align-items:start; }
+  @media(max-width:860px){ .grid-2col{ grid-template-columns:1fr; } }
+
+  .card{ background:#fff; border:1px solid rgba(28,35,51,0.09); border-radius:12px; padding:22px 24px; margin-bottom:20px; }
+  .card h2{ font-family:var(--display); font-size:18px; font-weight:700; margin-bottom:4px; }
+  .card-sub{ font-size:13px; color:rgba(28,35,51,0.55); margin-bottom:18px; }
+
+  /* ---------- Camembert métiers ---------- */
+  .donut-wrap{ display:flex; gap:26px; align-items:center; flex-wrap:wrap; }
+  .donut{ width:168px; height:168px; border-radius:50%; flex-shrink:0; position:relative; }
+  .donut::after{
+    content:''; position:absolute; inset:24px; border-radius:50%; background:#fff;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .donut-total{
+    position:absolute; inset:24px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-family:var(--mono); z-index:1;
+  }
+  .donut-total b{ font-size:22px; font-family:var(--display); }
+  .donut-total span{ font-size:10.5px; color:rgba(28,35,51,0.5); text-transform:uppercase; letter-spacing:.04em; }
+  .legend{ display:flex; flex-direction:column; gap:9px; flex:1; min-width:180px; }
+  .legend-row{ display:flex; align-items:center; gap:9px; font-size:13.5px; }
+  .legend-dot{ width:11px; height:11px; border-radius:3px; flex-shrink:0; }
+  .legend-label{ flex:1; }
+  .legend-value{ font-family:var(--mono); color:rgba(28,35,51,0.55); font-size:12.5px; }
+  .metier-table{ margin-top:16px; }
+  .sr-table{ width:100%; border-collapse:collapse; font-size:13px; }
+  .sr-table caption{ text-align:left; font-size:11.5px; color:rgba(28,35,51,0.45); margin-bottom:6px; }
+  .sr-table th, .sr-table td{ text-align:left; padding:5px 8px; border-bottom:1px solid rgba(28,35,51,0.06); }
+
+  /* ---------- Capacité ---------- */
+  .capacite-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:10px; }
+  .capacite-chiffre{ font-family:var(--mono); font-size:13.5px; color:rgba(28,35,51,0.6); }
+  .jauge{ height:12px; border-radius:20px; background:rgba(28,35,51,0.08); overflow:hidden; margin-bottom:8px; }
+  .jauge-fill{ height:100%; border-radius:20px; transition:width .3s ease; }
+  .jauge-fill.ok{ background:var(--teal); }
+  .jauge-fill.attention{ background:var(--amber); }
+  .jauge-fill.alerte{ background:var(--brick); }
+  .capacite-note{ font-size:12.5px; color:rgba(28,35,51,0.55); margin-bottom:16px; }
+  .capacite-note.alerte{ color:var(--brick); font-weight:600; }
+  .seuil-row{ display:flex; align-items:center; gap:10px; margin-bottom:18px; flex-wrap:wrap; }
+  .seuil-row label{ font-size:13px; color:rgba(28,35,51,0.6); }
+  .seuil-row input{ width:80px; padding:8px 10px; border:1px solid rgba(28,35,51,0.2); border-radius:6px; font-size:14px; font-family:var(--mono); }
+  .seuil-msg{ font-size:12.5px; color:var(--teal); }
+
+  .paliers{ display:flex; flex-direction:column; gap:10px; }
+  .palier-row{ display:flex; justify-content:space-between; gap:12px; padding:10px 12px; background:rgba(28,35,51,0.03); border-radius:8px; font-size:13px; }
+  .palier-nom{ font-weight:600; }
+  .palier-detail{ color:rgba(28,35,51,0.55); font-size:12px; margin-top:2px; }
+  .palier-prix{ font-family:var(--mono); font-weight:600; white-space:nowrap; }
+  .sources{ font-size:11.5px; color:rgba(28,35,51,0.4); margin-top:12px; line-height:1.6; }
+  .sources a{ color:var(--teal); text-decoration:underline; }
+
+  /* ---------- Table clients ---------- */
+  .filtres{ display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+  .filtres input, .filtres select{ padding:9px 12px; border:1px solid rgba(28,35,51,0.2); border-radius:6px; font-size:13.5px; }
+  .filtres input{ flex:1; min-width:180px; }
+  .table-scroll{ overflow-x:auto; }
+  table.clients-table{ width:100%; border-collapse:collapse; font-size:13px; min-width:1180px; }
+  .clients-table th{
+    text-align:left; padding:9px 10px; font-size:11.5px; font-weight:600; text-transform:uppercase;
+    letter-spacing:.04em; color:rgba(28,35,51,0.5); border-bottom:1px solid rgba(28,35,51,0.12); white-space:nowrap;
+  }
+  .clients-table td{ padding:10px 10px; border-bottom:1px solid rgba(28,35,51,0.06); vertical-align:top; }
+  .clients-table tr:hover td{ background:rgba(28,35,51,0.015); }
+  .plan-pill{ font-size:11px; font-weight:600; padding:2px 9px; border-radius:20px; white-space:nowrap; }
+  .plan-pill.solo{ background:rgba(139,143,152,0.15); color:rgba(28,35,51,0.7); }
+  .plan-pill.studio{ background:rgba(62,124,116,0.14); color:var(--teal); }
+  .statut-pill{ font-size:11px; font-weight:600; padding:2px 9px; border-radius:20px; white-space:nowrap; }
+  .statut-pill.actif{ background:rgba(62,124,116,0.14); color:var(--teal); }
+  .statut-pill.inactif{ background:rgba(181,83,63,0.13); color:var(--brick); }
+  .cell-entreprise .nom{ font-weight:600; }
+  .cell-entreprise .email{ font-size:12px; color:rgba(28,35,51,0.5); }
+  .table-empty{ text-align:center; padding:40px 20px; color:rgba(28,35,51,0.5); font-size:13.5px; }
+  .table-foot{ font-size:12px; color:rgba(28,35,51,0.5); margin-top:10px; }
+
+  /* ---------- Répartition géographique ---------- */
+  .geo-list{ display:flex; flex-direction:column; gap:8px; }
+  .geo-row{ display:grid; grid-template-columns:140px 1fr auto; align-items:center; gap:10px; font-size:13px; }
+  .geo-pays{ font-weight:600; }
+  .geo-bar-track{ height:8px; border-radius:20px; background:rgba(28,35,51,0.07); overflow:hidden; }
+  .geo-bar-fill{ height:100%; border-radius:20px; background:var(--teal); }
+  .geo-valeur{ font-family:var(--mono); font-size:12px; color:rgba(28,35,51,0.55); white-space:nowrap; }
+
+  .inactivite-row{ display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+  .inactivite-row label{ font-size:13px; color:rgba(28,35,51,0.6); }
+  .inactivite-row input{ width:80px; padding:8px 10px; border:1px solid rgba(28,35,51,0.2); border-radius:6px; font-size:14px; font-family:var(--mono); }
+  .inactivite-msg{ font-size:12.5px; color:var(--teal); }
+  .assumption-note{ font-size:12px; color:rgba(28,35,51,0.45); margin-top:14px; line-height:1.6; }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-header-left">
+    <span class="logo">Cadence<span class="dot">.</span></span>
+    <span class="badge-admin">Admin</span>
+  </div>
+  <div class="app-header-right">
+    <span class="user-email" id="user-email"></span>
+    <a href="dashboard.html" class="btn btn-ghost btn-sm">Retour à l'app</a>
+    <button class="btn btn-ghost btn-sm" id="logout-btn" type="button">Se déconnecter</button>
+  </div>
+</header>
+
+<div class="app-shell">
+  <aside class="app-sidebar">
+    <div class="logo">Cadence<span class="dot">.</span></div>
+    <div class="logo-badge" aria-hidden="true"></div>
+    <nav class="sidebar-nav"></nav>
+    <div class="sidebar-spacer"></div>
+    <div class="sidebar-user">
+      <span class="sidebar-avatar" id="sidebar-avatar">–</span>
+      <div class="sidebar-user-text">
+        <div class="name" id="sidebar-name">…</div>
+        <div class="email" id="sidebar-email"></div>
+      </div>
+      <button class="icon-btn" id="sidebar-logout-btn" type="button" aria-label="Se déconnecter" title="Se déconnecter">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </aside>
+
+<main class="app-main">
+  <div class="app-container">
+    <div class="page-head">
+      <div>
+        <h1>Back-office Cadence</h1>
+        <p>Vue exploitant : combien de clients, quels métiers, et la capacité restante avant de devoir upscaler.</p>
+      </div>
+    </div>
+
+    <div id="loading-state" class="loading-state">Chargement…</div>
+    <div id="denied-state" class="denied-state" style="display:none;">Accès non autorisé. Redirection…</div>
+
+    <div id="content-view" style="display:none;">
+
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="stat-label">Clients Cadence</div>
+          <div class="stat-value" id="stat-total">—</div>
+          <div class="stat-sub">Un espace de travail = un client</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Formule Solo</div>
+          <div class="stat-value" id="stat-solo">—</div>
+          <div class="stat-sub">15€/mois</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Formule Studio</div>
+          <div class="stat-value" id="stat-studio">—</div>
+          <div class="stat-sub">29€/mois</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Nouveaux (30 jours)</div>
+          <div class="stat-value" id="stat-nouveaux">—</div>
+          <div class="stat-sub" id="stat-nouveaux-sub">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Comptes actifs</div>
+          <div class="stat-value" id="stat-actifs">—</div>
+          <div class="stat-sub">Connectés récemment</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Comptes arrêtés</div>
+          <div class="stat-value" id="stat-inactifs">—</div>
+          <div class="stat-sub" id="stat-inactifs-sub">—</div>
+        </div>
+      </div>
+
+      <div class="grid-2col">
+        <div class="card">
+          <h2>Répartition par métier</h2>
+          <p class="card-sub">Type d'activité des clients Cadence, déclaré dans leurs Paramètres.</p>
+          <div class="donut-wrap">
+            <div class="donut" id="donut">
+              <div class="donut-total"><b id="donut-total-n">—</b><span>clients</span></div>
+            </div>
+            <div class="legend" id="legend"></div>
+          </div>
+          <table class="sr-table metier-table">
+            <caption>Version tableau, pour lecteur d'écran</caption>
+            <thead><tr><th>Métier</th><th>Clients</th><th>Part</th></tr></thead>
+            <tbody id="metier-tbody"></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h2>Capacité &amp; coûts</h2>
+          <p class="card-sub">Estimation basée sur le nombre de comptes — pas une mesure directe de l'usage réel. Vérifie la consommation exacte sur les dashboards Supabase/Vercel (liens en bas).</p>
+
+          <div class="capacite-head">
+            <strong>Seuil d'alerte</strong>
+            <span class="capacite-chiffre" id="capacite-chiffre">—</span>
+          </div>
+          <div class="jauge"><div class="jauge-fill" id="jauge-fill" style="width:0%;"></div></div>
+          <div class="capacite-note" id="capacite-note"></div>
+
+          <div class="seuil-row">
+            <label for="seuil-input">Changer le seuil :</label>
+            <input type="number" id="seuil-input" min="1" step="1">
+            <button class="btn btn-outline btn-sm" id="seuil-save" type="button">Enregistrer</button>
+            <span class="seuil-msg" id="seuil-msg"></span>
+          </div>
+
+          <div class="paliers">
+            <div class="palier-row">
+              <div>
+                <div class="palier-nom">Supabase — Free (actuel)</div>
+                <div class="palier-detail">500 Mo base, 50 000 MAU, 5 Go egress</div>
+              </div>
+              <div class="palier-prix">0 €/mois</div>
+            </div>
+            <div class="palier-row">
+              <div>
+                <div class="palier-nom">Supabase — Pro</div>
+                <div class="palier-detail">8 Go base, 100 000 MAU, 250 Go egress</div>
+              </div>
+              <div class="palier-prix">dès 25 $/mois</div>
+            </div>
+            <div class="palier-row">
+              <div>
+                <div class="palier-nom">Vercel — Hobby (actuel supposé)</div>
+                <div class="palier-detail">100 Go bande passante, 1 M invocations, cron 1×/jour</div>
+              </div>
+              <div class="palier-prix">0 €/mois</div>
+            </div>
+            <div class="palier-row">
+              <div>
+                <div class="palier-nom">Vercel — Pro</div>
+                <div class="palier-detail">1 To bande passante, invocations à l'usage</div>
+              </div>
+              <div class="palier-prix">dès 20 $/mois/membre</div>
+            </div>
+          </div>
+          <div class="sources">
+            Chiffres août 2026, à vérifier avant décision : <a href="https://supabase.com/pricing" target="_blank" rel="noopener">supabase.com/pricing</a>, <a href="https://vercel.com/pricing" target="_blank" rel="noopener">vercel.com/pricing</a>. Usage réel : dashboard Supabase → Project Settings → Usage, et dashboard Vercel → Usage.
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Répartition géographique</h2>
+        <p class="card-sub">Ville/pays déclarés par chaque praticien dans Paramètres → Devis &amp; factures — pas de géolocalisation IP, donc « Non renseigné » tant que le champ est vide.</p>
+        <div class="geo-list" id="geo-list"></div>
+      </div>
+
+      <div class="card">
+        <h2>Clients Cadence</h2>
+        <p class="card-sub">Infos de compte et indicateurs d'activité — pas le détail des devis/factures de leurs propres clients.</p>
+
+        <div class="inactivite-row">
+          <label for="inactivite-input">Considérer un compte « arrêté » après (jours sans connexion) :</label>
+          <input type="number" id="inactivite-input" min="1" step="1">
+          <button class="btn btn-outline btn-sm" id="inactivite-save" type="button">Enregistrer</button>
+          <span class="inactivite-msg" id="inactivite-msg"></span>
+        </div>
+
+        <div class="filtres">
+          <input type="text" id="filtre-recherche" placeholder="Rechercher une entreprise, un nom, un email…">
+          <select id="filtre-metier"><option value="">Tous les métiers</option></select>
+          <select id="filtre-plan">
+            <option value="">Toutes les formules</option>
+            <option value="solo">Solo</option>
+            <option value="studio">Studio</option>
+          </select>
+          <select id="filtre-statut">
+            <option value="">Tous les statuts</option>
+            <option value="actif">Actifs</option>
+            <option value="inactif">Arrêtés</option>
+          </select>
+        </div>
+        <div class="table-scroll">
+          <table class="clients-table">
+            <thead>
+              <tr>
+                <th>Entreprise</th>
+                <th>Métier</th>
+                <th>Formule</th>
+                <th>Statut</th>
+                <th>Localisation</th>
+                <th>Inscrit le</th>
+                <th>Dernière connexion</th>
+                <th>Clients gérés</th>
+                <th>Devis</th>
+                <th>Factures</th>
+                <th>CA encaissé</th>
+                <th>Collabs</th>
+              </tr>
+            </thead>
+            <tbody id="clients-tbody"></tbody>
+          </table>
+        </div>
+        <div id="clients-empty" class="table-empty" style="display:none;">Aucun résultat pour ce filtre.</div>
+        <div class="table-foot" id="clients-foot"></div>
+        <p class="assumption-note">Cadence n'a pas d'intégration de paiement (pas de Stripe) : « Formule » reflète le choix solo/studio déclaré, pas un abonnement facturé en direct. « Statut » est déduit de la dernière connexion, pas d'une résiliation explicite.</p>
+      </div>
+
+    </div>
+  </div>
+</main>
+</div>
+
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+  import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
+  import { initTheme, formaterNomAffichage, initiales } from './theme.js';
+
+  const configured = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_ANON_KEY.includes('YOUR-ANON');
+  if(!configured){
+    document.body.innerHTML = '<div style="max-width:480px;margin:80px auto;text-align:center;padding:0 20px;font-family:Inter,Arial,sans-serif;">' +
+      '<h1 style="font-family:Fraunces,Georgia,serif;font-size:24px;margin-bottom:12px;">Supabase non configuré</h1>' +
+      '<p style="color:rgba(28,35,51,0.6);line-height:1.6;">Renseignez <code>supabase-config.js</code>.</p></div>';
+  } else {
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  async function seDeconnecter(){
+    await supabase.auth.signOut();
+    window.location.href = 'login.html';
+  }
+  document.getElementById('logout-btn').addEventListener('click', seDeconnecter);
+  document.getElementById('sidebar-logout-btn').addEventListener('click', seDeconnecter);
+
+  // Ordre fixe (jamais recalculé dynamiquement) pour rester cohérent d'un
+  // rechargement à l'autre — l'identité d'un métier doit toujours porter la
+  // même couleur.
+  const METIER_LABELS = {
+    photographe: 'Photographe', coach: 'Coach sportif', formateur: 'Formateur',
+    professeur: 'Professeur particulier', consultant: 'Consultant',
+    therapeute: 'Praticien bien-être', esthetique: 'Esthéticienne / institut',
+    coiffure: 'Coiffeur·euse', onglerie: 'Prothésiste ongulaire', autre: 'Autre métier'
+  };
+  const METIER_COULEURS = {
+    photographe: '#E2A63D', coach: '#3E7C74', formateur: '#4C6FA5',
+    professeur: '#B5533F', consultant: '#8B6BAE', therapeute: '#7A8B4F',
+    esthetique: '#C15B7A', coiffure: '#3F6B52', onglerie: '#A6763B', autre: '#8B8F98'
+  };
+  const METIER_ORDRE = ['photographe','coach','formateur','professeur','consultant','therapeute','esthetique','coiffure','onglerie','autre'];
+
+  function formatEuros(n){
+    return new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR', maximumFractionDigits:0 }).format(n || 0);
+  }
+  function formatDate(d){
+    if(!d) return '—';
+    return new Intl.DateTimeFormat('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' }).format(new Date(d));
+  }
+  function formatDateHeure(d){
+    if(!d) return 'Jamais connecté';
+    return new Intl.DateTimeFormat('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }).format(new Date(d));
+  }
+  function formatLocalisation(ville, pays){
+    if(ville && pays) return `${ville}, ${pays}`;
+    if(pays) return pays;
+    if(ville) return ville;
+    return 'Non renseigné';
+  }
+
+  function dessinerGeo(pays, total){
+    const wrap = document.getElementById('geo-list');
+    if(!total){
+      wrap.innerHTML = '<div class="geo-row">Aucun client pour l’instant.</div>';
+      return;
+    }
+    const entrees = Object.entries(pays || {}).sort((a, b) => b[1] - a[1]);
+    const max = entrees.length ? entrees[0][1] : 1;
+    wrap.innerHTML = entrees.map(([nom, n]) => {
+      const pct = Math.round((n / total) * 100);
+      const largeur = Math.round((n / max) * 100);
+      return `
+        <div class="geo-row">
+          <span class="geo-pays">${nom}</span>
+          <span class="geo-bar-track"><span class="geo-bar-fill" style="width:${largeur}%;"></span></span>
+          <span class="geo-valeur">${n} · ${pct}%</span>
+        </div>`;
+    }).join('');
+  }
+
+  function dessinerDonut(metiers, total){
+    const el = document.getElementById('donut');
+    const legend = document.getElementById('legend');
+    const tbody = document.getElementById('metier-tbody');
+    document.getElementById('donut-total-n').textContent = String(total);
+
+    if(!total){
+      el.style.background = 'rgba(28,35,51,0.08)';
+      legend.innerHTML = '<div class="legend-row">Aucun client pour l’instant.</div>';
+      tbody.innerHTML = '';
+      return;
+    }
+
+    let angle = 0;
+    const stops = [];
+    const entrees = METIER_ORDRE
+      .map(cle => ({ cle, n: metiers[cle] || 0 }))
+      .filter(e => e.n > 0)
+      .sort((a, b) => b.n - a.n);
+
+    legend.innerHTML = '';
+    tbody.innerHTML = '';
+    entrees.forEach(({ cle, n }) => {
+      const part = n / total;
+      const deg = part * 360;
+      const couleur = METIER_COULEURS[cle] || '#8B8F98';
+      stops.push(`${couleur} ${angle}deg ${angle + deg}deg`);
+      angle += deg;
+
+      const pct = Math.round(part * 100);
+      legend.insertAdjacentHTML('beforeend', `
+        <div class="legend-row">
+          <span class="legend-dot" style="background:${couleur};"></span>
+          <span class="legend-label">${METIER_LABELS[cle] || cle}</span>
+          <span class="legend-value">${n} · ${pct}%</span>
+        </div>
+      `);
+      tbody.insertAdjacentHTML('beforeend', `
+        <tr><td>${METIER_LABELS[cle] || cle}</td><td>${n}</td><td>${pct}%</td></tr>
+      `);
+    });
+
+    el.style.background = `conic-gradient(${stops.join(', ')})`;
+  }
+
+  function majJauge(total, seuil){
+    const pct = seuil > 0 ? Math.min(999, Math.round((total / seuil) * 100)) : 0;
+    const fill = document.getElementById('jauge-fill');
+    const note = document.getElementById('capacite-note');
+    fill.style.width = Math.min(100, pct) + '%';
+    fill.className = 'jauge-fill ' + (pct >= 100 ? 'alerte' : pct >= 70 ? 'attention' : 'ok');
+    document.getElementById('capacite-chiffre').textContent = `${total} / ${seuil} clients (${pct}%)`;
+    if(pct >= 100){
+      note.textContent = 'Seuil atteint ou dépassé — regarde les paliers ci-dessous avant de continuer à ouvrir les inscriptions.';
+      note.className = 'capacite-note alerte';
+    } else if(pct >= 70){
+      note.textContent = 'Tu approches du seuil — commence à regarder ce que coûterait un palier supérieur.';
+      note.className = 'capacite-note alerte';
+    } else {
+      note.textContent = 'Marge confortable pour le moment.';
+      note.className = 'capacite-note';
+    }
+  }
+
+  function majDelaiEstime(total, seuil, nouveaux30j){
+    const sub = document.getElementById('stat-nouveaux-sub');
+    if(nouveaux30j <= 0){
+      sub.textContent = 'Pas assez de signups récents pour estimer';
+      return;
+    }
+    const restant = seuil - total;
+    if(restant <= 0){
+      sub.textContent = 'Seuil déjà atteint';
+      return;
+    }
+    const parJour = nouveaux30j / 30;
+    const joursRestants = Math.round(restant / parJour);
+    if(joursRestants >= 60){
+      sub.textContent = `≈ ${Math.round(joursRestants / 30)} mois avant le seuil au rythme actuel`;
+    } else {
+      sub.textContent = `≈ ${joursRestants} jours avant le seuil au rythme actuel`;
+    }
+  }
+
+  let clientsCache = [];
+
+  function rendreTable(){
+    const recherche = document.getElementById('filtre-recherche').value.trim().toLowerCase();
+    const metier = document.getElementById('filtre-metier').value;
+    const plan = document.getElementById('filtre-plan').value;
+    const statut = document.getElementById('filtre-statut').value;
+
+    const filtres = clientsCache.filter(c => {
+      if(metier && c.metier !== metier) return false;
+      if(plan && c.plan !== plan) return false;
+      if(statut && c.statut_activite !== statut) return false;
+      if(recherche){
+        const hay = `${c.business_name || ''} ${c.full_name || ''} ${c.email || ''}`.toLowerCase();
+        if(!hay.includes(recherche)) return false;
+      }
+      return true;
+    });
+
+    const tbody = document.getElementById('clients-tbody');
+    const empty = document.getElementById('clients-empty');
+    document.getElementById('clients-foot').textContent = `${filtres.length} sur ${clientsCache.length} client(s)`;
+
+    if(!filtres.length){
+      tbody.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+
+    tbody.innerHTML = filtres.map(c => `
+      <tr>
+        <td class="cell-entreprise">
+          <div class="nom">${c.business_name || c.full_name || '(sans nom)'}</div>
+          <div class="email">${c.email || ''}</div>
+        </td>
+        <td>${METIER_LABELS[c.metier] || c.metier || '—'}</td>
+        <td><span class="plan-pill ${c.plan}">${c.plan === 'studio' ? 'Studio' : 'Solo'}</span></td>
+        <td><span class="statut-pill ${c.statut_activite}">${c.statut_activite === 'actif' ? 'Actif' : 'Arrêté'}</span></td>
+        <td>${formatLocalisation(c.ville, c.pays)}</td>
+        <td>${formatDate(c.created_at)}</td>
+        <td>${formatDateHeure(c.derniere_connexion)}</td>
+        <td>${c.nb_clients}</td>
+        <td>${c.nb_devis}</td>
+        <td>${c.nb_factures}</td>
+        <td>${formatEuros(c.ca_encaisse)}</td>
+        <td>${c.nb_collaborateurs}</td>
+      </tr>
+    `).join('');
+  }
+
+  (async function init(){
+    const { data } = await supabase.auth.getSession();
+    const session = data.session;
+    if(!session){ window.location.href = 'login.html'; return; }
+    document.getElementById('user-email').textContent = session.user.email;
+    document.getElementById('sidebar-email').textContent = session.user.email;
+    const brand = await initTheme(supabase, 'admin');
+    const nomAffiche = brand.business_name && brand.business_name !== 'Cadence'
+      ? brand.business_name
+      : (brand.full_name ? formaterNomAffichage(brand.full_name) : session.user.email);
+    document.getElementById('sidebar-name').textContent = nomAffiche;
+    document.getElementById('sidebar-avatar').textContent = initiales(nomAffiche);
+
+    const { data: stats, error: statsErr } = await supabase.rpc('admin_stats');
+    if(statsErr || !stats){
+      document.getElementById('loading-state').style.display = 'none';
+      document.getElementById('denied-state').style.display = 'block';
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, 1200);
+      return;
+    }
+
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('content-view').style.display = 'block';
+
+    document.getElementById('stat-total').textContent = String(stats.total_clients);
+    document.getElementById('stat-solo').textContent = String(stats.total_solo);
+    document.getElementById('stat-studio').textContent = String(stats.total_studio);
+    document.getElementById('stat-nouveaux').textContent = String(stats.nouveaux_30j);
+    document.getElementById('stat-actifs').textContent = String(stats.actifs);
+    document.getElementById('stat-inactifs').textContent = String(stats.inactifs);
+    document.getElementById('stat-inactifs-sub').textContent = `Sans connexion depuis ${stats.seuil_inactivite_jours}+ jours`;
+
+    dessinerDonut(stats.metiers || {}, stats.total_clients);
+    dessinerGeo(stats.pays || {}, stats.total_clients);
+    majJauge(stats.total_clients, stats.seuil_alerte);
+    majDelaiEstime(stats.total_clients, stats.seuil_alerte, stats.nouveaux_30j);
+
+    document.getElementById('seuil-input').value = stats.seuil_alerte;
+    document.getElementById('seuil-save').addEventListener('click', async () => {
+      const val = parseInt(document.getElementById('seuil-input').value, 10);
+      const msg = document.getElementById('seuil-msg');
+      if(!val || val < 1){ msg.textContent = 'Seuil invalide.'; return; }
+      const { error } = await supabase.rpc('admin_definir_seuil', { p_seuil: val });
+      if(error){ msg.textContent = 'Erreur : ' + error.message; return; }
+      msg.textContent = 'Seuil enregistré.';
+      majJauge(stats.total_clients, val);
+      majDelaiEstime(stats.total_clients, val, stats.nouveaux_30j);
+      setTimeout(() => { msg.textContent = ''; }, 2500);
+    });
+
+    document.getElementById('inactivite-input').value = stats.seuil_inactivite_jours;
+    document.getElementById('inactivite-save').addEventListener('click', async () => {
+      const val = parseInt(document.getElementById('inactivite-input').value, 10);
+      const msg = document.getElementById('inactivite-msg');
+      if(!val || val < 1){ msg.textContent = 'Seuil invalide.'; return; }
+      const { error } = await supabase.rpc('admin_definir_seuil_inactivite', { p_jours: val });
+      if(error){ msg.textContent = 'Erreur : ' + error.message; return; }
+      msg.textContent = 'Seuil enregistré — rechargez la page pour recalculer les statuts.';
+    });
+
+    const { data: clients } = await supabase.rpc('admin_liste_clients');
+    clientsCache = clients || [];
+
+    const metierSelect = document.getElementById('filtre-metier');
+    METIER_ORDRE.forEach(cle => {
+      if(clientsCache.some(c => c.metier === cle)){
+        metierSelect.insertAdjacentHTML('beforeend', `<option value="${cle}">${METIER_LABELS[cle]}</option>`);
+      }
+    });
+
+    document.getElementById('filtre-recherche').addEventListener('input', rendreTable);
+    document.getElementById('filtre-metier').addEventListener('change', rendreTable);
+    document.getElementById('filtre-plan').addEventListener('change', rendreTable);
+    document.getElementById('filtre-statut').addEventListener('change', rendreTable);
+    rendreTable();
+  })();
+  }
+</script>
+
+</body>
+</html>

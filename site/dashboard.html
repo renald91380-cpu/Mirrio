@@ -273,6 +273,7 @@
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
   import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
   import { initTheme, idEspaceActif, formaterNomAffichage, initiales, prenomConnecte } from './theme.js';
+  import { formaterMontant, profil as profilPays } from './pays-profils.js';
   import { calculerTotaux } from './document-render.js';
 
   const configured = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_ANON_KEY.includes('YOUR-ANON');
@@ -292,7 +293,7 @@
   document.getElementById('sidebar-logout-btn').addEventListener('click', seDeconnecter);
 
   function formatEuros(n){
-    return new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR', maximumFractionDigits:0 }).format(n || 0);
+    return formaterMontant(n || 0, { maximumFractionDigits:0 });
   }
   function formatDate(d){
     if(!d) return '—';

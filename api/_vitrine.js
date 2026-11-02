@@ -45,7 +45,7 @@ export default async function handler(req, res){
 
     const [[profil], [fact], [vitrine], equipe, prestations, avis] = await Promise.all([
       get(`profiles?id=eq.${id}&select=business_name,full_name,logo_url,accent,metier`),
-      ouVide(get(`parametres_facturation?owner_id=eq.${id}&select=emetteur_ville`), []),
+      ouVide(get(`parametres_facturation?owner_id=eq.${id}&select=emetteur_ville,profil_pays`).catch(() => get(`parametres_facturation?owner_id=eq.${id}&select=emetteur_ville`)), []),
       ouVide(get(`vitrine?owner_id=eq.${id}&select=*`), []),
       ouVide(get(`vitrine_equipe?owner_id=eq.${id}&select=nom,role,bio,photo_url&order=position`), []),
       get(`prestations?owner_id=eq.${id}&actif=eq.true&select=id,libelle,description,prix_unitaire,duree_minutes,public_cible,categorie&order=position`)
@@ -67,6 +67,7 @@ export default async function handler(req, res){
       logo_url: profil?.logo_url || null,
       accent: profil?.accent || 'ambre',
       ville: fact?.emetteur_ville || null,
+      pays: fact?.profil_pays || 'FR',   // monnaie d'affichage des prix (schema-v49)
       horaires: { jours: reglage.jours_ouvres, debut: reglage.heure_debut, fin: reglage.heure_fin },
       styles: reglage.styles || [],
       tarifs,

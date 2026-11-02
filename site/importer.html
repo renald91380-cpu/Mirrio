@@ -303,6 +303,7 @@
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
   import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
   import { initTheme, idEspaceActif, formaterNomAffichage, initiales, prenomConnecte } from './theme.js';
+  import { formaterMontant, profil as profilPays } from './pays-profils.js';
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const $ = s => document.querySelector(s);
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
@@ -407,7 +408,7 @@
   const TAUX = [0, 2.1, 5.5, 8.5, 10, 20];
   const r4 = n => Math.round((n + Number.EPSILON) * 10000) / 10000, r2 = n => Math.round((n + Number.EPSILON) * 100) / 100;
   const nearest = t => TAUX.reduce((a, b) => Math.abs(b - t) < Math.abs(a - t) ? b : a, 0);
-  const eur = n => (Number(n) || 0).toLocaleString('fr-FR', { style:'currency', currency:'EUR' });
+  const eur = n => formaterMontant(Number(n) || 0);
 
   // ---------------------------------------------------------------- état
   let nature = null, entetes = [], rows = [], nomFichier = '', mapping = {}, prepares = [], refuses = [], etape = 1;

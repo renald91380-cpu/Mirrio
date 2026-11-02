@@ -180,6 +180,7 @@
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
   import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
   import { idEspaceActif, chargerBrand } from './theme.js';
+  import { formaterMontant, profil as profilPays, definirProfil, tauxTva } from './pays-profils.js';
   import { calculerTotaux, MENTION_FRANCHISE_TVA } from './document-render.js';
   import { htmlRapport, STYLE_RAPPORT } from './audit-isca.js';
   const DEMO = new URLSearchParams(location.search).get('demo') === '1';
@@ -189,7 +190,7 @@
   const $ = s => document.querySelector(s);
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
   const r2 = n => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
-  const eur = n => r2(n).toLocaleString('fr-FR', { style:'currency', currency:'EUR' });
+  const eur = n => formaterMontant(r2(n));
   const heure = d => new Date(d).toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
   const jourHeure = d => new Date(d).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
   const num = v => { const n = Number(String(v == null ? '' : v).replace(',', '.')); return isFinite(n) && n >= 0 ? n : 0; };
@@ -228,7 +229,7 @@
       supabase.from('clients').select('id,full_name,phone,email').eq('owner_id', espaceId).order('full_name').limit(1000),
       supabase.from('produits').select('*').eq('owner_id', espaceId).eq('actif', true).order('position').then(r => r.error ? { data:[] } : r)
     ]);
-    brand = b || {}; params = f.data || {}; prestations = pr.data || []; clients = cl.data || []; produits = pd.data || [];
+    brand = b || {}; params = f.data || {}; definirProfil(params.profil_pays || 'FR'); prestations = pr.data || []; clients = cl.data || []; produits = pd.data || [];
     await lireTerminal();
     try{ const r = await supabase.from('fidelite_programmes').select('*').eq('owner_id', espaceId).maybeSingle(); fid = r.data && r.data.actif ? r.data : null; }catch(e){ fid = null; }
     try{ const { data: eq } = await supabase.from('vitrine_equipe').select('id,nom').eq('owner_id', espaceId).order('position'); equipe = eq || []; }catch(e){ equipe = []; }
@@ -299,7 +300,7 @@
     const { d, fin } = ouvrir(`<h2>Montant libre</h2>
       <div class="champ"><label for="lib">Libellé</label><input id="lib" value="Vente" maxlength="80"></div>
       <div class="champ"><label for="mt">Montant ${assujetti() ? 'TTC' : ''} (€)</label><input id="mt" inputmode="decimal" autofocus></div>
-      ${assujetti() ? `<div class="champ"><label for="tx">TVA (%)</label><select id="tx">${[20, 10, 5.5, 2.1, 0].map(t => `<option value="${t}"${t === tauxDefaut() ? ' selected' : ''}>${t} %</option>`).join('')}</select></div>` : ''}
+      ${assujetti() ? `<div class="champ"><label for="tx">TVA (%)</label><select id="tx">${tauxTva().map(t => `<option value="${t}"${t === tauxDefaut() ? ' selected' : ''}>${t} %</option>`).join('')}</select></div>` : ''}
       <p class="erreur" id="err" role="alert"></p>
       <div class="actions"><button class="btn" id="non" type="button">Annuler</button><button class="btn principal" id="ok" type="button">Ajouter</button></div>`);
     d.querySelector('#non').onclick = () => d.fermer(null);
@@ -704,7 +705,7 @@
         <span class="muted" style="font-size:13px">Affichée sur la caisse comme repère : elle n'est jamais appliquée sans votre action (bouton « −10 % » sur la ligne).</span></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div class="champ"><label for="ps">Stock actuel (facultatif)</label><input id="ps" inputmode="decimal" value="${p && p.stock != null ? String(p.stock).replace('.', ',') : ''}" placeholder="Vide = non suivi"></div>
         <div class="champ"><label for="psm">Alerte à partir de</label><input id="psm" inputmode="decimal" value="${p && p.stock_min != null ? String(p.stock_min).replace('.', ',') : ''}" placeholder="Ex. 3"></div></div>
-      ${assujetti() ? `<div class="champ"><label for="pt">TVA (%)</label><select id="pt">${[20, 10, 5.5, 2.1, 0].map(t => `<option value="${t}"${t === (p ? Number(p.tva_taux) : tauxDefaut()) ? ' selected' : ''}>${t} %</option>`).join('')}</select></div>` : ''}
+      ${assujetti() ? `<div class="champ"><label for="pt">TVA (%)</label><select id="pt">${tauxTva().map(t => `<option value="${t}"${t === (p ? Number(p.tva_taux) : tauxDefaut()) ? ' selected' : ''}>${t} %</option>`).join('')}</select></div>` : ''}
       <div class="champ"><label for="pr">Code-barres ou référence (facultatif)</label><div style="display:flex;gap:8px"><input id="pr" maxlength="40" inputmode="numeric" autocomplete="off" value="${esc(p ? p.reference || '' : preset.reference || '')}" style="flex:1"><button class="btn" id="scan" type="button">Scanner</button></div>
         <span class="muted" style="font-size:13px">Scannez avec la caméra, ou avec un lecteur USB ou Bluetooth (il saisit le code et valide).</span></div>
       <label style="display:flex;gap:8px;align-items:center;margin:6px 0"><input type="checkbox" id="pa"${!p || p.actif ? ' checked' : ''}> En vente</label>
@@ -824,7 +825,7 @@
       <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="muted">Total</span><span class="gros">${eur(t.totalTTC)}</span></div>
       <div style="display:flex;justify-content:space-between"><span class="muted">Reste à payer</span><b id="reste"></b></div>
       <div class="champ" style="margin-top:12px"><label for="mm">Montant de ce paiement (€)</label><input id="mm" inputmode="decimal"></div>
-      <div class="modes" id="modes">${Object.entries(MODES).filter(([k]) => k !== 'acompte').map(([k, l]) => `<button type="button" data-m="${k}" aria-pressed="false">${l}</button>`).join('')}${terminal.reader_pret && !formation ? '<button type="button" class="terminal" id="b-terminal">Terminal carte</button>' : ''}${terminal.lien_pret && !formation ? '<button type="button" class="terminal" id="b-lien">Lien ou QR code</button>' : ''}</div>
+      <div class="modes" id="modes">${Object.entries(MODES).filter(([k]) => k !== 'acompte').map(([k, l]) => `<button type="button" data-m="${k}" aria-pressed="false">${l}</button>`).join('')}${terminal.reader_pret && !formation && profilPays().enLigne ? '<button type="button" class="terminal" id="b-terminal">Terminal carte</button>' : ''}${terminal.lien_pret && !formation && profilPays().enLigne ? '<button type="button" class="terminal" id="b-lien">Lien ou QR code</button>' : ''}</div>
       <div id="pad-especes" hidden><div class="champ"><label for="recu">Espèces reçues (€)</label><input id="recu" inputmode="decimal"></div>
         <div class="rapides" id="rapides"></div><div style="display:flex;justify-content:space-between"><span class="muted">Monnaie à rendre</span><b id="rendu">0,00 €</b></div>
         <div class="actions" style="margin-top:8px"><button class="btn sombre" id="ajout-esp" type="button">Valider les espèces</button></div></div>

@@ -493,6 +493,7 @@
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
   import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
   import { initTheme, vocabulaire, viderCacheBrand, idEspaceActif, formaterNomAffichage, initiales, prenomConnecte } from './theme.js';
+  import { formaterMontant, tauxTva } from './pays-profils.js';
   import { rendreDocument, stylesDocument, calculerTotaux, couleurDocument } from './document-render.js';
 
   const configured = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_ANON_KEY.includes('YOUR-ANON');
@@ -545,7 +546,8 @@
   // 10 % (taux réduits), 20 % (taux normal). Voir CLAUDE.md pour le contexte
   // "assujetti_tva" : ce sélecteur reste utile même en franchise en base,
   // au cas où Renald dépasse le seuil et doit se mettre à facturer la TVA.
-  const TAUX_TVA_COURANTS = [0, 5.5, 10, 20];
+  // Taux du pays de facturation du salon (pays-profils.js : FR, BE, CH, MA) ; 0 % (franchise) toujours proposé.
+  const tauxCourants = () => [...new Set([0, ...tauxTva()])].sort((a, b) => a - b);
 
   const statutLabels = {
     brouillon:'Brouillon', envoye:'Envoyé', accepte:'Accepté',
@@ -559,7 +561,7 @@
   }
 
   function formatMoney(n){
-    return new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR' }).format(n || 0);
+    return formaterMontant(n || 0);
   }
 
   function formatDate(d){
@@ -626,7 +628,7 @@
   // taux silencieusement différent de celui qui sera enregistré.
   function optionsTvaHtml(tauxActuel){
     const taux = Number(tauxActuel) || 0;
-    const valeurs = TAUX_TVA_COURANTS.includes(taux) ? TAUX_TVA_COURANTS : [...TAUX_TVA_COURANTS, taux].sort((a,b)=>a-b);
+    const valeurs = tauxCourants().includes(taux) ? tauxCourants() : [...tauxCourants(), taux].sort((a,b)=>a-b);
     return valeurs.map(t => `<option value="${t}">${String(t).replace('.', ',')} %</option>`).join('');
   }
 

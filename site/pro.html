@@ -138,7 +138,8 @@
   // Photo d'un membre de l'équipe : https uniquement, sauf en démonstration et en aperçu où une image importée dans le navigateur (data:image) est acceptée.
   const photoMembre = u => https(u) || ((apercu || (slug || '').startsWith('demo')) && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(u || '') ? u : '');
   const niveauPrix = liste => { const v = (liste || []).map(x => Number(x.prix_unitaire)).filter(n => n > 0).sort((a, b) => a - b); if(!v.length) return ''; const m = v[Math.floor(v.length / 2)]; return m <= 30 ? '€' : m <= 70 ? '€€' : m <= 150 ? '€€€' : '€€€€'; };
-  const prix = n => Number(n || 0).toFixed(2).replace('.00', '').replace('.', ',') + ' €';
+  let symbole = '€';   // monnaie du salon (CHF, MAD) : posée par rendre() d'après `pays` renvoyé par l'API
+  const prix = n => Number(n || 0).toFixed(2).replace('.00', '').replace('.', ',') + ' ' + symbole;
   const etoiles = n => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n));
   const LIB = { patisserie:'Pâtisserie', coiffure:'Coiffure', barbier:'Barbier', esthetique:'Esthétique', onglerie:'Onglerie', massage:'Massage & spa', therapeute:'Bien-être',
     coach:'Coaching', photographe:'Photographie', formateur:'Formation', professeur:'Cours particuliers', consultant:'Conseil', autre:'' };
@@ -252,6 +253,7 @@
   }
 
   function rendre(d){
+    symbole = ({ CH:'CHF', MA:'MAD' })[d.pays] || '€';
     const v = d.vitrine || {};
     const couleur = /^#[0-9a-fA-F]{6}$/.test(v.couleur || '') ? v.couleur : (ACCENTS[d.accent] || ACCENTS.ambre);
     const police = POLICES[v.police] || POLICES.moderne;

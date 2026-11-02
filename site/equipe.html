@@ -237,11 +237,12 @@
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
   import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
   import { initTheme, idEspaceActif, formaterNomAffichage, initiales, prenomConnecte } from './theme.js';
+  import { formaterMontant, profil as profilPays } from './pays-profils.js';
   const DEMO = new URLSearchParams(location.search).get('demo') === '1';
   let supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const $ = s => document.querySelector(s);
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
-  const eur = n => (Number(n) || 0).toLocaleString('fr-FR', { style:'currency', currency:'EUR', maximumFractionDigits:2 });
+  const eur = n => formaterMontant(Number(n) || 0, { maximumFractionDigits:2 });
   const r2 = n => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
   const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   let stats = null, espaceId = null;

@@ -1305,7 +1305,7 @@
            appliquerThemeEnCache, monterEntete, viderCacheBrand, chargerBrand,
            idEspaceActif, viderCacheEspace, initiales, prenomConnecte } from './theme.js';
   import { rendreDocument, stylesDocument, documentExemple, PENALITES_DEFAUT } from './document-render.js';
-  import { PROFILS, definirProfil, libelleTva } from './pays-profils.js';
+  import { PROFILS, definirProfil, libelleTva, formaterMontant } from './pays-profils.js';
 
   const configured = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_ANON_KEY.includes('YOUR-ANON');
   if(!configured){
@@ -1898,7 +1898,7 @@
           <div class="pr-lib">${echapper(p.libelle)}${BADGE[p.public_cible] ? ` <span style="font-size:11px; font-weight:600; padding:2px 7px; border-radius:20px; background:rgba(28,35,51,0.08); margin-left:6px;">${BADGE[p.public_cible]}</span>` : ''}</div>
           <div class="pr-meta">${p.duree_minutes} min${p.description ? ' · ' + echapper(p.description) : ''}</div>
         </div>
-        <div class="pr-prix">${new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(p.prix_unitaire || 0)}</div>
+        <div class="pr-prix">${formaterMontant(p.prix_unitaire || 0)}</div>
         <button class="icon-btn edit" type="button" aria-label="Modifier ${echapper(p.libelle)}">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
         </button>
