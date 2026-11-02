@@ -239,6 +239,8 @@ export default async function handler(req, res){
   const tarifs = await chargerTarifs(ownerId);
   // WhatsApp du salon (schema-v26, facultatif) : bouton « Une question ? » sur la page de confirmation.
   const whatsapp = await getDispo(`vitrine?owner_id=eq.${ownerId}&select=whatsapp`).then(l => l[0]?.whatsapp || null).catch(() => null);
+  // Pays de facturation du salon (schema-v49) : règle la monnaie affichée. FR par défaut, aussi sans la migration.
+  const pays = await getDispo(`parametres_facturation?owner_id=eq.${ownerId}&select=profil_pays`).then(l => l[0]?.profil_pays || 'FR').catch(() => 'FR');
   const profil = profils[0] || {};
   const paiement = paiements[0];
   const paiementRequis = !!(paiement?.stripe_actif && paiement?.stripe_secret_key);
@@ -252,6 +254,7 @@ export default async function handler(req, res){
       terme_singulier: profil.terme_singulier || null,
       terme_pluriel: profil.terme_pluriel || null
     },
+    pays,
     style: vitrines[0] || {},
     intervenants,
     validation_auto: validationAuto,

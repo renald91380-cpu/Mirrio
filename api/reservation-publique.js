@@ -270,7 +270,7 @@ export default async function handler(req, res){
   // l'email. Revalidé ici même si site/reservation.html le valide déjà
   // côté client — jamais confiance dans une entrée non revérifiée côté
   // serveur.
-  if(!/^(?:\+33[1-9]\d{8}|0[1-9]\d{8})$/.test(telephone.replace(/[\s.-]/g, ''))){
+  if(!/^(?:\+|00)?\d{8,15}$/.test(telephone.replace(/[\s.\-()]/g, ''))){   // numéros français, belges, suisses, marocains… (8 à 15 chiffres)
     return json(res, 400, { error: 'Numéro de téléphone invalide.' });
   }
 

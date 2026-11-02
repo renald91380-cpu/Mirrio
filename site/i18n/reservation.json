@@ -1,0 +1,632 @@
+{
+ "Réserver en ligne | Mirrio": [
+  "Book online | Mirrio",
+  "Online reserveren | Mirrio",
+  "الحجز أونلاين | Mirrio"
+ ],
+ "Aller à la réservation": [
+  "Skip to booking",
+  "Naar de reservatie",
+  "مور للحجز"
+ ],
+ "Page introuvable": [
+  "Page not found",
+  "Pagina niet gevonden",
+  "الصفحة ما لقيناهاش"
+ ],
+ "Cette page de réservation n'existe pas ou n'est plus disponible.": [
+  "This booking page does not exist or is no longer available.",
+  "Deze reservatiepagina bestaat niet of is niet meer beschikbaar.",
+  "هاد الصفحة ديال الحجز ما كايناش ولا ما بقاتش متوفرة."
+ ],
+ "WhatsApp": [
+  "WhatsApp",
+  "WhatsApp",
+  "واتساب"
+ ],
+ "Voir la page du salon": [
+  "View the salon page",
+  "Bekijk de pagina van het salon",
+  "شوف صفحة الصالون"
+ ],
+ "Réserver": [
+  "Book",
+  "Reserveren",
+  "احجز"
+ ],
+ "Choisissez vos prestations": [
+  "Choose your services",
+  "Kies uw behandelingen",
+  "ختار الخدمات ديالك"
+ ],
+ "Une ou plusieurs, elles seront enchaînées sur un même créneau.": [
+  "One or several, they will be done back to back in a single slot.",
+  "Een of meerdere, ze worden achter elkaar in dezelfde tijdsblok uitgevoerd.",
+  "وحدة ولا بزاف، غادي يتدارو ورا بعضهم فنفس الوقت."
+ ],
+ "Aucune prestation n'est disponible à la réservation pour le moment.": [
+  "No service can be booked online at the moment.",
+  "Er is momenteel geen enkele behandeling online te reserveren.",
+  "ما كاينة حتى خدمة متوفرة للحجز دابا."
+ ],
+ "← Changer de prestation": [
+  "← Change service",
+  "← Andere behandeling",
+  "← بدل الخدمة"
+ ],
+ "Changer de prestation": [
+  "Change service",
+  "Andere behandeling",
+  "بدل الخدمة"
+ ],
+ "Changer de personne": [
+  "Change person",
+  "Andere persoon",
+  "بدل الشخص"
+ ],
+ "Avec qui souhaitez-vous réserver ?": [
+  "Who would you like to book with?",
+  "Bij wie wilt u reserveren?",
+  "مع من بغيتي تحجز؟"
+ ],
+ "Seules les personnes qui assurent toutes vos prestations sont proposées.": [
+  "Only people who can do all your services are shown.",
+  "Enkel personen die al uw behandelingen uitvoeren worden voorgesteld.",
+  "كيتقترحو غير الناس اللي كيديرو كاع الخدمات ديالك."
+ ],
+ "Choisissez un créneau": [
+  "Choose a time slot",
+  "Kies een tijdstip",
+  "ختار وقت"
+ ],
+ "Choisissez un jour puis une heure.": [
+  "Choose a day, then a time.",
+  "Kies een dag en dan een uur.",
+  "ختار نهار ومن بعد الساعة."
+ ],
+ "← Changer de créneau": [
+  "← Change time slot",
+  "← Ander tijdstip",
+  "← بدل الوقت"
+ ],
+ "Vos coordonnées": [
+  "Your details",
+  "Uw gegevens",
+  "معلوماتك"
+ ],
+ "Quel tarif ?": [
+  "Which rate?",
+  "Welk tarief?",
+  "أي تعريفة؟"
+ ],
+ "Tarif normal": [
+  "Standard rate",
+  "Normaal tarief",
+  "التعريفة العادية"
+ ],
+ "Tarif enfant": [
+  "Child rate",
+  "Kindertarief",
+  "تعريفة الدراري"
+ ],
+ "Tarif étudiant": [
+  "Student rate",
+  "Studententarief",
+  "تعريفة الطلبة"
+ ],
+ "Tarif enfant (moins de {0} ans)": [
+  "Child rate (under {0})",
+  "Kindertarief (onder {0} jaar)",
+  "تعريفة الدراري (أقل من {0} عام)"
+ ],
+ "Le prix passe à {0}. L'enfant doit avoir moins de {1} ans le jour du rendez-vous.": [
+  "The price becomes {0}. The child must be under {1} on the day of the appointment.",
+  "De prijs wordt {0}. Het kind moet op de dag van de afspraak jonger zijn dan {1} jaar.",
+  "الثمن كيولي {0}. خاصو الدري يكون عندو أقل من {1} عام نهار الرونديفو."
+ ],
+ "Le prix passe à {0}. Une carte d'étudiant en cours de validité sera demandée au salon.": [
+  "The price becomes {0}. A valid student card will be requested at the salon.",
+  "De prijs wordt {0}. In het salon wordt een geldige studentenkaart gevraagd.",
+  "الثمن كيولي {0}. غادي يطلبو منك كارط الطالب صالحة فالصالون."
+ ],
+ "Comment souhaitez-vous régler ?": [
+  "How would you like to pay?",
+  "Hoe wilt u betalen?",
+  "كيفاش بغيتي تخلص؟"
+ ],
+ "Carte bancaire": [
+  "Bank card",
+  "Bankkaart",
+  "كارط بنكية"
+ ],
+ "Vous réglez tout en ligne, maintenant. Rien à payer au salon.": [
+  "You pay everything online, now. Nothing to pay at the salon.",
+  "U betaalt alles nu online. Niets te betalen in het salon.",
+  "كتخلص كلشي أونلاين، دابا. والو ما كتخلص فالصالون."
+ ],
+ "Espèces sur place": [
+  "Cash at the salon",
+  "Cash ter plaatse",
+  "كاش فالصالون"
+ ],
+ "Nom complet": [
+  "Full name",
+  "Volledige naam",
+  "الاسم الكامل"
+ ],
+ "Email": [
+  "Email",
+  "E-mail",
+  "الإيميل"
+ ],
+ "Téléphone": [
+  "Phone",
+  "Telefoon",
+  "التيليفون"
+ ],
+ "Pour vous prévenir en cas d'imprévu.": [
+  "So we can reach you if anything comes up.",
+  "Om u te verwittigen bij een onvoorziene omstandigheid.",
+  "باش نخبروك إلا وقع شي طارئ."
+ ],
+ "Envoyer la demande": [
+  "Send the request",
+  "Aanvraag versturen",
+  "صيفط الطلب"
+ ],
+ "Confirmer ma réservation": [
+  "Confirm my booking",
+  "Mijn reservatie bevestigen",
+  "أكد الحجز ديالي"
+ ],
+ "Demande envoyée": [
+  "Request sent",
+  "Aanvraag verstuurd",
+  "الطلب تصيفط"
+ ],
+ "Rendez-vous confirmé": [
+  "Appointment confirmed",
+  "Afspraak bevestigd",
+  "الرونديفو تأكد"
+ ],
+ "Ajouter à mon agenda": [
+  "Add to my calendar",
+  "Aan mijn agenda toevoegen",
+  "زيد فالأجندة ديالي"
+ ],
+ "Mes rendez-vous": [
+  "My appointments",
+  "Mijn afspraken",
+  "الرونديفوات ديالي"
+ ],
+ "Retour au salon": [
+  "Back to the salon",
+  "Terug naar het salon",
+  "رجع للصالون"
+ ],
+ "Votre réservation": [
+  "Your booking",
+  "Uw reservatie",
+  "الحجز ديالك"
+ ],
+ "Continuer": [
+  "Continue",
+  "Doorgaan",
+  "كمّل"
+ ],
+ "Chargement de la page de réservation": [
+  "Loading the booking page",
+  "De reservatiepagina wordt geladen",
+  "كيتحمل صفحة الحجز"
+ ],
+ "Progression de la réservation": [
+  "Booking progress",
+  "Voortgang van de reservatie",
+  "تقدم الحجز"
+ ],
+ "Choix de la personne": [
+  "Choice of person",
+  "Keuze van de persoon",
+  "اختيار الشخص"
+ ],
+ "Jours disponibles": [
+  "Available days",
+  "Beschikbare dagen",
+  "الأيام المتوفرة"
+ ],
+ "Récapitulatif de votre réservation": [
+  "Summary of your booking",
+  "Overzicht van uw reservatie",
+  "ملخص الحجز ديالك"
+ ],
+ "Prestations": [
+  "Services",
+  "Behandelingen",
+  "الخدمات"
+ ],
+ "Avec qui": [
+  "With whom",
+  "Met wie",
+  "مع من"
+ ],
+ "Créneau": [
+  "Time slot",
+  "Tijdstip",
+  "الوقت"
+ ],
+ "Coordonnées": [
+  "Details",
+  "Gegevens",
+  "المعلومات"
+ ],
+ "Tous": [
+  "All",
+  "Alle",
+  "الكل"
+ ],
+ "Femme": [
+  "Women",
+  "Dames",
+  "نساء"
+ ],
+ "Homme": [
+  "Men",
+  "Heren",
+  "رجال"
+ ],
+ "Public": [
+  "Audience",
+  "Doelgroep",
+  "الفئة"
+ ],
+ "Aucune prestation pour ce public.": [
+  "No service for this audience.",
+  "Geen behandelingen voor deze doelgroep.",
+  "ما كاينة حتى خدمة لهاد الفئة."
+ ],
+ "Sélectionnez une prestation pour commencer.": [
+  "Select a service to begin.",
+  "Selecteer een behandeling om te beginnen.",
+  "ختار خدمة باش تبدا."
+ ],
+ "Sans préférence": [
+  "No preference",
+  "Geen voorkeur",
+  "بلا تفضيل"
+ ],
+ "Premier disponible": [
+  "First available",
+  "Eerst beschikbaar",
+  "الأول المتوفر"
+ ],
+ "avec {0}": [
+  "with {0}",
+  "met {0}",
+  "مع {0}"
+ ],
+ "Avec {0}": [
+  "With {0}",
+  "Met {0}",
+  "مع {0}"
+ ],
+ "fermé": [
+  "closed",
+  "gesloten",
+  "سالي"
+ ],
+ "Matin": [
+  "Morning",
+  "Voormiddag",
+  "الصباح"
+ ],
+ "Après-midi": [
+  "Afternoon",
+  "Namiddag",
+  "العشية"
+ ],
+ "Soir": [
+  "Evening",
+  "Avond",
+  "العشية ديال الليل"
+ ],
+ "{0} maintenant": [
+  "{0} now",
+  "{0} nu",
+  "{0} دابا"
+ ],
+ "Rien maintenant": [
+  "Nothing now",
+  "Nu niets",
+  "والو دابا"
+ ],
+ "Un <b>acompte de {0}</b> par carte garantit votre créneau. Il est <b>déduit du prix final</b> : vous réglez le solde, <b>{1}</b>, en espèces au salon. L'acompte est conservé par le salon en cas d'absence.": [
+  "A <b>{0} deposit</b> by card secures your slot. It is <b>deducted from the final price</b>: you pay the balance, <b>{1}</b>, in cash at the salon. The deposit is kept by the salon if you do not show up.",
+  "Een <b>voorschot van {0}</b> met de kaart garandeert uw tijdstip. Het wordt <b>van de eindprijs afgetrokken</b>: u betaalt het saldo, <b>{1}</b>, cash in het salon. Het voorschot blijft bij het salon als u niet komt opdagen.",
+  "<b>عربون ديال {0}</b> بالكارط كيضمن ليك الوقت. كيتنقص <b>من الثمن النهائي</b>: كتخلص الباقي، <b>{1}</b>، كاش فالصالون. العربون كيبقى عند الصالون إلا ما جيتيش."
+ ],
+ "Aucun paiement maintenant : vous réglez <b>{0}</b> en espèces au salon.": [
+  "No payment now: you pay <b>{0}</b> in cash at the salon.",
+  "Nu geen betaling: u betaalt <b>{0}</b> cash in het salon.",
+  "ما كاين حتى خلاص دابا: كتخلص <b>{0}</b> كاش فالصالون."
+ ],
+ "Payer l'acompte de {0} et réserver": [
+  "Pay the {0} deposit and book",
+  "Voorschot van {0} betalen en reserveren",
+  "خلص العربون ديال {0} واحجز"
+ ],
+ "Payer {0} et réserver": [
+  "Pay {0} and book",
+  "{0} betalen en reserveren",
+  "خلص {0} واحجز"
+ ],
+ "Le paiement par carte est sécurisé et le rendez-vous est confirmé dès réception. L'acompte de {0} est déduit du prix final, et n'est pas remboursé en cas d'absence.": [
+  "Card payment is secure and the appointment is confirmed as soon as it is received. The {0} deposit is deducted from the final price and is not refunded if you do not show up.",
+  "De kaartbetaling is beveiligd en de afspraak is bevestigd zodra de betaling binnen is. Het voorschot van {0} wordt van de eindprijs afgetrokken en niet terugbetaald als u niet komt opdagen.",
+  "الخلاص بالكارط مأمن والرونديفو كيتأكد ملي كنتوصلو. العربون ديال {0} كيتنقص من الثمن النهائي وما كيترجعش إلا ما جيتيش."
+ ],
+ "Le paiement par carte est sécurisé : vous serez redirigé vers la page de paiement, et le rendez-vous est confirmé dès réception.": [
+  "Card payment is secure: you will be redirected to the payment page, and the appointment is confirmed as soon as it is received.",
+  "De kaartbetaling is beveiligd: u wordt doorgestuurd naar de betaalpagina en de afspraak is bevestigd zodra de betaling binnen is.",
+  "الخلاص بالكارط مأمن: غادي نحولوك لصفحة الخلاص والرونديفو كيتأكد ملي كنتوصلو."
+ ],
+ "Règlement en espèces au salon : {0}. Le salon confirmera votre demande par email.": [
+  "Cash payment at the salon: {0}. The salon will confirm your request by email.",
+  "Cashbetaling in het salon: {0}. Het salon bevestigt uw aanvraag per e-mail.",
+  "الخلاص كاش فالصالون: {0}. الصالون غادي يأكد الطلب ديالك بالإيميل."
+ ],
+ "Règlement en espèces au salon : {0}. Votre rendez-vous est confirmé immédiatement, sans attendre de validation.": [
+  "Cash payment at the salon: {0}. Your appointment is confirmed immediately, without waiting for approval.",
+  "Cashbetaling in het salon: {0}. Uw afspraak is meteen bevestigd, zonder te wachten op goedkeuring.",
+  "الخلاص كاش فالصالون: {0}. الرونديفو ديالك تأكد دابا، بلا ما تستنى الموافقة."
+ ],
+ "À payer maintenant : {0}": [
+  "To pay now: {0}",
+  "Nu te betalen: {0}",
+  "اللي خاصك تخلص دابا: {0}"
+ ],
+ "Reste à régler en espèces au salon (acompte déduit)": [
+  "Balance to pay in cash at the salon (deposit deducted)",
+  "Saldo cash te betalen in het salon (voorschot afgetrokken)",
+  "الباقي كتخلصو كاش فالصالون (العربون منقوص)"
+ ],
+ "À régler en espèces au salon": [
+  "To pay in cash at the salon",
+  "Cash te betalen in het salon",
+  "كتخلص كاش فالصالون"
+ ],
+ "{0}, −{1} %": [
+  "{0}, −{1}%",
+  "{0}, −{1}%",
+  "{0}، −{1}%"
+ ],
+ "Heures creuses": [
+  "Off-peak hours",
+  "Daluren",
+  "الأوقات الهادئة"
+ ],
+ "Total, {0}": [
+  "Total, {0}",
+  "Totaal, {0}",
+  "المجموع، {0}"
+ ],
+ "À payer maintenant (carte)": [
+  "To pay now (card)",
+  "Nu te betalen (kaart)",
+  "اللي كتخلص دابا (كارط)"
+ ],
+ "Au salon (espèces)": [
+  "At the salon (cash)",
+  "In het salon (cash)",
+  "فالصالون (كاش)"
+ ],
+ "{0} prestations, {1}": [
+  "{0} services, {1}",
+  "{0} behandelingen, {1}",
+  "{0} خدمات، {1}"
+ ],
+ "{0} prestation, {1}": [
+  "{0} service, {1}",
+  "{0} behandeling, {1}",
+  "{0} خدمة، {1}"
+ ],
+ "Cette combinaison n'est pas possible.": [
+  "This combination is not possible.",
+  "Deze combinatie is niet mogelijk.",
+  "هاد التركيبة ما ممكناش."
+ ],
+ "Cette combinaison n'est pas disponible.": [
+  "This combination is not available.",
+  "Deze combinatie is niet beschikbaar.",
+  "هاد التركيبة ما متوفراش."
+ ],
+ "Aucun membre de l'équipe n'assure toutes ces prestations à la suite. Retirez-en une, ou réservez-les séparément.": [
+  "No team member does all these services back to back. Remove one, or book them separately.",
+  "Geen enkel teamlid voert al deze behandelingen na elkaar uit. Verwijder er een of reserveer ze apart.",
+  "ما كاين حتى واحد فالفريق كيدير كاع هاد الخدمات ورا بعضهم. حيد وحدة ولا احجزهم بوحدهم."
+ ],
+ "Aucun membre de l'équipe n'assure toutes ces prestations à la suite. Modifiez votre sélection.": [
+  "No team member does all these services back to back. Change your selection.",
+  "Geen enkel teamlid voert al deze behandelingen na elkaar uit. Wijzig uw selectie.",
+  "ما كاين حتى واحد فالفريق كيدير كاع هاد الخدمات ورا بعضهم. بدل الاختيار ديالك."
+ ],
+ "Impossible de charger les disponibilités.": [
+  "Unable to load availability.",
+  "De beschikbaarheden konden niet worden geladen.",
+  "ما قدرناش نحملو الأوقات المتوفرة."
+ ],
+ "Vérifiez votre connexion puis": [
+  "Check your connection, then",
+  "Controleer uw verbinding en",
+  "تأكد من الاتصال ديالك وبعدا"
+ ],
+ "réessayer": [
+  "try again",
+  "probeer opnieuw",
+  "عاود حاول"
+ ],
+ "Réessayer": [
+  "Try again",
+  "Opnieuw proberen",
+  "عاود حاول"
+ ],
+ "Impossible de charger les créneaux.": [
+  "Unable to load time slots.",
+  "De tijdstippen konden niet worden geladen.",
+  "ما قدرناش نحملو الأوقات."
+ ],
+ "Aucune disponibilité avec {0} dans les prochaines semaines.": [
+  "No availability with {0} in the coming weeks.",
+  "Geen beschikbaarheid bij {0} in de komende weken.",
+  "ما كاين حتى وقت متوفر مع {0} فالسيمانات الجاية."
+ ],
+ "Aucune disponibilité dans les prochaines semaines.": [
+  "No availability in the coming weeks.",
+  "Geen beschikbaarheid in de komende weken.",
+  "ما كاين حتى وقت متوفر فالسيمانات الجاية."
+ ],
+ "Essayez avec une autre personne, ou choisissez « Sans préférence ».": [
+  "Try with another person, or choose “No preference”.",
+  "Probeer met iemand anders of kies “Geen voorkeur”.",
+  "جرب مع شي واحد آخر، ولا ختار «بلا تفضيل»."
+ ],
+ "Revenez un peu plus tard, de nouveaux créneaux sont ouverts régulièrement.": [
+  "Come back a little later, new slots open regularly.",
+  "Kom wat later terug, er komen regelmatig nieuwe tijdstippen bij.",
+  "رجع من بعد شوية، كيتحلو أوقات جداد بشكل منتظم."
+ ],
+ "Ce créneau vient d'être pris. Choisissez une autre heure.": [
+  "This slot has just been taken. Choose another time.",
+  "Dit tijdstip is zopas ingenomen. Kies een ander uur.",
+  "هاد الوقت تاخد دابا. ختار ساعة أخرى."
+ ],
+ "Aucun créneau libre ce jour-là. Essayez un autre jour.": [
+  "No free slot that day. Try another day.",
+  "Geen vrij tijdstip die dag. Probeer een andere dag.",
+  "ما كاين حتى وقت خاوي فداك النهار. جرب نهار آخر."
+ ],
+ "Heures creuses : −{0} % sur les créneaux signalés.": [
+  "Off-peak hours: −{0}% on the marked slots.",
+  "Daluren: −{0}% op de aangeduide tijdstippen.",
+  "الأوقات الهادئة: −{0}% على الأوقات المعلمة."
+ ],
+ "<b>−{0} % aux heures creuses</b> : {1}, de {2} à {3}. Le prix baisse automatiquement sur ces créneaux.": [
+  "<b>−{0}% during off-peak hours</b>: {1}, from {2} to {3}. The price drops automatically on these slots.",
+  "<b>−{0}% tijdens de daluren</b>: {1}, van {2} tot {3}. De prijs daalt automatisch op deze tijdstippen.",
+  "<b>−{0}% فالأوقات الهادئة</b>: {1}، من {2} حتى {3}. الثمن كينقص أوتوماتيكيا فهاد الأوقات."
+ ],
+ "Indiquez votre nom.": [
+  "Please enter your name.",
+  "Vul uw naam in.",
+  "كتب الاسم ديالك."
+ ],
+ "Adresse email invalide, par exemple prenom@exemple.fr.": [
+  "Invalid email address, for example first.last@example.com.",
+  "Ongeldig e-mailadres, bijvoorbeeld voornaam@voorbeeld.be.",
+  "الإيميل ماشي صحيح، بحال prenom@exemple.fr."
+ ],
+ "Numéro invalide, par exemple 06 12 34 56 78.": [
+  "Invalid number, for example 06 12 34 56 78.",
+  "Ongeldig nummer, bijvoorbeeld 0470 12 34 56.",
+  "النمرو ماشي صحيح، بحال 06 12 34 56 78."
+ ],
+ "Merci de corriger ces champs :": [
+  "Please correct these fields:",
+  "Gelieve deze velden te corrigeren:",
+  "عافاك صلح هاد الخانات:"
+ ],
+ "Merci de corriger ce champ :": [
+  "Please correct this field:",
+  "Gelieve dit veld te corrigeren:",
+  "عافاك صلح هاد الخانة:"
+ ],
+ "Préparation du paiement": [
+  "Preparing payment",
+  "Betaling voorbereiden",
+  "كنوجدو الخلاص"
+ ],
+ "Envoi en cours": [
+  "Sending",
+  "Wordt verstuurd",
+  "كيتصيفط"
+ ],
+ "Redirection": [
+  "Redirecting",
+  "Doorverwijzen",
+  "كنحولوك"
+ ],
+ "La réservation n'a pas abouti.": [
+  "The booking did not go through.",
+  "De reservatie is niet gelukt.",
+  "الحجز ما نجحش."
+ ],
+ "Choisissez-en un autre.": [
+  "Choose another one.",
+  "Kies een ander.",
+  "ختار وحدة أخرى."
+ ],
+ "Réessayez dans un instant.": [
+  "Please try again in a moment.",
+  "Probeer het zo meteen opnieuw.",
+  "عاود حاول من بعد شوية."
+ ],
+ "Vérifiez votre connexion puis réessayez.": [
+  "Check your connection and try again.",
+  "Controleer uw verbinding en probeer opnieuw.",
+  "تأكد من الاتصال ديالك وعاود حاول."
+ ],
+ "Ce créneau vient d'être pris.": [
+  "This slot has just been taken.",
+  "Dit tijdstip is zopas ingenomen.",
+  "هاد الوقت تاخد دابا."
+ ],
+ "Votre rendez-vous chez {0} avec {1} est confirmé. Un email de confirmation vous a été envoyé.": [
+  "Your appointment at {0} with {1} is confirmed. A confirmation email has been sent to you.",
+  "Uw afspraak bij {0} met {1} is bevestigd. Er is een bevestigingsmail naar u verstuurd.",
+  "الرونديفو ديالك عند {0} مع {1} تأكد. تصيفط ليك إيميل ديال التأكيد."
+ ],
+ "Votre rendez-vous chez {0} est confirmé. Un email de confirmation vous a été envoyé.": [
+  "Your appointment at {0} is confirmed. A confirmation email has been sent to you.",
+  "Uw afspraak bij {0} is bevestigd. Er is een bevestigingsmail naar u verstuurd.",
+  "الرونديفو ديالك عند {0} تأكد. تصيفط ليك إيميل ديال التأكيد."
+ ],
+ "{0} a bien reçu votre demande et vous écrira dès qu'elle sera validée.": [
+  "{0} has received your request and will write to you as soon as it is approved.",
+  "{0} heeft uw aanvraag ontvangen en schrijft u zodra ze is goedgekeurd.",
+  "{0} توصل بالطلب ديالك وغادي يكتب ليك ملي يتوافق عليه."
+ ],
+ "Pensez à prévoir {0} en espèces au salon.": [
+  "Remember to bring {0} in cash to the salon.",
+  "Denk eraan {0} cash mee te brengen naar het salon.",
+  "ما تنساش تجيب {0} كاش للصالون."
+ ],
+ "Réserver chez {0}": [
+  "Book at {0}",
+  "Reserveren bij {0}",
+  "احجز عند {0}"
+ ],
+ "Bonjour, j'ai une question avant de réserver chez {0}.": [
+  "Hello, I have a question before booking at {0}.",
+  "Goedendag, ik heb een vraag voordat ik reserveer bij {0}.",
+  "السلام، عندي سؤال قبل ما نحجز عند {0}."
+ ],
+ "Réservation en ligne indisponible.": [
+  "Online booking unavailable.",
+  "Online reserveren niet beschikbaar.",
+  "الحجز أونلاين ما متوفرش."
+ ],
+ "Ce salon n'a pas encore activé le paiement en ligne (acompte de 5 € minimum). Contactez-le directement.": [
+  "This salon has not yet enabled online payment (minimum deposit of €5). Please contact them directly.",
+  "Dit salon heeft online betalen nog niet geactiveerd (voorschot van minstens 5 €). Neem rechtstreeks contact op.",
+  "هاد الصالون ما فعّلش الخلاص أونلاين (عربون 5 € على الأقل). تواصل معاه مباشرة."
+ ],
+ "Numéro de téléphone invalide.": [
+  "Invalid phone number.",
+  "Ongeldig telefoonnummer.",
+  "نمرو التيليفون ماشي صحيح."
+ ],
+ "Créneau déjà pris.": [
+  "Slot already taken.",
+  "Tijdstip al ingenomen.",
+  "الوقت تاخد."
+ ]
+}

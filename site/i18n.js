@@ -49,7 +49,7 @@
     return 'FR';
   }
 
-  var etat = { langue: detecterLangue(), pays: detecterPays(), exact: {}, trous: {}, motifs: [], ecouteurs: [] };
+  var etat = { langue: detecterLangue(), pays: detecterPays(), exact: {}, trous: {}, motifs: [], ecouteurs: [], nbHtml: 0, connus: {} };
   var echapper = function(s){ return s.replace(/[.*+?^$()|[\]\\]/g, '\\$&'); };
   var normaliser = function(s){ return String(s).replace(/\s+/g, ' ').trim(); };
 
@@ -58,6 +58,8 @@
     Object.keys(d).forEach(function(cle){
       var k = normaliser(cle), v = d[cle];
       if(!Array.isArray(v)) return;
+      if(k.indexOf('<') >= 0) etat.nbHtml++;
+      v.forEach(function(x){ if(x) etat.connus[normaliser(x)] = 1; });
       if(/\{\d+\}/.test(k)){
         var ordre = [], src = echapper(k).replace(/\{(\d+)\}/g, function(_, n){ ordre.push(+n); return '(.+?)'; });
         etat.motifs.push({ re: new RegExp('^' + src + '$'), ordre: ordre, tr: v }); etat.trous[k] = v;
@@ -112,14 +114,57 @@
       var cc = etat.langue === 'fr' ? sc.fr : (chercher(sc.fr, etat.langue) || sc.fr); if(c !== cc) el.setAttribute('content', cc); sc.tr = cc;
     }
   }
+
+  // Blocs HTML : un élément qui mêle du texte et des balises « en ligne » (<b>, <a>, <span>…) se traduit EN ENTIER, clé = son HTML normalisé (les trous {0} captent
+  // montants, noms, dates). Indispensable : une phrase coupée par un <b> ne peut pas se traduire morceau par morceau.
+  var EN_LIGNE = { B:1, STRONG:1, EM:1, I:1, SPAN:1, A:1, BR:1, U:1, SMALL:1, MARK:1, SUP:1, SUB:1 };
+  function candidatBloc(el){
+    if(!el || el.nodeType !== 1 || IGNORES[el.nodeName] || EN_LIGNE[el.nodeName] && !el.__html) return false;
+    var texte = false, balise = false;
+    for(var c = el.firstChild; c; c = c.nextSibling){
+      if(c.nodeType === 3){ if(c.data.trim()) texte = true; }
+      else if(c.nodeType === 1){ if(!EN_LIGNE[c.nodeName]) return false; balise = true; }
+    }
+    return texte && balise;
+  }
+  function traiterBloc(el){
+    if(protege(el) || !candidatBloc(el)) return;
+    if(el.__html && el.innerHTML === el.__html.tr){ var fr0 = el.__html.fr; }
+    else { fr0 = el.innerHTML; el.__html = null; }
+    if(etat.nbHtml === 0) return;
+    var cible = etat.langue === 'fr' ? fr0 : chercher(fr0, etat.langue);
+    if(cible == null){ if(el.__html){ el.innerHTML = fr0; el.__html = null; } return; }
+    if(el.innerHTML !== cible) el.innerHTML = cible;
+    el.__html = { fr: fr0, tr: el.innerHTML };
+  }
+
   function parcourir(racineNoeud){
     if(!racineNoeud) return;
     if(racineNoeud.nodeType === 3){ traiterTexte(racineNoeud); return; }
     if(racineNoeud.nodeType !== 1 && racineNoeud.nodeType !== 9) return;
     var base = racineNoeud.nodeType === 9 ? racineNoeud.documentElement : racineNoeud;
     if(base.nodeType === 1){ traiterAttrs(base); }
+    if(etat.nbHtml > 0 || base.__html){
+      var blocs = base.querySelectorAll ? Array.prototype.slice.call(base.querySelectorAll('*')) : [];
+      blocs.unshift(base);
+      for(var b = 0; b < blocs.length; b++){ if(blocs[b].isConnected !== false && blocs[b].parentNode) traiterBloc(blocs[b]); }
+    }
     var w = document.createTreeWalker(base, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, null), x;
     while((x = w.nextNode())){ if(x.nodeType === 3) traiterTexte(x); else traiterAttrs(x); }
+  }
+
+
+  // Aide à la rédaction : les textes de la page SANS traduction dans la langue courante (à lancer dans la console : I18N.manquants()).
+  function manquants(){
+    var vus = {}, res = [], L = etat.langue;
+    var note = function(fr){ var k = normaliser(fr); if(k.length > 1 && !etat.connus[k] && /[A-Za-zÀ-ÿ]{2}/.test(k) && !vus[k] && !(L !== 'fr' && chercher(k, L))){ vus[k] = 1; res.push(k); } };
+    var blocs = Array.prototype.slice.call(document.body.querySelectorAll('*'));
+    var dansBloc = [];
+    blocs.forEach(function(el){ if(el.closest('[translate="no"], .notranslate') || IGNORES[el.nodeName]) return; if(candidatBloc(el) || (el.__html && true)){ var fr = el.__html ? el.__html.fr : el.innerHTML; if(!(L !== 'fr' && chercher(fr, L))) note(fr); dansBloc.push(el); } });
+    var w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null), n;
+    while((n = w.nextNode())){ var p = n.parentNode; if(!p || IGNORES[p.nodeName] || protege(p)) continue; var fr = n.__fr !== undefined ? n.__fr : n.data; if(!fr.trim()) continue; if(dansBloc.some(function(b){ return b.contains(n); }) && (L === 'fr' || !chercher(fr, L))) { var b = dansBloc.filter(function(b){ return b.contains(n); })[0]; if(b.__html || vus[normaliser(b.innerHTML)]) continue; } note(fr); }
+    document.body.querySelectorAll('[placeholder],[title],[aria-label],[alt]').forEach(function(el){ if(protege(el)) return; ATTRS.forEach(function(a){ var v = el.__a && el.__a[a] ? el.__a[a].fr : el.getAttribute(a); if(v) note(v); }); });
+    return res;
   }
 
   var obs = null, file = [], planifie = false;
@@ -221,14 +266,14 @@
     // Pays imposé par le salon connecté : le sélecteur l'affiche mais ne le change plus.
     imposerPays: function(c){ if(!PAYS[c]) return; etat.pays = c; pays_verrouille = true; dessinerSelecteur(); notifier(); },
     onChange: function(f){ etat.ecouteurs.push(f); },
-    traduire: function(noeud){ parcourir(noeud || document); },
+    traduire: function(noeud){ parcourir(noeud || document); }, manquants: manquants,
     montant: function(n, devise){ return new Intl.NumberFormat(LANGUES[etat.langue].locale, { style:'currency', currency: devise || PAYS[etat.pays].devise }).format(Number(n) || 0); },
     date: function(d, opts){ return new Date(d).toLocaleDateString(LANGUES[etat.langue].locale, opts || { day:'numeric', month:'short' }); }
   };
   window.I18N = api;
 
   // --------------------------------------------------------------------------------------- démarrage
-  function charger(url){ return fetch(url).then(function(r){ return r.ok ? r.json() : {}; }).then(ajouterDico).catch(function(){}); }
+  function charger(url){ return fetch(url, { cache:'no-cache' }).then(function(r){ return r.ok ? r.json() : {}; }).then(ajouterDico).catch(function(){}); }
   function demarrer(){
     appliquerLangue();
     if(etat.langue !== 'fr'){ etat.aTraduit = true; parcourir(document); }

@@ -10,8 +10,12 @@ export function echapperHtml(str){
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+// Langue et monnaie : la langue suit le sélecteur du visiteur (i18n.js), la monnaie est CELLE DU SALON (jamais convertie).
+export const lieu = () => (window.I18N ? window.I18N.locale : 'fr-FR');
+let monnaie = 'EUR';
+export function definirDevise(d){ if(/^[A-Z]{3}$/.test(d || '')) monnaie = d; }
 export function formaterEuros(n){
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0);
+  return new Intl.NumberFormat(lieu(), { style: 'currency', currency: monnaie }).format(n || 0);
 }
 
 export function formaterDuree(minutes){
@@ -108,14 +112,14 @@ export function cartePrestation(p, selectionnee){
 
 export function boutonJour(date, estOuvert){
   const iso = date.toISOString().slice(0, 10);
-  const f = (opts) => new Intl.DateTimeFormat('fr-FR', { timeZone:'UTC', ...opts }).format(date);
-  const complet = new Intl.DateTimeFormat('fr-FR', { timeZone:'UTC', weekday:'long', day:'numeric', month:'long' }).format(date);
-  return `<button type="button" class="jour-btn" data-date="${iso}" aria-pressed="false" aria-label="${echapperHtml(complet)}${estOuvert ? '' : ', fermé'}" ${estOuvert ? '' : 'disabled'}>
+  const f = (opts) => new Intl.DateTimeFormat(lieu(), { timeZone:'UTC', ...opts }).format(date);
+  const complet = new Intl.DateTimeFormat(lieu(), { timeZone:'UTC', weekday:'long', day:'numeric', month:'long' }).format(date);
+  return `<button type="button" class="jour-btn" data-date="${iso}" aria-pressed="false" aria-label="${echapperHtml(complet)}${estOuvert ? '' : ', ' + (window.I18N ? window.I18N.t('fermé') : 'fermé')}" ${estOuvert ? '' : 'disabled'}>
     <span class="j-sem">${f({ weekday:'short' }).replace('.', '')}</span><span class="j-num">${f({ day:'numeric' })}</span><span class="j-mois">${f({ month:'short' }).replace('.', '')}</span></button>`;
 }
 
 export function boutonCreneau(iso){
-  const label = new Intl.DateTimeFormat('fr-FR', { timeZone:'Europe/Paris', hour:'2-digit', minute:'2-digit' }).format(new Date(iso));
+  const label = new Intl.DateTimeFormat(lieu(), { timeZone:'Europe/Paris', hour:'2-digit', minute:'2-digit', hourCycle:'h23' }).format(new Date(iso));
   return `<button type="button" class="creneau-btn" data-iso="${iso}">${label}</button>`;
 }
 

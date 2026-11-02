@@ -138,5 +138,65 @@
   "Please try again in a moment.",
   "Probeer het zo meteen opnieuw.",
   "عاود حاول من بعد شوية."
+ ],
+ "Démo : données fictives": [
+  "Demo: sample data",
+  "Demo: fictieve gegevens",
+  "تجريبي: معطيات وهمية"
+ ],
+ "Réinitialiser": [
+  "Reset",
+  "Opnieuw instellen",
+  "عاود من الأول"
+ ],
+ "Retour": [
+  "Back",
+  "Terug",
+  "رجع"
+ ],
+ "Fermer": [
+  "Close",
+  "Sluiten",
+  "سد"
+ ],
+ "Annuler": [
+  "Cancel",
+  "Annuleren",
+  "إلغاء"
+ ],
+ "Enregistrer": [
+  "Save",
+  "Opslaan",
+  "سجل"
+ ],
+ "Confirmer": [
+  "Confirm",
+  "Bevestigen",
+  "أكد"
+ ],
+ "Oui": [
+  "Yes",
+  "Ja",
+  "آه"
+ ],
+ "Non": [
+  "No",
+  "Nee",
+  "لا"
+ ],
+ "Rechercher": [
+  "Search",
+  "Zoeken",
+  "قلب"
+ ],
+ "Supprimer": [
+  "Delete",
+  "Verwijderen",
+  "مسح"
+ ],
+ "Modifier": [
+  "Edit",
+  "Wijzigen",
+  "بدل"
  ]
 }

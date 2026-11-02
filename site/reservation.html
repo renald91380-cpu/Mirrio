@@ -184,6 +184,7 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#101216">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<script src="/i18n.js" data-pages="reservation"></script>
 <script src="demo-mode.js"></script>
 <script src="https://unpkg.com/@phosphor-icons/web@2.1.1" defer></script>
 <script src="/cookies.js" defer></script>
@@ -314,8 +315,10 @@
 </div>
 
 <script type="module">
-  import { calculerAcompte, stylesSalon, carteMarque, cartePrestation, boutonJour, boutonCreneau, heureParis, echapperHtml, formaterEuros, formaterDuree, prixTTC, totaux, resumeSelection } from './reservation-widget.js';
+  import { lieu, definirDevise, calculerAcompte, stylesSalon, carteMarque, cartePrestation, boutonJour, boutonCreneau, heureParis, echapperHtml, formaterEuros, formaterDuree, prixTTC, totaux, resumeSelection } from './reservation-widget.js';
 
+  const T = (fr, ...a) => window.I18N ? window.I18N.t(fr, ...a) : fr.replace(/\{(\d+)\}/g, (_, n) => a[+n]);
+  const DEVISES = { FR:'EUR', BE:'EUR', CH:'CHF', MA:'MAD' };
   const slug = new URLSearchParams(location.search).get('p') || '';
   const $ = id => document.getElementById(id);
   const LIBELLES = { 'etape-prestation':'Prestations', 'etape-intervenant':'Avec qui', 'etape-date':'Créneau', 'etape-form':'Coordonnées' };
@@ -331,7 +334,7 @@
   let tarifChoisi = '';
   const tarifPct = () => (tarifChoisi && bootstrap && bootstrap.tarifs && bootstrap.tarifs[tarifChoisi] ? Number(bootstrap.tarifs[tarifChoisi].pourcentage) || 0 : 0);
   const pctEffectif = () => Math.max(remisePct, tarifPct());
-  const libelleReduction = () => tarifPct() > 0 && tarifPct() >= remisePct ? (tarifChoisi === 'enfant' ? 'Tarif enfant' : 'Tarif étudiant') : 'Heures creuses';
+  const libelleReduction = () => tarifPct() > 0 && tarifPct() >= remisePct ? (tarifChoisi === 'enfant' ? T('Tarif enfant') : T('Tarif étudiant')) : T('Heures creuses');
   const prixDu = () => { const p = totaux(prestationsChoisies).prix; return pctEffectif() > 0 ? Math.round(p * (100 - pctEffectif())) / 100 : p; };               // salon sans paiement en ligne : pas de réservation
   // Une ou plusieurs prestations choisies ensemble (ex. « Coupe + Couleur »).
   // L'ordre reflète l'ordre de sélection, conservé jusqu'au serveur pour que
@@ -349,7 +352,7 @@
   // Personnes qui assurent TOUTES les prestations choisies (une personne fait l'ensemble, à la suite).
   const eligibles = () => (bootstrap.intervenants || []).filter(i => prestationsChoisies.every(p => !p.intervenants || p.intervenants.includes(i.id)));
 
-  const quand = iso => new Intl.DateTimeFormat('fr-FR', { timeZone:'Europe/Paris', weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' }).format(new Date(iso));
+  const quand = iso => new Intl.DateTimeFormat(lieu(), { timeZone:'Europe/Paris', weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit', hourCycle:'h23' }).format(new Date(iso));
 
   function afficherErreur(){
     $('etat-chargement').hidden = true;
@@ -396,57 +399,57 @@
     $('choix-mode').hidden = !especesPossible;
     if(!especesPossible){ const r = document.querySelector('input[name=mode][value=en_ligne]'); if(r) r.checked = true; return; }
     $('mode-total-ligne').textContent = formaterEuros(total);
-    $('mode-acompte-ligne').textContent = acompte > 0 ? `${formaterEuros(acompte)} maintenant` : 'Rien maintenant';
+    $('mode-acompte-ligne').textContent = acompte > 0 ? T('{0} maintenant', formaterEuros(acompte)) : T('Rien maintenant');
     $('mode-especes-detail').innerHTML = acompte > 0
-      ? `Un <b>acompte de ${formaterEuros(acompte)}</b> par carte garantit votre créneau. Il est <b>déduit du prix final</b> : vous réglez le solde, <b>${formaterEuros(total - acompte)}</b>, en espèces au salon. L'acompte est conservé par le salon en cas d'absence.`
-      : `Aucun paiement maintenant : vous réglez <b>${formaterEuros(total)}</b> en espèces au salon.`;
+      ? T('Un <b>acompte de {0}</b> par carte garantit votre créneau. Il est <b>déduit du prix final</b> : vous réglez le solde, <b>{1}</b>, en espèces au salon. L\'acompte est conservé par le salon en cas d\'absence.', formaterEuros(acompte), formaterEuros(total - acompte))
+      : T('Aucun paiement maintenant : vous réglez <b>{0}</b> en espèces au salon.', formaterEuros(total));
   }
   document.querySelectorAll('input[name=mode]').forEach(r => r.addEventListener('change', () => { majBoutonEnvoi(); majResume(); majRecapForm(); }));
 
   function majBoutonEnvoi(){
     const i = infosPaiement();
     $('btn-envoyer').textContent = i.maintenant > 0
-      ? (i.mode === 'sur_place' ? `Payer l'acompte de ${formaterEuros(i.maintenant)} et réserver` : `Payer ${formaterEuros(i.maintenant)} et réserver`)
-      : (bootstrap.validation_auto === false ? 'Envoyer la demande' : 'Confirmer ma réservation');
+      ? (i.mode === 'sur_place' ? T('Payer l\'acompte de {0} et réserver', formaterEuros(i.maintenant)) : T('Payer {0} et réserver', formaterEuros(i.maintenant)))
+      : (bootstrap.validation_auto === false ? T('Envoyer la demande') : T('Confirmer ma réservation'));
     const note = $('note-paiement');
     if(i.maintenant > 0){
       note.textContent = i.mode === 'sur_place'
-        ? `Le paiement par carte est sécurisé et le rendez-vous est confirmé dès réception. L'acompte de ${formaterEuros(i.maintenant)} est déduit du prix final, et n'est pas remboursé en cas d'absence.`
-        : 'Le paiement par carte est sécurisé : vous serez redirigé vers la page de paiement, et le rendez-vous est confirmé dès réception.';
+        ? T('Le paiement par carte est sécurisé et le rendez-vous est confirmé dès réception. L\'acompte de {0} est déduit du prix final, et n\'est pas remboursé en cas d\'absence.', formaterEuros(i.maintenant))
+        : T('Le paiement par carte est sécurisé : vous serez redirigé vers la page de paiement, et le rendez-vous est confirmé dès réception.');
       note.hidden = false;
     }else{
       note.textContent = bootstrap.validation_auto === false
-        ? `Règlement en espèces au salon : ${formaterEuros(i.total)}. Le salon confirmera votre demande par email.`
-        : `Règlement en espèces au salon : ${formaterEuros(i.total)}. Votre rendez-vous est confirmé immédiatement, sans attendre de validation.`;
+        ? T('Règlement en espèces au salon : {0}. Le salon confirmera votre demande par email.', formaterEuros(i.total))
+        : T('Règlement en espèces au salon : {0}. Votre rendez-vous est confirmé immédiatement, sans attendre de validation.', formaterEuros(i.total));
       note.hidden = false;
     }
   }
 
   function majRecapForm(){
     const i = infosPaiement(), t = totaux(prestationsChoisies);
-    const avec = intervenantChoisi !== 'any' && intervenantParId(intervenantChoisi) ? ` avec ${echapperHtml(intervenantParId(intervenantChoisi).nom)}` : '';
+    const avec = intervenantChoisi !== 'any' && intervenantParId(intervenantChoisi) ? ' ' + T('avec {0}', echapperHtml(intervenantParId(intervenantChoisi).nom)) : '';
     $('recap').innerHTML = `<b>${echapperHtml(prestationsChoisies.map(p => p.libelle).join(' + '))}</b>${echapperHtml(quand(creneauChoisi))}${avec}, ${formaterDuree(t.duree)}<br>` +
-      (i.maintenant > 0 ? `<strong>À payer maintenant : ${formaterEuros(i.maintenant)}</strong>` : '') +
-      (i.reste > 0 ? `${i.maintenant > 0 ? '<br>' : ''}<span>${i.maintenant > 0 ? 'Reste à régler en espèces au salon (acompte déduit)' : 'À régler en espèces au salon'} : <strong>${formaterEuros(i.reste)}</strong></span>` : '');
+      (i.maintenant > 0 ? `<strong>${T('À payer maintenant : {0}', formaterEuros(i.maintenant))}</strong>` : '') +
+      (i.reste > 0 ? `${i.maintenant > 0 ? '<br>' : ''}<span>${i.maintenant > 0 ? T('Reste à régler en espèces au salon (acompte déduit)') : T('À régler en espèces au salon')} : <strong>${formaterEuros(i.reste)}</strong></span>` : '');
   }
 
   // ------------------------------------------------------------ récapitulatif
   function majResume(){
     const corps = $('resume-corps');
     if(!prestationsChoisies.length){
-      corps.innerHTML = '<p class="vide">Sélectionnez une prestation pour commencer.</p>';
+      corps.innerHTML = '<p class="vide">' + T('Sélectionnez une prestation pour commencer.') + '</p>';
     }else{
       const t = totaux(prestationsChoisies);
       corps.innerHTML = `<ul>${prestationsChoisies.map(p => `<li><span>${echapperHtml(p.libelle)}</span><span>${formaterEuros(prixTTC(p))}</span></li>`).join('')}</ul>
-        ${etapeCourante === 'etape-form' && pctEffectif() > 0 ? `<div class="total" style="border-top:0; padding-top:4px;"><span>${libelleReduction()}, −${pctEffectif()} %</span><span>− ${formaterEuros(t.prix - prixDu())}</span></div>` : ''}
-        <div class="total"><span>Total, ${formaterDuree(t.duree)}</span><strong>${formaterEuros(etapeCourante === 'etape-form' ? prixDu() : t.prix)}</strong></div>
-        ${etapeCourante === 'etape-form' ? (() => { const i = infosPaiement(); return `<ul style="margin-top:10px;">${i.maintenant > 0 ? `<li><span>À payer maintenant (carte)</span><strong>${formaterEuros(i.maintenant)}</strong></li>` : ''}${i.reste > 0 ? `<li><span>Au salon (espèces)</span><strong>${formaterEuros(i.reste)}</strong></li>` : ''}</ul>`; })() : ''}
-        ${intervenantChoisi !== 'any' && intervenantParId(intervenantChoisi) && etapeCourante !== 'etape-prestation' ? `<div class="quand" style="background:transparent; padding:12px 0 0; font-weight:500;">Avec ${echapperHtml(intervenantParId(intervenantChoisi).nom)}</div>` : ''}
+        ${etapeCourante === 'etape-form' && pctEffectif() > 0 ? `<div class="total" style="border-top:0; padding-top:4px;"><span>${T('{0}, −{1} %', libelleReduction(), pctEffectif())}</span><span>− ${formaterEuros(t.prix - prixDu())}</span></div>` : ''}
+        <div class="total"><span>${T('Total, {0}', formaterDuree(t.duree))}</span><strong>${formaterEuros(etapeCourante === 'etape-form' ? prixDu() : t.prix)}</strong></div>
+        ${etapeCourante === 'etape-form' ? (() => { const i = infosPaiement(); return `<ul style="margin-top:10px;">${i.maintenant > 0 ? `<li><span>${T('À payer maintenant (carte)')}</span><strong>${formaterEuros(i.maintenant)}</strong></li>` : ''}${i.reste > 0 ? `<li><span>${T('Au salon (espèces)')}</span><strong>${formaterEuros(i.reste)}</strong></li>` : ''}</ul>`; })() : ''}
+        ${intervenantChoisi !== 'any' && intervenantParId(intervenantChoisi) && etapeCourante !== 'etape-prestation' ? `<div class="quand" style="background:transparent; padding:12px 0 0; font-weight:500;">${T('Avec {0}', echapperHtml(intervenantParId(intervenantChoisi).nom))}</div>` : ''}
         ${creneauChoisi && etapeCourante !== 'etape-prestation' && etapeCourante !== 'etape-date' ? `<div class="quand">${echapperHtml(quand(creneauChoisi))}</div>` : ''}`;
     }
     const t = totaux(prestationsChoisies);
     $('barre-txt').innerHTML = prestationsChoisies.length
-      ? `<b>${formaterEuros(t.prix)}</b>${prestationsChoisies.length} prestation${prestationsChoisies.length > 1 ? 's' : ''}, ${formaterDuree(t.duree)}` : '';
+      ? `<b>${formaterEuros(t.prix)}</b>${prestationsChoisies.length > 1 ? T('{0} prestations, {1}', prestationsChoisies.length, formaterDuree(t.duree)) : T('{0} prestation, {1}', prestationsChoisies.length, formaterDuree(t.duree))}` : '';
     $('btn-continuer-prestations').disabled = !prestationsChoisies.length;
     const desk = $('btn-continuer-desk');
     desk.disabled = !prestationsChoisies.length;
@@ -465,8 +468,8 @@
                                       : (publics.has('femme') && publics.has('homme'));
     const zone = $('zone-onglets');
     if(deux && !zone.firstChild){
-      zone.innerHTML = `<div class="onglets" role="tablist" aria-label="Public">
-        <button role="tab" aria-selected="true" tabindex="0" data-p="">Tous</button><button role="tab" aria-selected="false" tabindex="-1" data-p="femme">Femme</button><button role="tab" aria-selected="false" tabindex="-1" data-p="homme">Homme</button></div>`;
+      zone.innerHTML = `<div class="onglets" role="tablist" aria-label="${T('Public')}">
+        <button role="tab" aria-selected="true" tabindex="0" data-p="">${T('Tous')}</button><button role="tab" aria-selected="false" tabindex="-1" data-p="femme">${T('Femme')}</button><button role="tab" aria-selected="false" tabindex="-1" data-p="homme">${T('Homme')}</button></div>`;
       const tabs = [...zone.querySelectorAll('button')];
       const choisir = b => { publicFiltre = b.dataset.p; tabs.forEach(o => { o.setAttribute('aria-selected', o === b); o.tabIndex = o === b ? 0 : -1; }); rendrePrestations(); };
       tabs.forEach((b, i) => {
@@ -484,7 +487,7 @@
       if(c !== cat){ cat = c; if(c) html += `<div class="cat">${echapperHtml(c)}</div>`; }
       html += cartePrestation(p, prestationsChoisies.some(x => x.id === p.id));
     });
-    liste.innerHTML = html || '<div class="creneau-vide">Aucune prestation pour ce public.</div>';
+    liste.innerHTML = html || '<div class="creneau-vide">' + T('Aucune prestation pour ce public.') + '</div>';
     liste.querySelectorAll('.carte-prestation').forEach(el => el.addEventListener('click', () => basculerPrestation(el)));
     majResume();
   }
@@ -509,7 +512,7 @@
       const el = eligibles();
       if(!el.length){
         // Personne n'assure toutes ces prestations ensemble : inutile d'aller plus loin (pas de calendrier).
-        alerte.innerHTML = '<strong>Cette combinaison n\'est pas possible.</strong>Aucun membre de l\'équipe n\'assure toutes ces prestations à la suite. Retirez-en une, ou réservez-les séparément.';
+        alerte.innerHTML = '<strong>' + T('Cette combinaison n\'est pas possible.') + '</strong>' + T('Aucun membre de l\'équipe n\'assure toutes ces prestations à la suite. Retirez-en une, ou réservez-les séparément.');
         alerte.hidden = false; alerte.scrollIntoView({ block:'nearest' });
         return;
       }
@@ -527,7 +530,7 @@
     const carte = (id, nom, role, photo) => `<button type="button" class="interv" data-id="${id}" aria-pressed="${intervenantChoisi === id}">
       <span class="ph">${photo && (/^https:\/\//i.test(photo) || (slug.startsWith('demo') && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(photo))) ? `<img src="${echapperHtml(photo)}" alt="">` : echapperHtml((nom || '?').charAt(0).toUpperCase())}</span>
       <b>${echapperHtml(nom)}</b>${role ? `<small>${echapperHtml(role)}</small>` : ''}</button>`;
-    $('liste-intervenants').innerHTML = carte('any', 'Sans préférence', 'Premier disponible', null).replace(/<span class="ph">[^<]*<\/span>/, '<span class="ph" aria-hidden="true">&#10022;</span>')
+    $('liste-intervenants').innerHTML = carte('any', T('Sans préférence'), T('Premier disponible'), null).replace(/<span class="ph">[^<]*<\/span>/, '<span class="ph" aria-hidden="true">&#10022;</span>')
       + el.map(i => carte(i.id, i.nom, i.role, i.photo_url)).join('');
     $('liste-intervenants').querySelectorAll('.interv').forEach(b => b.addEventListener('click', () => { intervenantChoisi = b.dataset.id; choixAuto = false; ouvrirEtapeDate(); }));
     afficherEtape('etape-intervenant');
@@ -542,11 +545,11 @@
   }
 
   async function ouvrirEtapeDate(){
-    const qui = intervenantChoisi !== 'any' && intervenantParId(intervenantChoisi) ? ` avec ${intervenantParId(intervenantChoisi).nom}` : '';
-    $('date-sub').textContent = `${prestationsChoisies.map(p => p.libelle).join(' + ')}${qui}. Choisissez un jour puis une heure.`;
+    const qui = intervenantChoisi !== 'any' && intervenantParId(intervenantChoisi) ? ' ' + T('avec {0}', intervenantParId(intervenantChoisi).nom) : '';
+    $('date-sub').textContent = `${prestationsChoisies.map(p => p.libelle).join(' + ')}${qui}. ${T('Choisissez un jour puis une heure.')}`;
     // « Retour » ramène à l'étape qui précède : le choix de la personne s'il y en avait un, sinon les prestations.
     $('retour-date').dataset.cible = avecEquipe() && eligibles().length > 1 ? 'etape-intervenant' : 'etape-prestation';
-    $('retour-date').textContent = $('retour-date').dataset.cible === 'etape-intervenant' ? '\u2190 Changer de personne' : '\u2190 Changer de prestation';
+    $('retour-date').textContent = $('retour-date').dataset.cible === 'etape-intervenant' ? '\u2190 ' + T('Changer de personne') : '\u2190 ' + T('Changer de prestation');
     $('calendrier').hidden = true; $('date-vide').hidden = true;
     $('creneaux-zone').innerHTML = '';
     afficherEtape('etape-date');
@@ -560,7 +563,7 @@
       dispo = await r.json();
       if(!r.ok) throw new Error('erreur');
     }catch(e){
-      $('date-vide').innerHTML = '<strong>Impossible de charger les disponibilités.</strong>Vérifiez votre connexion puis <button type="button" class="btn-secondaire" id="reessayer-jours" style="min-height:44px; margin-top:8px;">réessayer</button>';
+      $('date-vide').innerHTML = '<strong>' + T('Impossible de charger les disponibilités.') + '</strong>' + T('Vérifiez votre connexion puis') + ' <button type="button" class="btn-secondaire" id="reessayer-jours" style="min-height:44px; margin-top:8px;">' + T('réessayer') + '</button>';
       $('date-vide').hidden = false; $('reessayer-jours').addEventListener('click', ouvrirEtapeDate);
       return;
     }
@@ -568,8 +571,8 @@
     if(!jours.size){
       const nom = intervenantChoisi !== 'any' && intervenantParId(intervenantChoisi) ? intervenantParId(intervenantChoisi).nom : null;
       $('date-vide').innerHTML = dispo.raison === 'aucun_intervenant'
-        ? '<strong>Cette combinaison n\'est pas disponible.</strong>Aucun membre de l\'équipe n\'assure toutes ces prestations à la suite. Modifiez votre sélection.'
-        : `<strong>Aucune disponibilité${nom ? ` avec ${echapperHtml(nom)}` : ''} dans les prochaines semaines.</strong>${avecEquipe() && eligibles().length > 1 ? 'Essayez avec une autre personne, ou choisissez « Sans préférence ».' : 'Revenez un peu plus tard, de nouveaux créneaux sont ouverts régulièrement.'}`;
+        ? '<strong>' + T('Cette combinaison n\'est pas disponible.') + '</strong>' + T('Aucun membre de l\'équipe n\'assure toutes ces prestations à la suite. Modifiez votre sélection.')
+        : `<strong>${nom ? T('Aucune disponibilité avec {0} dans les prochaines semaines.', echapperHtml(nom)) : T('Aucune disponibilité dans les prochaines semaines.')}</strong>${avecEquipe() && eligibles().length > 1 ? T('Essayez avec une autre personne, ou choisissez « Sans préférence ».') : T('Revenez un peu plus tard, de nouveaux créneaux sont ouverts régulièrement.')}`;
       $('date-vide').hidden = false;
       return;
     }
@@ -594,7 +597,7 @@
     if(creneauPre){
       const voulu = [...document.querySelectorAll('.creneau-btn')].find(el => el.dataset.iso === creneauPre); creneauPre = null;
       if(voulu) voulu.click();
-      else { $('date-sub').textContent = 'Ce créneau vient d\'être pris. Choisissez une autre heure.'; }
+      else { $('date-sub').textContent = T('Ce créneau vient d\'être pris. Choisissez une autre heure.'); }
     }
   }
 
@@ -612,22 +615,22 @@
       payload = await r.json();
     }catch(e){
       zone.setAttribute('aria-busy', 'false');
-      zone.innerHTML = '<div class="creneau-vide">Impossible de charger les créneaux. <button type="button" class="btn-secondaire" id="reessayer-creneaux" style="margin-top:12px;">Réessayer</button></div>';
+      zone.innerHTML = '<div class="creneau-vide">' + T('Impossible de charger les créneaux.') + ' <button type="button" class="btn-secondaire" id="reessayer-creneaux" style="margin-top:12px;">' + T('Réessayer') + '</button></div>';
       $('reessayer-creneaux').addEventListener('click', () => selectionnerJour(btn));
       return;
     }
     zone.setAttribute('aria-busy', 'false');
     if(!payload.creneaux || !payload.creneaux.length){
-      zone.innerHTML = '<div class="creneau-vide">Aucun créneau libre ce jour-là. Essayez un autre jour.</div>';
+      zone.innerHTML = '<div class="creneau-vide">' + T('Aucun créneau libre ce jour-là. Essayez un autre jour.') + '</div>';
       return;
     }
     // Regroupement matin / après-midi / soir : on scanne bien plus vite qu'une longue grille.
-    const groupes = [['Matin', c => heureParis(c) < 12], ['Après-midi', c => heureParis(c) >= 12 && heureParis(c) < 18], ['Soir', c => heureParis(c) >= 18]];
+    const groupes = [[T('Matin'), c => heureParis(c) < 12], [T('Après-midi'), c => heureParis(c) >= 12 && heureParis(c) < 18], [T('Soir'), c => heureParis(c) >= 18]];
     promoSet = new Set(payload.promo ? payload.promo.creneaux : []); promoPct = payload.promo ? payload.promo.pourcentage : 0;
     const bouton = c => promoSet.has(c)
       ? boutonCreneau(c).replace('class="creneau-btn"', 'class="creneau-btn promo"').replace('</button>', `<span class="tag-promo">−${promoPct} %</span></button>`)
       : boutonCreneau(c);
-    zone.innerHTML = (promoSet.size ? `<p class="legende-promo"><i class="ph ph-tag" aria-hidden="true"></i>Heures creuses : −${promoPct} % sur les créneaux signalés.</p>` : '') + groupes.map(([nom, test]) => {
+    zone.innerHTML = (promoSet.size ? `<p class="legende-promo"><i class="ph ph-tag" aria-hidden="true"></i>${T('Heures creuses : −{0} % sur les créneaux signalés.', promoPct)}</p>` : '') + groupes.map(([nom, test]) => {
       const liste = payload.creneaux.filter(test);
       return liste.length ? `<div class="periode">${nom}</div><div class="creneaux-grille">${liste.map(bouton).join('')}</div>` : '';
     }).join('');
@@ -643,13 +646,13 @@
     $('choix-tarif').hidden = !avec;
     $('carte-tarif-enfant').hidden = !t.enfant; $('carte-tarif-etudiant').hidden = !t.etudiant;
     if(t.enfant){
-      $('tarif-enfant-titre').textContent = `Tarif enfant (moins de ${t.enfant.age_max} ans)`;
+      $('tarif-enfant-titre').textContent = T('Tarif enfant (moins de {0} ans)', t.enfant.age_max);
       $('tarif-enfant-prix').textContent = `−${t.enfant.pourcentage} %`;
-      $('tarif-enfant-detail').textContent = `Le prix passe à ${formaterEuros(Math.round(total * (100 - t.enfant.pourcentage)) / 100)}. L'enfant doit avoir moins de ${t.enfant.age_max} ans le jour du rendez-vous.`;
+      $('tarif-enfant-detail').textContent = T('Le prix passe à {0}. L\'enfant doit avoir moins de {1} ans le jour du rendez-vous.', formaterEuros(Math.round(total * (100 - t.enfant.pourcentage)) / 100), t.enfant.age_max);
     }
     if(t.etudiant){
       $('tarif-etudiant-prix').textContent = `−${t.etudiant.pourcentage} %`;
-      $('tarif-etudiant-detail').textContent = `Le prix passe à ${formaterEuros(Math.round(total * (100 - t.etudiant.pourcentage)) / 100)}. Une carte d'étudiant en cours de validité sera demandée au salon.`;
+      $('tarif-etudiant-detail').textContent = T('Le prix passe à {0}. Une carte d\'étudiant en cours de validité sera demandée au salon.', formaterEuros(Math.round(total * (100 - t.etudiant.pourcentage)) / 100));
     }
     if(!avec || (tarifChoisi && !t[tarifChoisi])){ tarifChoisi = ''; }
     const r = document.querySelector(`input[name=tarif][value="${tarifChoisi}"]`); if(r) r.checked = true;
@@ -673,10 +676,10 @@
   }
   // Validation à la sortie du champ (pas à chaque frappe).
   const VALIDATEURS = {
-    nom: v => v.trim().length < 2 ? 'Indiquez votre nom.' : '',
-    email: v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()) ? '' : 'Adresse email invalide, par exemple prenom@exemple.fr.',
+    nom: v => v.trim().length < 2 ? T('Indiquez votre nom.') : '',
+    email: v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()) ? '' : T('Adresse email invalide, par exemple prenom@exemple.fr.'),
     // Téléphone obligatoire : Mirrio doit pouvoir joindre le client en cas d'imprévu.
-    telephone: v => /^(?:\+33[1-9]\d{8}|0[1-9]\d{8})$/.test(v.replace(/[\s.-]/g, '')) ? '' : 'Numéro invalide, par exemple 06 12 34 56 78.'
+    telephone: v => /^(?:\+|00)?\d{8,15}$/.test(v.replace(/[\s.\-()]/g, '')) ? '' : T('Numéro invalide, par exemple 06 12 34 56 78.')
   };
   Object.keys(VALIDATEURS).forEach(id => $(id).addEventListener('blur', () => poserErreur(id, VALIDATEURS[id]($(id).value))));
 
@@ -688,8 +691,8 @@
     const resume = $('erreur-form');
     if(erreurs.length){
       // Résumé focalisable, avec un lien vers chaque champ en erreur.
-      const noms = { nom:'Nom complet', email:'Email', telephone:'Téléphone' };
-      resume.innerHTML = `<strong>Merci de corriger ${erreurs.length > 1 ? 'ces champs' : 'ce champ'} :</strong>` + erreurs.map(x => `<div><a href="#${x[0]}">${noms[x[0]]}</a> : ${echapperHtml(x[1])}</div>`).join('');
+      const noms = { nom:T('Nom complet'), email:T('Email'), telephone:T('Téléphone') };
+      resume.innerHTML = `<strong>${erreurs.length > 1 ? T('Merci de corriger ces champs :') : T('Merci de corriger ce champ :')}</strong>` + erreurs.map(x => `<div><a href="#${x[0]}">${noms[x[0]]}</a> : ${echapperHtml(x[1])}</div>`).join('');
       resume.hidden = false; resume.focus();
       resume.querySelectorAll('a').forEach(a => a.addEventListener('click', ev => { ev.preventDefault(); $(a.getAttribute('href').slice(1)).focus(); }));
       return;
@@ -701,11 +704,11 @@
     const btn = $('btn-envoyer');
     const libelleDepart = btn.textContent;
     btn.disabled = true;
-    btn.innerHTML = `<span class="tourne" aria-hidden="true"></span>${paiementRequis ? 'Préparation du paiement' : 'Envoi en cours'}`;
+    btn.innerHTML = `<span class="tourne" aria-hidden="true"></span>${paiementRequis ? T('Préparation du paiement') : T('Envoi en cours')}`;
 
     const echec = (message, retourDate) => {
       btn.disabled = false; btn.textContent = libelleDepart;
-      resume.innerHTML = `<strong>La réservation n'a pas abouti.</strong>${echapperHtml(message)}`;
+      resume.innerHTML = `<strong>${T('La réservation n\'a pas abouti.')}</strong>${echapperHtml(message)}`;
       resume.hidden = false; resume.focus();
       if(retourDate) afficherEtape('etape-date');
     };
@@ -719,12 +722,12 @@
       resultat = await r.json();
       if(!r.ok){
         // Un 409 signifie le plus souvent que le créneau vient d'être pris : retour au choix du créneau.
-        if(r.status === 409){ echec((resultat.error || 'Ce créneau vient d\'être pris.') + ' Choisissez-en un autre.', true); const s = $('jours-scroll').querySelector('[aria-pressed=true]'); if(s) selectionnerJour(s); }
-        else echec(resultat.error || 'Réessayez dans un instant.');
+        if(r.status === 409){ echec(T(resultat.error || 'Ce créneau vient d\'être pris.') + ' ' + T('Choisissez-en un autre.'), true); const s = $('jours-scroll').querySelector('[aria-pressed=true]'); if(s) selectionnerJour(s); }
+        else echec(T(resultat.error || 'Réessayez dans un instant.'));
         return;
       }
     }catch(err){
-      echec('Vérifiez votre connexion puis réessayez.');
+      echec(T('Vérifiez votre connexion puis réessayez.'));
       return;
     }
 
@@ -732,18 +735,18 @@
     // n'est confirmée qu'au retour du webhook (api/paiement-webhook-stripe.js),
     // jamais à cette redirection.
     if(resultat.url){
-      btn.innerHTML = '<span class="tourne" aria-hidden="true"></span>Redirection';
+      btn.innerHTML = '<span class="tourne" aria-hidden="true"></span>' + T('Redirection');
       window.location.href = resultat.url;
       return;
     }
 
     // Confirmé tout de suite si le créneau était libre (confirmation automatique), sinon demande à valider.
     const confirme = !!resultat.confirme;
-    $('t-conf').textContent = confirme ? 'Rendez-vous confirmé' : 'Demande envoyée';
+    $('t-conf').textContent = confirme ? T('Rendez-vous confirmé') : T('Demande envoyée');
     $('confirmation-texte').textContent = (confirme
-      ? `Votre rendez-vous chez ${bootstrap.praticien.business_name}${resultat.intervenant ? ` avec ${resultat.intervenant}` : ''} est confirmé. Un email de confirmation vous a été envoyé.`
-      : `${bootstrap.praticien.business_name} a bien reçu votre demande et vous écrira dès qu'elle sera validée.`)
-      + (infos.reste > 0 ? ` Pensez à prévoir ${formaterEuros(infos.reste)} en espèces au salon.` : '');
+      ? (resultat.intervenant ? T('Votre rendez-vous chez {0} avec {1} est confirmé. Un email de confirmation vous a été envoyé.', bootstrap.praticien.business_name, resultat.intervenant) : T('Votre rendez-vous chez {0} est confirmé. Un email de confirmation vous a été envoyé.', bootstrap.praticien.business_name))
+      : T('{0} a bien reçu votre demande et vous écrira dès qu\'elle sera validée.', bootstrap.praticien.business_name))
+      + (infos.reste > 0 ? ' ' + T('Pensez à prévoir {0} en espèces au salon.', formaterEuros(infos.reste)) : '');
     const t = totaux(prestationsChoisies);
     $('recap-final').innerHTML = `<b>${echapperHtml(prestationsChoisies.map(p => p.libelle).join(' + '))}</b>${echapperHtml(quand(creneauChoisi))}, ${formaterDuree(t.duree)}`;
     if(resultat.ics_url){ const l = $('lien-ics'); l.href = resultat.ics_url; l.hidden = false; }
@@ -759,13 +762,14 @@
       bootstrap = await r.json();
     }catch(e){ afficherErreur(); return; }
 
+    definirDevise(DEVISES[bootstrap.pays] || 'EUR');
     const nom = bootstrap.praticien.business_name;
-    document.title = `Réserver chez ${nom}`;
+    document.title = T('Réserver chez {0}', nom);
     const style = document.createElement('style');
     style.textContent = stylesSalon(bootstrap.praticien.accent, bootstrap.style);
     document.head.appendChild(style);
     $('entete').innerHTML = carteMarque(bootstrap.praticien);
-    $('titre-page').textContent = `Réserver chez ${nom}`;
+    $('titre-page').textContent = T('Réserver chez {0}', nom);
     const salon = `pro.html?p=${encodeURIComponent(slug)}`;
     $('lien-salon').href = salon; $('retour-salon').href = salon;
     // WhatsApp du salon (si renseigné dans « Ma page ») : une question avant de réserver. Jamais sur un salon de démonstration.
@@ -773,21 +777,21 @@
       let n = String(bootstrap.whatsapp || '').replace(/[\s.\-()]/g, '');
       if(/^00\d+$/.test(n)) n = n.slice(2); else if(/^\+\d+$/.test(n)) n = n.slice(1); else if(/^0[1-9]\d{8}$/.test(n)) n = '33' + n.slice(1);
       if(!/^[1-9]\d{7,14}$/.test(n) || /^demo-/.test(slug)) return;
-      $('lien-wa').href = `https://wa.me/${n}?text=${encodeURIComponent(`Bonjour, j'ai une question avant de réserver chez ${nom}.`)}`;
+      $('lien-wa').href = `https://wa.me/${n}?text=${encodeURIComponent(T('Bonjour, j\'ai une question avant de réserver chez {0}.', nom))}`;
       $('lien-wa').hidden = false;
     })();
 
     rendrePrestations();
     if(bootstrap.creux){
       const hCreux = h => h.replace(/^0/, '').replace(':', 'h').replace(/h00$/, 'h');
-      const jr = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+      const jr = [0, 1, 2, 3, 4, 5, 6].map(j => new Intl.DateTimeFormat(lieu(), { weekday:'long', timeZone:'UTC' }).format(new Date(Date.UTC(2024, 0, 7 + j))));   // 7 janvier 2024 = dimanche
       const noms = bootstrap.creux.jours.slice().sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)).map(j => jr[j]);
-      $('bandeau-creux').innerHTML = `<i class="ph ph-tag" aria-hidden="true"></i><span><b>−${bootstrap.creux.pourcentage} % aux heures creuses</b> : ${noms.join(', ')}, de ${hCreux(bootstrap.creux.debut)} à ${hCreux(bootstrap.creux.fin)}. Le prix baisse automatiquement sur ces créneaux.</span>`;
+      $('bandeau-creux').innerHTML = `<i class="ph ph-tag" aria-hidden="true"></i><span>${T('<b>−{0} % aux heures creuses</b> : {1}, de {2} à {3}. Le prix baisse automatiquement sur ces créneaux.', bootstrap.creux.pourcentage, noms.join(', '), hCreux(bootstrap.creux.debut), hCreux(bootstrap.creux.fin))}</span>`;
       $('bandeau-creux').hidden = false;
     }
     if(bootstrap.paiement_requis === false){
       fermee = true;
-      const al = $('alerte-prestations'); al.innerHTML = '<strong>Réservation en ligne indisponible.</strong>Ce salon n\'a pas encore activé le paiement en ligne (acompte de 5 € minimum). Contactez-le directement.'; al.hidden = false;
+      const al = $('alerte-prestations'); al.innerHTML = '<strong>' + T('Réservation en ligne indisponible.') + '</strong>' + T('Ce salon n\'a pas encore activé le paiement en ligne (acompte de 5 € minimum). Contactez-le directement.'); al.hidden = false;
     }
     // « Reprendre ce rendez-vous » (mon-espace.html) : prestations et personne déjà choisies, à confirmer par « Continuer ».
     const q = new URLSearchParams(location.search);
@@ -809,6 +813,15 @@
     $('app').hidden = false;
   }
   init();
+  // Changement de langue : on redessine ce qui est assemblé en JavaScript (les textes fixes sont traduits par i18n.js).
+  if(window.I18N) window.I18N.onChange(() => {
+    if(!bootstrap) return;
+    document.title = T('Réserver chez {0}', bootstrap.praticien.business_name); $('titre-page').textContent = document.title;
+    rendrePrestations(); afficherEtape(etapeCourante, { focus:false });
+    if(etapeCourante === 'etape-form'){ majChoixTarif(); majChoixMode(); majRecapForm(); majBoutonEnvoi(); }
+    else if(etapeCourante === 'etape-date') ouvrirEtapeDate();
+    else if(etapeCourante === 'etape-intervenant') ouvrirEtapeIntervenant(eligibles());
+  });
 </script>
 </body>
 </html>
