@@ -11,7 +11,7 @@
 // Le jeton de la carte est une URL-capacité (comme calendar_feeds.token) : il fait l'autorisation à lui seul pour CETTE carte. Les fonctions SQL appelées
 // ici sont réservées à la clé de service. Variables : SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SITE_URL, + celles de api/_wallet.js.
 
-import { walletConfigure, lienGoogleWallet, majGoogleWallet, construirePkpass } from './_wallet.js';
+import { walletConfigure, lienGoogleWallet, majGoogleWallet, construirePkpass, preparerImages } from './_wallet.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -64,7 +64,7 @@ export default async function handler(req, res){
     if(w === 'apple'){
       if(!wallet.apple) return json(res, 501, { error:'Apple Wallet n\'est pas encore activé pour Mirrio.' });
       try{
-        const buf = construirePkpass(carte, site(req));
+        const buf = construirePkpass(carte, site(req), new Date(), null, await preparerImages(carte));
         res.statusCode = 200; res.setHeader('Content-Type', 'application/vnd.apple.pkpass'); res.setHeader('Content-Disposition', 'attachment; filename="fidelite.pkpass"');
         res.setHeader('Cache-Control', 'no-store'); res.setHeader('X-Robots-Tag', 'noindex, nofollow'); return res.end(buf);
       }catch(e){ return json(res, 500, { error:'Carte Apple Wallet impossible à générer.' }); }

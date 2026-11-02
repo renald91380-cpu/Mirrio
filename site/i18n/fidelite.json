@@ -343,5 +343,40 @@
   "{0} stamps free when you sign up.",
   "{0} stempels gratis bij inschrijving.",
   "{0} طوابع بلاش من التسجيل."
+ ],
+ "STATUT": [
+  "STATUS",
+  "STATUS",
+  "الحالة"
+ ],
+ "MEMBRE": [
+  "MEMBER",
+  "LID",
+  "العضو"
+ ],
+ "TAMPONS": [
+  "STAMPS",
+  "STEMPELS",
+  "الطوابع"
+ ],
+ "POINTS": [
+  "POINTS",
+  "PUNTEN",
+  "النقط"
+ ],
+ "VISITES": [
+  "VISITS",
+  "BEZOEKEN",
+  "الزيارات"
+ ],
+ "Client": [
+  "Customer",
+  "Klant",
+  "كليان"
+ ],
+ "{0} points sur {1}": [
+  "{0} points out of {1}",
+  "{0} punten op {1}",
+  "{0} نقط من {1}"
  ]
 }

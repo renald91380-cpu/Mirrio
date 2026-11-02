@@ -197,6 +197,11 @@
   .fi-pt{ font-variant-numeric:tabular-nums; font-weight:700; }
   .imp-champ textarea{ min-height:80px; border:1px solid rgba(16,18,22,.2); border-radius:12px; padding:10px 12px; font:inherit; }
   .fi-sw{ display:flex; gap:10px; align-items:center; font-weight:600; font-size:15px; } .fi-sw input{ width:22px; height:22px; accent-color:#101216; }
+  .fi-app{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,420px); gap:24px; align-items:start; } @media(max-width:960px){ .fi-app{ grid-template-columns:1fr; } }
+  .fi-app .apercu{ position:sticky; top:96px; } @media(max-width:960px){ .fi-app .apercu{ position:static; } }
+  .fi-fichier{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; } .fi-fichier img{ max-height:54px; max-width:140px; border-radius:8px; border:1px solid rgba(16,18,22,.14); background:#e9e9e6; object-fit:contain; } .fi-fichier img.large{ max-height:70px; max-width:200px; object-fit:cover; }
+  .fi-couleurs{ display:flex; gap:18px; flex-wrap:wrap; align-items:end; } .fi-couleurs input[type=color]{ width:64px; height:48px; border:1px solid rgba(16,18,22,.2); border-radius:12px; padding:3px; background:#fff; cursor:pointer; }
+  .fi-niv{ display:grid; grid-template-columns:minmax(120px,1fr) 160px; gap:8px 12px; align-items:end; } .fi-niv input{ min-height:44px; border:1px solid rgba(16,18,22,.2); border-radius:12px; padding:0 12px; font:inherit; background:#fff; }
   #affiche{ display:none; }
   @media print{ body > *:not(#affiche){ display:none !important; } #affiche{ display:block !important; text-align:center; padding:40px; font-family:Arial,sans-serif; } #affiche svg{ width:360px; height:360px; } #affiche h1{ font-size:40px; margin:0 0 12px; } #affiche p{ font-size:22px; } }
 </style>
@@ -269,6 +274,29 @@
         <p class="card-sub" style="margin-top:12px" id="exemple"></p>
       </section>
 
+      <section class="card" id="c-apparence">
+        <h2>Apparence de la carte</h2>
+        <p class="card-sub">C'est la carte que vos clients ajoutent à leur Wallet (iPhone et Android) et ouvrent dans leur navigateur : votre logo, votre image, vos couleurs. L'aperçu à droite montre exactement ce qu'ils recevront.</p>
+        <div class="fi-app">
+          <div>
+            <div class="imp-champ">Logo <span class="doux" style="font-weight:400;font-size:13px">(PNG ou JPEG, fond transparent de préférence ; sans logo, celui de votre salon est repris)</span>
+              <div class="fi-fichier"><img id="logo-apercu" alt="" hidden><label class="btn btn-outline btn-sm" style="cursor:pointer">Choisir un logo<input type="file" id="logo-fichier" accept="image/png,image/jpeg,image/webp" hidden></label><button class="btn btn-outline btn-sm" type="button" id="logo-retirer" hidden>Retirer</button></div></div>
+            <div class="imp-champ">Image du bandeau <span class="doux" style="font-weight:400;font-size:13px">(une photo de votre salon, recadrée au format panoramique ; les tampons s'affichent dessus)</span>
+              <div class="fi-fichier"><img class="large" id="image-apercu" alt="" hidden><label class="btn btn-outline btn-sm" style="cursor:pointer">Choisir une image<input type="file" id="image-fichier" accept="image/png,image/jpeg,image/webp" hidden></label><button class="btn btn-outline btn-sm" type="button" id="image-retirer" hidden>Retirer</button></div></div>
+            <div class="fi-couleurs" style="margin:14px 0">
+              <label class="imp-champ" style="margin:0">Couleur de la carte<input type="color" id="cfond" value="#101216"></label>
+              <label class="imp-champ" style="margin:0">Couleur du texte<input type="color" id="ctexte" value="#ffffff"></label>
+              <label class="fi-sw" style="font-weight:500;font-size:14px"><input type="checkbox" id="ctexte-auto" checked> Texte automatique (clair ou foncé selon la couleur)</label>
+            </div>
+            <div class="imp-champ">Statuts du client <span class="doux" style="font-weight:400;font-size:13px">(selon son nombre de passages ; affichés en haut à droite de la carte)</span>
+              <div class="fi-niv" id="niv"></div></div>
+            <div id="app-err" class="imp-note imp-ko" role="alert" hidden></div>
+            <div class="imp-actions"><button class="btn btn-primary" type="button" id="enreg-app">Enregistrer l'apparence</button></div>
+          </div>
+          <div class="apercu" aria-live="polite"><p class="doux" style="margin:0 0 8px;font-size:13px">Aperçu</p><div id="apercu-carte"></div></div>
+        </div>
+      </section>
+
       <section class="card" id="c-aff" hidden>
         <h2>Affiche pour le comptoir</h2>
         <p class="card-sub">Vos clients scannent ce QR code avec leur téléphone, saisissent leur nom et leur e-mail ou mobile, et reçoivent leur carte. Ils peuvent l'ajouter à leur Wallet.</p>
@@ -293,6 +321,7 @@
 </div>
 <div id="affiche"><h1 id="af-salon"></h1><p>Scannez pour créer votre carte de fidélité</p><div id="af-qr"></div><p id="af-regle" style="margin-top:14px"></p></div>
 
+<script src="/carte-fidelite.js"></script>
 <script type="module">
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
   import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
@@ -306,6 +335,81 @@
   const qrSvg = t => { const q = window.qrcode(0, 'M'); q.addData(t); q.make(); return q.createSvgTag({ cellSize:6, margin:0, scalable:true }); };
   const toast = m => { const t = document.createElement('div'); t.textContent = m; t.setAttribute('role', 'status'); t.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#101216;color:#fff;padding:12px 18px;border-radius:999px;z-index:99;font-size:14px'; document.body.appendChild(t); setTimeout(() => t.remove(), 3200); };
   const adresse = p => `${location.origin}/fidelite.html?${p}`;
+
+  // ---------------------------------------------------------------- apparence de la carte
+  let app = { logo_url:null, image_url:null, couleur_fond:null, couleur_texte:null, niveaux:[{ nom:'Bronze', visites:0 }, { nom:'Argent', visites:15 }, { nom:'Or', visites:40 }] };
+  let aSupprimer = [], logoSalon = null;
+  function niveauxChamps(){
+    $('#niv').innerHTML = [0, 1, 2].map(i => { const n = app.niveaux[i] || { nom:'', visites:i ? '' : 0 };
+      return `<label class="imp-champ" style="margin:0">Statut ${i + 1}<input type="text" maxlength="20" data-n="${i}" value="${(n.nom || '').replace(/"/g, '&quot;')}" ${i === 2 ? 'placeholder="(facultatif)"' : ''}></label><label class="imp-champ" style="margin:0">À partir de (passages)<input type="number" min="0" max="10000" data-v="${i}" value="${n.visites}" ${i === 0 ? 'disabled' : ''}></label>`; }).join('');
+    $('#niv').querySelectorAll('input').forEach(x => x.addEventListener('input', () => { lireNiveaux(); apercu(); }));
+  }
+  function lireNiveaux(){
+    const l = []; for(let i = 0; i < 3; i++){ const nom = ($(`#niv [data-n="${i}"]`).value || '').trim(), v = i === 0 ? 0 : Math.round(Number($(`#niv [data-v="${i}"]`).value)); if(nom) l.push({ nom, visites: Number.isFinite(v) ? v : 0 }); }
+    app.niveaux = l; return l;
+  }
+  function majApparence(){
+    $('#cfond').value = app.couleur_fond || '#101216'; $('#ctexte-auto').checked = !app.couleur_texte; $('#ctexte').value = app.couleur_texte || '#ffffff'; $('#ctexte').disabled = !app.couleur_texte;
+    $('#logo-apercu').hidden = !app.logo_url; if(app.logo_url) $('#logo-apercu').src = app.logo_url; $('#logo-retirer').hidden = !app.logo_url;
+    $('#image-apercu').hidden = !app.image_url; if(app.image_url) $('#image-apercu').src = app.image_url; $('#image-retirer').hidden = !app.image_url;
+    niveauxChamps(); apercu();
+  }
+  function apercu(){
+    const p = lire(), niv = app.niveaux[0] || { nom:'' };
+    const carte = { salon:nomSalon, prenom:'Camille', mode:p.mode, points_par_visite:1, points_par_euro:p.points_par_euro, seuil:p.seuil > 0 ? p.seuil : 10, points: p.mode === 'visite' ? Math.min(5, p.seuil || 10) : Math.round((p.seuil > 0 ? p.seuil : 100) / 2),
+      niveau:niv.nom, visites:1, code:'FT-B2244B5F', logo:app.logo_url || logoSalon, image:app.image_url, couleur_fond:app.couleur_fond, couleur_texte:app.couleur_texte };
+    $('#apercu-carte').innerHTML = MIRRIO_CARTE.html(carte); MIRRIO_CARTE.remplirQr($('#apercu-carte'), adresse('t=exemple'));
+  }
+  // Une image choisie est redimensionnée et convertie en PNG dans le navigateur (le serveur du Wallet ne lit que du PNG) avant d'être envoyée dans votre espace de stockage public.
+  function versPng(fichier, maxL, maxH, recadrer){
+    return new Promise((res, rej) => {
+      const url = URL.createObjectURL(fichier), im = new Image();
+      im.onload = () => {
+        let sx = 0, sy = 0, sl = im.width, sh = im.height, L, H;
+        if(recadrer){ L = maxL; H = maxH; const r = Math.max(L / im.width, H / im.height); sl = L / r; sh = H / r; sx = (im.width - sl) / 2; sy = (im.height - sh) / 2; }
+        else { const r = Math.min(maxL / im.width, maxH / im.height, 1); L = Math.max(1, Math.round(im.width * r)); H = Math.max(1, Math.round(im.height * r)); }
+        const c = document.createElement('canvas'); c.width = L; c.height = H; const x = c.getContext('2d'); x.drawImage(im, sx, sy, sl, sh, 0, 0, L, H);
+        URL.revokeObjectURL(url); c.toBlob(b => b ? res(b) : rej(new Error('Image illisible.')), 'image/png');
+      };
+      im.onerror = () => { URL.revokeObjectURL(url); rej(new Error('Cette image ne peut pas être lue.')); };
+      im.src = url;
+    });
+  }
+  async function envoyer(blob, nom){
+    const chemin = `${espace}/fidelite/${nom}-${crypto.randomUUID()}.png`;
+    const { error } = await supabase.storage.from('vitrines').upload(chemin, blob, { contentType:'image/png', upsert:false });
+    if(error) throw new Error('Envoi impossible : ' + error.message);
+    return supabase.storage.from('vitrines').getPublicUrl(chemin).data.publicUrl;
+  }
+  const cheminDe = url => { const m = String(url || '').match(/\/object\/public\/vitrines\/(.+)$/); return m ? decodeURIComponent(m[1]) : null; };
+  async function choisir(champ, input, nom, maxL, maxH, recadrer){
+    const f = input.files[0]; input.value = ''; if(!f) return; const err = $('#app-err'); err.hidden = true;
+    if(f.size > 15 * 1024 * 1024){ err.textContent = 'Image trop lourde (15 Mo au plus).'; err.hidden = false; return; }
+    try{
+      const blob = await versPng(f, maxL, maxH, recadrer); if(blob.size > 4.5 * 1024 * 1024) throw new Error('Image trop lourde après conversion : choisissez-en une plus simple.');
+      const url = await envoyer(blob, nom); if(app[champ]) aSupprimer.push(app[champ]); app[champ] = url; majApparence();
+    }catch(e){ err.textContent = e.message; err.hidden = false; }
+  }
+  $('#logo-fichier').addEventListener('change', e => choisir('logo_url', e.target, 'logo', 480, 150, false));
+  $('#image-fichier').addEventListener('change', e => choisir('image_url', e.target, 'bandeau', 750, 246, true));
+  $('#logo-retirer').addEventListener('click', () => { if(app.logo_url) aSupprimer.push(app.logo_url); app.logo_url = null; majApparence(); });
+  $('#image-retirer').addEventListener('click', () => { if(app.image_url) aSupprimer.push(app.image_url); app.image_url = null; majApparence(); });
+  $('#cfond').addEventListener('input', e => { app.couleur_fond = e.target.value; apercu(); });
+  $('#ctexte').addEventListener('input', e => { app.couleur_texte = e.target.value; apercu(); });
+  $('#ctexte-auto').addEventListener('change', e => { app.couleur_texte = e.target.checked ? null : $('#ctexte').value; $('#ctexte').disabled = e.target.checked; apercu(); });
+  $('#enreg-app').addEventListener('click', async () => {
+    const err = $('#app-err'); err.hidden = true; const bad = m => { err.textContent = m; err.hidden = false; };
+    if(!estResp) return bad('Réservé au responsable du salon.');
+    const nv = lireNiveaux(); if(!nv.length) return bad('Indiquez au moins un statut (par exemple Bronze).');
+    for(let i = 1; i < nv.length; i++) if(!(nv[i].visites > nv[i - 1].visites)) return bad('Les statuts doivent demander de plus en plus de passages.');
+    const b = $('#enreg-app'); b.disabled = true;
+    const { error } = await supabase.from('fidelite_programmes').upsert({ owner_id:espace, logo_url:app.logo_url, image_url:app.image_url, couleur_fond:app.couleur_fond, couleur_texte:app.couleur_texte, niveaux:nv, maj_le:new Date().toISOString() }, { onConflict:'owner_id' });
+    b.disabled = false; if(error) return bad('Enregistrement impossible : ' + error.message);
+    // Les anciens fichiers remplacés ou retirés sont supprimés du stockage (meilleur effort, jamais bloquant).
+    const morts = aSupprimer.map(cheminDe).filter(Boolean); aSupprimer = []; if(morts.length) supabase.storage.from('vitrines').remove(morts).catch(() => {});
+    toast('Apparence enregistrée');
+  });
+  ['mode', 'seuil', 'ppe'].forEach(i => $('#' + i).addEventListener('input', () => { if(espace) apercu(); }));
 
   function formulaire(p){
     $('#actif').checked = !!(p && p.actif); $('#mode').value = p ? p.mode : 'euro'; $('#ppe').value = p ? p.points_par_euro : 1; $('#ppv').value = p ? p.points_par_visite : 1;
@@ -381,6 +485,10 @@
     const pr = await supabase.from('fidelite_programmes').select('*').eq('owner_id', espace).maybeSingle();
     if(pr.error && /fidelite_programmes|schema cache|does not exist|42P01|PGRST205/.test(pr.error.message + (pr.error.code || ''))){ $('#base').hidden = false; return; }
     prog = pr.data; $('#contenu').hidden = false; formulaire(prog);
+    logoSalon = brand.logo_url || null;
+    if(prog){ app = { logo_url:prog.logo_url || null, image_url:prog.image_url || null, couleur_fond:prog.couleur_fond || null, couleur_texte:prog.couleur_texte || null, niveaux:Array.isArray(prog.niveaux) && prog.niveaux.length ? prog.niveaux : app.niveaux }; }
+    majApparence();
+    if(!estResp) $('#c-apparence').querySelectorAll('input,button').forEach(x => x.disabled = true);
     $('#c-sub').textContent = estResp ? 'Réglez les règles ici. Les cartes existantes gardent leurs points.' : 'Seul le responsable du salon peut modifier les règles.';
     if(!estResp){ $('#c-reglage').querySelectorAll('input,select,button').forEach(x => x.disabled = true); $('#c-cartes').hidden = true; $('#kpi').hidden = true; }
     const rs = await supabase.from('parametres_reservation').select('slug').eq('owner_id', espace).maybeSingle(); slug = rs.data && rs.data.slug;

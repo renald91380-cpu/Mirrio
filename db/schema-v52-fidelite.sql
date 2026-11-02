@@ -26,6 +26,21 @@ create table if not exists public.fidelite_programmes (
   maj_le             timestamptz not null default now()
 );
 
+-- Apparence de la carte (identique pour tous les clients du salon) : logo, image du bandeau, couleurs, niveaux de statut. Tout est facultatif :
+-- sans réglage, la carte prend le logo et la couleur du salon (« Ma page »).
+alter table public.fidelite_programmes add column if not exists logo_url text;
+alter table public.fidelite_programmes add column if not exists image_url text;
+alter table public.fidelite_programmes add column if not exists couleur_fond text;
+alter table public.fidelite_programmes add column if not exists couleur_texte text;
+alter table public.fidelite_programmes add column if not exists niveaux jsonb not null default '[{"nom":"Bronze","visites":0},{"nom":"Argent","visites":15},{"nom":"Or","visites":40}]'::jsonb;
+alter table public.fidelite_programmes drop constraint if exists fidelite_programmes_apparence_check;
+alter table public.fidelite_programmes add constraint fidelite_programmes_apparence_check check (
+  (logo_url is null or (logo_url ~ '^https://' and length(logo_url) <= 500))
+  and (image_url is null or (image_url ~ '^https://' and length(image_url) <= 500))
+  and (couleur_fond is null or couleur_fond ~ '^#[0-9a-fA-F]{6}$')
+  and (couleur_texte is null or couleur_texte ~ '^#[0-9a-fA-F]{6}$')
+  and jsonb_typeof(niveaux) = 'array' and jsonb_array_length(niveaux) <= 6);
+
 create table if not exists public.fidelite_cartes (
   id                   uuid primary key default gen_random_uuid(),
   owner_id             uuid not null,
@@ -106,6 +121,16 @@ begin
   return c;
 end $$;
 
+-- Nombre de passages (tickets qui ont crédité la carte) et nom du statut atteint (le plus haut seuil de passages dépassé).
+create or replace function public.fidelite__visites(p_carte uuid)
+returns int language sql stable security definer set search_path = public as $$
+  select count(*)::int from public.fidelite_mouvements where carte_id = p_carte and type = 'gain'
+$$;
+create or replace function public.fidelite__niveau(p_niveaux jsonb, p_visites int)
+returns text language sql immutable set search_path = public as $$
+  select coalesce((select n->>'nom' from jsonb_array_elements(p_niveaux) n where (n->>'visites')::int <= p_visites order by (n->>'visites')::int desc limit 1), '')
+$$;
+
 create or replace function public.fidelite__vue(c public.fidelite_cartes, p public.fidelite_programmes)
 returns jsonb language sql stable security definer set search_path = public as $$
   select jsonb_build_object('carte_id', c.id, 'token', c.token, 'points', c.points, 'seuil', p.seuil, 'pret', c.points >= p.seuil, 'mode', p.mode, 'points_par_visite', p.points_par_visite,
@@ -128,7 +153,12 @@ returns jsonb language plpgsql security definer set search_path = public as $$
 declare e uuid := public.fidelite__espace(); p public.fidelite_programmes := public.fidelite__programme(e); c public.fidelite_cartes; t text;
 begin
   t := coalesce((regexp_match(coalesce(p_code, ''), '([0-9a-f]{48})'))[1], '');
-  select * into c from public.fidelite_cartes where owner_id = e and token = t;
+  if t <> '' then select * into c from public.fidelite_cartes where owner_id = e and token = t;
+  else   -- code court imprimé sous le QR (FT- et 8 caractères) : unique dans le salon, sinon refusé
+    t := coalesce((regexp_match(upper(coalesce(p_code, '')), 'FT-([0-9A-F]{8})'))[1], '');
+    if t = '' or (select count(*) from public.fidelite_cartes where owner_id = e and token like lower(t) || '%') <> 1 then raise exception 'Carte de fidélité inconnue dans ce salon.'; end if;
+    select * into c from public.fidelite_cartes where owner_id = e and token like lower(t) || '%';
+  end if;
   if not found then raise exception 'Carte de fidélité inconnue dans ce salon.'; end if;
   return public.fidelite__vue(c, p);
 end $$;
@@ -221,7 +251,8 @@ begin
   select * into pr from public.profiles where id = c.owner_id;
   select * into v from public.vitrine where owner_id = c.owner_id;
   select * into r from public.parametres_reservation where owner_id = c.owner_id;
-  return jsonb_build_object('token', c.token, 'owner_id', c.owner_id, 'salon', coalesce(nullif(pr.business_name, ''), pr.full_name, 'Votre salon'), 'logo', pr.logo_url, 'couleur', v.couleur, 'slug', r.slug,
+  return jsonb_build_object('token', c.token, 'owner_id', c.owner_id, 'salon', coalesce(nullif(pr.business_name, ''), pr.full_name, 'Votre salon'), 'logo', coalesce(p.logo_url, pr.logo_url), 'image', p.image_url, 'couleur', v.couleur, 'couleur_fond', p.couleur_fond, 'couleur_texte', p.couleur_texte, 'slug', r.slug,
+    'code', 'FT-' || upper(left(c.token, 8)), 'visites', public.fidelite__visites(c.id), 'niveau', public.fidelite__niveau(p.niveaux, public.fidelite__visites(c.id)),
     'prenom', split_part(coalesce((select full_name from public.clients where id = c.client_id), ''), ' ', 1),
     'points', c.points, 'seuil', p.seuil, 'mode', p.mode, 'points_par_euro', p.points_par_euro, 'points_par_visite', p.points_par_visite,
     'recompense_type', p.recompense_type, 'recompense_pct', p.recompense_pct, 'recompense_libelle', p.recompense_libelle,
@@ -241,7 +272,7 @@ begin
   if not found or not p.actif then return null; end if;
   select * into pr from public.profiles where id = r.owner_id;
   select * into v from public.vitrine where owner_id = r.owner_id;
-  return jsonb_build_object('salon', coalesce(nullif(pr.business_name, ''), pr.full_name, 'Votre salon'), 'logo', pr.logo_url, 'couleur', v.couleur,
+  return jsonb_build_object('salon', coalesce(nullif(pr.business_name, ''), pr.full_name, 'Votre salon'), 'logo', coalesce(p.logo_url, pr.logo_url), 'image', p.image_url, 'couleur', v.couleur, 'couleur_fond', p.couleur_fond, 'couleur_texte', p.couleur_texte,
     'mode', p.mode, 'points_par_euro', p.points_par_euro, 'points_par_visite', p.points_par_visite, 'seuil', p.seuil,
     'recompense_type', p.recompense_type, 'recompense_pct', p.recompense_pct, 'recompense_libelle', p.recompense_libelle, 'points_bienvenue', p.points_bienvenue);
 end $$;
@@ -293,6 +324,8 @@ grant execute on function public.fidelite_inscrire(text, text, text, text) to se
 revoke all on function public.fidelite__espace() from public, anon, authenticated;
 revoke all on function public.fidelite__programme(uuid) from public, anon, authenticated;
 revoke all on function public.fidelite__carte(uuid, uuid, text, boolean) from public, anon, authenticated;
+revoke all on function public.fidelite__visites(uuid) from public, anon, authenticated;
+revoke all on function public.fidelite__niveau(jsonb, int) from public, anon, authenticated;
 revoke all on function public.fidelite__vue(public.fidelite_cartes, public.fidelite_programmes) from public, anon, authenticated;
 -- Fonctions du personnel connecté.
 revoke all on function public.fidelite_carte_client(uuid) from public, anon;

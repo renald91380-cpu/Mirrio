@@ -27,6 +27,7 @@
   .carte .membre{ margin-top:14px; font-size:16px; font-weight:600; }
   .barre{ height:10px; border-radius:99px; background:rgba(0,0,0,.15); margin:14px 0 6px; overflow:hidden; } .barre i{ display:block; height:100%; background:currentColor; border-radius:99px; width:0; transition:width .6s ease; }
   .tampons{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin:16px 0 10px; position:relative; z-index:1; } .tampons i{ aspect-ratio:1; border-radius:50%; border:2.5px dashed currentColor; opacity:.5; display:flex; align-items:center; justify-content:center; font-style:normal; font-weight:800; font-size:15px; } .tampons i.plein{ opacity:1; border-style:solid; background:currentColor; } .tampons i.plein span{ color:var(--sel); mix-blend-mode:normal; }
+  .reste-note{ text-align:center; font-size:14.5px; margin:14px 4px 6px; }
   .reste{ font-size:14px; font-weight:500; position:relative; z-index:1; }
   .qr{ background:#fff; border-radius:22px; padding:18px; margin:16px 0; text-align:center; box-shadow:var(--ombre); } .qr svg{ width:min(240px,70vw); height:auto; display:block; margin:0 auto; } .qr p{ color:#5B606B; font-size:13.5px; margin-top:8px; }
   .btns{ display:grid; gap:10px; margin:14px 0; }
@@ -46,6 +47,7 @@
   @media (prefers-reduced-motion: reduce){ .barre i{ transition:none; } }
 </style>
 <script src="/i18n.js" data-pages="fidelite"></script>
+<script src="/carte-fidelite.js"></script>
 <script src="/cookies.js" defer></script>
 </head>
 <body>
@@ -94,7 +96,7 @@
     var c, wallet = { google:false, apple:false };
     if(carteCache){ c = carteCache.c; wallet = carteCache.wallet; }
     else if(demo){
-      c = { salon:'Maison Éloïse', prenom:'Camille', points:62, seuil:100, mode:'euro', points_par_euro:1, points_par_visite:1, recompense_type:'remise_pct', recompense_pct:10, recompense_libelle:'', couleur:'#E2A63D', slug:'demo-coiffure', recompenses_utilisees:1,
+      c = { salon:'Maison Éloïse', prenom:'Camille', points:62, seuil:100, mode:'euro', points_par_euro:1, points_par_visite:1, recompense_type:'remise_pct', recompense_pct:10, recompense_libelle:'', couleur:'#E2A63D', slug:'demo-coiffure', recompenses_utilisees:1, code:'FT-B2244B5F', niveau:'Bronze', visites:3, image:'img/fond-accueil.webp', couleur_fond:'#000000',
         mouvements:[{ type:'gain', points:38, date:new Date(Date.now() - 6 * 864e5).toISOString() }, { type:'utilisation', points:-100, date:new Date(Date.now() - 20 * 864e5).toISOString() }, { type:'gain', points:55, date:new Date(Date.now() - 41 * 864e5).toISOString() }] };
       if(P.get('mode') === 'tampons'){ c.mode = 'visite'; c.points_par_visite = 1; c.points = 7; c.seuil = 10; c.recompense_pct = 15; c.mouvements = [{ type:'gain', points:1, date:new Date(Date.now() - 5 * 864e5).toISOString() }, { type:'gain', points:1, date:new Date(Date.now() - 19 * 864e5).toISOString() }, { type:'gain', points:1, date:new Date(Date.now() - 33 * 864e5).toISOString() }]; }
       jeton = 'demo'; carteCache = { c:c, wallet:wallet };
@@ -106,7 +108,7 @@
       c = await r.json(); wallet = c.wallet || wallet; carteCache = { c:c, wallet:wallet };
       ecrireLocal(cle(c.slug || 'x'), jeton);
     }
-    couleur(c.couleur); titre(T('Ma carte {0}', c.salon));
+    couleur(c.couleur_fond || c.couleur); titre(T('Ma carte {0}', c.salon));
     var pct = Math.max(0, Math.min(100, Math.round(c.points / c.seuil * 100))), reste = Math.max(0, c.seuil - c.points), pret = c.points >= c.seuil;
     var tampons = c.mode === 'visite' && Number(c.points_par_visite) === 1;   // carte tamponnée : un tampon par passage
     var grille = tampons && c.seuil <= 20;
@@ -118,18 +120,13 @@
     main.innerHTML =
       (demo ? '<p class="bandeau-demo"><b>' + esc(T('Démonstration.')) + '</b> ' + esc(T('Carte fictive, rien n\'est enregistré.')) + '</p>' : '') +
       '<div class="marque"><b class="notranslate" translate="no">Mirrio.</b><span>' + esc(T('Carte de fidélité')) + '</span></div>' +
-      '<article class="carte" aria-label="' + esc(T('Ma carte de fidélité')) + '"><div class="salon">' + (c.logo && /^https:\/\//.test(c.logo) ? '<img src="' + esc(c.logo) + '" alt="">' : '') + '<span class="notranslate" translate="no">' + esc(c.salon) + '</span></div>' +
-      '<div class="pts" id="pts" dir="ltr">' + c.points + '</div><div class="lib">' + esc(tampons ? T('tampons') : T('points')) + '</div>' +
-      (grille ? tampBloc : '<div class="barre" role="progressbar" aria-valuenow="' + c.points + '" aria-valuemin="0" aria-valuemax="' + c.seuil + '" aria-label="' + esc(T('Progression vers la récompense')) + '"><i id="bar"></i></div>') +
-      '<p class="reste">' + phraseReste + '</p>' +
-      (c.prenom ? '<p class="membre notranslate" translate="no">' + esc(c.prenom) + '</p>' : '') + '</article>' +
-      '<div class="qr"><div id="qr" role="img" aria-label="' + esc(T('QR code de votre carte')) + '"></div><p>' + esc(T('Présentez ce code au salon, il suffit de le scanner.')) + '</p></div>' +
+      MIRRIO_CARTE.html(c) +
+      '<p class="reste-note">' + phraseReste + '</p><p class="doux" style="text-align:center;margin:0 0 6px">' + esc(T('Présentez ce code au salon, il suffit de le scanner.')) + '</p>' +
       '<div class="btns" id="btns"></div>' +
       (mouv ? '<section class="bloc"><h2>' + esc(T('Derniers mouvements')) + '</h2><ul class="mouv">' + mouv + '</ul></section>' : '') +
       '<section class="bloc"><h2>' + esc(T('Comment ça marche')) + '</h2><p class="doux">' + esc(tampons ? T('Un tampon à chaque passage. Après {0} passages : {1} sur le passage suivant. Le tampon est ajouté à la caisse, après le règlement.', c.seuil, texteRec(c)) : T('{0}. À {1} points : {2}. Les points se créditent à la caisse, après le règlement.', regle(c), c.seuil, texteRec(c))) + '</p></section>' +
       '<p class="pied">' + esc(T('Cette adresse est personnelle : ne la partagez pas.')) + '<br>' + esc(T('Vos données sont gérées par {0}.', c.salon)) + ' <a href="confidentialite.html">' + esc(T('Confidentialité')) + '</a>. ' + esc(T('Pour supprimer votre carte, demandez-le au salon.')) + '</p>';
-    requestAnimationFrame(function(){ var b = $('#bar'); if(b) b.style.width = pct + '%'; });
-    chargerQR().then(function(ok){ if(ok) $('#qr').innerHTML = qrSvg(url); else $('#qr').innerHTML = '<p class="doux">' + esc(T('QR code indisponible. Adresse de votre carte :')) + '<br>' + esc(url) + '</p>'; });
+    MIRRIO_CARTE.remplirQr(main, url);
 
     var b = $('#btns'), ios = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document || /iPhone|iPad|iPod/.test(navigator.userAgent), android = /Android/i.test(navigator.userAgent);
     var ajouts = [];
@@ -160,7 +157,7 @@
       if(!r.ok) return erreur('Programme introuvable', 'Ce salon n\'a pas (ou plus) de carte de fidélité.');
       d = await r.json(); progCache = d;
     }
-    couleur(d.couleur); titre(T('Carte de fidélité {0}', d.salon));
+    couleur(d.couleur_fond || d.couleur); titre(T('Carte de fidélité {0}', d.salon));
     var valeurs = { nom:$('#nom') ? $('#nom').value : '', mail:$('#mail') ? $('#mail').value : '', tel:$('#tel') ? $('#tel').value : '' };
     main.innerHTML =
       '<div class="marque"><b class="notranslate" translate="no">Mirrio.</b><span>' + esc(T('Carte de fidélité')) + '</span></div>' +

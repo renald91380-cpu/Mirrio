@@ -279,6 +279,18 @@ verif('S', 'Fidélité : inscription sans e-mail ni téléphone refusée', /e-ma
 const pub = (await un(`select public.fidelite_publique($1) r`, [carteF.token])).r;
 verif('S', 'Fidélité : la lecture publique ne donne que le prénom, le solde et le salon', pub.prenom === 'Camille' && pub.salon === 'Salon Test' && !JSON.stringify(pub).includes('camille@x.fr') && !JSON.stringify(pub).includes('Durand'));
 
+
+// ---- fidélité : apparence de la carte, statut, code court
+const pub2 = (await un(`select public.fidelite_publique($1) r`, [carteF.token])).r;
+verif('C', 'Carte : code court, nombre de passages et statut (Bronze au départ)', pub2.code === 'FT-' + carteF.token.slice(0, 8).toUpperCase() && pub2.visites >= 2 && pub2.niveau === 'Bronze', JSON.stringify([pub2.code, pub2.visites, pub2.niveau]));
+await db.exec(`update public.fidelite_programmes set niveaux = '[{"nom":"Bronze","visites":0},{"nom":"Argent","visites":2},{"nom":"Or","visites":40}]'::jsonb, image_url = 'https://exemple.fr/bandeau.png', couleur_fond = '#101216' where owner_id = '${U}'`);
+const pub3 = (await un(`select public.fidelite_publique($1) r`, [carteF.token])).r;
+verif('C', 'Carte : le statut suit le nombre de passages et l\'apparence du salon est renvoyée', pub3.niveau === 'Argent' && pub3.image === 'https://exemple.fr/bandeau.png' && pub3.couleur_fond === '#101216', JSON.stringify([pub3.niveau, pub3.image, pub3.couleur_fond]));
+const sc2 = (await un(`select public.fidelite_scanner($1) r`, ['ft-' + carteF.token.slice(0, 8)])).r;
+verif('C', 'Carte : le code court imprimé sous le QR identifie la carte à la caisse', sc2.carte_id === carteF.carte_id, JSON.stringify(sc2));
+verif('S', 'Carte : une image non sécurisée ou une couleur invalide est refusée par la base', /apparence_check/.test(await refuse(() => q(`update public.fidelite_programmes set image_url = 'http://x.fr/a.png' where owner_id = $1`, [U])) || '') && /apparence_check/.test(await refuse(() => q(`update public.fidelite_programmes set couleur_fond = 'rouge' where owner_id = $1`, [U])) || ''));
+await db.exec(`update public.fidelite_programmes set image_url = null where owner_id = '${U}'`);
+
 // ---- fidélité : carte tamponnée (un tampon par passage, quel que soit le montant)
 await db.exec(`update public.fidelite_programmes set mode = 'visite', points_par_visite = 1, seuil = 3, points_bienvenue = 0 where owner_id = '${U}'`);
 const cliT = (await un(`insert into public.clients (owner_id, full_name, email) values ($1, 'Tamponnée Test', 't@x.fr') returning id`, [U])).id;

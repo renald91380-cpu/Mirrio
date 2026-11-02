@@ -16,6 +16,7 @@
 
 import crypto from 'node:crypto';
 import { IMAGES } from './_wallet-assets.js';
+import { decoderPng, encoderPng, redimensionner, creer, voileBas, rectArrondi } from './_png.js';
 
 const E = process.env;
 const pem = v => String(v || '').replace(/\\n/g, '\n').trim();
@@ -30,6 +31,9 @@ const COULEUR_DEFAUT = '#101216';
 const hexOk = c => /^#[0-9a-fA-F]{6}$/.test(c || '') ? c : COULEUR_DEFAUT;
 const rgb = c => { const h = hexOk(c).slice(1); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
 const clair = c => { const [r, g, b] = rgb(c); return (0.299 * r + 0.587 * g + 0.114 * b) > 150; };
+// Apparence réglée par le salon (fidelite_programmes) : fond, texte, logo, image du bandeau. Sans réglage : fond sombre, texte clair.
+const fondCarte = c => hexOk(c.couleur_fond || '#101216');
+const texteCarte = c => /^#[0-9a-fA-F]{6}$/.test(c.couleur_texte || '') ? c.couleur_texte : (clair(fondCarte(c)) ? '#101216' : '#FFFFFF');
 const unite = c => c.mode === 'visite' ? 'tampons' : 'points';
 const texteRecompense = c => c.recompense_type === 'remise_pct' ? `${c.recompense_pct} % de remise` : (c.recompense_libelle || 'Une récompense');
 export const urlCarte = (c, site) => `${site}/fidelite.html?t=${c.token}`;
@@ -48,7 +52,8 @@ function classeGoogle(c, site){
   return {
     id: classeId(c), issuerName: c.salon, programName: `Fidélité ${c.salon}`.slice(0, 60),
     programLogo: { sourceUri: { uri: /^https:\/\//.test(c.logo || '') ? c.logo : `${site}/icons/icon-512.png` }, contentDescription: { defaultValue: { language:'fr', value:c.salon } } },
-    hexBackgroundColor: hexOk(c.couleur), reviewStatus: 'UNDER_REVIEW', countryCode: 'FR'
+    hexBackgroundColor: fondCarte(c), reviewStatus: 'UNDER_REVIEW', countryCode: 'FR',
+    ...(/^https:\/\//.test(c.image || '') ? { heroImage: { sourceUri: { uri: c.image }, contentDescription: { defaultValue: { language:'fr', value:c.salon } } } } : {})
   };
 }
 function objetGoogle(c, site){
@@ -56,8 +61,8 @@ function objetGoogle(c, site){
     id: objetId(c), classId: classeId(c), state: 'ACTIVE', accountId: c.token.slice(0, 16), accountName: c.prenom || 'Client',
     loyaltyPoints: { label: c.mode === 'visite' ? 'Tampons' : 'Points', balance: { int: c.points } },
     secondaryLoyaltyPoints: { label: 'Récompense à', balance: { string: `${c.seuil} ${unite(c)}` } },
-    barcode: { type: 'QR_CODE', value: urlCarte(c, site), alternateText: 'Carte de fidélité' },
-    textModulesData: [{ id: 'recompense', header: 'Récompense', body: texteRecompense(c) }],
+    barcode: { type: 'QR_CODE', value: urlCarte(c, site), alternateText: c.code || 'Carte de fidélité' },
+    textModulesData: [{ id: 'statut', header: 'Statut', body: c.niveau || '' }, { id: 'visites', header: 'Visites', body: String(c.visites == null ? '' : c.visites) }, { id: 'recompense', header: 'Récompense', body: texteRecompense(c) }].filter(m => m.body !== ''),
     linksModuleData: { uris: [{ uri: urlCarte(c, site), description: 'Ma carte en ligne', id: 'carte' }] }
   };
 }
@@ -137,30 +142,69 @@ export function zipper(fichiers){
 }
 
 export function contenuPass(c, site, ids){
-  const fond = hexOk(c.couleur), texte = clair(fond) ? [16, 18, 22] : [255, 255, 255], f = a => `rgb(${a.join(',')})`;
+  const fond = fondCarte(c), texte = texteCarte(c), f = h => `rgb(${rgb(h).join(',')})`, tampons = c.mode === 'visite';
   return {
     formatVersion: 1, passTypeIdentifier: ids.type, teamIdentifier: ids.equipe, serialNumber: c.token, organizationName: c.salon, description: `Carte de fidélité ${c.salon}`, logoText: c.salon,
-    backgroundColor: f(rgb(fond)), foregroundColor: f(texte), labelColor: f(texte),
-    barcodes: [{ format: 'PKBarcodeFormatQR', message: urlCarte(c, site), messageEncoding: 'iso-8859-1', altText: 'Carte de fidélité' }],
+    backgroundColor: f(fond), foregroundColor: f(texte), labelColor: f(texte),
+    barcodes: [{ format: 'PKBarcodeFormatQR', message: urlCarte(c, site), messageEncoding: 'iso-8859-1', altText: c.code || 'Carte de fidélité' }],
     barcode: { format: 'PKBarcodeFormatQR', message: urlCarte(c, site), messageEncoding: 'iso-8859-1' },
+    // Mise en page : logo et nom du salon, STATUT à droite, bandeau image (les tampons y sont dessinés), puis MEMBRE / TAMPONS (ou POINTS) / VISITES, QR et code court.
     storeCard: {
-      primaryFields: [{ key: 'points', label: c.mode === 'visite' ? 'TAMPONS' : 'POINTS', value: c.points }],
-      secondaryFields: [{ key: 'membre', label: 'MEMBRE', value: c.prenom || 'Client' }, { key: 'recompense', label: c.mode === 'visite' ? `RÉCOMPENSE À ${c.seuil} TAMPONS` : `RÉCOMPENSE À ${c.seuil} PTS`, value: texteRecompense(c) }],
+      headerFields: c.niveau ? [{ key: 'statut', label: 'STATUT', value: c.niveau }] : [],
+      secondaryFields: [
+        { key: 'membre', label: 'MEMBRE', value: c.prenom || 'Client' },
+        { key: 'solde', label: tampons ? 'TAMPONS' : 'POINTS', value: `${c.points} / ${c.seuil}` },
+        ...(c.visites != null ? [{ key: 'visites', label: 'VISITES', value: String(c.visites), textAlignment: 'PKTextAlignmentRight' }] : [])
+      ],
       backFields: [
+        { key: 'recompense', label: tampons ? `Récompense après ${c.seuil} passages` : `Récompense à ${c.seuil} points`, value: tampons ? `${texteRecompense(c)} sur le passage suivant.` : `${texteRecompense(c)}.` },
         { key: 'lien', label: 'Mon solde à jour', value: urlCarte(c, site), attributedValue: `<a href="${urlCarte(c, site)}">Ouvrir ma carte en ligne</a>` },
-        { key: 'regle', label: 'Comment ça marche', value: c.mode === 'visite' ? `Un tampon à chaque passage. Après ${c.seuil} passages : ${texteRecompense(c)} sur le passage suivant.` : `${c.points_par_euro} point par euro dépensé. À ${c.seuil} points : ${texteRecompense(c)}.` },
+        { key: 'regle', label: 'Comment ça marche', value: tampons ? `Un tampon à chaque passage. Après ${c.seuil} passages : ${texteRecompense(c)} sur le passage suivant.` : `${c.points_par_euro} point par euro dépensé. À ${c.seuil} points : ${texteRecompense(c)}.` },
         { key: 'info', label: 'À savoir', value: 'Le solde affiché sur ce pass est celui du jour où vous l\'avez ajouté. Le solde à jour se consulte sur la carte en ligne.' }
       ]
     }
   };
 }
 
-export function construirePkpass(c, site, maintenant = new Date(), cfg = null){
+// ------------------------------------------------------------------------------------------------ images du pass (logo du salon, bandeau avec les tampons)
+async function telecharger(url){
+  if(!/^https:\/\//.test(url || '')) return null;
+  try{
+    const r = await fetch(url, { signal: AbortSignal.timeout(6000) }); if(!r.ok) return null;
+    const b = Buffer.from(await r.arrayBuffer()); if(b.length > 3_000_000) return null;
+    return decoderPng(b);
+  }catch(e){ return null; }
+}
+// Récupère les images du salon (PNG envoyés depuis l'écran Fidélité) ; absentes ou illisibles : null, le pass utilise alors le bandeau uni et le monogramme Mirrio.
+export async function preparerImages(c){ return { logo: await telecharger(c.logo), fond: await telecharger(c.image) }; }
+
+// Bandeau : image du salon (ou dégradé de sa couleur), voile sombre en bas, une pastille par tampon (pleine = gagné). Au-delà de 12 passages ou en points : 10 pastilles de progression.
+export function bandeauPass(c, fondImage, L = 750, H = 246){
+  const fond = rgb(fondCarte(c)), img = fondImage ? redimensionner(fondImage, L, H, true) : creer(L, H);
+  if(!fondImage){ const hi = fond.map(v => Math.min(255, v + 46)); for(let y = 0; y < H; y++) for(let x = 0; x < L; x++){ const t = (y / H) * 0.6 + (x / L) * 0.4, o = (y * L + x) * 4; img.d[o] = hi[0] + (fond[0] - hi[0]) * t; img.d[o + 1] = hi[1] + (fond[1] - hi[1]) * t; img.d[o + 2] = hi[2] + (fond[2] - hi[2]) * t; img.d[o + 3] = 255; } }
+  voileBas(img, fond, 0.4, 0.86);
+  const tampons = c.mode === 'visite' && Number(c.points_par_visite) === 1 && c.seuil <= 12;
+  const n = tampons ? c.seuil : 10, pleins = tampons ? Math.min(c.points, c.seuil) : Math.round(Math.min(1, c.points / c.seuil) * 10);
+  const marge = 30, ecart = 9, h = 28, w = (L - 2 * marge - (n - 1) * ecart) / n, y = H - 24 - h, plein = clair(fondCarte(c)) ? [16, 18, 22, 255] : [255, 255, 255, 255];
+  for(let i = 0; i < n; i++) rectArrondi(img, marge + i * (w + ecart), y, w, h, h / 2, i < pleins ? plein : [92, 92, 96, 205]);
+  return img;
+}
+// Logo : tient dans 160 x 50 points (x1, x2, x3), fond transparent.
+function logoPass(img, facteur){
+  const W = 160 * facteur, H = 50 * facteur, r = Math.min(W / img.w, H / img.h), w = Math.max(1, Math.round(img.w * r)), h = Math.max(1, Math.round(img.h * r));
+  return redimensionner(img, w, h);
+}
+
+export function construirePkpass(c, site, maintenant = new Date(), cfg = null, images = {}){
   const ids = { type: E.APPLE_PASS_TYPE_ID, equipe: E.APPLE_TEAM_ID };
   const certPem = cfg ? cfg.cert : pem(E.APPLE_PASS_CERT), clePem = cfg ? cfg.cle : pem(E.APPLE_PASS_KEY), wwdrPem = cfg ? cfg.wwdr : pem(E.APPLE_WWDR_CERT);
   if(cfg){ ids.type = cfg.type; ids.equipe = cfg.equipe; }
   const fichiers = { 'pass.json': Buffer.from(JSON.stringify(contenuPass(c, site, ids))) };
   for(const [nom, b64] of Object.entries(IMAGES)) fichiers[nom] = Buffer.from(b64, 'base64');
+  // Logo du salon à la place du monogramme Mirrio quand il est fourni.
+  if(images.logo) for(const [f, nom] of [[1, 'logo.png'], [2, 'logo@2x.png'], [3, 'logo@3x.png']]) fichiers[nom] = encoderPng(logoPass(images.logo, f));
+  // Bandeau (strip) : 750 x 246 (@2x) et sa réduction (@1x).
+  const b2 = bandeauPass(c, images.fond); fichiers['strip@2x.png'] = encoderPng(b2); fichiers['strip.png'] = encoderPng(redimensionner(b2, 375, 123));
   const manifeste = Buffer.from(JSON.stringify(Object.fromEntries(Object.entries(fichiers).map(([n, b]) => [n, sha1(b).toString('hex')]))));
   fichiers['manifest.json'] = manifeste;
   fichiers['signature'] = signerPkcs7(manifeste, certPem, clePem, wwdrPem, maintenant);
