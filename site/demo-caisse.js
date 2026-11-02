@@ -160,7 +160,7 @@ function agregat(f){
 }
 
 // ---- fidélité (simulation de schema-v52) : mêmes règles que les fonctions SQL
-function fidelite__vue(c){ const p = DB.fidelite_programmes[0]; return { carte_id:c.id, token:c.token, points:c.points, seuil:p.seuil, pret:c.points >= p.seuil, recompense_type:p.recompense_type, recompense_pct:p.recompense_pct, recompense_libelle:p.recompense_libelle, client_id:c.client_id, client_nom:(DB.clients.find(x => x.id === c.client_id) || {}).full_name }; }
+function fidelite__vue(c){ const p = DB.fidelite_programmes[0]; return { carte_id:c.id, token:c.token, points:c.points, seuil:p.seuil, pret:c.points >= p.seuil, mode:p.mode, points_par_visite:p.points_par_visite, recompense_type:p.recompense_type, recompense_pct:p.recompense_pct, recompense_libelle:p.recompense_libelle, client_id:c.client_id, client_nom:(DB.clients.find(x => x.id === c.client_id) || {}).full_name }; }
 function fidelite__carte(clientId){
   let c = DB.fidelite_cartes.find(x => x.client_id === clientId);
   if(!c){ c = { id:'fc' + (DB.n++), owner_id:WS, client_id:clientId, token:Array.from({ length:48 }, () => '0123456789abcdef'[Math.floor(Math.random() * 16)]).join(''), points:0, total_gagne:0, total_utilise:0, recompenses_utilisees:0 }; DB.fidelite_cartes.push(c); }

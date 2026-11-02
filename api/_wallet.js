@@ -30,6 +30,7 @@ const COULEUR_DEFAUT = '#101216';
 const hexOk = c => /^#[0-9a-fA-F]{6}$/.test(c || '') ? c : COULEUR_DEFAUT;
 const rgb = c => { const h = hexOk(c).slice(1); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
 const clair = c => { const [r, g, b] = rgb(c); return (0.299 * r + 0.587 * g + 0.114 * b) > 150; };
+const unite = c => c.mode === 'visite' ? 'tampons' : 'points';
 const texteRecompense = c => c.recompense_type === 'remise_pct' ? `${c.recompense_pct} % de remise` : (c.recompense_libelle || 'Une récompense');
 export const urlCarte = (c, site) => `${site}/fidelite.html?t=${c.token}`;
 
@@ -53,8 +54,8 @@ function classeGoogle(c, site){
 function objetGoogle(c, site){
   return {
     id: objetId(c), classId: classeId(c), state: 'ACTIVE', accountId: c.token.slice(0, 16), accountName: c.prenom || 'Client',
-    loyaltyPoints: { label: 'Points', balance: { int: c.points } },
-    secondaryLoyaltyPoints: { label: 'Récompense à', balance: { string: `${c.seuil} points` } },
+    loyaltyPoints: { label: c.mode === 'visite' ? 'Tampons' : 'Points', balance: { int: c.points } },
+    secondaryLoyaltyPoints: { label: 'Récompense à', balance: { string: `${c.seuil} ${unite(c)}` } },
     barcode: { type: 'QR_CODE', value: urlCarte(c, site), alternateText: 'Carte de fidélité' },
     textModulesData: [{ id: 'recompense', header: 'Récompense', body: texteRecompense(c) }],
     linksModuleData: { uris: [{ uri: urlCarte(c, site), description: 'Ma carte en ligne', id: 'carte' }] }
@@ -143,11 +144,11 @@ export function contenuPass(c, site, ids){
     barcodes: [{ format: 'PKBarcodeFormatQR', message: urlCarte(c, site), messageEncoding: 'iso-8859-1', altText: 'Carte de fidélité' }],
     barcode: { format: 'PKBarcodeFormatQR', message: urlCarte(c, site), messageEncoding: 'iso-8859-1' },
     storeCard: {
-      primaryFields: [{ key: 'points', label: 'POINTS', value: c.points }],
-      secondaryFields: [{ key: 'membre', label: 'MEMBRE', value: c.prenom || 'Client' }, { key: 'recompense', label: `RÉCOMPENSE À ${c.seuil} PTS`, value: texteRecompense(c) }],
+      primaryFields: [{ key: 'points', label: c.mode === 'visite' ? 'TAMPONS' : 'POINTS', value: c.points }],
+      secondaryFields: [{ key: 'membre', label: 'MEMBRE', value: c.prenom || 'Client' }, { key: 'recompense', label: c.mode === 'visite' ? `RÉCOMPENSE À ${c.seuil} TAMPONS` : `RÉCOMPENSE À ${c.seuil} PTS`, value: texteRecompense(c) }],
       backFields: [
         { key: 'lien', label: 'Mon solde à jour', value: urlCarte(c, site), attributedValue: `<a href="${urlCarte(c, site)}">Ouvrir ma carte en ligne</a>` },
-        { key: 'regle', label: 'Comment ça marche', value: c.mode === 'visite' ? `${c.points_par_visite} point par passage. À ${c.seuil} points : ${texteRecompense(c)}.` : `${c.points_par_euro} point par euro dépensé. À ${c.seuil} points : ${texteRecompense(c)}.` },
+        { key: 'regle', label: 'Comment ça marche', value: c.mode === 'visite' ? `Un tampon à chaque passage. Après ${c.seuil} passages : ${texteRecompense(c)} sur le passage suivant.` : `${c.points_par_euro} point par euro dépensé. À ${c.seuil} points : ${texteRecompense(c)}.` },
         { key: 'info', label: 'À savoir', value: 'Le solde affiché sur ce pass est celui du jour où vous l\'avez ajouté. Le solde à jour se consulte sur la carte en ligne.' }
       ]
     }

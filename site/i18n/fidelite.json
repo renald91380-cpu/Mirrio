@@ -303,5 +303,45 @@
   "Scan your salon's QR code to create your card, or open your card link.",
   "Scan de QR-code van uw salon om uw kaart aan te maken, of open de link van uw kaart.",
   "سكاني QR code ديال الصالون ديالك باش تصاوب الكارط، ولا حل الرابط ديال الكارط ديالك."
+ ],
+ "tampons": [
+  "stamps",
+  "stempels",
+  "طوابع"
+ ],
+ "Carte complète : {0} sur votre prochain passage.": [
+  "Card complete: {0} on your next visit.",
+  "Kaart vol: {0} bij uw volgende bezoek.",
+  "الكارط كاملة: {0} فالزيارة الجاية ديالك."
+ ],
+ "Encore {0} tampons pour obtenir {1} sur le passage suivant.": [
+  "{0} more stamps to get {1} on your next visit.",
+  "Nog {0} stempels voor {1} bij uw volgende bezoek.",
+  "باقي ليك {0} طوابع باش تاخد {1} فالزيارة الجاية."
+ ],
+ "Encore {0} tampon pour obtenir {1} sur le passage suivant.": [
+  "{0} more stamp to get {1} on your next visit.",
+  "Nog {0} stempel voor {1} bij uw volgende bezoek.",
+  "باقي ليك {0} طابع باش تاخد {1} فالزيارة الجاية."
+ ],
+ "{0} tampons sur {1}": [
+  "{0} stamps out of {1}",
+  "{0} stempels op {1}",
+  "{0} طوابع من {1}"
+ ],
+ "Un tampon à chaque passage. Après {0} passages : {1} sur le passage suivant. Le tampon est ajouté à la caisse, après le règlement.": [
+  "One stamp at every visit. After {0} visits: {1} on your next visit. The stamp is added at the till, after payment.",
+  "Een stempel bij elk bezoek. Na {0} bezoeken: {1} bij het volgende bezoek. De stempel wordt aan de kassa toegevoegd, na de betaling.",
+  "طابع فكل زيارة. من بعد {0} زيارات: {1} فالزيارة الجاية. الطابع كيتزاد فالكايس، من بعد الخلاص."
+ ],
+ "Un tampon à chaque passage. Après {0} passages : {1} sur le passage suivant.": [
+  "One stamp at every visit. After {0} visits: {1} on your next visit.",
+  "Een stempel bij elk bezoek. Na {0} bezoeken: {1} bij het volgende bezoek.",
+  "طابع فكل زيارة. من بعد {0} زيارات: {1} فالزيارة الجاية."
+ ],
+ "{0} tampons offerts dès l'inscription.": [
+  "{0} stamps free when you sign up.",
+  "{0} stempels gratis bij inschrijving.",
+  "{0} طوابع بلاش من التسجيل."
  ]
 }

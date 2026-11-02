@@ -26,6 +26,7 @@
   .carte .lib{ font-size:12px; text-transform:uppercase; letter-spacing:.08em; opacity:.75; font-weight:600; }
   .carte .membre{ margin-top:14px; font-size:16px; font-weight:600; }
   .barre{ height:10px; border-radius:99px; background:rgba(0,0,0,.15); margin:14px 0 6px; overflow:hidden; } .barre i{ display:block; height:100%; background:currentColor; border-radius:99px; width:0; transition:width .6s ease; }
+  .tampons{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin:16px 0 10px; position:relative; z-index:1; } .tampons i{ aspect-ratio:1; border-radius:50%; border:2.5px dashed currentColor; opacity:.5; display:flex; align-items:center; justify-content:center; font-style:normal; font-weight:800; font-size:15px; } .tampons i.plein{ opacity:1; border-style:solid; background:currentColor; } .tampons i.plein span{ color:var(--sel); mix-blend-mode:normal; }
   .reste{ font-size:14px; font-weight:500; position:relative; z-index:1; }
   .qr{ background:#fff; border-radius:22px; padding:18px; margin:16px 0; text-align:center; box-shadow:var(--ombre); } .qr svg{ width:min(240px,70vw); height:auto; display:block; margin:0 auto; } .qr p{ color:#5B606B; font-size:13.5px; margin-top:8px; }
   .btns{ display:grid; gap:10px; margin:14px 0; }
@@ -95,6 +96,7 @@
     else if(demo){
       c = { salon:'Maison Éloïse', prenom:'Camille', points:62, seuil:100, mode:'euro', points_par_euro:1, points_par_visite:1, recompense_type:'remise_pct', recompense_pct:10, recompense_libelle:'', couleur:'#E2A63D', slug:'demo-coiffure', recompenses_utilisees:1,
         mouvements:[{ type:'gain', points:38, date:new Date(Date.now() - 6 * 864e5).toISOString() }, { type:'utilisation', points:-100, date:new Date(Date.now() - 20 * 864e5).toISOString() }, { type:'gain', points:55, date:new Date(Date.now() - 41 * 864e5).toISOString() }] };
+      if(P.get('mode') === 'tampons'){ c.mode = 'visite'; c.points_par_visite = 1; c.points = 7; c.seuil = 10; c.recompense_pct = 15; c.mouvements = [{ type:'gain', points:1, date:new Date(Date.now() - 5 * 864e5).toISOString() }, { type:'gain', points:1, date:new Date(Date.now() - 19 * 864e5).toISOString() }, { type:'gain', points:1, date:new Date(Date.now() - 33 * 864e5).toISOString() }]; }
       jeton = 'demo'; carteCache = { c:c, wallet:wallet };
     } else {
       var r;
@@ -106,22 +108,25 @@
     }
     couleur(c.couleur); titre(T('Ma carte {0}', c.salon));
     var pct = Math.max(0, Math.min(100, Math.round(c.points / c.seuil * 100))), reste = Math.max(0, c.seuil - c.points), pret = c.points >= c.seuil;
+    var tampons = c.mode === 'visite' && Number(c.points_par_visite) === 1;   // carte tamponnée : un tampon par passage
+    var grille = tampons && c.seuil <= 20;
     var url = location.origin + '/fidelite.html?t=' + (demo ? 'demo' : jeton);
     var libMouv = { gain:T('Passage au salon'), utilisation:T('Récompense utilisée'), ajustement:T('Geste du salon'), bienvenue:T('Bienvenue'), avoir:T('Remboursement') };
     var mouv = (c.mouvements || []).map(function(m){ return '<li><span>' + esc(libMouv[m.type] || m.type) + ' <span class="doux">· ' + esc(dateCourte(m.date)) + '</span></span><span class="' + (m.points >= 0 ? 'plus' : 'moins') + '" dir="ltr">' + (m.points >= 0 ? '+' : '') + m.points + '</span></li>'; }).join('');
-    var phraseReste = pret ? '<b>' + esc(T('Récompense disponible : {0}.', texteRec(c))) + '</b> ' + esc(T('Présentez cette carte en caisse.')) : esc(reste > 1 ? T('Encore {0} points pour obtenir {1}.', reste, texteRec(c)) : T('Encore {0} point pour obtenir {1}.', reste, texteRec(c)));
+    var phraseReste = pret ? '<b>' + esc(tampons ? T('Carte complète : {0} sur votre prochain passage.', texteRec(c)) : T('Récompense disponible : {0}.', texteRec(c))) + '</b> ' + esc(T('Présentez cette carte en caisse.')) : esc(tampons ? (reste > 1 ? T('Encore {0} tampons pour obtenir {1} sur le passage suivant.', reste, texteRec(c)) : T('Encore {0} tampon pour obtenir {1} sur le passage suivant.', reste, texteRec(c))) : (reste > 1 ? T('Encore {0} points pour obtenir {1}.', reste, texteRec(c)) : T('Encore {0} point pour obtenir {1}.', reste, texteRec(c))));
+    var tampBloc = grille ? '<div class="tampons" role="img" aria-label="' + esc(T('{0} tampons sur {1}', Math.min(c.points, c.seuil), c.seuil)) + '">' + Array.from({ length:c.seuil }, function(_, i){ return '<i class="' + (i < c.points ? 'plein' : '') + '" aria-hidden="true"><span>' + (i < c.points ? '✓' : (i + 1)) + '</span></i>'; }).join('') + '</div>' : '';
     main.innerHTML =
       (demo ? '<p class="bandeau-demo"><b>' + esc(T('Démonstration.')) + '</b> ' + esc(T('Carte fictive, rien n\'est enregistré.')) + '</p>' : '') +
       '<div class="marque"><b class="notranslate" translate="no">Mirrio.</b><span>' + esc(T('Carte de fidélité')) + '</span></div>' +
       '<article class="carte" aria-label="' + esc(T('Ma carte de fidélité')) + '"><div class="salon">' + (c.logo && /^https:\/\//.test(c.logo) ? '<img src="' + esc(c.logo) + '" alt="">' : '') + '<span class="notranslate" translate="no">' + esc(c.salon) + '</span></div>' +
-      '<div class="pts" id="pts" dir="ltr">' + c.points + '</div><div class="lib">' + esc(T('points')) + '</div>' +
-      '<div class="barre" role="progressbar" aria-valuenow="' + c.points + '" aria-valuemin="0" aria-valuemax="' + c.seuil + '" aria-label="' + esc(T('Progression vers la récompense')) + '"><i id="bar"></i></div>' +
+      '<div class="pts" id="pts" dir="ltr">' + c.points + '</div><div class="lib">' + esc(tampons ? T('tampons') : T('points')) + '</div>' +
+      (grille ? tampBloc : '<div class="barre" role="progressbar" aria-valuenow="' + c.points + '" aria-valuemin="0" aria-valuemax="' + c.seuil + '" aria-label="' + esc(T('Progression vers la récompense')) + '"><i id="bar"></i></div>') +
       '<p class="reste">' + phraseReste + '</p>' +
       (c.prenom ? '<p class="membre notranslate" translate="no">' + esc(c.prenom) + '</p>' : '') + '</article>' +
       '<div class="qr"><div id="qr" role="img" aria-label="' + esc(T('QR code de votre carte')) + '"></div><p>' + esc(T('Présentez ce code au salon, il suffit de le scanner.')) + '</p></div>' +
       '<div class="btns" id="btns"></div>' +
       (mouv ? '<section class="bloc"><h2>' + esc(T('Derniers mouvements')) + '</h2><ul class="mouv">' + mouv + '</ul></section>' : '') +
-      '<section class="bloc"><h2>' + esc(T('Comment ça marche')) + '</h2><p class="doux">' + esc(T('{0}. À {1} points : {2}. Les points se créditent à la caisse, après le règlement.', regle(c), c.seuil, texteRec(c))) + '</p></section>' +
+      '<section class="bloc"><h2>' + esc(T('Comment ça marche')) + '</h2><p class="doux">' + esc(tampons ? T('Un tampon à chaque passage. Après {0} passages : {1} sur le passage suivant. Le tampon est ajouté à la caisse, après le règlement.', c.seuil, texteRec(c)) : T('{0}. À {1} points : {2}. Les points se créditent à la caisse, après le règlement.', regle(c), c.seuil, texteRec(c))) + '</p></section>' +
       '<p class="pied">' + esc(T('Cette adresse est personnelle : ne la partagez pas.')) + '<br>' + esc(T('Vos données sont gérées par {0}.', c.salon)) + ' <a href="confidentialite.html">' + esc(T('Confidentialité')) + '</a>. ' + esc(T('Pour supprimer votre carte, demandez-le au salon.')) + '</p>';
     requestAnimationFrame(function(){ var b = $('#bar'); if(b) b.style.width = pct + '%'; });
     chargerQR().then(function(ok){ if(ok) $('#qr').innerHTML = qrSvg(url); else $('#qr').innerHTML = '<p class="doux">' + esc(T('QR code indisponible. Adresse de votre carte :')) + '<br>' + esc(url) + '</p>'; });
@@ -159,7 +164,7 @@
     var valeurs = { nom:$('#nom') ? $('#nom').value : '', mail:$('#mail') ? $('#mail').value : '', tel:$('#tel') ? $('#tel').value : '' };
     main.innerHTML =
       '<div class="marque"><b class="notranslate" translate="no">Mirrio.</b><span>' + esc(T('Carte de fidélité')) + '</span></div>' +
-      '<article class="carte"><div class="salon"><span class="notranslate" translate="no">' + esc(d.salon) + '</span></div><h1 style="font-size:28px;margin:18px 0 6px">' + esc(T('Votre carte de fidélité')) + '</h1><p class="reste">' + esc(T('{0}. À {1} points : {2}.', regle(d), d.seuil, texteRec(d))) + (d.points_bienvenue ? ' <b>' + esc(T('{0} points offerts dès l\'inscription.', d.points_bienvenue)) + '</b>' : '') + '</p></article>' +
+      '<article class="carte"><div class="salon"><span class="notranslate" translate="no">' + esc(d.salon) + '</span></div><h1 style="font-size:28px;margin:18px 0 6px">' + esc(T('Votre carte de fidélité')) + '</h1><p class="reste">' + esc(d.mode === 'visite' && Number(d.points_par_visite) === 1 ? T('Un tampon à chaque passage. Après {0} passages : {1} sur le passage suivant.', d.seuil, texteRec(d)) : T('{0}. À {1} points : {2}.', regle(d), d.seuil, texteRec(d))) + (d.points_bienvenue ? ' <b>' + esc(d.mode === 'visite' ? T('{0} tampons offerts dès l\'inscription.', d.points_bienvenue) : T('{0} points offerts dès l\'inscription.', d.points_bienvenue)) + '</b>' : '') + '</p></article>' +
       (existant && !demo ? '<div class="btns"><a class="btn contour" href="fidelite.html?t=' + encodeURIComponent(existant) + '">' + esc(T('Ouvrir ma carte existante')) + '</a></div>' : '') +
       '<section class="bloc"><h2>' + esc(T('Je m\'inscris')) + '</h2><p class="doux">' + esc(T('30 secondes, sans application à installer.')) + '</p><form id="f" novalidate>' +
       '<div id="e" class="err" role="alert" hidden></div>' +

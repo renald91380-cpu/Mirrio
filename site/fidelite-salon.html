@@ -252,15 +252,15 @@
           <label class="fi-sw"><input type="checkbox" id="actif"> Programme de fidélité activé</label>
           <div class="fi-grille" style="margin-top:8px">
             <label class="imp-champ">Comment gagner des points
-              <select id="mode"><option value="euro">Points selon le montant dépensé</option><option value="visite">Points à chaque passage</option></select></label>
+              <select id="mode"><option value="euro">Points selon le montant dépensé</option><option value="visite">Carte tamponnée : un tampon à chaque passage</option></select></label>
             <label class="imp-champ" id="l-euro">Points par euro dépensé (TTC)<input id="ppe" type="number" min="0.1" max="100" step="0.1" value="1"></label>
-            <label class="imp-champ" id="l-visite" hidden>Points par passage<input id="ppv" type="number" min="1" max="100" step="1" value="1"></label>
-            <label class="imp-champ">Points pour une récompense<input id="seuil" type="number" min="1" max="100000" step="1" value="100"></label>
+            <label class="imp-champ" id="l-visite" hidden>Tampons par passage<input id="ppv" type="number" min="1" max="1" step="1" value="1" disabled></label>
+            <label class="imp-champ"><span id="l-seuil">Points pour une récompense</span><input id="seuil" type="number" min="1" max="100000" step="1" value="100"></label>
             <label class="imp-champ">Nature de la récompense
               <select id="rtype"><option value="remise_pct">Une remise sur le ticket</option><option value="libre">Autre (soin offert, produit…)</option></select></label>
             <label class="imp-champ" id="l-pct">Remise (%)<input id="rpct" type="number" min="1" max="100" step="1" value="10"></label>
             <label class="imp-champ" id="l-lib" hidden>Libellé de la récompense<input id="rlib" type="text" maxlength="120" placeholder="Ex. un soin du visage offert"></label>
-            <label class="imp-champ">Points offerts à l'inscription<input id="bienv" type="number" min="0" max="1000" step="1" value="0"></label>
+            <label class="imp-champ"><span id="l-bienv">Points offerts à l'inscription</span><input id="bienv" type="number" min="0" max="1000" step="1" value="0"></label>
           </div>
           <div id="f-err" class="imp-note imp-ko" role="alert" hidden></div>
           <div class="imp-actions"><button class="btn btn-primary" type="submit" id="enreg">Enregistrer</button></div>
@@ -285,7 +285,7 @@
       </section>
 
       <div class="imp-note" id="note-wallet"></div>
-      <div class="imp-note"><b>Bon à savoir.</b> Les points se calculent sur le ticket de caisse enregistré (jamais sur un montant saisi à la main), une seule fois par ticket. Un remboursement par avoir reprend les points correspondants. Les ventes de formation n'en rapportent pas. Un client qui s'inscrit lui-même donne son accord à la conservation de ses coordonnées ; en cas de demande de suppression, supprimez sa fiche dans Clients (sa carte disparaît avec).</div>
+      <div class="imp-note"><b>Bon à savoir.</b> Les points ou tampons se calculent sur le ticket de caisse enregistré (un tampon par ticket, même pour une petite vente) (jamais sur un montant saisi à la main), une seule fois par ticket. Un remboursement par avoir reprend les points correspondants. Les ventes de formation n'en rapportent pas. Un client qui s'inscrit lui-même donne son accord à la conservation de ses coordonnées ; en cas de demande de suppression, supprimez sa fiche dans Clients (sa carte disparaît avec).</div>
     </div>
   </div>
 </main>
@@ -312,17 +312,21 @@
     basculer();
   }
   function lire(){
-    return { owner_id:espace, actif:$('#actif').checked, mode:$('#mode').value, points_par_euro:Number($('#ppe').value), points_par_visite:Math.round(Number($('#ppv').value)), seuil:Math.round(Number($('#seuil').value)),
+    return { owner_id:espace, actif:$('#actif').checked, mode:$('#mode').value, points_par_euro:Number($('#ppe').value), points_par_visite:1, seuil:Math.round(Number($('#seuil').value)),
       recompense_type:$('#rtype').value, recompense_pct:Math.round(Number($('#rpct').value)), recompense_libelle:$('#rlib').value.trim(), points_bienvenue:Math.round(Number($('#bienv').value) || 0), maj_le:new Date().toISOString() };
   }
   function basculer(){
     const e = $('#mode').value === 'euro', r = $('#rtype').value === 'remise_pct';
-    $('#l-euro').hidden = !e; $('#l-visite').hidden = e; $('#l-pct').hidden = !r; $('#l-lib').hidden = r;
+    $('#l-euro').hidden = !e; $('#l-visite').hidden = true; $('#l-pct').hidden = !r; $('#l-lib').hidden = r;
+    $('#l-seuil').textContent = e ? 'Points pour une récompense' : 'Passages pour obtenir la récompense (un tampon par passage)';
+    $('#l-bienv').textContent = e ? 'Points offerts à l\'inscription' : 'Tampons offerts à l\'inscription';
+    if(!e && $('#seuil').dataset.touche !== '1' && Number($('#seuil').value) === 100) $('#seuil').value = 10;   // carte tamponnée classique : 10 passages
     const p = lire(); if(!(p.seuil > 0)) return $('#exemple').textContent = '';
     const rec = r ? `${p.recompense_pct} % de remise` : (p.recompense_libelle || 'une récompense');
-    $('#exemple').textContent = e ? `Exemple : un client qui dépense 40 € gagne ${Math.floor(40 * p.points_par_euro)} points ; il obtient ${rec} à ${p.seuil} points, soit après environ ${Math.ceil(p.seuil / p.points_par_euro)} € dépensés.` : `Exemple : ${p.points_par_visite} point par passage ; ${rec} après ${Math.ceil(p.seuil / p.points_par_visite)} passages.`;
+    $('#exemple').textContent = e ? `Exemple : un client qui dépense 40 € gagne ${Math.floor(40 * p.points_par_euro)} points ; il obtient ${rec} à ${p.seuil} points, soit après environ ${Math.ceil(p.seuil / p.points_par_euro)} € dépensés.` : `Carte tamponnée : un tampon à chaque passage en caisse, quel que soit le montant. Après ${p.seuil} passages, le client a ${rec} sur le passage suivant (le tampon est débité quand il utilise la récompense, la carte repart ensuite).`;
   }
   ['mode', 'rtype', 'ppe', 'ppv', 'seuil', 'rpct', 'rlib'].forEach(i => $('#' + i).addEventListener('input', basculer));
+  $('#seuil').addEventListener('input', () => { $('#seuil').dataset.touche = '1'; });
   $('#f').addEventListener('submit', async e => {
     e.preventDefault(); const err = $('#f-err'); err.hidden = true; const p = lire();
     const bad = m => { err.textContent = m; err.hidden = false; };

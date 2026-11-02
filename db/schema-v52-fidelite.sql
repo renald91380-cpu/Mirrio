@@ -1,6 +1,8 @@
 -- Mirrio — programme de fidélité : une carte par client (QR code, wallet iPhone et Android), points gagnés à chaque passage en caisse,
 -- récompense réglée par le salon. Sûr à rejouer en entier. À exécuter après schema-v51-import.sql.
 --
+-- Deux façons de gagner : selon le MONTANT (points par euro) ou selon le NOMBRE DE PASSAGES (mode « visite » : un point = un tampon, la carte tamponnée classique,
+-- par exemple 10 passages puis une remise sur le passage suivant).
 -- Principes :
 --  * Les points se créditent à partir d'un TICKET DE CAISSE RÉEL, relu en base (montant, client, formation) : jamais un montant venu du navigateur.
 --    Un ticket ne crédite qu'une fois (index unique), un avoir reprend les points correspondants.
@@ -106,7 +108,7 @@ end $$;
 
 create or replace function public.fidelite__vue(c public.fidelite_cartes, p public.fidelite_programmes)
 returns jsonb language sql stable security definer set search_path = public as $$
-  select jsonb_build_object('carte_id', c.id, 'token', c.token, 'points', c.points, 'seuil', p.seuil, 'pret', c.points >= p.seuil,
+  select jsonb_build_object('carte_id', c.id, 'token', c.token, 'points', c.points, 'seuil', p.seuil, 'pret', c.points >= p.seuil, 'mode', p.mode, 'points_par_visite', p.points_par_visite,
     'recompense_type', p.recompense_type, 'recompense_pct', p.recompense_pct, 'recompense_libelle', p.recompense_libelle,
     'client_id', c.client_id, 'client_nom', (select full_name from public.clients where id = c.client_id))
 $$;

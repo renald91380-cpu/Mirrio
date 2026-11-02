@@ -389,9 +389,9 @@
     const z = $('#zone-fid'); if(!z) return;
     const f = courant && courant.fid;
     if(!fid || !client || !f){ z.innerHTML = ''; return; }
-    z.innerHTML = `<div class="avert" style="margin:0"><b>Fidélité</b> · ${f.points} / ${f.seuil} points
+    z.innerHTML = `<div class="avert" style="margin:0"><b>Fidélité</b> · ${f.points} / ${f.seuil} ${f.mode === 'visite' ? 'tampons' : 'points'}
       ${f.utiliser ? `<br>Récompense appliquée : <b>${esc(texteRecompense(f))}</b>${f.recompense_type === 'libre' ? ' (à appliquer sur le ticket)' : ''}. <button class="btn petit" type="button" id="fid-annuler">Annuler</button>`
-        : f.pret ? `<br><button class="btn petit principal" type="button" id="fid-utiliser">Utiliser la récompense : ${esc(texteRecompense(f))}</button>` : `<br><span class="muted">Encore ${f.seuil - f.points} points pour ${esc(texteRecompense(f))}.</span>`}
+        : f.pret ? `<br><button class="btn petit principal" type="button" id="fid-utiliser">Utiliser la récompense : ${esc(texteRecompense(f))}</button>` : `<br><span class="muted">Encore ${f.seuil - f.points} ${f.mode === 'visite' ? 'tampons' : 'points'} pour ${esc(texteRecompense(f))}${f.mode === 'visite' ? ' au passage suivant' : ''}.</span>`}
       <button class="btn petit" type="button" id="fid-qr">Sa carte</button></div>`;
     const u = $('#fid-utiliser'), a = $('#fid-annuler');
     if(u) u.onclick = () => { f.utiliser = true; dessinerPanier(); };
@@ -961,7 +961,7 @@
   async function ticket(v, fidRes){
     const ficheClient = v.client_id ? clients.find(c => c.id === v.client_id) || null : null;
     const { d, fin } = ouvrir(`<h2>${v.formation ? 'Vente de formation' : v.type === 'avoir' ? 'Avoir enregistré' : 'Vente enregistrée'}</h2><p class="muted" style="margin-bottom:10px">${v.numero ? esc(v.numero) + ' · ' : ''}${eur(v.totaux.totalTTC)}</p>
-      ${fidRes ? `<p style="margin:8px 0;padding:10px 12px;border-radius:12px;background:rgba(226,166,61,.18)"><b>Fidélité</b> : ${fidRes.gain > 0 ? '+' + fidRes.gain + ' points · ' : (fidRes.gain < 0 ? fidRes.gain + ' points · ' : '')}${fidRes.utilise ? 'récompense utilisée · ' : ''}solde ${fidRes.points} / ${fidRes.seuil}${fidRes.pret ? ' · <b>récompense disponible</b>' : ''}</p>` : ''}
+      ${fidRes ? `<p style="margin:8px 0;padding:10px 12px;border-radius:12px;background:rgba(226,166,61,.18)"><b>Fidélité</b> : ${fidRes.gain > 0 ? '+' + fidRes.gain + (fidRes.mode === 'visite' ? ' tampon · ' : ' points · ') : (fidRes.gain < 0 ? fidRes.gain + ' points · ' : '')}${fidRes.utilise ? 'récompense utilisée · ' : ''}solde ${fidRes.points} / ${fidRes.seuil}${fidRes.pret ? ' · <b>récompense disponible</b>' : ''}</p>` : ''}
       ${v.paiements.some(p => p.mode === 'especes' && p.recu > p.montant) ? `<p class="gros" style="margin:8px 0">Rendre ${eur(v.paiements.filter(p => p.mode === 'especes').reduce((s, p) => s + (p.recu - p.montant), 0))}</p>` : ''}
       ${v.formation ? '' : `<div id="envoi" style="margin:12px 0;border-top:1px solid var(--line);padding-top:12px">
         <b>Envoyer le ticket au client</b>${ficheClient ? `<span class="muted" style="font-size:13px"> · coordonnées de la fiche de ${esc(ficheClient.full_name)}</span>` : ''}

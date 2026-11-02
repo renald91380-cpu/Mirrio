@@ -278,6 +278,18 @@ verif('C', 'Fidélité : inscription par téléphone retrouve la fiche existante
 verif('S', 'Fidélité : inscription sans e-mail ni téléphone refusée', /e-mail ou un téléphone/.test(await refuse(() => q(`select public.fidelite_inscrire('salon-test', 'Zoé', '', '')`)) || ''));
 const pub = (await un(`select public.fidelite_publique($1) r`, [carteF.token])).r;
 verif('S', 'Fidélité : la lecture publique ne donne que le prénom, le solde et le salon', pub.prenom === 'Camille' && pub.salon === 'Salon Test' && !JSON.stringify(pub).includes('camille@x.fr') && !JSON.stringify(pub).includes('Durand'));
+
+// ---- fidélité : carte tamponnée (un tampon par passage, quel que soit le montant)
+await db.exec(`update public.fidelite_programmes set mode = 'visite', points_par_visite = 1, seuil = 3, points_bienvenue = 0 where owner_id = '${U}'`);
+const cliT = (await un(`insert into public.clients (owner_id, full_name, email) values ($1, 'Tamponnée Test', 't@x.fr') returning id`, [U])).id;
+const t1 = (await un(`select public.fidelite_appliquer($1) r`, [(await venteF(5, cliT)).numero])).r;
+const t2 = (await un(`select public.fidelite_appliquer($1) r`, [(await venteF(120, cliT)).numero])).r;
+verif('C', 'Carte tamponnée : un tampon par passage, quel que soit le montant', t1.gain === 1 && t2.gain === 1 && t2.points === 2 && t2.mode === 'visite', JSON.stringify(t2));
+const t3 = (await un(`select public.fidelite_appliquer($1) r`, [(await venteF(30, cliT)).numero])).r;
+verif('C', 'Carte tamponnée : la carte est complète au 3e passage', t3.points === 3 && t3.pret === true, JSON.stringify(t3));
+const t4 = (await un(`select public.fidelite_appliquer($1, true) r`, [(await venteF(40, cliT)).numero])).r;
+verif('C', 'Carte tamponnée : la récompense du passage suivant remet la carte à zéro puis ajoute le tampon du jour', t4.utilise === true && t4.points === 1, JSON.stringify(t4));
+await db.exec(`update public.fidelite_programmes set mode = 'euro', points_par_euro = 1, seuil = 50 where owner_id = '${U}'`);
 await db.exec(`set app.uid = '${V}'; set app.ws = '${U}';`);
 verif('S', 'Fidélité : un vendeur crédite mais ne règle ni n\'ajuste ni ne liste', /Réservé/.test(await refuse(() => q(`select public.fidelite_ajuster($1, 5, 'x')`, [carteF.carte_id])) || '') && /Réservé/.test(await refuse(() => q(`select * from public.fidelite_liste()`)) || ''));
 await db.exec(`set app.uid = '${U}'; set app.ws = '';`);
