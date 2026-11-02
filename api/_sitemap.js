@@ -15,7 +15,6 @@ const PAGES = [
   ['/', 'weekly', '1.0'],
   ['/bouche.html', 'weekly', '0.8'],
   ['/mariage.html', 'weekly', '0.8'],
-  ['/caisse-logiciel.html', 'weekly', '0.8'],
   ['/explorer.html', 'daily', '0.8'],
   ['/signup.html', 'monthly', '0.6'],
   ['/cgu.html', 'yearly', '0.2'],
@@ -25,18 +24,22 @@ const PAGES = [
 const x = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 export default async function handler(req, res){
-  let salons = [];
+  let salons = [], caisseActive = true;
   try{
     if(SUPABASE_URL && SERVICE_KEY){
       const r = await fetch(`${SUPABASE_URL}/rest/v1/parametres_reservation?activee=eq.true&visible_annuaire=eq.true&slug=not.is.null&select=slug&limit=5000`,
         { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } });
       if(r.ok) salons = (await r.json()).map(l => l.slug).filter(s => /^[a-z0-9-]{3,40}$/.test(s) && !s.startsWith('demo-'));
     }
+    if(SUPABASE_URL && SERVICE_KEY){
+      const f = await fetch(`${SUPABASE_URL}/rest/v1/fonctions_produit?cle=eq.caisse&select=actif`, { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } });
+      if(f.ok){ const l = await f.json(); if(l[0] && l[0].actif === false) caisseActive = false; }
+    }
   }catch(e){ /* plan du site partiel plutôt qu'une erreur : les pages fixes suffisent */ }
 
   const aujourdhui = new Date().toISOString().slice(0, 10);
   const urls = [
-    ...PAGES.map(([chemin, freq, prio]) => `<url><loc>${x(BASE + chemin)}</loc><changefreq>${freq}</changefreq><priority>${prio}</priority></url>`),
+    ...(caisseActive ? [['/caisse-logiciel.html', 'weekly', '0.8']] : []).concat(PAGES).map(([chemin, freq, prio]) => `<url><loc>${x(BASE + chemin)}</loc><changefreq>${freq}</changefreq><priority>${prio}</priority></url>`),
     ...salons.map(s => `<url><loc>${x(`${BASE}/pro.html?p=${encodeURIComponent(s)}`)}</loc><lastmod>${aujourdhui}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>`)
   ];
   res.statusCode = 200;

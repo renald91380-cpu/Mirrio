@@ -3,7 +3,7 @@
 // Un seul endroit pour la liste : la modifier ici la met à jour partout.
 (function(){
   'use strict';
-  const FONCTIONS = globalThis.MIRRIO_FONCTIONS || { caisse:false };
+  const FONCTIONS = globalThis.MIRRIO_FONCTIONS || { caisse:true };
   const TOUTES = [
     ['Réservation en ligne 24h/24', 'Une page par salon, de vrais créneaux, un acompte par carte.', 'pro.html?p=demo-coiffure', ''],
     ['Agenda d\'équipe', 'Une colonne par personne, glisser-déposer, horaires de chacun.', 'demos.html', ''],
@@ -15,7 +15,7 @@
     ['Export pour le comptable', 'TVA par taux, archives, lien en lecture seule.', 'caisse-logiciel.html#compta', '']
   ];
   // Caisse non certifiée : ses entrées sont cachées (site/fonctions-config.js).
-  const ENTREES = TOUTES.filter(e => FONCTIONS.caisse || !/^caisse-logiciel/.test(e[2]));
+  const ENTREES = TOUTES.filter(e => FONCTIONS.caisse !== false || !/^caisse-logiciel/.test(e[2]));
   const css = `
   /* Alignement : Solutions (bouton) et les autres liens (a) sur la même ligne, même police, même hauteur. */
   .nav ul{ align-items:center; }

@@ -258,8 +258,8 @@ export function monterEntete(brand, actif, estAdmin){
   const role = b.role || 'proprietaire';
   if(role === 'vendeur') base = base.filter(o => ['agenda', 'caisse'].includes(o.cle));
   else if(role === 'collaborateur') base = base.filter(o => !['dashboard', 'documents', 'reglages', 'equipe', 'salons', 'vitrine'].includes(o.cle));
-  // Caisse non certifiée : onglets Caisse et Équipe (statistiques tirées des tickets de caisse) cachés (fonctions-config.js).
-  if(!(globalThis.MIRRIO_FONCTIONS && globalThis.MIRRIO_FONCTIONS.caisse)) base = base.filter(o => !['caisse', 'equipe'].includes(o.cle));
+  // Fonctions désactivées depuis le back-office (fonctions-config.js, table fonctions_produit) : onglets Caisse et Équipe retirés.
+  { const f = globalThis.MIRRIO_FONCTIONS || {}; base = base.filter(o => !((o.cle === 'caisse' && f.caisse === false) || (o.cle === 'equipe' && f.equipe === false))); }
   const onglets = estAdmin ? [...base, ONGLET_ADMIN] : base;
 
   if(b.salons && b.salons.length > 1 && clientSupabase) monterSelecteurSalon(b.salons);
@@ -383,6 +383,7 @@ export async function prenomConnecte(supabase, session){
 // Point d'entrée unique : applique le cache, charge la vraie valeur, remonte
 // l'en-tête, et renvoie la marque résolue.
 export async function initTheme(supabase, ongletActif){
+  try{ await (globalThis.MIRRIO_FONCTIONS && globalThis.MIRRIO_FONCTIONS.pret); }catch(e){}   // valeurs des interrupteurs de fonctions à jour avant de monter la navigation
   appliquerThemeEnCache();
   const espaceId = await idEspaceActif(supabase);
   const [brand, estAdmin] = await Promise.all([

@@ -200,6 +200,16 @@
   .inactivite-row input{ width:80px; padding:8px 10px; border:1px solid rgba(28,35,51,0.2); border-radius:6px; font-size:14px; font-family:var(--mono); }
   .inactivite-msg{ font-size:12.5px; color:var(--teal); }
   .assumption-note{ font-size:12px; color:rgba(28,35,51,0.45); margin-top:14px; line-height:1.6; }
+  .fonctions-liste{ display:grid; gap:10px; margin-top:12px; }
+  .fonction-ligne{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 16px; border:1px solid var(--line, rgba(16,18,22,.1)); border-radius:16px; }
+  .fonction-txt{ display:grid; gap:2px; min-width:0; } .fonction-txt small{ color:var(--ink-soft, #5B606B); line-height:1.4; } .fonction-maj{ font-size:12px; }
+  .interrupteur{ display:inline-flex; align-items:center; gap:10px; min-height:44px; cursor:pointer; flex:none; font-weight:600; font-size:13px; }
+  .interrupteur input{ position:absolute; opacity:0; width:1px; height:1px; }
+  .curseur{ position:relative; width:46px; height:26px; border-radius:99px; background:#B9BDC6; transition:background .2s; }
+  .curseur::after{ content:""; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:transform .2s; }
+  .interrupteur input:checked + .curseur{ background:var(--amber, #E2A63D); } .interrupteur input:checked + .curseur::after{ transform:translateX(20px); }
+  .interrupteur input:focus-visible + .curseur{ outline:3px solid var(--amber, #E2A63D); outline-offset:3px; }
+  @media (max-width:560px){ .fonction-ligne{ flex-direction:column; align-items:flex-start; } }
 </style>
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#1C2333">
@@ -362,6 +372,13 @@
             Chiffres août 2026, à vérifier avant décision : <a href="https://supabase.com/pricing" target="_blank" rel="noopener">supabase.com/pricing</a>, <a href="https://vercel.com/pricing" target="_blank" rel="noopener">vercel.com/pricing</a>. Usage réel : dashboard Supabase → Project Settings → Usage, et dashboard Vercel → Usage.
           </div>
         </div>
+      </div>
+
+      <div class="card" id="fonctions-card">
+        <h2>Fonctionnalités</h2>
+        <p class="card-sub">Active ou désactive une fonction pour tout le produit, sans redéployer. Une fonction désactivée disparaît de la navigation, des menus et des démos, et ses pages redirigent. Les données ne sont jamais supprimées : la réactiver remet tout en place. Le changement est visible au prochain chargement de chaque page (un visiteur déjà connecté voit l'ancien état jusqu'à son prochain rechargement).</p>
+        <div id="fonctions-liste" class="fonctions-liste" aria-live="polite">Chargement…</div>
+        <p class="legal-msg" id="fonctions-msg" role="status"></p>
       </div>
 
       <div class="card" id="legal-card">
@@ -655,6 +672,29 @@
     `).join('');
   }
 
+  // Fonctionnalités : interrupteurs du produit (table fonctions_produit, lue par site/fonctions-config.js).
+  const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  async function initFonctions(){
+    const zone = document.getElementById('fonctions-liste'), msg = document.getElementById('fonctions-msg');
+    const dire = (t, ok) => { msg.textContent = t; msg.style.color = ok === false ? '#b3402a' : ''; };
+    const { data, error } = await supabase.from('fonctions_produit').select('cle, libelle, description, actif, maj_le').order('cle');
+    if(error){ zone.textContent = 'Table absente : exécute db/schema-v53-fonctions.sql dans Supabase.'; return; }
+    zone.innerHTML = data.map(f => `
+      <div class="fonction-ligne">
+        <div class="fonction-txt"><b>${esc(f.libelle)}</b><small>${esc(f.description || '')}</small><small class="fonction-maj">${f.maj_le ? 'Modifiée le ' + new Date(f.maj_le).toLocaleString('fr-FR', { dateStyle:'medium', timeStyle:'short' }) : ''}</small></div>
+        <label class="interrupteur"><input type="checkbox" role="switch" data-cle="${esc(f.cle)}" ${f.actif ? 'checked' : ''} aria-label="${esc(f.libelle)} : activée"><span class="curseur" aria-hidden="true"></span><span class="etat">${f.actif ? 'Activée' : 'Désactivée'}</span></label>
+      </div>`).join('') || 'Aucune fonction enregistrée.';
+    zone.addEventListener('change', async e => {
+      const c = e.target.closest('input[data-cle]'); if(!c) return;
+      c.disabled = true; dire('Enregistrement…');
+      const { error: er } = await supabase.from('fonctions_produit').update({ actif: c.checked }).eq('cle', c.dataset.cle);
+      c.disabled = false;
+      if(er){ c.checked = !c.checked; dire('Échec : ' + er.message, false); return; }
+      c.closest('label').querySelector('.etat').textContent = c.checked ? 'Activée' : 'Désactivée';
+      dire(c.checked ? 'Fonction activée.' : 'Fonction désactivée.');
+    });
+  }
+
   // Textes légaux : édition du HTML publié (table textes_legaux). Sans ligne en base, l'éditeur
   // part du texte statique de la page, extrait de son <article>, pour ne jamais commencer à vide.
   async function initTextesLegaux(){
@@ -783,6 +823,7 @@
     document.getElementById('filtre-plan').addEventListener('change', rendreTable);
     document.getElementById('filtre-statut').addEventListener('change', rendreTable);
     rendreTable();
+    initFonctions();
     initTextesLegaux();
   })();
   }
