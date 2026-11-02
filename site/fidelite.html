@@ -165,7 +165,7 @@
       '<h1 style="font-size:28px;margin:18px 0 8px">' + esc(T('Scannez pour créer votre carte de fidélité')) + '</h1>' +
       '<p class="doux">' + esc(T('Ouvrez l\'appareil photo de votre téléphone et visez ce code. Votre carte s\'ouvre, sans application, et s\'ajoute à Apple Wallet ou Google Wallet.')) + '</p>' +
       '<div class="pass-qrbox"><div class="pass-qr" role="img" aria-label="' + esc(T('QR code de votre carte')) + '"></div></div>' +
-      (demo || slug === 'demo-coiffure' ? '<p class="doux">' + esc(T('Démonstration : sur votre téléphone, scannez le code. Ici, touchez le bouton pour simuler le scan.')) + '</p><div class="btns"><a class="btn" href="fidelite.html?p=' + encodeURIComponent(slug) + '">' + esc(T('Simuler le scan')) + '</a></div>' : '') +
+      (demo || slug === 'demo-coiffure' ? '<p class="doux">' + esc(T('Démonstration : sur votre téléphone, scannez le code. Ici, touchez le bouton pour simuler le scan.')) + '</p><div class="btns"><a class="btn noir" href="fidelite.html?p=' + encodeURIComponent(slug) + '">' + esc(T('Simuler le scan')) + '</a></div>' : '') +
       '</article>';
     MIRRIO_CARTE.remplirQr(main, lien);
   }
