@@ -167,6 +167,14 @@
     return res;
   }
 
+
+  // Un montant (data-prix) change de monnaie à l'intérieur d'un bloc déjà traduit : on remet le français d'origine du bloc, la page change le montant, puis on retraduit.
+  function reinitialiserBloc(noeud){
+    var el = noeud && noeud.parentElement, n = 0;
+    while(el && n < 4){ if(el.__html){ el.innerHTML = el.__html.fr; el.__html = null; return el; } el = el.parentElement; n++; }
+    return null;
+  }
+
   var obs = null, file = [], planifie = false;
   function vider(){
     planifie = false; var l = file; file = [];
@@ -266,7 +274,7 @@
     // Pays imposé par le salon connecté : le sélecteur l'affiche mais ne le change plus.
     imposerPays: function(c){ if(!PAYS[c]) return; etat.pays = c; pays_verrouille = true; dessinerSelecteur(); notifier(); },
     onChange: function(f){ etat.ecouteurs.push(f); },
-    traduire: function(noeud){ parcourir(noeud || document); }, manquants: manquants,
+    traduire: function(noeud){ parcourir(noeud || document); }, manquants: manquants, reinitialiserBloc: reinitialiserBloc,
     montant: function(n, devise){ return new Intl.NumberFormat(LANGUES[etat.langue].locale, { style:'currency', currency: devise || PAYS[etat.pays].devise }).format(Number(n) || 0); },
     date: function(d, opts){ return new Date(d).toLocaleDateString(LANGUES[etat.langue].locale, opts || { day:'numeric', month:'short' }); }
   };

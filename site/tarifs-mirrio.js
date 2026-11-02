@@ -23,13 +23,22 @@
   }
   function appliquer(){
     var d = monnaie();
-    document.querySelectorAll('[data-prix]').forEach(function(el){ var v = prix(el.getAttribute('data-prix'), d); if(v != null) el.textContent = format(v, d); });
+    var T = function(fr){ var a = Array.prototype.slice.call(arguments, 1); return window.I18N ? window.I18N.t.apply(window.I18N, [fr].concat(a)) : fr.replace(/\{(\d+)\}/g, function(_, n){ return a[+n]; }); };
+    var blocs = [];
+    // 1) on remet en français les blocs déjà traduits qui contiennent un montant ; 2) on met les montants à jour (éléments relus après la remise en état) ; 3) on retraduit les blocs.
+    document.querySelectorAll('[data-prix]').forEach(function(el){
+      var b = window.I18N && window.I18N.reinitialiserBloc ? window.I18N.reinitialiserBloc(el) : null; if(b && blocs.indexOf(b) < 0) blocs.push(b);
+    });
+    document.querySelectorAll('[data-prix]').forEach(function(el){
+      var v = prix(el.getAttribute('data-prix'), d); if(v != null) el.textContent = format(v, d);
+    });
+    if(window.I18N) blocs.forEach(function(b){ window.I18N.traduire(b); });
     document.querySelectorAll('.plan .prix[data-plan]').forEach(function(el){
       var p = el.getAttribute('data-plan'), t = TARIFS[d][p], an = el.getAttribute('data-periode') === 'annuel';
       el.setAttribute('data-m', t[0]); el.setAttribute('data-a', t[1]);
-      el.setAttribute('data-eco', 'soit ' + format(Math.round(t[1] / 12 * 100) / 100, d) + ' par mois');
-      el.innerHTML = format(an ? t[1] : t[0], d) + (an ? '<small> /an</small>' : '<small> /mois</small>');
-      var eco = el.parentElement.querySelector('.eco-an'); if(eco && an) eco.textContent = el.getAttribute('data-eco') + ', deux mois offerts';
+      el.setAttribute('data-eco', T('soit {0} par mois, deux mois offerts', format(Math.round(t[1] / 12 * 100) / 100, d)));
+      el.innerHTML = format(an ? t[1] : t[0], d) + '<small> ' + (an ? T('/an') : T('/mois')) + '</small>';
+      var eco = el.parentElement.querySelector('.eco-an'); if(eco && an) eco.textContent = el.getAttribute('data-eco');
     });
   }
   window.MIRRIO_TARIFS = { TARIFS: TARIFS, appliquer: appliquer, prix: prix, format: format, monnaie: monnaie };

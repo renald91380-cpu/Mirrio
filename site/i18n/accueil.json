@@ -1,0 +1,867 @@
+{
+ "Mirrio, la plateforme qu'il vous faut | Réservation en ligne": [
+  "Mirrio, the platform you need | Online booking",
+  "Mirrio, het platform dat u nodig hebt | Online reserveren",
+  "Mirrio، المنصة اللي خاصك | الحجز أونلاين"
+ ],
+ "Réservation en ligne 24h/24, équipe en colonnes, livre d'or vérifié. Pour coiffeurs, barbiers, instituts et onglerie. Dès 19 €/mois, zéro commission.": [
+  "Online booking 24/7, team columns, verified guest book. For hairdressers, barbers, beauty salons and nail bars. From €19/month, zero commission.",
+  "Online reserveren 24/7, team in kolommen, geverifieerd gastenboek. Voor kappers, barbiers, schoonheidssalons en nagelstudio's. Vanaf 19 €/maand, geen commissie.",
+  "الحجز أونلاين 24/24، الفريق فأعمدة، دفتر ذهبي موثوق. للحلاقين والباربية والمعاهد ونايل. من 19 € فالشهر، بلا عمولة."
+ ],
+ "Aller au contenu": [
+  "Skip to content",
+  "Naar de inhoud",
+  "مور للمحتوى"
+ ],
+ "Solutions": [
+  "Solutions",
+  "Oplossingen",
+  "الحلول"
+ ],
+ "Fonctions": [
+  "Features",
+  "Functies",
+  "المميزات"
+ ],
+ "Tarifs": [
+  "Pricing",
+  "Tarieven",
+  "الأثمنة"
+ ],
+ "Démo": [
+  "Demo",
+  "Demo",
+  "ديمو"
+ ],
+ "Trouver un salon": [
+  "Find a salon",
+  "Een salon vinden",
+  "لقا صالون"
+ ],
+ "Boulangerie": [
+  "Bakery",
+  "Bakkerij",
+  "الخباز"
+ ],
+ "Mariage": [
+  "Wedding",
+  "Huwelijk",
+  "العرس"
+ ],
+ "Mes rendez-vous": [
+  "My appointments",
+  "Mijn afspraken",
+  "الرونديفوات ديالي"
+ ],
+ "Espace salon": [
+  "Salon login",
+  "Salonruimte",
+  "فضاء الصالون"
+ ],
+ "Créer mon salon": [
+  "Create my salon",
+  "Mijn salon aanmaken",
+  "صاوب الصالون ديالي"
+ ],
+ "Réservation en ligne 24h/24": [
+  "Online booking 24/7",
+  "Online reserveren 24/7",
+  "الحجز أونلاين 24/24"
+ ],
+ "Une page par salon, de vrais créneaux, un acompte par carte.": [
+  "One page per salon, real time slots, a deposit by card.",
+  "Een pagina per salon, echte tijdstippen, een voorschot met de kaart.",
+  "صفحة لكل صالون، أوقات حقيقية، عربون بالكارط."
+ ],
+ "Agenda d'équipe": [
+  "Team calendar",
+  "Teamagenda",
+  "أجندة الفريق"
+ ],
+ "Une colonne par personne, glisser-déposer, horaires de chacun.": [
+  "One column per person, drag and drop, everyone's hours.",
+  "Een kolom per persoon, slepen en neerzetten, ieders uren.",
+  "عمود لكل واحد، سحب وإفلات، الوقت ديال كل واحد."
+ ],
+ "Caisse prête pour la certification NF525": [
+  "Till ready for NF525 certification",
+  "Kassa klaar voor NF525-certificering",
+  "الكايس واجدة لشهادة NF525"
+ ],
+ "Tickets, avoirs, clôtures : un journal inaltérable.": [
+  "Receipts, credit notes, closings: a tamper-proof journal.",
+  "Tickets, creditnota's, afsluitingen: een onveranderbaar logboek.",
+  "التيكيات، الاسترجاعات، الإغلاقات: سجل ما كيتبدلش."
+ ],
+ "Nouveau": [
+  "New",
+  "Nieuw",
+  "جديد"
+ ],
+ "Terminal de paiement": [
+  "Payment terminal",
+  "Betaalterminal",
+  "جهاز الخلاص"
+ ],
+ "Encaissez sur un SumUp Solo, la référence suit le ticket.": [
+  "Take payments on a SumUp Solo, the reference follows the receipt.",
+  "Ontvang betalingen op een SumUp Solo, de referentie volgt het ticket.",
+  "خلص على SumUp Solo، والمرجع كيتبع التيكي."
+ ],
+ "Produits et code-barres": [
+  "Products and barcodes",
+  "Producten en streepjescodes",
+  "المنتوجات والباركود"
+ ],
+ "Votre catalogue, le scan à la caméra, les remises possibles.": [
+  "Your catalogue, camera scanning, possible discounts.",
+  "Uw catalogus, scannen met de camera, mogelijke kortingen.",
+  "الكاتالوغ ديالك، السكان بالكاميرا، التخفيضات الممكنة."
+ ],
+ "Plusieurs salons": [
+  "Several salons",
+  "Meerdere salons",
+  "بزاف د الصالونات"
+ ],
+ "Un planning commun, des salons à cocher, un forfait Groupe.": [
+  "A shared schedule, salons to tick, a Group plan.",
+  "Een gedeelde planning, salons om aan te vinken, een Groepsabonnement.",
+  "بلانينغ مشترك، صالونات تعلم عليهم، باقة المجموعة."
+ ],
+ "Votre page de salon": [
+  "Your salon page",
+  "Uw salonpagina",
+  "صفحة الصالون ديالك"
+ ],
+ "Photos, équipe, prestations, avis : sans commission.": [
+  "Photos, team, services, reviews: no commission.",
+  "Foto's, team, behandelingen, reviews: zonder commissie.",
+  "الصور، الفريق، الخدمات، الآراء: بلا عمولة."
+ ],
+ "Export pour le comptable": [
+  "Export for your accountant",
+  "Export voor uw boekhouder",
+  "تصدير للمحاسب"
+ ],
+ "TVA par taux, archives, lien en lecture seule.": [
+  "VAT by rate, archives, read-only link.",
+  "Btw per tarief, archieven, link met enkel leestoegang.",
+  "الضريبة حسب النسبة، الأرشيف، رابط للقراءة فقط."
+ ],
+ "0 % de commission sur vos rendez-vous": [
+  "0% commission on your appointments",
+  "0% commissie op uw afspraken",
+  "0% عمولة على الرونديفوات ديالك"
+ ],
+ "Remplissez votre salon, <em>gardez tout</em> ce que vous gagnez.": [
+  "Fill your salon, <em>keep everything</em> you earn.",
+  "Vul uw salon, <em>hou alles</em> wat u verdient.",
+  "عمّر الصالون ديالك، <em>وحبس كلشي</em> اللي كتربح."
+ ],
+ "La réservation en ligne pour coiffeurs, barbiers, instituts, ongleries et massages. Page à vos couleurs, agenda d'équipe, paiement direct. Un abonnement fixe, jamais un pourcentage.": [
+  "Online booking for hairdressers, barbers, beauty salons, nail bars and massage. A page in your colours, team calendar, direct payment. A fixed subscription, never a percentage.",
+  "Online reserveren voor kappers, barbiers, schoonheidssalons, nagelstudio's en massage. Een pagina in uw kleuren, teamagenda, rechtstreekse betaling. Een vast abonnement, nooit een percentage.",
+  "الحجز أونلاين للحلاقين والباربية والمعاهد ونايل والمساج. صفحة بالألوان ديالك، أجندة الفريق، خلاص مباشر. اشتراك ثابت، عمرو ما يكون نسبة."
+ ],
+ "Simuler mon salon": [
+  "Try it for my salon",
+  "Mijn salon simuleren",
+  "جرب الصالون ديالي"
+ ],
+ "Mirrio, la plateforme qu'il vous faut.": [
+  "Mirrio, the platform you need.",
+  "Mirrio, het platform dat u nodig hebt.",
+  "Mirrio، المنصة اللي خاصك."
+ ],
+ "Prêt en 10 minutes": [
+  "Ready in 10 minutes",
+  "Klaar in 10 minuten",
+  "واجد فـ 10 دقايق"
+ ],
+ "Sans engagement": [
+  "No commitment",
+  "Geen verplichting",
+  "بلا التزام"
+ ],
+ "Dès": [
+  "From",
+  "Vanaf",
+  "من"
+ ],
+ "par mois": [
+  "per month",
+  "per maand",
+  "فالشهر"
+ ],
+ "Réservation confirmée": [
+  "Booking confirmed",
+  "Reservatie bevestigd",
+  "الحجز تأكد"
+ ],
+ "Samedi 10:30 avec Karim": [
+  "Saturday 10:30 with Karim",
+  "Zaterdag 10:30 met Karim",
+  "السبت 10:30 مع Karim"
+ ],
+ "+38 € reçus": [
+  "+€38 received",
+  "+38 € ontvangen",
+  "+38 € توصلتي"
+ ],
+ "Sur votre compte, sans commission": [
+  "Into your account, no commission",
+  "Op uw rekening, zonder commissie",
+  "فالحساب ديالك، بلا عمولة"
+ ],
+ "Vous cherchez un salon pour vous ?": [
+  "Looking for a salon for yourself?",
+  "Zoekt u een salon voor uzelf?",
+  "كتقلب على صالون لراسك؟"
+ ],
+ "Rechercher un salon ou une ville": [
+  "Search for a salon or a city",
+  "Zoek een salon of een stad",
+  "قلب على صالون ولا مدينة"
+ ],
+ "le chemin": [
+  "the way",
+  "de weg",
+  "الطريق"
+ ],
+ "En ligne en trois étapes.": [
+  "Online in three steps.",
+  "Online in drie stappen.",
+  "أونلاين فتلات مراحل."
+ ],
+ "Créez votre salon": [
+  "Create your salon",
+  "Maak uw salon aan",
+  "صاوب الصالون ديالك"
+ ],
+ "Nom, métier, catalogue de prestations importé en un clic. Ajoutez vos photos et vos couleurs.": [
+  "Name, trade, service catalogue imported in one click. Add your photos and colours.",
+  "Naam, beroep, behandelcatalogus met één klik geïmporteerd. Voeg uw foto's en kleuren toe.",
+  "الاسم، المهنة، كاتالوغ الخدمات كيتستورد بضغطة وحدة. زيد الصور والألوان ديالك."
+ ],
+ "Partagez votre lien": [
+  "Share your link",
+  "Deel uw link",
+  "شارك الرابط ديالك"
+ ],
+ "Sur Instagram, Google, votre vitrine ou en QR code. Vos clients réservent seuls, de jour comme de nuit.": [
+  "On Instagram, Google, your shop window or as a QR code. Your clients book on their own, day or night.",
+  "Op Instagram, Google, uw etalage of als QR-code. Uw klanten reserveren zelf, dag en nacht.",
+  "فإنستاغرام، كوكل، الفترينة ديالك ولا QR code. الكليان كيحجزو بوحدهم، نهار وليل."
+ ],
+ "Encaissez directement": [
+  "Get paid directly",
+  "Ontvang uw geld rechtstreeks",
+  "خلص مباشرة"
+ ],
+ "Acompte par carte ou espèces sur place. L'argent arrive sur votre compte, pas sur le nôtre.": [
+  "Deposit by card or cash on site. The money goes to your account, not ours.",
+  "Voorschot met de kaart of cash ter plaatse. Het geld komt op uw rekening, niet op de onze.",
+  "عربون بالكارط ولا كاش فالصالون. الفلوس كتوصل لحسابك، ماشي لحسابنا."
+ ],
+ "l'excellence": [
+  "excellence",
+  "uitmuntendheid",
+  "التميز"
+ ],
+ "Trois raisons de nous choisir.": [
+  "Three reasons to choose us.",
+  "Drie redenen om voor ons te kiezen.",
+  "تلات أسباب باش تختارنا."
+ ],
+ "de commission": [
+  "commission",
+  "commissie",
+  "عمولة"
+ ],
+ "Chaque rendez-vous vous revient en entier, nouveaux clients compris. Un abonnement fixe, c'est tout.": [
+  "Every appointment is yours in full, new clients included. A fixed subscription, that's all.",
+  "Elke afspraak is volledig voor u, nieuwe klanten inbegrepen. Een vast abonnement, dat is alles.",
+  "كل رونديفو كيرجع ليك كامل، حتى الكليان الجداد. اشتراك ثابت، هادشي كلو."
+ ],
+ "Heures creuses, remplies": [
+  "Quiet hours, filled",
+  "Daluren, opgevuld",
+  "الأوقات الهادئة، عامرة"
+ ],
+ "Choisissez une remise sur vos créneaux vides, par exemple −15 % le mardi matin. Vos clients la voient avant de réserver, vous gagnez des rendez-vous là où l'agenda était vide.": [
+  "Choose a discount on your empty slots, for example −15% on Tuesday morning. Your clients see it before booking, and you win appointments where the calendar was empty.",
+  "Kies een korting op uw lege tijdstippen, bijvoorbeeld −15% op dinsdagvoormiddag. Uw klanten zien ze voor ze reserveren en u wint afspraken waar de agenda leeg was.",
+  "ختار تخفيض على الأوقات الخاوية ديالك، بحال −15% صباح التلات. الكليان كيشوفوه قبل ما يحجزو، وكتربح رونديفوات فين كانت الأجندة خاوية."
+ ],
+ "Trouvé par budget": [
+  "Found by budget",
+  "Gevonden op budget",
+  "كيلقاوك على حسب الميزانية"
+ ],
+ "Vos futurs clients filtrent par fourchette de prix, par prestation, et par prix réduits. Ils arrivent en sachant ce que ça coûte.": [
+  "Your future clients filter by price range, by service and by reduced prices. They arrive knowing what it costs.",
+  "Uw toekomstige klanten filteren op prijsklasse, op behandeling en op verlaagde prijzen. Ze komen binnen en weten wat het kost.",
+  "الكليان الجداد كيفلتروا بالثمن، بالخدمة، وبالأثمنة المخفضة. كيجيو وهوما عارفين شحال غادي يخلصو."
+ ],
+ "la beauté": [
+  "beauty",
+  "schoonheid",
+  "الجمال"
+ ],
+ "Pour elle. Pour lui.": [
+  "For her. For him.",
+  "Voor haar. Voor hem.",
+  "ليها. ليه."
+ ],
+ "Coiffure, barbier, institut, ongles, massage : un catalogue pensé pour les deux, et des salons qui accueillent tout le monde.": [
+  "Hair, barber, beauty, nails, massage: a catalogue designed for both, and salons that welcome everyone.",
+  "Kapper, barbier, schoonheidssalon, nagels, massage: een catalogus voor beide, en salons die iedereen verwelkomen.",
+  "الحلاقة، الباربية، المعهد، الأظافر، المساج: كاتالوغ مفكر فيه للجوج، وصالونات كيستقبلو الجميع."
+ ],
+ "Pour elle": [
+  "For her",
+  "Voor haar",
+  "ليها"
+ ],
+ "Coupe, couleur, soins du visage, ongles, massages.": [
+  "Cut, colour, facials, nails, massages.",
+  "Knippen, kleuren, gezichtsverzorging, nagels, massages.",
+  "القص، الصباغة، العناية بالوجه، الأظافر، المساج."
+ ],
+ "Pour lui": [
+  "For him",
+  "Voor hem",
+  "ليه"
+ ],
+ "Coupe, dégradé, barbe, rasage, soins, massage.": [
+  "Cut, fade, beard, shave, treatments, massage.",
+  "Knippen, fade, baard, scheren, verzorging, massage.",
+  "القص، الديغراديه، اللحية، الحلاقة، العناية، المساج."
+ ],
+ "le savoir-faire": [
+  "craftsmanship",
+  "vakmanschap",
+  "الحرفة"
+ ],
+ "Tout le salon dans un seul outil.": [
+  "The whole salon in one tool.",
+  "Het hele salon in een tool.",
+  "الصالون كامل فأداة وحدة."
+ ],
+ "Réservation en ligne, ouverte la nuit.": [
+  "Online booking, open at night.",
+  "Online reserveren, ook 's nachts open.",
+  "الحجز أونلاين، محلول حتى فالليل."
+ ],
+ "Vos clients choisissent une ou plusieurs prestations, un créneau libre, et réservent depuis votre lien ou votre site.": [
+  "Your clients choose one or more services, a free slot, and book from your link or your website.",
+  "Uw klanten kiezen een of meerdere behandelingen, een vrij tijdstip en reserveren via uw link of website.",
+  "الكليان كيختارو خدمة ولا بزاف، وقت خاوي، وكيحجزو من الرابط ديالك ولا من السيت ديالك."
+ ],
+ "Commission sur vos rendez-vous.": [
+  "Commission on your appointments.",
+  "Commissie op uw afspraken.",
+  "عمولة على الرونديفوات ديالك."
+ ],
+ "Un abonnement fixe, nouveaux clients compris.": [
+  "A fixed subscription, new clients included.",
+  "Een vast abonnement, nieuwe klanten inbegrepen.",
+  "اشتراك ثابت، حتى الكليان الجداد."
+ ],
+ "Équipe en colonnes": [
+  "Team in columns",
+  "Team in kolommen",
+  "الفريق فأعمدة"
+ ],
+ "Une colonne par coiffeur ou praticien, vue du jour, clic sur un créneau vide pour réserver.": [
+  "One column per hairdresser or practitioner, day view, click an empty slot to book.",
+  "Een kolom per kapper of behandelaar, dagweergave, klik op een leeg tijdstip om te reserveren.",
+  "عمود لكل حلاق ولا ممارس، عرض النهار، كليكي على وقت خاوي باش تحجز."
+ ],
+ "Livre d'or vérifié": [
+  "Verified guest book",
+  "Geverifieerd gastenboek",
+  "الدفتر الذهبي الموثوق"
+ ],
+ "Seuls les clients ayant eu un rendez-vous peuvent le signer. Personne ne peut effacer un message.": [
+  "Only clients who had an appointment can sign it. Nobody can erase a message.",
+  "Enkel klanten die een afspraak hadden, kunnen het ondertekenen. Niemand kan een bericht wissen.",
+  "غير الكليان اللي كان عندهم رونديفو يقدرو يوقعو. حتى واحد ما يقدر يمسح رسالة."
+ ],
+ "Paiement direct": [
+  "Direct payment",
+  "Rechtstreekse betaling",
+  "خلاص مباشر"
+ ],
+ "Carte ou PayPal à la réservation, sur votre compte, avec facture acquittée.": [
+  "Card or PayPal at booking, into your account, with a paid invoice.",
+  "Kaart of PayPal bij de reservatie, op uw rekening, met betaalde factuur.",
+  "كارط ولا PayPal ملي كيحجزو، فحسابك، مع فاتورة مخلصة."
+ ],
+ "Trois salons, essayez comme vos clients.": [
+  "Three salons, try it like your clients.",
+  "Drie salons, probeer het zoals uw klanten.",
+  "تلات صالونات، جربهم بحال الكليان ديالك."
+ ],
+ "Des salons fictifs entièrement utilisables : choisissez un coiffeur, un créneau, payez un acompte. Rien n'est enregistré.": [
+  "Fictional salons that are fully usable: choose a hairdresser, a slot, pay a deposit. Nothing is saved.",
+  "Fictieve salons die volledig bruikbaar zijn: kies een kapper, een tijdstip, betaal een voorschot. Er wordt niets opgeslagen.",
+  "صالونات وهمية كاملة الاستعمال: ختار حلاق، وقت، خلص عربون. والو ما كيتسجل."
+ ],
+ "Barbier, Lyon": [
+  "Barber, Lyon",
+  "Barbier, Lyon",
+  "باربية، ليون"
+ ],
+ "The Barber Club": [
+  "The Barber Club",
+  "The Barber Club",
+  "The Barber Club"
+ ],
+ "Trois barbiers, acompte de 5 € et solde en espèces.": [
+  "Three barbers, a €5 deposit and the balance in cash.",
+  "Drie barbiers, voorschot van 5 € en saldo cash.",
+  "تلاتة د الباربية، عربون 5 € والباقي كاش."
+ ],
+ "Ouvrir la page": [
+  "Open the page",
+  "Pagina openen",
+  "حل الصفحة"
+ ],
+ "Coiffure mixte, Paris": [
+  "Mixed hairdresser, Paris",
+  "Gemengde kapper, Parijs",
+  "حلاقة مختلطة، باريس"
+ ],
+ "Maison Éloïse": [
+  "Maison Éloïse",
+  "Maison Éloïse",
+  "Maison Éloïse"
+ ],
+ "Confirmation immédiate et invitation calendrier.": [
+  "Instant confirmation and calendar invitation.",
+  "Onmiddellijke bevestiging en agenda-uitnodiging.",
+  "تأكيد فوري ودعوة للأجندة."
+ ],
+ "Institut, Bordeaux": [
+  "Beauty salon, Bordeaux",
+  "Schoonheidssalon, Bordeaux",
+  "معهد، بوردو"
+ ],
+ "Institut Lotus": [
+  "Institut Lotus",
+  "Institut Lotus",
+  "Institut Lotus"
+ ],
+ "Soins et massages, paiement par carte obligatoire.": [
+  "Treatments and massages, card payment required.",
+  "Verzorging en massages, kaartbetaling verplicht.",
+  "عناية ومساج، الخلاص بالكارط إجباري."
+ ],
+ "Un outil pour chaque métier de la beauté.": [
+  "A tool for every beauty trade.",
+  "Een tool voor elk beroep in de schoonheidssector.",
+  "أداة لكل مهنة د الجمال."
+ ],
+ "Choisissez votre métier : le vocabulaire s'adapte et un catalogue type vous attend.": [
+  "Choose your trade: the vocabulary adapts and a sample catalogue awaits you.",
+  "Kies uw beroep: de woordenschat past zich aan en een voorbeeldcatalogus wacht op u.",
+  "ختار المهنة ديالك: المصطلحات كتتبدل وكاتالوغ جاهز كيتسناك."
+ ],
+ "Coiffure": [
+  "Hairdressing",
+  "Kapper",
+  "الحلاقة"
+ ],
+ "Barbier": [
+  "Barber",
+  "Barbier",
+  "باربية"
+ ],
+ "Institut": [
+  "Beauty salon",
+  "Schoonheidssalon",
+  "معهد"
+ ],
+ "Onglerie": [
+  "Nail bar",
+  "Nagelstudio",
+  "نايل"
+ ],
+ "Massage et spa": [
+  "Massage and spa",
+  "Massage en spa",
+  "مساج وسپا"
+ ],
+ "Touchez une icône pour voir le détail, ou ouvrez-la pour trouver un salon.": [
+  "Tap an icon to see details, or open it to find a salon.",
+  "Tik op een icoon voor details of open het om een salon te vinden.",
+  "كليكي على أيقونة باش تشوف التفاصيل، ولا حلها باش تلقا صالون."
+ ],
+ "Un catalogue prêt pour elle comme pour lui.": [
+  "A catalogue ready for her and for him.",
+  "Een catalogus klaar voor haar en voor hem.",
+  "كاتالوغ واجد ليها وليه."
+ ],
+ "Femme": [
+  "Women",
+  "Dames",
+  "نساء"
+ ],
+ "Homme": [
+  "Men",
+  "Heren",
+  "رجال"
+ ],
+ "Shampoing, coupe, brushing": [
+  "Shampoo, cut, blow-dry",
+  "Shampoo, knippen, föhnen",
+  "شامپوان، قص، بروشينغ"
+ ],
+ "{0} min": [
+  "{0} min",
+  "{0} min",
+  "{0} د"
+ ],
+ "Coloration racines": [
+  "Root colour",
+  "Uitgroei kleuren",
+  "صباغة الجذور"
+ ],
+ "Balayage": [
+  "Balayage",
+  "Balayage",
+  "بالاياج"
+ ],
+ "Soin visage éclat": [
+  "Radiance facial",
+  "Stralende gezichtsbehandeling",
+  "عناية بالوجه للإشراق"
+ ],
+ "Pose semi-permanent": [
+  "Semi-permanent polish",
+  "Semi-permanente nagellak",
+  "سيمي-بيرمانون"
+ ],
+ "Massage relaxant": [
+  "Relaxing massage",
+  "Ontspannende massage",
+  "مساج استرخاء"
+ ],
+ "Coupe homme": [
+  "Men's cut",
+  "Herenknipbeurt",
+  "قص رجالي"
+ ],
+ "Coupe et barbe": [
+  "Cut and beard",
+  "Knippen en baard",
+  "قص ولحية"
+ ],
+ "Rasage traditionnel": [
+  "Traditional shave",
+  "Traditioneel scheren",
+  "حلاقة تقليدية"
+ ],
+ "Soin visage homme": [
+  "Men's facial",
+  "Gezichtsverzorging voor heren",
+  "عناية بوجه الرجل"
+ ],
+ "Coloration barbe": [
+  "Beard colour",
+  "Baard kleuren",
+  "صباغة اللحية"
+ ],
+ "Massage sportif": [
+  "Sports massage",
+  "Sportmassage",
+  "مساج رياضي"
+ ],
+ "Prix indicatifs. Importez le catalogue de votre métier en un clic, puis ajustez prix et durées.": [
+  "Indicative prices. Import your trade's catalogue in one click, then adjust prices and durations.",
+  "Indicatieve prijzen. Importeer de catalogus van uw beroep met één klik en pas prijzen en duur aan.",
+  "أثمنة تقريبية. استورد كاتالوغ المهنة ديالك بضغطة وحدة، من بعد بدل الأثمنة والمدة."
+ ],
+ "la juste mesure": [
+  "the right measure",
+  "de juiste maat",
+  "القياس الصحيح"
+ ],
+ "Un abonnement, jamais de pourcentage.": [
+  "A subscription, never a percentage.",
+  "Een abonnement, nooit een percentage.",
+  "اشتراك، عمرو ما يكون نسبة."
+ ],
+ "Mensuel": [
+  "Monthly",
+  "Maandelijks",
+  "شهري"
+ ],
+ "Annuel": [
+  "Yearly",
+  "Jaarlijks",
+  "سنوي"
+ ],
+ "2 mois offerts": [
+  "2 months free",
+  "2 maanden gratis",
+  "شهرين بلاش"
+ ],
+ "/mois": [
+  "/month",
+  "/maand",
+  "/شهر"
+ ],
+ "/an": [
+  "/year",
+  "/jaar",
+  "/عام"
+ ],
+ "soit {0} par mois, deux mois offerts": [
+  "that is {0} per month, two months free",
+  "dat is {0} per maand, twee maanden gratis",
+  "يعني {0} فالشهر، شهرين بلاش"
+ ],
+ "Solo": [
+  "Solo",
+  "Solo",
+  "Solo"
+ ],
+ "Pour travailler seul·e.": [
+  "For working alone.",
+  "Om alleen te werken.",
+  "باش تخدم بوحدك."
+ ],
+ "1 professionnel, clients et rendez-vous illimités": [
+  "1 professional, unlimited clients and appointments",
+  "1 professional, onbeperkt klanten en afspraken",
+  "1 مهني، كليان ورونديفوات بلا حدود"
+ ],
+ "Réservation en ligne, annuaire et page à vos photos": [
+  "Online booking, directory and a page with your photos",
+  "Online reserveren, gids en een pagina met uw foto's",
+  "الحجز أونلاين، الدليل وصفحة بالصور ديالك"
+ ],
+ "Caisse, devis, factures et tableau de bord": [
+  "Till, quotes, invoices and dashboard",
+  "Kassa, offertes, facturen en dashboard",
+  "الكايس، الديفي، الفواتير ولوحة القيادة"
+ ],
+ "Créer mon compte Solo": [
+  "Create my Solo account",
+  "Mijn Solo-account aanmaken",
+  "صاوب حساب Solo ديالي"
+ ],
+ "Équipe": [
+  "Team",
+  "Team",
+  "الفريق"
+ ],
+ "Pour un salon avec son équipe.": [
+  "For a salon with its team.",
+  "Voor een salon met zijn team.",
+  "لصالون مع الفريق ديالو."
+ ],
+ "<i class=\"ph ph-check-circle\" aria-hidden=\"true\"></i>5 professionnels inclus, puis <span data-prix=\"sup-m\">{0}</span> par professionnel (20 au plus)": [
+  "<i class=\"ph ph-check-circle\" aria-hidden=\"true\"></i>5 professionals included, then <span data-prix=\"sup-m\">{0}</span> per additional professional (20 at most)",
+  "<i class=\"ph ph-check-circle\" aria-hidden=\"true\"></i>5 professionals inbegrepen, daarna <span data-prix=\"sup-m\">{0}</span> per extra professional (maximaal 20)",
+  "<i class=\"ph ph-check-circle\" aria-hidden=\"true\"></i>5 مهنيين مضمونين، من بعد <span data-prix=\"sup-m\">{0}</span> على كل مهني زايد (20 ماكسيموم)"
+ ],
+ "Agenda en colonnes, spécialités et horaires de chacun": [
+  "Calendar in columns, everyone's specialities and hours",
+  "Agenda in kolommen, specialiteiten en uren van iedereen",
+  "أجندة فأعمدة، التخصصات والوقت ديال كل واحد"
+ ],
+ "Tout le forfait Solo, pour toute l'équipe": [
+  "The whole Solo plan, for the whole team",
+  "Het hele Solo-abonnement, voor het hele team",
+  "باقة Solo كاملة، للفريق كامل"
+ ],
+ "Groupe": [
+  "Group",
+  "Groep",
+  "المجموعة"
+ ],
+ "Pour plusieurs salons.": [
+  "For several salons.",
+  "Voor meerdere salons.",
+  "لبزاف د الصالونات."
+ ],
+ "Jusqu'à 10 salons, gérés chacun séparément": [
+  "Up to 10 salons, each managed separately",
+  "Tot 10 salons, elk apart beheerd",
+  "حتى 10 صالونات، كل واحد كيتسير بوحدو"
+ ],
+ "Vue centralisée : chiffre d'affaires et rendez-vous": [
+  "Central view: turnover and appointments",
+  "Gecentraliseerd overzicht: omzet en afspraken",
+  "عرض مركزي: رقم المعاملات والرونديفوات"
+ ],
+ "Le forfait Équipe pour chaque salon": [
+  "The Team plan for each salon",
+  "Het Teamabonnement voor elk salon",
+  "باقة الفريق لكل صالون"
+ ],
+ "Créer mon groupe": [
+  "Create my group",
+  "Mijn groep aanmaken",
+  "صاوب المجموعة ديالي"
+ ],
+ "<strong>Boulangerie, pâtisserie :</strong> un seul tarif, <strong><span data-prix=\"patisserie-m\">{0}</span>/mois</strong> (ou <span data-prix=\"patisserie-a\">{1}</span> par an, deux mois offerts), tout inclus : commandes de gâteaux, calendrier de charge, paiement en ligne, clients illimités. <a href=\"signup.html?activite=patisserie\" style=\"text-decoration:underline\">Créer ma boulangerie</a>": [
+  "<strong>Bakery, pastry shop:</strong> a single price, <strong><span data-prix=\"patisserie-m\">{0}</span>/month</strong> (or <span data-prix=\"patisserie-a\">{1}</span> per year, two months free), everything included: cake orders, workload calendar, online payment, unlimited clients. <a href=\"signup.html?activite=patisserie\" style=\"text-decoration:underline\">Create my bakery</a>",
+  "<strong>Bakkerij, banketbakkerij:</strong> een enkel tarief, <strong><span data-prix=\"patisserie-m\">{0}</span>/maand</strong> (of <span data-prix=\"patisserie-a\">{1}</span> per jaar, twee maanden gratis), alles inbegrepen: taartbestellingen, werkbelastingkalender, online betaling, onbeperkt klanten. <a href=\"signup.html?activite=patisserie\" style=\"text-decoration:underline\">Mijn bakkerij aanmaken</a>",
+  "<strong>الخباز، الحلويات:</strong> ثمن واحد، <strong><span data-prix=\"patisserie-m\">{0}</span>/الشهر</strong> (ولا <span data-prix=\"patisserie-a\">{1}</span> فالعام، شهرين بلاش)، كلشي مشمول: طلبات الكيك، كالندريي الشحن، الخلاص أونلاين، كليان بلا حدود. <a href=\"signup.html?activite=patisserie\" style=\"text-decoration:underline\">صاوب الخباز ديالي</a>"
+ ],
+ "Abonnement fixe dès <span data-prix=\"solo-m\">{0}</span> par mois, deux mois offerts à l'année.": [
+  "Fixed subscription from <span data-prix=\"solo-m\">{0}</span> per month, two months free when paid yearly.",
+  "Vast abonnement vanaf <span data-prix=\"solo-m\">{0}</span> per maand, twee maanden gratis bij jaarlijkse betaling.",
+  "اشتراك ثابت من <span data-prix=\"solo-m\">{0}</span> فالشهر، شهرين بلاش إلا خلصتي بالعام."
+ ],
+ "Planity": [
+  "Planity",
+  "Planity",
+  "Planity"
+ ],
+ "Abonnement fixe, tarif non publié.": [
+  "Fixed subscription, price not published.",
+  "Vast abonnement, tarief niet gepubliceerd.",
+  "اشتراك ثابت، الثمن ما منشورش."
+ ],
+ "Treatwell": [
+  "Treatwell",
+  "Treatwell",
+  "Treatwell"
+ ],
+ "Du premier rendez-vous d'un nouveau client apporté par la plateforme.": [
+  "Of the first appointment of a new client brought by the platform.",
+  "Van de eerste afspraak van een nieuwe klant die het platform aanbrengt.",
+  "من أول رونديفو ديال كليان جديد جابو الموقع."
+ ],
+ "Relevé dans un comparatif FrenchWeb de juillet 2026, à titre indicatif. Les frais de paiement en ligne (Stripe ou PayPal) vont à ces prestataires, jamais à Mirrio.": [
+  "Taken from a FrenchWeb comparison of July 2026, for information only. Online payment fees (Stripe or PayPal) go to those providers, never to Mirrio.",
+  "Overgenomen uit een vergelijking van FrenchWeb van juli 2026, ter informatie. De kosten voor online betalen (Stripe of PayPal) gaan naar die aanbieders, nooit naar Mirrio.",
+  "مأخوذ من مقارنة ديال FrenchWeb ديال يوليوز 2026، على سبيل المعلومة. مصاريف الخلاص أونلاين (Stripe ولا PayPal) كتمشي لهاد الشركات، عمرها لـ Mirrio."
+ ],
+ "Questions fréquentes.": [
+  "Frequently asked questions.",
+  "Veelgestelde vragen.",
+  "أسئلة كتتعاود."
+ ],
+ "Prenez-vous vraiment 0 % de commission ?": [
+  "Do you really take 0% commission?",
+  "Rekent u echt 0% commissie?",
+  "واش بصح ما كتاخدو حتى عمولة؟"
+ ],
+ "Oui. Vous payez un abonnement fixe : Solo <span data-prix=\"solo-m\">{0}</span> par mois, Équipe <span data-prix=\"equipe-m\">{1}</span> par mois (5 professionnels inclus, puis <span data-prix=\"sup-m\">{2}</span> par mois et par professionnel, jusqu'à 20), Groupe <span data-prix=\"groupe-m\">{3}</span> par mois (jusqu'à 10 salons). Payé à l'année, vous avez deux mois offerts. Les paiements en ligne passent par votre propre compte Stripe ou PayPal : seuls leurs frais habituels s'appliquent.": [
+  "Yes. You pay a fixed subscription: Solo <span data-prix=\"solo-m\">{0}</span> per month, Team <span data-prix=\"equipe-m\">{1}</span> per month (5 professionals included, then <span data-prix=\"sup-m\">{2}</span> per month per professional, up to 20), Group <span data-prix=\"groupe-m\">{3}</span> per month (up to 10 salons). Paid yearly, you get two months free. Online payments go through your own Stripe or PayPal account: only their usual fees apply.",
+  "Ja. U betaalt een vast abonnement: Solo <span data-prix=\"solo-m\">{0}</span> per maand, Team <span data-prix=\"equipe-m\">{1}</span> per maand (5 professionals inbegrepen, daarna <span data-prix=\"sup-m\">{2}</span> per maand per professional, tot 20), Groep <span data-prix=\"groupe-m\">{3}</span> per maand (tot 10 salons). Bij jaarlijkse betaling krijgt u twee maanden gratis. Online betalingen lopen via uw eigen Stripe- of PayPal-account: enkel hun gebruikelijke kosten zijn van toepassing.",
+  "آه. كتخلص اشتراك ثابت: Solo <span data-prix=\"solo-m\">{0}</span> فالشهر، الفريق <span data-prix=\"equipe-m\">{1}</span> فالشهر (5 مهنيين مضمونين، من بعد <span data-prix=\"sup-m\">{2}</span> فالشهر على كل مهني، حتى 20)، المجموعة <span data-prix=\"groupe-m\">{3}</span> فالشهر (حتى 10 صالونات). إلا خلصتي بالعام كيتزاد ليك شهرين بلاش. الخلاص أونلاين كيدوز من حساب Stripe ولا PayPal ديالك: غير المصاريف ديالهم العادية."
+ ],
+ "Mes clients doivent-ils créer un compte ?": [
+  "Do my clients have to create an account?",
+  "Moeten mijn klanten een account aanmaken?",
+  "واش الكليان ديالي خاصهم يصاوبو حساب؟"
+ ],
+ "Non. Ils choisissent une prestation, un créneau, laissent leurs coordonnées et reçoivent une confirmation avec une invitation calendrier.": [
+  "No. They choose a service and a slot, leave their details and receive a confirmation with a calendar invitation.",
+  "Nee. Ze kiezen een behandeling en een tijdstip, laten hun gegevens achter en ontvangen een bevestiging met agenda-uitnodiging.",
+  "لا. كيختارو خدمة ووقت، كيخليو المعلومات ديالهم وكيتوصلو بتأكيد مع دعوة للأجندة."
+ ],
+ "Comment fonctionne le choix du coiffeur ?": [
+  "How does choosing the hairdresser work?",
+  "Hoe werkt de keuze van de kapper?",
+  "كيفاش كتخدم اختيار الحلاق؟"
+ ],
+ "Chaque membre de l'équipe a ses prestations, ses jours et ses horaires. Mirrio ne propose que des créneaux réellement libres, et confirme tout de suite.": [
+  "Each team member has their own services, days and hours. Mirrio only offers genuinely free slots, and confirms straight away.",
+  "Elk teamlid heeft zijn eigen behandelingen, dagen en uren. Mirrio stelt enkel echt vrije tijdstippen voor en bevestigt meteen.",
+  "كل واحد فالفريق عندو الخدمات، الأيام والوقت ديالو. Mirrio كيقترح غير الأوقات الخاوية بصح، وكيأكد دغيا."
+ ],
+ "À quoi servent les heures creuses ?": [
+  "What are quiet hours for?",
+  "Waarvoor dienen de daluren?",
+  "علاش كيخدمو الأوقات الهادئة؟"
+ ],
+ "Vous choisissez des jours et une plage horaire où votre agenda est souvent vide, et une remise de 5 à 50 %. Le prix baisse automatiquement sur ces créneaux, le client voit la remise avant de réserver, et l'acompte et la facture suivent le prix remisé.": [
+  "You choose days and a time range when your calendar is often empty, and a discount of 5 to 50%. The price drops automatically on those slots, the client sees the discount before booking, and the deposit and invoice follow the discounted price.",
+  "U kiest dagen en een tijdsbereik waarop uw agenda vaak leeg is, en een korting van 5 tot 50%. De prijs daalt automatisch op die tijdstippen, de klant ziet de korting voor het reserveren en het voorschot en de factuur volgen de verlaagde prijs.",
+  "كتختار أيام وتوقيت فين الأجندة ديالك كتكون خاوية بزاف، وتخفيض من 5 حتى 50%. الثمن كينقص أوتوماتيكيا فهاد الأوقات، الكليان كيشوف التخفيض قبل ما يحجز، والعربون والفاتورة كيتبعو الثمن المخفض."
+ ],
+ "Que se passe-t-il si un client ne vient pas ?": [
+  "What happens if a client does not show up?",
+  "Wat als een klant niet komt opdagen?",
+  "شنو كيوقع إلا الكليان ما جاش؟"
+ ],
+ "Avec l'option espèces, le client règle un acompte d'au moins 5 € par carte. Il est déduit du prix final et conservé en cas d'absence.": [
+  "With the cash option, the client pays a deposit of at least €5 by card. It is deducted from the final price and kept if they do not show up.",
+  "Met de cashoptie betaalt de klant een voorschot van minstens 5 € met de kaart. Het wordt van de eindprijs afgetrokken en bewaard bij afwezigheid.",
+  "مع خيار الكاش، الكليان كيخلص عربون 5 € على الأقل بالكارط. كيتنقص من الثمن النهائي وكيبقى عندك إلا ما جاش."
+ ],
+ "Puis-je essayer avant de m'abonner ?": [
+  "Can I try before subscribing?",
+  "Kan ik proberen voor ik me abonneer?",
+  "واش نقدر نجرب قبل ما نشترك؟"
+ ],
+ "Oui, sans carte bancaire. Vous pouvez aussi parcourir la <a href=\"demo.html\" style=\"text-decoration:underline\">démo</a> pour voir ce que vivront vos clients.": [
+  "Yes, without a bank card. You can also browse the <a href=\"demo.html\" style=\"text-decoration:underline\">demo</a> to see what your clients will experience.",
+  "Ja, zonder bankkaart. U kunt ook de <a href=\"demo.html\" style=\"text-decoration:underline\">demo</a> bekijken om te zien wat uw klanten beleven.",
+  "آه، بلا كارط بنكية. تقدر تشوف حتى <a href=\"demo.html\" style=\"text-decoration:underline\">الديمو</a> باش تشوف شنو غادي يعيشو الكليان ديالك."
+ ],
+ "Ouvrez les réservations de votre salon aujourd'hui.": [
+  "Open your salon's bookings today.",
+  "Open de reservaties van uw salon vandaag nog.",
+  "حل الحجوزات ديال الصالون ديالك اليوم."
+ ],
+ "© Mirrio · La plateforme qu'il vous faut": [
+  "© Mirrio · The platform you need",
+  "© Mirrio · Het platform dat u nodig hebt",
+  "© Mirrio · المنصة اللي خاصك"
+ ],
+ "CGU": [
+  "Terms of use",
+  "Gebruiksvoorwaarden",
+  "شروط الاستعمال"
+ ],
+ "Installer l'app": [
+  "Install the app",
+  "De app installeren",
+  "ثبت التطبيق"
+ ],
+ "Navigation principale": [
+  "Main navigation",
+  "Hoofdnavigatie",
+  "التنقل الرئيسي"
+ ],
+ "Exemple de page salon générée par Mirrio": [
+  "Example of a salon page created with Mirrio",
+  "Voorbeeld van een salonpagina gemaakt met Mirrio",
+  "مثال على صفحة صالون مصاوبة بـ Mirrio"
+ ],
+ "Salon, prestation ou ville": [
+  "Salon, service or city",
+  "Salon, behandeling of stad",
+  "صالون، خدمة ولا مدينة"
+ ],
+ "Pour elle : trouver un salon": [
+  "For her: find a salon",
+  "Voor haar: een salon vinden",
+  "ليها: لقا صالون"
+ ],
+ "Pour lui : trouver un salon": [
+  "For him: find a salon",
+  "Voor hem: een salon vinden",
+  "ليه: لقا صالون"
+ ],
+ "Public": [
+  "Audience",
+  "Doelgroep",
+  "الفئة"
+ ],
+ "Période de facturation": [
+  "Billing period",
+  "Factureringsperiode",
+  "مدة الفاتورة"
+ ]
+}
