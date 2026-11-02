@@ -16,6 +16,7 @@
 <meta name="theme-color" content="#101216">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <style>
+  .badge-cert{ display:inline-flex; align-items:center; min-height:24px; margin-left:6px; padding:0 10px; border-radius:99px; background:rgba(226,166,61,.2); border:1px solid rgba(226,166,61,.7); font:700 11.5px/1 var(--body, system-ui); white-space:nowrap; vertical-align:middle; }
   :root{
     --bg:#F5F5F3; --surface:#FBFBFA; --ink:#101216; --muted:#5B606B; --line:rgba(16,18,22,.1);
     --accent:#E2A63D; --accent-ink:#101216; --icone:#A1700A; --sombre:#101216; --sombre-ink:#F1F1EE; --sombre-muted:#A3A8B3;
@@ -133,7 +134,7 @@
         <a class="btn" href="demo-creation.html">Simuler la création d'un salon</a>
         <a class="btn discret" href="demo-messages.html">Voir les SMS et emails clients</a>
         <a class="btn discret" href="explorer.html?demo=1">Voir l'annuaire</a>
-        <a class="btn discret" href="caisse.html?demo=1" data-caisse>Essayer la caisse (en cours de certification)</a>
+        <a class="btn discret" href="caisse.html?demo=1" data-caisse>Essayer la caisse <span class="badge-cert">En cours de certification</span></a>
       </div>
     </div>
   </section>
@@ -187,7 +188,7 @@
         <li><div><b>Payer un acompte, solde en espèces</b><small>L'acompte de 5 € est déduit du prix et conservé en cas d'absence.</small></div><a class="btn discret petit" href="reservation.html?p=demo-barber">Ouvrir</a></li>
         <li><div><b>Confirmer sans attendre</b><small>Dès l'acompte réglé, le rendez-vous est confirmé tout de suite, avec le fichier calendrier.</small></div><a class="btn discret petit" href="reservation.html?p=demo-coiffure">Ouvrir</a></li>
         <li><div><b>Reprendre le même créneau</b><small>Réservez deux fois : le créneau déjà pris disparaît. Le bouton « Réinitialiser » remet tout à zéro.</small></div><a class="btn discret petit" href="reservation.html?p=demo-coiffure">Ouvrir</a></li>
-        <li data-caisse><div><b>Encaisser en caisse (en cours de certification)</b><small>Plusieurs clients à la fois, des prestations ajoutées pendant la coupe, remise, paiement mixte carte et espèces, ticket et clôture de caisse. Sur iPad ou ordinateur.</small></div><a class="btn discret petit" href="caisse.html?demo=1">Ouvrir</a></li>
+        <li data-caisse><div><b>Encaisser en caisse</b> <span class="badge-cert">En cours de certification</span><small>Plusieurs clients à la fois, des prestations ajoutées pendant la coupe, remise, paiement mixte carte et espèces, ticket et clôture de caisse. Sur iPad ou ordinateur.</small></div><a class="btn discret petit" href="caisse.html?demo=1">Ouvrir</a></li>
       </ol>
     </div>
   </section>
