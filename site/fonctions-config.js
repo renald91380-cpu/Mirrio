@@ -1,5 +1,6 @@
 /* Mirrio — interrupteurs de fonctions : UN seul endroit pour montrer ou cacher une fonction du produit.
  *
+ * caisse : true  = la caisse est visible, avec la mention « en cours de certification » (décision du 2 novembre 2026, suite).
  * caisse : false  => la caisse (caisse.html) n'est pas encore certifiée NF525 (voir docs/caisse-conformite.md) : elle est CACHÉE partout (onglet, menus, pages publiques,
  *                    démonstrations, plan du site) et ses pages redirigent. Les fonctions qui en dépendent (statistiques et commissions par personne, fidélité, attestation)
  *                    sont cachées avec elle. Rien n'est supprimé : tout le code et la base restent en place.
@@ -11,7 +12,7 @@
  */
 (function(){
   'use strict';
-  var F = (globalThis.MIRRIO_FONCTIONS = globalThis.MIRRIO_FONCTIONS || { caisse: false });
+  var F = (globalThis.MIRRIO_FONCTIONS = globalThis.MIRRIO_FONCTIONS || { caisse: true });
   function appliquer(){
     if(F.caisse) return;
     var racine = document.documentElement, repli = racine.getAttribute('data-garde-caisse');

@@ -7,7 +7,7 @@
   const TOUTES = [
     ['Réservation en ligne 24h/24', 'Une page par salon, de vrais créneaux, un acompte par carte.', 'pro.html?p=demo-coiffure', ''],
     ['Agenda d\'équipe', 'Une colonne par personne, glisser-déposer, horaires de chacun.', 'demos.html', ''],
-    ['Caisse prête pour la certification NF525', 'Tickets, avoirs, clôtures : un journal inaltérable.', 'caisse-logiciel.html', 'Nouveau'],
+    ['Caisse en cours de certification NF525', 'Tickets, avoirs, clôtures : un journal inaltérable.', 'caisse-logiciel.html', 'Nouveau'],
     ['Terminal de paiement', 'Encaissez sur un SumUp Solo, la référence suit le ticket.', 'caisse-logiciel.html#terminal', 'Nouveau'],
     ['Produits et code-barres', 'Votre catalogue, le scan à la caméra, les remises possibles.', 'caisse-logiciel.html#produits', ''],
     ['Plusieurs salons', 'Un planning commun, des salons à cocher, un forfait Groupe.', 'salons.html?demo=1', ''],
