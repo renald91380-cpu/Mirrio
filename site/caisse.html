@@ -249,7 +249,7 @@
   async function ouvrirCaisse(){
     const { d, fin } = ouvrir(`<h2>Ouvrir la caisse</h2>
       <p class="muted" style="margin-bottom:14px">Indiquez les espèces présentes dans le tiroir-caisse (fond de caisse).</p>
-      <div class="champ"><label for="fond">Fond de caisse (€)</label><input id="fond" inputmode="decimal" value="0" autofocus></div>
+      <div class="champ"><label for="fond">Fond de caisse (€)</label><input id="fond" inputmode="decimal" value="${DEMO ? 100 : 0}" autofocus></div>
       <p class="erreur" id="err" role="alert"></p>
       <div class="actions"><button class="btn" id="non" type="button">Plus tard</button><button class="btn principal" id="ok" type="button">Ouvrir la caisse</button></div>`);
     d.querySelector('#non').onclick = () => d.fermer(null);

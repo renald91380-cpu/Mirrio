@@ -3,7 +3,7 @@
 // Réimplémente juste ce que caisse.html demande à Supabase (select / eq / is / in / order / limit / maybeSingle / single / insert / update / delete)
 // sur quelques tables, avec le salon fictif Maison Éloïse (coiffure mixte, franchise de TVA). L'état survit au rechargement
 // (sessionStorage) pour pouvoir présenter une journée entière ; `reinitialiserDemoCaisse()` remet tout à zéro.
-const CLE = 'mirrio-demo-caisse-v9';
+const CLE = 'mirrio-demo-caisse-v10';
 const WS = 'demo';
 
 // Rendez-vous d'aujourd'hui pour montrer « Encaisser depuis l'agenda » : un simple, un avec acompte déjà versé en ligne (facture émise), un déjà réglé en ligne.
@@ -28,7 +28,7 @@ function donneesInitiales(){
   const p = (id, libelle, ttc, categorie, position) => ({ id, owner_id:WS, libelle, prix_unitaire:Math.round(ttc / 1.2 * 10000) / 10000, tva_taux:20, categorie, actif:true, position });
   return {
     n: 1,
-    caisse_sessions: [{ id:'sess-demo', owner_id:WS, ouverte_le:new Date().toISOString(), fond_caisse:100, cloturee_le:null }],
+    caisse_sessions: [],   // la démo démarre caisse fermée : on montre l'ouverture (fond de caisse), puis les ventes
     caisse_paiements: [], documents: [], document_lignes: [], caisse_tickets: [], caisse_journal: [],
     produits: [
       ['Shampoing réparateur 250 ml', 'Kérastase', 'Shampoings', 24.9, 3], ['Masque nutrition 200 ml', 'Kérastase', 'Soins', 32, 2], ['Huile sèche 100 ml', 'Moroccanoil', 'Soins', 38.5, 1],
